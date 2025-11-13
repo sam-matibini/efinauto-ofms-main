@@ -8,7 +8,8 @@ import {
   ShoppingCart, 
   Wrench,
   Plane,
-  Package
+  Package,
+  Users
 } from "lucide-react";
 import {
   Sidebar,
@@ -30,6 +31,11 @@ const navigationItems = [
     title: "Dashboard",
     url: createPageUrl("Dashboard"),
     icon: LayoutDashboard,
+  },
+  {
+    title: "Customers",
+    url: createPageUrl("Customers"),
+    icon: Users,
   },
   {
     title: "Vehicles",

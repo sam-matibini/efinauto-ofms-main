@@ -12,10 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import CustomerSelector from "../components/shared/CustomerSelector";
 
 export default function Repairs() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRepair, setEditingRepair] = useState(null);
+  const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: repairs = [] } = useQuery({
@@ -41,6 +43,15 @@ export default function Repairs() {
       setDialogOpen(false);
       setEditingRepair(null);
       toast.success("Repair order updated!");
+    },
+  });
+
+  const createCustomerMutation = useMutation({
+    mutationFn: (data) => base44.entities.Customer.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      setCustomerDialogOpen(false);
+      toast.success("Customer added!");
     },
   });
 
@@ -151,14 +162,22 @@ export default function Repairs() {
         }}
         repair={editingRepair}
         onSave={handleSave}
+        onCreateCustomer={() => setCustomerDialogOpen(true)}
+      />
+
+      <QuickCustomerDialog
+        open={customerDialogOpen}
+        onClose={() => setCustomerDialogOpen(false)}
+        onSave={(data) => createCustomerMutation.mutate(data)}
       />
     </div>
   );
 }
 
-function RepairDialog({ open, onClose, repair, onSave }) {
+function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer }) {
   const [formData, setFormData] = useState(repair || {
     order_number: `RO-${Date.now()}`,
+    customer_id: null,
     customer_name: "",
     customer_phone: "",
     vehicle_make: "",
@@ -189,6 +208,15 @@ function RepairDialog({ open, onClose, repair, onSave }) {
     setFormData(prev => ({ ...prev, total_cost: total }));
   }, [formData.labor_cost, formData.parts_cost]);
 
+  const handleCustomerSelect = (customer) => {
+    setFormData({
+      ...formData,
+      customer_id: customer.id,
+      customer_name: customer.full_name,
+      customer_phone: customer.phone
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -197,6 +225,15 @@ function RepairDialog({ open, onClose, repair, onSave }) {
         </DialogHeader>
         
         <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Select Customer</Label>
+            <CustomerSelector
+              value={formData.customer_id}
+              onSelect={handleCustomerSelect}
+              onCreateNew={onCreateCustomer}
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Customer Name *</Label>
@@ -299,6 +336,45 @@ function RepairDialog({ open, onClose, repair, onSave }) {
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700">
             {repair ? 'Update' : 'Create'} Order
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function QuickCustomerDialog({ open, onClose, onSave }) {
+  const [formData, setFormData] = useState({
+    full_name: "",
+    phone: "",
+    email: "",
+    customer_type: "individual"
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Quick Add Customer</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Full Name *</Label>
+            <Input value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} />
+          </div>
+          <div className="space-y-2">
+            <Label>Phone *</Label>
+            <Input value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+          </div>
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <Input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+          </div>
+        </div>
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700">
+            Add Customer
           </Button>
         </div>
       </DialogContent>

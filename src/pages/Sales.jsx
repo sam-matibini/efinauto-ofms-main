@@ -13,9 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import CustomerSelector from "../components/shared/CustomerSelector";
 
 export default function Sales() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: sales = [] } = useQuery({
@@ -30,6 +32,15 @@ export default function Sales() {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       setDialogOpen(false);
       toast.success("Sale recorded successfully!");
+    },
+  });
+
+  const createCustomerMutation = useMutation({
+    mutationFn: (data) => base44.entities.Customer.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      setCustomerDialogOpen(false);
+      toast.success("Customer added successfully!");
     },
   });
 
@@ -142,17 +153,25 @@ export default function Sales() {
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         onSave={(data) => createMutation.mutate(data)}
+        onCreateCustomer={() => setCustomerDialogOpen(true)}
+      />
+
+      <QuickCustomerDialog
+        open={customerDialogOpen}
+        onClose={() => setCustomerDialogOpen(false)}
+        onSave={(data) => createCustomerMutation.mutate(data)}
       />
     </div>
   );
 }
 
-function SaleDialog({ open, onClose, onSave }) {
+function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
   const [formData, setFormData] = useState({
     sale_number: `SALE-${Date.now()}`,
     customer_name: "",
     customer_phone: "",
     customer_email: "",
+    customer_id: null,
     vehicle_vin: "",
     vehicle_details: "",
     sale_price: 0,
@@ -164,6 +183,16 @@ function SaleDialog({ open, onClose, onSave }) {
     notes: ""
   });
 
+  const handleCustomerSelect = (customer) => {
+    setFormData({
+      ...formData,
+      customer_id: customer.id,
+      customer_name: customer.full_name,
+      customer_phone: customer.phone,
+      customer_email: customer.email || ""
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -172,6 +201,15 @@ function SaleDialog({ open, onClose, onSave }) {
         </DialogHeader>
         
         <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Select Customer</Label>
+            <CustomerSelector
+              value={formData.customer_id}
+              onSelect={handleCustomerSelect}
+              onCreateNew={onCreateCustomer}
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Customer Name *</Label>
@@ -222,6 +260,45 @@ function SaleDialog({ open, onClose, onSave }) {
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700">
             Record Sale
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function QuickCustomerDialog({ open, onClose, onSave }) {
+  const [formData, setFormData] = useState({
+    full_name: "",
+    phone: "",
+    email: "",
+    customer_type: "individual"
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Quick Add Customer</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Full Name *</Label>
+            <Input value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} />
+          </div>
+          <div className="space-y-2">
+            <Label>Phone *</Label>
+            <Input value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+          </div>
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <Input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+          </div>
+        </div>
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700">
+            Add Customer
           </Button>
         </div>
       </DialogContent>
