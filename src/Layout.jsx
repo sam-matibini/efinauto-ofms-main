@@ -1,7 +1,15 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { LayoutDashboard, Package, Plus, TrendingUp, AlertTriangle } from "lucide-react";
+import { 
+  LayoutDashboard, 
+  Car, 
+  Settings, 
+  ShoppingCart, 
+  Wrench,
+  Plane,
+  Package
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -24,14 +32,34 @@ const navigationItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "Products",
-    url: createPageUrl("Products"),
-    icon: Package,
+    title: "Vehicles",
+    url: createPageUrl("Vehicles"),
+    icon: Car,
   },
   {
-    title: "Add Product",
-    url: createPageUrl("AddProduct"),
-    icon: Plus,
+    title: "Parts Inventory",
+    url: createPageUrl("Parts"),
+    icon: Settings,
+  },
+  {
+    title: "Sales",
+    url: createPageUrl("Sales"),
+    icon: ShoppingCart,
+  },
+  {
+    title: "Auto Repair",
+    url: createPageUrl("Repairs"),
+    icon: Wrench,
+  },
+  {
+    title: "Exports",
+    url: createPageUrl("Exports"),
+    icon: Plane,
+  },
+  {
+    title: "Freight & Cargo",
+    url: createPageUrl("Freight"),
+    icon: Package,
   },
 ];
 
@@ -44,12 +72,12 @@ export default function Layout({ children, currentPageName }) {
         <Sidebar className="border-r border-gray-200 bg-white">
           <SidebarHeader className="border-b border-gray-200 p-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Package className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+                <Car className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="font-bold text-gray-900 text-lg">StockFlow</h2>
-                <p className="text-xs text-gray-500">Inventory Manager</p>
+                <h2 className="font-bold text-gray-900 text-lg">AutoPro Center</h2>
+                <p className="text-xs text-gray-500">Car Dealership & Services</p>
               </div>
             </div>
           </SidebarHeader>
@@ -57,7 +85,7 @@ export default function Layout({ children, currentPageName }) {
           <SidebarContent className="p-3">
             <SidebarGroup>
               <SidebarGroupLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2">
-                Menu
+                Main Menu
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
@@ -83,12 +111,12 @@ export default function Layout({ children, currentPageName }) {
 
           <SidebarFooter className="border-t border-gray-200 p-4">
             <div className="flex items-center gap-3 px-2">
-              <div className="w-9 h-9 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center">
-                <span className="text-gray-700 font-semibold text-sm">U</span>
+              <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                <span className="text-white font-semibold text-sm">A</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900 text-sm truncate">User</p>
-                <p className="text-xs text-gray-500 truncate">Inventory Manager</p>
+                <p className="font-semibold text-gray-900 text-sm truncate">Admin User</p>
+                <p className="text-xs text-gray-500 truncate">Dealership Manager</p>
               </div>
             </div>
           </SidebarFooter>
@@ -98,7 +126,7 @@ export default function Layout({ children, currentPageName }) {
           <header className="bg-white border-b border-gray-200 px-6 py-4 md:hidden sticky top-0 z-10">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="hover:bg-gray-100 p-2 rounded-lg transition-colors duration-200" />
-              <h1 className="text-xl font-bold text-gray-900">StockFlow</h1>
+              <h1 className="text-xl font-bold text-gray-900">AutoPro Center</h1>
             </div>
           </header>
 
