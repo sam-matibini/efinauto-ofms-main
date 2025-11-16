@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react"; // Added useEffect
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import VehicleSelector from "../components/sales/VehicleSelector";
 import PaymentTracker from "../components/sales/PaymentTracker";
 import TradeInForm from "../components/sales/TradeInForm";
 import FinancingForm from "../components/sales/FinancingForm";
+import CanadianTaxCalculator, { calculateCanadianTax } from "../components/sales/CanadianTaxCalculator"; // Added CanadianTaxCalculator import
 
 export default function Sales() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -60,7 +62,8 @@ export default function Sales() {
     },
   });
 
-  const totalSales = sales.reduce((sum, s) => sum + (s.sale_price || 0), 0);
+  // Updated totalSales calculation to use grand_total if available
+  const totalSales = sales.reduce((sum, s) => sum + (s.grand_total || s.sale_price || 0), 0);
   const pendingSales = sales.filter(s => s.payment_status === 'pending').length;
 
   const statusColors = {
@@ -138,7 +141,8 @@ export default function Sales() {
         {sales.map((sale, index) => {
           const isExpanded = expandedSaleId === sale.id;
           const totalPaid = sale.total_paid || 0;
-          const balanceDue = (sale.sale_price || 0) - totalPaid;
+          // Updated balanceDue calculation to use grand_total if available
+          const balanceDue = (sale.grand_total || sale.sale_price || 0) - totalPaid;
           
           return (
             <motion.div
@@ -185,8 +189,15 @@ export default function Sales() {
                       </div>
                       <div className="text-right ml-4">
                         <p className="text-2xl font-bold text-green-600">
-                          ${sale.sale_price?.toLocaleString()}
+                          {/* Display grand_total if available, else sale_price */}
+                          ${(sale.grand_total || sale.sale_price)?.toLocaleString()}
                         </p>
+                        {/* Display tax total if greater than 0 */}
+                        {sale.tax_total > 0 && (
+                          <p className="text-xs text-gray-500">
+                            (incl. ${sale.tax_total?.toFixed(2)} tax)
+                          </p>
+                        )}
                         <p className="text-sm text-gray-500 mt-1">
                           Paid: ${totalPaid.toLocaleString()}
                         </p>
@@ -198,7 +209,7 @@ export default function Sales() {
                       </div>
                     </div>
 
-                    {(sale.payments?.length > 0 || sale.trade_in?.has_trade_in || sale.financing?.enabled) && (
+                    {(sale.payments?.length > 0 || sale.trade_in?.has_trade_in || sale.financing?.enabled || sale.tax_total > 0) && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -275,6 +286,20 @@ export default function Sales() {
                             </div>
                           </div>
                         )}
+
+                        {sale.tax_total > 0 && (
+                          <div>
+                            <h4 className="font-semibold mb-2">Tax Details ({sale.province})</h4>
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                                <p>Sale Price: ${sale.sale_price?.toFixed(2)}</p>
+                                {sale.tax_gst > 0 && <p>GST: ${sale.tax_gst?.toFixed(2)}</p>}
+                                {sale.tax_pst > 0 && <p>PST/RST/QST: ${sale.tax_pst?.toFixed(2)}</p>}
+                                {sale.tax_hst > 0 && <p>HST: ${sale.tax_hst?.toFixed(2)}</p>}
+                                <p className="font-semibold">Total Tax: ${sale.tax_total?.toFixed(2)}</p>
+                                <p className="font-bold mt-2">Grand Total: ${sale.grand_total?.toFixed(2)}</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -313,6 +338,12 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
     vehicle_vin: "",
     vehicle_details: "",
     sale_price: 0,
+    province: "ON", // Added province
+    tax_gst: 0,    // Added tax details
+    tax_pst: 0,
+    tax_hst: 0,
+    tax_total: 0,
+    grand_total: 0, // Added grand_total
     payments: [],
     total_paid: 0,
     balance_due: 0,
@@ -324,6 +355,20 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
     trade_in: { has_trade_in: false },
     notes: ""
   });
+
+  useEffect(() => {
+    // Recalculate taxes when sale price or province changes
+    const salePrice = parseFloat(formData.sale_price) || 0;
+    const taxDetails = calculateCanadianTax(salePrice, formData.province);
+    setFormData(prev => ({
+      ...prev,
+      tax_gst: taxDetails.gst,
+      tax_pst: taxDetails.pst,
+      tax_hst: taxDetails.hst,
+      tax_total: taxDetails.total,
+      grand_total: salePrice + taxDetails.total // Grand total is sale_price + total tax
+    }));
+  }, [formData.sale_price, formData.province]); // Dependencies for useEffect
 
   const handleCustomerSelect = (customer) => {
     setFormData({
@@ -347,10 +392,11 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
 
   const handlePaymentsChange = (payments) => {
     const totalPaid = payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-    const balanceDue = formData.sale_price - totalPaid;
+    // Balance due is calculated based on grand_total
+    const balanceDue = formData.grand_total - totalPaid;
     let paymentStatus = "pending";
     
-    if (totalPaid >= formData.sale_price) {
+    if (totalPaid >= formData.grand_total) { // Check against grand_total
       paymentStatus = "paid";
     } else if (totalPaid > 0) {
       paymentStatus = "partial";
@@ -425,7 +471,7 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
               </div>
               <div className="space-y-2">
                 <Label>Sale Price ($) *</Label>
-                <Input type="number" value={formData.sale_price} onChange={(e) => setFormData({...formData, sale_price: parseFloat(e.target.value)})} />
+                <Input type="number" value={formData.sale_price} onChange={(e) => setFormData({...formData, sale_price: parseFloat(e.target.value) || 0})} />
               </div>
               <div className="space-y-2">
                 <Label>Sale Date</Label>
@@ -449,6 +495,20 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
               </div>
             </div>
 
+            {/* Added CanadianTaxCalculator component */}
+            <CanadianTaxCalculator
+              value={formData.province}
+              onChange={(province) => setFormData({...formData, province})}
+              subtotal={formData.sale_price}
+              taxDetails={{
+                gst: formData.tax_gst,
+                pst: formData.tax_pst,
+                hst: formData.tax_hst,
+                total: formData.tax_total,
+                grandTotal: formData.grand_total,
+              }}
+            />
+
             <div className="space-y-2">
               <Label>Notes</Label>
               <Textarea value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={3} />
@@ -459,7 +519,7 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
             <PaymentTracker
               payments={formData.payments}
               onChange={handlePaymentsChange}
-              salePrice={formData.sale_price}
+              salePrice={formData.grand_total} {/* Changed salePrice to grand_total */}
             />
           </TabsContent>
 
@@ -467,7 +527,7 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
             <FinancingForm
               financing={formData.financing}
               onChange={(financing) => setFormData({...formData, financing})}
-              salePrice={formData.sale_price}
+              salePrice={formData.grand_total} {/* Changed salePrice to grand_total */}
             />
           </TabsContent>
 
