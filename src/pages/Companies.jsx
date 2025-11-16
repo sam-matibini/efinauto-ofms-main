@@ -22,25 +22,41 @@ export default function Companies() {
 
   const { data: companies = [], isLoading } = useQuery({
     queryKey: ['companies'],
-    queryFn: () => base44.entities.Company.list('-created_date'),
+    queryFn: async () => {
+      const result = await base44.entities.Company.list('-created_date');
+      console.log('Fetched companies:', result);
+      return result;
+    },
     initialData: [],
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Company.create(data),
-    onSuccess: () => {
+    mutationFn: async (data) => {
+      console.log('Creating company with data:', data);
+      const result = await base44.entities.Company.create(data);
+      console.log('Company created:', result);
+      return result;
+    },
+    onSuccess: (data) => {
+      console.log('Create success:', data);
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       setDialogOpen(false);
       setEditingCompany(null);
       toast.success("Company added successfully!");
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to add company");
+      console.error('Create error:', error);
+      toast.error(error?.message || "Failed to add company. Please check console for details.");
     }
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Company.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      console.log('Updating company:', id, data);
+      const result = await base44.entities.Company.update(id, data);
+      console.log('Company updated:', result);
+      return result;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       setDialogOpen(false);
@@ -48,7 +64,8 @@ export default function Companies() {
       toast.success("Company updated successfully!");
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to update company");
+      console.error('Update error:', error);
+      toast.error(error?.message || "Failed to update company");
     }
   });
 
@@ -57,16 +74,33 @@ export default function Companies() {
     c.code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleSave = (formData) => {
+  const handleSave = async (formData) => {
+    console.log('HandleSave called with:', formData);
+    
     if (!formData.name || !formData.code) {
       toast.error("Company name and code are required");
       return;
     }
 
+    const cleanData = {
+      name: formData.name,
+      code: formData.code,
+      address: formData.address || "",
+      city: formData.city || "",
+      country: formData.country || "",
+      phone: formData.phone || "",
+      email: formData.email || "",
+      tax_id: formData.tax_id || "",
+      logo_url: formData.logo_url || "",
+      status: formData.status || "active"
+    };
+
+    console.log('Clean data to save:', cleanData);
+
     if (editingCompany) {
-      updateMutation.mutate({ id: editingCompany.id, data: formData });
+      updateMutation.mutate({ id: editingCompany.id, data: cleanData });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(cleanData);
     }
   };
 
