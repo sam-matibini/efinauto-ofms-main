@@ -255,7 +255,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
   const [formData, setFormData] = useState(vehicle || {
     ownership_type: "dealership_owned",
     vin: "", make: "", model: "", year: new Date().getFullYear(),
-    color: "", mileage: 0, condition: "new", status: "in_stock",
+    color: "", mileage: 0, condition: "used", status: "in_stock",
     purchase_price: 0, selling_price: 0, fuel_type: "petrol",
     transmission: "manual", engine_capacity: "", features: "",
     location: "", images: [], notes: ""
@@ -284,36 +284,26 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{vehicle ? 'Edit Vehicle' : 'Add New Vehicle'}</DialogTitle>
+          <DialogTitle>{vehicle ? 'Edit Vehicle' : 'Add Vehicle'}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2 col-span-2">
-              <Label>Ownership Type *</Label>
-              <Select value={formData.ownership_type} onValueChange={(v) => setFormData({...formData, ownership_type: v})}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="dealership_owned">Dealership Owned</SelectItem>
-                  <SelectItem value="customer_owned_export">Customer Owned (Export Only)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             <div className="space-y-2">
               <Label>VIN *</Label>
-              <Input value={formData.vin} onChange={(e) => setFormData({...formData, vin: e.target.value})} />
+              <Input value={formData.vin} onChange={(e) => setFormData({...formData, vin: e.target.value})} placeholder="KM8JUCAG3EU930041" />
             </div>
             <div className="space-y-2">
               <Label>Make *</Label>
-              <Input value={formData.make} onChange={(e) => setFormData({...formData, make: e.target.value})} />
+              <Input value={formData.make} onChange={(e) => setFormData({...formData, make: e.target.value})} placeholder="HYUNDAI TUCSON" />
             </div>
             <div className="space-y-2">
               <Label>Model *</Label>
-              <Input value={formData.model} onChange={(e) => setFormData({...formData, model: e.target.value})} />
+              <Input value={formData.model} onChange={(e) => setFormData({...formData, model: e.target.value})} placeholder="GLS/LIMITED/SE" />
             </div>
             <div className="space-y-2">
               <Label>Year *</Label>
-              <Input type="number" value={formData.year} onChange={(e) => setFormData({...formData, year: parseInt(e.target.value)})} />
+              <Input type="number" value={formData.year} onChange={(e) => setFormData({...formData, year: parseInt(e.target.value) || new Date().getFullYear()})} placeholder="2014" />
             </div>
             <div className="space-y-2">
               <Label>Color</Label>
@@ -321,7 +311,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
             </div>
             <div className="space-y-2">
               <Label>Mileage (km)</Label>
-              <Input type="number" value={formData.mileage} onChange={(e) => setFormData({...formData, mileage: parseInt(e.target.value)})} />
+              <Input type="number" value={formData.mileage} onChange={(e) => setFormData({...formData, mileage: parseInt(e.target.value) || 0})} placeholder="0" />
             </div>
             <div className="space-y-2">
               <Label>Condition</Label>
@@ -349,11 +339,11 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
             </div>
             <div className="space-y-2">
               <Label>Purchase Price ($)</Label>
-              <Input type="number" value={formData.purchase_price} onChange={(e) => setFormData({...formData, purchase_price: parseFloat(e.target.value)})} />
+              <Input type="number" value={formData.purchase_price} onChange={(e) => setFormData({...formData, purchase_price: parseFloat(e.target.value) || 0})} placeholder="0" />
             </div>
             <div className="space-y-2">
               <Label>Selling Price ($)</Label>
-              <Input type="number" value={formData.selling_price} onChange={(e) => setFormData({...formData, selling_price: parseFloat(e.target.value)})} />
+              <Input type="number" value={formData.selling_price} onChange={(e) => setFormData({...formData, selling_price: parseFloat(e.target.value) || 0})} placeholder="0" />
             </div>
             <div className="space-y-2">
               <Label>Fuel Type</Label>
@@ -383,11 +373,11 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
 
           <div className="space-y-2">
             <Label>Upload Image</Label>
-            <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} className="block w-full text-sm" />
+            <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
             {formData.images?.length > 0 && (
               <div className="flex gap-2 mt-2">
                 {formData.images.map((img, i) => (
-                  <img key={i} src={img} className="w-20 h-20 object-cover rounded" />
+                  <img key={i} src={img} className="w-20 h-20 object-cover rounded" alt={`Vehicle ${i + 1}`} />
                 ))}
               </div>
             )}
