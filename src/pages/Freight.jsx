@@ -86,13 +86,22 @@ export default function Freight() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Freight & Cargo Management</h1>
           <p className="text-gray-600">{shipments.length} shipments</p>
         </div>
-        <Button onClick={() => {
-          setEditingShipment(null);
-          setDialogOpen(true);
-        }} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="w-4 h-4 mr-2" />
-          New Shipment
-        </Button>
+        <div className="flex gap-3">
+          <Button onClick={() => {
+            setSelectedShipment(null);
+            setLoadingDeclOpen(true);
+          }} variant="outline">
+            <FileText className="w-4 h-4 mr-2" />
+            Loading Declaration
+          </Button>
+          <Button onClick={() => {
+            setEditingShipment(null);
+            setDialogOpen(true);
+          }} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="w-4 h-4 mr-2" />
+            New Shipment
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4">
