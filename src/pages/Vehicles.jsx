@@ -27,6 +27,7 @@ import { toast } from "sonner";
 export default function Vehicles() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [ownershipFilter, setOwnershipFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -64,7 +65,8 @@ export default function Vehicles() {
                           v.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           v.vin?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || v.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesOwnership = ownershipFilter === "all" || v.ownership_type === ownershipFilter;
+    return matchesSearch && matchesStatus && matchesOwnership;
   });
 
   const handleSave = (formData) => {
@@ -81,6 +83,11 @@ export default function Vehicles() {
     reserved: "bg-yellow-100 text-yellow-800",
     in_transit: "bg-purple-100 text-purple-800",
     exported: "bg-gray-100 text-gray-800"
+  };
+
+  const ownershipColors = {
+    dealership_owned: "bg-indigo-100 text-indigo-800",
+    customer_owned_export: "bg-orange-100 text-orange-800"
   };
 
   return (
@@ -103,7 +110,7 @@ export default function Vehicles() {
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <Input
@@ -113,6 +120,16 @@ export default function Vehicles() {
               className="pl-10"
             />
           </div>
+          <Select value={ownershipFilter} onValueChange={setOwnershipFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Ownership" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Ownership</SelectItem>
+              <SelectItem value="dealership_owned">Dealership Owned</SelectItem>
+              <SelectItem value="customer_owned_export">Customer Owned (Export Only)</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger>
               <SelectValue placeholder="All Status" />
@@ -161,9 +178,14 @@ export default function Vehicles() {
                       <Car className="w-16 h-16 text-gray-400" />
                     </div>
                   )}
-                  <Badge className={`absolute top-3 right-3 ${statusColors[vehicle.status]}`}>
-                    {vehicle.status?.replace(/_/g, ' ')}
-                  </Badge>
+                  <div className="absolute top-3 right-3 flex flex-col gap-2">
+                    <Badge className={statusColors[vehicle.status]}>
+                      {vehicle.status?.replace(/_/g, ' ')}
+                    </Badge>
+                    <Badge className={ownershipColors[vehicle.ownership_type || 'dealership_owned']}>
+                      {vehicle.ownership_type === 'customer_owned_export' ? 'Customer Export' : 'Dealership'}
+                    </Badge>
+                  </div>
                 </div>
                 
                 <CardContent className="p-5">
@@ -231,6 +253,7 @@ export default function Vehicles() {
 
 function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading }) {
   const [formData, setFormData] = useState(vehicle || {
+    ownership_type: "dealership_owned",
     vin: "", make: "", model: "", year: new Date().getFullYear(),
     color: "", mileage: 0, condition: "new", status: "in_stock",
     purchase_price: 0, selling_price: 0, fuel_type: "petrol",
@@ -266,6 +289,16 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
         
         <div className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2 col-span-2">
+              <Label>Ownership Type *</Label>
+              <Select value={formData.ownership_type} onValueChange={(v) => setFormData({...formData, ownership_type: v})}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dealership_owned">Dealership Owned</SelectItem>
+                  <SelectItem value="customer_owned_export">Customer Owned (Export Only)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label>VIN *</Label>
               <Input value={formData.vin} onChange={(e) => setFormData({...formData, vin: e.target.value})} />
