@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, DollarSign, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, ChevronDown, ChevronUp, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -20,17 +20,29 @@ import PaymentTracker from "../components/sales/PaymentTracker";
 import TradeInForm from "../components/sales/TradeInForm";
 import FinancingForm from "../components/sales/FinancingForm";
 import CanadianTaxCalculator, { calculateCanadianTax } from "../components/sales/CanadianTaxCalculator";
+import BillOfSale from "../components/sales/BillOfSale";
+import { useCompany } from "../components/shared/CompanyContext";
 
 export default function Sales() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const [expandedSaleId, setExpandedSaleId] = useState(null);
+  const [billOfSaleOpen, setBillOfSaleOpen] = useState(false);
+  const [selectedSale, setSelectedSale] = useState(null);
+  const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
 
   const { data: sales = [] } = useQuery({
     queryKey: ['sales'],
     queryFn: () => base44.entities.Sale.list('-created_date'),
     initialData: [],
+  });
+
+  const { data: company } = useQuery({
+    queryKey: ['company', selectedCompanyId],
+    queryFn: () => base44.entities.Company.filter({ id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    select: (data) => data?.[0],
   });
 
   const createMutation = useMutation({
@@ -77,6 +89,11 @@ export default function Sales() {
     refunded: "bg-gray-100 text-gray-800"
   };
 
+  const handleViewBillOfSale = (sale) => {
+    setSelectedSale(sale);
+    setBillOfSaleOpen(true);
+  };
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
@@ -86,7 +103,7 @@ export default function Sales() {
         </div>
         <Button onClick={() => setDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
           <Plus className="w-4 h-4 mr-2" />
-          New Sale
+          Bill of Sale
         </Button>
       </div>
 
@@ -182,6 +199,15 @@ export default function Sales() {
                         <p className="text-sm text-gray-500">
                           Sale Date: {sale.sale_date ? format(new Date(sale.sale_date), 'MMM d, yyyy') : 'N/A'}
                         </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewBillOfSale(sale)}
+                          className="mt-2"
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          View Bill of Sale
+                        </Button>
                       </div>
                       <div className="text-right ml-4">
                         <p className="text-2xl font-bold text-green-600">
@@ -302,6 +328,21 @@ export default function Sales() {
         onClose={() => setCustomerDialogOpen(false)}
         onSave={(data) => createCustomerMutation.mutate(data)}
       />
+
+      <Dialog open={billOfSaleOpen} onOpenChange={setBillOfSaleOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Bill of Sale</DialogTitle>
+          </DialogHeader>
+          <BillOfSale sale={selectedSale} company={company} />
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button variant="outline" onClick={() => setBillOfSaleOpen(false)}>Close</Button>
+            <Button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700">
+              Print
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -400,7 +441,7 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>New Sale</DialogTitle>
+          <DialogTitle>Bill of Sale</DialogTitle>
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab}>
