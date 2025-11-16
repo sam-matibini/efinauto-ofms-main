@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from "react"; // Added useEffect
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,7 @@ import VehicleSelector from "../components/sales/VehicleSelector";
 import PaymentTracker from "../components/sales/PaymentTracker";
 import TradeInForm from "../components/sales/TradeInForm";
 import FinancingForm from "../components/sales/FinancingForm";
-import CanadianTaxCalculator, { calculateCanadianTax } from "../components/sales/CanadianTaxCalculator"; // Added CanadianTaxCalculator import
+import CanadianTaxCalculator, { calculateCanadianTax } from "../components/sales/CanadianTaxCalculator";
 
 export default function Sales() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -38,7 +37,6 @@ export default function Sales() {
     mutationFn: async (data) => {
       const sale = await base44.entities.Sale.create(data);
       
-      // Update vehicle status if vehicle is selected
       if (data.vehicle_id) {
         await base44.entities.Vehicle.update(data.vehicle_id, { status: 'sold' });
       }
@@ -62,7 +60,6 @@ export default function Sales() {
     },
   });
 
-  // Updated totalSales calculation to use grand_total if available
   const totalSales = sales.reduce((sum, s) => sum + (s.grand_total || s.sale_price || 0), 0);
   const pendingSales = sales.filter(s => s.payment_status === 'pending').length;
 
@@ -141,7 +138,6 @@ export default function Sales() {
         {sales.map((sale, index) => {
           const isExpanded = expandedSaleId === sale.id;
           const totalPaid = sale.total_paid || 0;
-          // Updated balanceDue calculation to use grand_total if available
           const balanceDue = (sale.grand_total || sale.sale_price || 0) - totalPaid;
           
           return (
@@ -189,10 +185,8 @@ export default function Sales() {
                       </div>
                       <div className="text-right ml-4">
                         <p className="text-2xl font-bold text-green-600">
-                          {/* Display grand_total if available, else sale_price */}
                           ${(sale.grand_total || sale.sale_price)?.toLocaleString()}
                         </p>
-                        {/* Display tax total if greater than 0 */}
                         {sale.tax_total > 0 && (
                           <p className="text-xs text-gray-500">
                             (incl. ${sale.tax_total?.toFixed(2)} tax)
@@ -209,7 +203,7 @@ export default function Sales() {
                       </div>
                     </div>
 
-                    {(sale.payments?.length > 0 || sale.trade_in?.has_trade_in || sale.financing?.enabled || sale.tax_total > 0) && (
+                    {(sale.payments?.length > 0 || sale.trade_in?.has_trade_in || sale.financing?.enabled) && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -286,20 +280,6 @@ export default function Sales() {
                             </div>
                           </div>
                         )}
-
-                        {sale.tax_total > 0 && (
-                          <div>
-                            <h4 className="font-semibold mb-2">Tax Details ({sale.province})</h4>
-                            <div className="bg-gray-50 p-4 rounded-lg">
-                                <p>Sale Price: ${sale.sale_price?.toFixed(2)}</p>
-                                {sale.tax_gst > 0 && <p>GST: ${sale.tax_gst?.toFixed(2)}</p>}
-                                {sale.tax_pst > 0 && <p>PST/RST/QST: ${sale.tax_pst?.toFixed(2)}</p>}
-                                {sale.tax_hst > 0 && <p>HST: ${sale.tax_hst?.toFixed(2)}</p>}
-                                <p className="font-semibold">Total Tax: ${sale.tax_total?.toFixed(2)}</p>
-                                <p className="font-bold mt-2">Grand Total: ${sale.grand_total?.toFixed(2)}</p>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>
@@ -338,12 +318,12 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
     vehicle_vin: "",
     vehicle_details: "",
     sale_price: 0,
-    province: "ON", // Added province
-    tax_gst: 0,    // Added tax details
+    province: "ON",
+    tax_gst: 0,
     tax_pst: 0,
     tax_hst: 0,
     tax_total: 0,
-    grand_total: 0, // Added grand_total
+    grand_total: 0,
     payments: [],
     total_paid: 0,
     balance_due: 0,
@@ -356,19 +336,17 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
     notes: ""
   });
 
-  useEffect(() => {
-    // Recalculate taxes when sale price or province changes
-    const salePrice = parseFloat(formData.sale_price) || 0;
-    const taxDetails = calculateCanadianTax(salePrice, formData.province);
+  React.useEffect(() => {
+    const taxDetails = calculateCanadianTax(formData.sale_price, formData.province);
     setFormData(prev => ({
       ...prev,
       tax_gst: taxDetails.gst,
       tax_pst: taxDetails.pst,
       tax_hst: taxDetails.hst,
       tax_total: taxDetails.total,
-      grand_total: salePrice + taxDetails.total // Grand total is sale_price + total tax
+      grand_total: formData.sale_price + taxDetails.total
     }));
-  }, [formData.sale_price, formData.province]); // Dependencies for useEffect
+  }, [formData.sale_price, formData.province]);
 
   const handleCustomerSelect = (customer) => {
     setFormData({
@@ -392,11 +370,10 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
 
   const handlePaymentsChange = (payments) => {
     const totalPaid = payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-    // Balance due is calculated based on grand_total
     const balanceDue = formData.grand_total - totalPaid;
     let paymentStatus = "pending";
     
-    if (totalPaid >= formData.grand_total) { // Check against grand_total
+    if (totalPaid >= formData.grand_total) {
       paymentStatus = "paid";
     } else if (totalPaid > 0) {
       paymentStatus = "partial";
@@ -495,18 +472,10 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
               </div>
             </div>
 
-            {/* Added CanadianTaxCalculator component */}
             <CanadianTaxCalculator
               value={formData.province}
               onChange={(province) => setFormData({...formData, province})}
               subtotal={formData.sale_price}
-              taxDetails={{
-                gst: formData.tax_gst,
-                pst: formData.tax_pst,
-                hst: formData.tax_hst,
-                total: formData.tax_total,
-                grandTotal: formData.grand_total,
-              }}
             />
 
             <div className="space-y-2">
@@ -519,7 +488,7 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
             <PaymentTracker
               payments={formData.payments}
               onChange={handlePaymentsChange}
-              salePrice={formData.grand_total} {/* Changed salePrice to grand_total */}
+              salePrice={formData.grand_total}
             />
           </TabsContent>
 
@@ -527,7 +496,7 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
             <FinancingForm
               financing={formData.financing}
               onChange={(financing) => setFormData({...formData, financing})}
-              salePrice={formData.grand_total} {/* Changed salePrice to grand_total */}
+              salePrice={formData.grand_total}
             />
           </TabsContent>
 
