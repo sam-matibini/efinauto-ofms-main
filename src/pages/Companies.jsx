@@ -34,6 +34,9 @@ export default function Companies() {
       setEditingCompany(null);
       toast.success("Company added successfully!");
     },
+    onError: (error) => {
+      toast.error(error.message || "Failed to add company");
+    }
   });
 
   const updateMutation = useMutation({
@@ -44,6 +47,9 @@ export default function Companies() {
       setEditingCompany(null);
       toast.success("Company updated successfully!");
     },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update company");
+    }
   });
 
   const filteredCompanies = companies.filter(c =>
@@ -52,6 +58,11 @@ export default function Companies() {
   );
 
   const handleSave = (formData) => {
+    if (!formData.name || !formData.code) {
+      toast.error("Company name and code are required");
+      return;
+    }
+
     if (editingCompany) {
       updateMutation.mutate({ id: editingCompany.id, data: formData });
     } else {
@@ -169,12 +180,13 @@ export default function Companies() {
         }}
         company={editingCompany}
         onSave={handleSave}
+        isLoading={createMutation.isPending || updateMutation.isPending}
       />
     </div>
   );
 }
 
-function CompanyDialog({ open, onClose, company, onSave }) {
+function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
   const [formData, setFormData] = useState(company || {
     name: "",
     code: "",
@@ -189,8 +201,25 @@ function CompanyDialog({ open, onClose, company, onSave }) {
   });
 
   React.useEffect(() => {
-    if (company) setFormData(company);
-  }, [company]);
+    if (company) {
+      setFormData(company);
+    } else {
+      setFormData({
+        name: "",
+        code: "",
+        address: "",
+        city: "",
+        country: "",
+        phone: "",
+        email: "",
+        tax_id: "",
+        logo_url: "",
+        status: "active"
+      });
+    }
+  }, [company, open]);
+
+  const isValid = formData.name && formData.code;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -203,35 +232,68 @@ function CompanyDialog({ open, onClose, company, onSave }) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Company Name *</Label>
-              <Input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
+              <Input 
+                value={formData.name} 
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                placeholder="e.g., Oluspe Auto Sales and Parts Inc."
+              />
             </div>
             <div className="space-y-2">
               <Label>Company Code *</Label>
-              <Input value={formData.code} onChange={(e) => setFormData({...formData, code: e.target.value})} />
+              <Input 
+                value={formData.code} 
+                onChange={(e) => setFormData({...formData, code: e.target.value})}
+                placeholder="e.g., 1001"
+              />
             </div>
             <div className="space-y-2">
               <Label>Email</Label>
-              <Input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+              <Input 
+                type="email" 
+                value={formData.email} 
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                placeholder="e.g., cars@oluspeautos.ca"
+              />
             </div>
             <div className="space-y-2">
               <Label>Phone</Label>
-              <Input value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+              <Input 
+                value={formData.phone} 
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                placeholder="e.g., 2045908387"
+              />
             </div>
             <div className="space-y-2 col-span-2">
               <Label>Address</Label>
-              <Textarea value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} rows={2} />
+              <Textarea 
+                value={formData.address} 
+                onChange={(e) => setFormData({...formData, address: e.target.value})} 
+                rows={2}
+                placeholder="e.g., 908 Redonda Street"
+              />
             </div>
             <div className="space-y-2">
               <Label>City</Label>
-              <Input value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})} />
+              <Input 
+                value={formData.city} 
+                onChange={(e) => setFormData({...formData, city: e.target.value})}
+                placeholder="e.g., Oakbank"
+              />
             </div>
             <div className="space-y-2">
               <Label>Country</Label>
-              <Input value={formData.country} onChange={(e) => setFormData({...formData, country: e.target.value})} />
+              <Input 
+                value={formData.country} 
+                onChange={(e) => setFormData({...formData, country: e.target.value})}
+                placeholder="e.g., Canada"
+              />
             </div>
             <div className="space-y-2">
               <Label>Tax ID</Label>
-              <Input value={formData.tax_id} onChange={(e) => setFormData({...formData, tax_id: e.target.value})} />
+              <Input 
+                value={formData.tax_id} 
+                onChange={(e) => setFormData({...formData, tax_id: e.target.value})}
+              />
             </div>
             <div className="space-y-2">
               <Label>Status</Label>
@@ -247,9 +309,13 @@ function CompanyDialog({ open, onClose, company, onSave }) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700">
-            {company ? 'Update' : 'Add'} Company
+          <Button variant="outline" onClick={onClose} disabled={isLoading}>Cancel</Button>
+          <Button 
+            onClick={() => onSave(formData)} 
+            className="bg-blue-600 hover:bg-blue-700"
+            disabled={!isValid || isLoading}
+          >
+            {isLoading ? "Saving..." : company ? 'Update Company' : 'Add Company'}
           </Button>
         </DialogFooter>
       </DialogContent>
