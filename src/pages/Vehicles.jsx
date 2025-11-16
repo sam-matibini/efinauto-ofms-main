@@ -23,6 +23,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useCompany } from "../components/shared/CompanyContext";
 
 export default function Vehicles() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -31,6 +32,7 @@ export default function Vehicles() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const { selectedCompanyId } = useCompany();
 
   const queryClient = useQueryClient();
 
@@ -70,10 +72,20 @@ export default function Vehicles() {
   });
 
   const handleSave = (formData) => {
+    if (!formData.vin || !formData.make || !formData.model || !formData.year) {
+      toast.error("Please fill in all required fields (VIN, Make, Model, Year)");
+      return;
+    }
+
+    const dataToSave = {
+      ...formData,
+      company_id: selectedCompanyId
+    };
+
     if (editingVehicle) {
-      updateMutation.mutate({ id: editingVehicle.id, data: formData });
+      updateMutation.mutate({ id: editingVehicle.id, data: dataToSave });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(dataToSave);
     }
   };
 
