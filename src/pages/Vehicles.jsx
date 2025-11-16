@@ -37,28 +37,44 @@ export default function Vehicles() {
   const queryClient = useQueryClient();
 
   const { data: vehicles = [], isLoading } = useQuery({
-    queryKey: ['vehicles'],
-    queryFn: () => base44.entities.Vehicle.list('-created_date'),
+    queryKey: ['vehicles', selectedCompanyId],
+    queryFn: async () => {
+      const allVehicles = await base44.entities.Vehicle.list('-created_date');
+      return allVehicles;
+    },
+    enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Vehicle.create(data),
+    mutationFn: async (data) => {
+      return await base44.entities.Vehicle.create(data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       setDialogOpen(false);
       setEditingVehicle(null);
       toast.success("Vehicle added successfully!");
     },
+    onError: (error) => {
+      console.error("Create error:", error);
+      toast.error("Failed to add vehicle: " + (error.message || "Unknown error"));
+    },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Vehicle.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      return await base44.entities.Vehicle.update(id, data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       setDialogOpen(false);
       setEditingVehicle(null);
       toast.success("Vehicle updated successfully!");
+    },
+    onError: (error) => {
+      console.error("Update error:", error);
+      toast.error("Failed to update vehicle: " + (error.message || "Unknown error"));
     },
   });
 
@@ -72,6 +88,11 @@ export default function Vehicles() {
   });
 
   const handleSave = (formData) => {
+    if (!selectedCompanyId) {
+      toast.error("Please select a company first");
+      return;
+    }
+
     if (!formData.vin || !formData.make || !formData.model || !formData.year) {
       toast.error("Please fill in all required fields (VIN, Make, Model, Year)");
       return;
@@ -101,6 +122,18 @@ export default function Vehicles() {
     dealership_owned: "bg-indigo-100 text-indigo-800",
     customer_owned_export: "bg-orange-100 text-orange-800"
   };
+
+  if (!selectedCompanyId) {
+    return (
+      <div className="p-6 md:p-8 max-w-7xl mx-auto">
+        <div className="text-center py-16">
+          <Car className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">No Company Selected</h3>
+          <p className="text-gray-500">Please select a company from the sidebar to view vehicles</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
@@ -258,13 +291,14 @@ export default function Vehicles() {
         onSave={handleSave}
         uploading={uploading}
         setUploading={setUploading}
+        isSaving={createMutation.isPending || updateMutation.isPending}
       />
     </div>
   );
 }
 
-function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading }) {
-  const [formData, setFormData] = useState(vehicle || {
+function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading, isSaving }) {
+  const [formData, setFormData] = useState({
     ownership_type: "dealership_owned",
     vin: "", make: "", model: "", year: new Date().getFullYear(),
     color: "", mileage: 0, condition: "used", status: "in_stock",
@@ -274,8 +308,19 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
   });
 
   React.useEffect(() => {
-    if (vehicle) setFormData(vehicle);
-  }, [vehicle]);
+    if (vehicle) {
+      setFormData(vehicle);
+    } else {
+      setFormData({
+        ownership_type: "dealership_owned",
+        vin: "", make: "", model: "", year: new Date().getFullYear(),
+        color: "", mileage: 0, condition: "used", status: "in_stock",
+        purchase_price: 0, selling_price: 0, fuel_type: "petrol",
+        transmission: "manual", engine_capacity: "", features: "",
+        location: "", images: [], notes: ""
+      });
+    }
+  }, [vehicle, open]);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -287,6 +332,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
       setFormData({ ...formData, images: [...(formData.images || []), file_url] });
       toast.success("Image uploaded!");
     } catch (error) {
+      console.error("Upload error:", error);
       toast.error("Failed to upload image");
     }
     setUploading(false);
@@ -303,27 +349,52 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>VIN *</Label>
-              <Input value={formData.vin} onChange={(e) => setFormData({...formData, vin: e.target.value})} placeholder="KM8JUCAG3EU930041" />
+              <Input 
+                value={formData.vin || ""} 
+                onChange={(e) => setFormData({...formData, vin: e.target.value})} 
+                placeholder="KM8JUCAG3EU930041" 
+              />
             </div>
             <div className="space-y-2">
               <Label>Make *</Label>
-              <Input value={formData.make} onChange={(e) => setFormData({...formData, make: e.target.value})} placeholder="HYUNDAI TUCSON" />
+              <Input 
+                value={formData.make || ""} 
+                onChange={(e) => setFormData({...formData, make: e.target.value})} 
+                placeholder="HYUNDAI TUCSON" 
+              />
             </div>
             <div className="space-y-2">
               <Label>Model *</Label>
-              <Input value={formData.model} onChange={(e) => setFormData({...formData, model: e.target.value})} placeholder="GLS/LIMITED/SE" />
+              <Input 
+                value={formData.model || ""} 
+                onChange={(e) => setFormData({...formData, model: e.target.value})} 
+                placeholder="GLS/LIMITED/SE" 
+              />
             </div>
             <div className="space-y-2">
               <Label>Year *</Label>
-              <Input type="number" value={formData.year} onChange={(e) => setFormData({...formData, year: parseInt(e.target.value) || new Date().getFullYear()})} placeholder="2014" />
+              <Input 
+                type="number" 
+                value={formData.year || new Date().getFullYear()} 
+                onChange={(e) => setFormData({...formData, year: parseInt(e.target.value) || new Date().getFullYear()})} 
+                placeholder="2014" 
+              />
             </div>
             <div className="space-y-2">
               <Label>Color</Label>
-              <Input value={formData.color} onChange={(e) => setFormData({...formData, color: e.target.value})} />
+              <Input 
+                value={formData.color || ""} 
+                onChange={(e) => setFormData({...formData, color: e.target.value})} 
+              />
             </div>
             <div className="space-y-2">
               <Label>Mileage (km)</Label>
-              <Input type="number" value={formData.mileage} onChange={(e) => setFormData({...formData, mileage: parseInt(e.target.value) || 0})} placeholder="0" />
+              <Input 
+                type="number" 
+                value={formData.mileage || 0} 
+                onChange={(e) => setFormData({...formData, mileage: parseInt(e.target.value) || 0})} 
+                placeholder="0" 
+              />
             </div>
             <div className="space-y-2">
               <Label>Condition</Label>
@@ -351,11 +422,21 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
             </div>
             <div className="space-y-2">
               <Label>Purchase Price ($)</Label>
-              <Input type="number" value={formData.purchase_price} onChange={(e) => setFormData({...formData, purchase_price: parseFloat(e.target.value) || 0})} placeholder="0" />
+              <Input 
+                type="number" 
+                value={formData.purchase_price || 0} 
+                onChange={(e) => setFormData({...formData, purchase_price: parseFloat(e.target.value) || 0})} 
+                placeholder="0" 
+              />
             </div>
             <div className="space-y-2">
               <Label>Selling Price ($)</Label>
-              <Input type="number" value={formData.selling_price} onChange={(e) => setFormData({...formData, selling_price: parseFloat(e.target.value) || 0})} placeholder="0" />
+              <Input 
+                type="number" 
+                value={formData.selling_price || 0} 
+                onChange={(e) => setFormData({...formData, selling_price: parseFloat(e.target.value) || 0})} 
+                placeholder="0" 
+              />
             </div>
             <div className="space-y-2">
               <Label>Fuel Type</Label>
@@ -385,7 +466,13 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
 
           <div className="space-y-2">
             <Label>Upload Image</Label>
-            <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={handleImageUpload} 
+              disabled={uploading} 
+              className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
+            />
             {formData.images?.length > 0 && (
               <div className="flex gap-2 mt-2">
                 {formData.images.map((img, i) => (
@@ -397,14 +484,29 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
 
           <div className="space-y-2">
             <Label>Notes</Label>
-            <Textarea value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={3} />
+            <Textarea 
+              value={formData.notes || ""} 
+              onChange={(e) => setFormData({...formData, notes: e.target.value})} 
+              rows={3} 
+            />
           </div>
         </div>
 
         <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700">
-            {vehicle ? 'Update' : 'Add'} Vehicle
+          <Button variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
+          <Button 
+            onClick={() => onSave(formData)} 
+            className="bg-blue-600 hover:bg-blue-700"
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>{vehicle ? 'Update' : 'Add'} Vehicle</>
+            )}
           </Button>
         </div>
       </DialogContent>
