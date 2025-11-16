@@ -4,12 +4,16 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Mail, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCompany } from "@/components/shared/CompanyContext";
+import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 
 export default function LoadingDeclarationDialog({ open, onClose, shipment, onSave }) {
   const { selectedCompanyId } = useCompany();
+  const [isSending, setIsSending] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
   
   const [formData, setFormData] = useState({
     company_id: selectedCompanyId,
@@ -59,6 +63,81 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     const updated = [...formData.vehicles];
     updated[index] = { ...updated[index], [field]: value };
     setFormData({ ...formData, vehicles: updated });
+  };
+
+  const handleEmailDeclaration = async () => {
+    if (!recipientEmail) {
+      toast.error("Please enter recipient email address");
+      return;
+    }
+
+    if (!formData.booking_number) {
+      toast.error("Booking number is required");
+      return;
+    }
+
+    setIsSending(true);
+    
+    try {
+      const emailBody = `
+Loading Declaration
+
+Booking Number: ${formData.booking_number}
+Container Number: ${formData.container_number || 'N/A'}
+Seal Number: ${formData.seal_number || 'N/A'}
+
+EXPORTER INFORMATION:
+Name: ${formData.exporter.name}
+Tax ID: ${formData.exporter.tax_id}
+Address: ${formData.exporter.address_postal}
+City/Province: ${formData.exporter.city_province}
+Telephone: ${formData.exporter.telephone}
+Email: ${formData.exporter.email}
+
+CONSIGNEE INFORMATION:
+Name: ${formData.consignee.name}
+Address: ${formData.consignee.address_street}
+Postal Code: ${formData.consignee.postal_code}
+City/Country: ${formData.consignee.city_country}
+Telephone: ${formData.consignee.telephone}
+Email: ${formData.consignee.email}
+Tax ID/Passport: ${formData.consignee.tax_id_passport}
+
+COMMODITY INFORMATION:
+Commodity: ${formData.commodity}
+Total Weight: ${formData.weight} kg
+Total Value: $${formData.value}
+
+${formData.vehicles.length > 0 ? `
+VEHICLE INFORMATION:
+${formData.vehicles.map((v, i) => `
+Vehicle ${i + 1}:
+  Year: ${v.year}
+  Make/Model: ${v.make_model}
+  VIN: ${v.vin}
+  Weight: ${v.weight} kg
+  Value: $${v.value}
+`).join('\n')}
+` : ''}
+
+---
+This is an automated message from eFinAuto Center Freight Management System.
+      `;
+
+      await base44.integrations.Core.SendEmail({
+        to: recipientEmail,
+        subject: `Loading Declaration - ${formData.booking_number}`,
+        body: emailBody
+      });
+
+      toast.success("Loading declaration sent successfully!");
+      setRecipientEmail("");
+    } catch (error) {
+      console.error('Email error:', error);
+      toast.error("Failed to send email");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -315,6 +394,43 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
                   ))}
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Email Section */}
+          <Card className="border-blue-200 bg-blue-50/50">
+            <CardContent className="p-4">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                Email to Shipping Company
+              </h3>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <Input
+                    type="email"
+                    placeholder="Enter shipping company email address"
+                    value={recipientEmail}
+                    onChange={(e) => setRecipientEmail(e.target.value)}
+                  />
+                </div>
+                <Button 
+                  onClick={handleEmailDeclaration}
+                  disabled={isSending || !recipientEmail}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isSending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4 mr-2" />
+                      Send Email
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
