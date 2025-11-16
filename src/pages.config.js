@@ -8,6 +8,7 @@ import Exports from './pages/Exports';
 import Freight from './pages/Freight';
 import Sales from './pages/Sales';
 import Customers from './pages/Customers';
+import Companies from './pages/Companies';
 import Layout from './Layout.jsx';
 
 
@@ -22,6 +23,7 @@ export const PAGES = {
     "Freight": Freight,
     "Sales": Sales,
     "Customers": Customers,
+    "Companies": Companies,
 }
 
 export const pagesConfig = {
