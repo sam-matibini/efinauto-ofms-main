@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCompany } from "../components/shared/CompanyContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Package } from "lucide-react";
+import { Plus, Package, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -11,21 +12,25 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import LoadingDeclarationForm from "../components/freight/LoadingDeclarationForm";
 
 export default function Freight() {
+  const { selectedCompanyId } = useCompany();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingShipment, setEditingShipment] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: shipments = [] } = useQuery({
-    queryKey: ['shipments'],
-    queryFn: () => base44.entities.FreightShipment.list('-created_date'),
+    queryKey: ['shipments', selectedCompanyId],
+    queryFn: () => base44.entities.FreightShipment.filter({ company_id: selectedCompanyId }, '-created_date'),
+    enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.FreightShipment.create(data),
+    mutationFn: (data) => base44.entities.FreightShipment.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
       setDialogOpen(false);
@@ -61,6 +66,14 @@ export default function Freight() {
     delivered: "bg-green-100 text-green-800",
     cancelled: "bg-red-100 text-red-800"
   };
+
+  if (!selectedCompanyId) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-gray-500">Please select a company to view freight shipments</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
@@ -104,6 +117,12 @@ export default function Freight() {
                       </Badge>
                       <Badge variant="outline">{shipment.shipment_type}</Badge>
                       <Badge variant="outline">{shipment.cargo_type}</Badge>
+                      {shipment.loading_declaration && (
+                        <Badge className="bg-blue-100 text-blue-800">
+                          <FileText className="w-3 h-3 mr-1" />
+                          Declaration
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-gray-600">
                       <strong>Customer:</strong> {shipment.customer_name}
@@ -151,6 +170,7 @@ export default function Freight() {
 }
 
 function FreightDialog({ open, onClose, shipment, onSave }) {
+  const [activeTab, setActiveTab] = useState("basic");
   const [formData, setFormData] = useState(shipment || {
     shipment_number: `FRT-${Date.now()}`,
     customer_name: "",
@@ -176,11 +196,17 @@ function FreightDialog({ open, onClose, shipment, onSave }) {
     tracking_number: "",
     container_number: "",
     payment_status: "pending",
-    notes: ""
+    notes: "",
+    loading_declaration: null
   });
 
   React.useEffect(() => {
-    if (shipment) setFormData(shipment);
+    if (shipment) {
+      setFormData({
+        ...shipment,
+        loading_declaration: shipment.loading_declaration || null
+      });
+    }
   }, [shipment]);
 
   React.useEffect(() => {
@@ -191,114 +217,132 @@ function FreightDialog({ open, onClose, shipment, onSave }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{shipment ? 'Edit Freight Shipment' : 'New Freight Shipment'}</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4 py-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Customer Name *</Label>
-              <Input value={formData.customer_name} onChange={(e) => setFormData({...formData, customer_name: e.target.value})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Customer Phone</Label>
-              <Input value={formData.customer_phone} onChange={(e) => setFormData({...formData, customer_phone: e.target.value})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Shipment Type</Label>
-              <Select value={formData.shipment_type} onValueChange={(v) => setFormData({...formData, shipment_type: v})}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="air">Air</SelectItem>
-                  <SelectItem value="sea">Sea</SelectItem>
-                  <SelectItem value="land">Land</SelectItem>
-                  <SelectItem value="rail">Rail</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Cargo Type</Label>
-              <Select value={formData.cargo_type} onValueChange={(v) => setFormData({...formData, cargo_type: v})}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="vehicle">Vehicle</SelectItem>
-                  <SelectItem value="parts">Parts</SelectItem>
-                  <SelectItem value="general_cargo">General Cargo</SelectItem>
-                  <SelectItem value="hazardous">Hazardous</SelectItem>
-                  <SelectItem value="refrigerated">Refrigerated</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Origin Country *</Label>
-              <Input value={formData.origin_country} onChange={(e) => setFormData({...formData, origin_country: e.target.value})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Destination Country *</Label>
-              <Input value={formData.destination_country} onChange={(e) => setFormData({...formData, destination_country: e.target.value})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Number of Items</Label>
-              <Input type="number" value={formData.number_of_items} onChange={(e) => setFormData({...formData, number_of_items: parseInt(e.target.value) || 1})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Total Weight (kg)</Label>
-              <Input type="number" value={formData.total_weight} onChange={(e) => setFormData({...formData, total_weight: parseFloat(e.target.value) || 0})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Cargo Value ($)</Label>
-              <Input type="number" value={formData.cargo_value} onChange={(e) => setFormData({...formData, cargo_value: parseFloat(e.target.value) || 0})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Freight Cost ($)</Label>
-              <Input type="number" value={formData.freight_cost} onChange={(e) => setFormData({...formData, freight_cost: parseFloat(e.target.value) || 0})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Insurance Cost ($)</Label>
-              <Input type="number" value={formData.insurance_cost} onChange={(e) => setFormData({...formData, insurance_cost: parseFloat(e.target.value) || 0})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Handling Fees ($)</Label>
-              <Input type="number" value={formData.handling_fees} onChange={(e) => setFormData({...formData, handling_fees: parseFloat(e.target.value) || 0})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Total Cost ($)</Label>
-              <Input type="number" value={formData.total_cost} disabled className="bg-gray-50" />
-            </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="booked">Booked</SelectItem>
-                  <SelectItem value="picked_up">Picked Up</SelectItem>
-                  <SelectItem value="in_transit">In Transit</SelectItem>
-                  <SelectItem value="customs_clearance">Customs Clearance</SelectItem>
-                  <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
-                  <SelectItem value="delivered">Delivered</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Carrier Name</Label>
-              <Input value={formData.carrier_name} onChange={(e) => setFormData({...formData, carrier_name: e.target.value})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Tracking Number</Label>
-              <Input value={formData.tracking_number} onChange={(e) => setFormData({...formData, tracking_number: e.target.value})} />
-            </div>
-          </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="basic">Basic Info</TabsTrigger>
+            <TabsTrigger value="declaration">Loading Declaration</TabsTrigger>
+          </TabsList>
 
-          <div className="space-y-2">
-            <Label>Cargo Description</Label>
-            <Textarea value={formData.cargo_description} onChange={(e) => setFormData({...formData, cargo_description: e.target.value})} rows={2} />
-          </div>
-        </div>
+          <TabsContent value="basic" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Customer Name *</Label>
+                <Input value={formData.customer_name} onChange={(e) => setFormData({...formData, customer_name: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Customer Phone</Label>
+                <Input value={formData.customer_phone} onChange={(e) => setFormData({...formData, customer_phone: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Shipment Type</Label>
+                <Select value={formData.shipment_type} onValueChange={(v) => setFormData({...formData, shipment_type: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="air">Air</SelectItem>
+                    <SelectItem value="sea">Sea</SelectItem>
+                    <SelectItem value="land">Land</SelectItem>
+                    <SelectItem value="rail">Rail</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Cargo Type</Label>
+                <Select value={formData.cargo_type} onValueChange={(v) => setFormData({...formData, cargo_type: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="vehicle">Vehicle</SelectItem>
+                    <SelectItem value="parts">Parts</SelectItem>
+                    <SelectItem value="general_cargo">General Cargo</SelectItem>
+                    <SelectItem value="hazardous">Hazardous</SelectItem>
+                    <SelectItem value="refrigerated">Refrigerated</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Origin Country *</Label>
+                <Input value={formData.origin_country} onChange={(e) => setFormData({...formData, origin_country: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Destination Country *</Label>
+                <Input value={formData.destination_country} onChange={(e) => setFormData({...formData, destination_country: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Number of Items</Label>
+                <Input type="number" value={formData.number_of_items} onChange={(e) => setFormData({...formData, number_of_items: parseInt(e.target.value) || 1})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Total Weight (kg)</Label>
+                <Input type="number" value={formData.total_weight} onChange={(e) => setFormData({...formData, total_weight: parseFloat(e.target.value) || 0})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Cargo Value ($)</Label>
+                <Input type="number" value={formData.cargo_value} onChange={(e) => setFormData({...formData, cargo_value: parseFloat(e.target.value) || 0})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Freight Cost ($)</Label>
+                <Input type="number" value={formData.freight_cost} onChange={(e) => setFormData({...formData, freight_cost: parseFloat(e.target.value) || 0})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Insurance Cost ($)</Label>
+                <Input type="number" value={formData.insurance_cost} onChange={(e) => setFormData({...formData, insurance_cost: parseFloat(e.target.value) || 0})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Handling Fees ($)</Label>
+                <Input type="number" value={formData.handling_fees} onChange={(e) => setFormData({...formData, handling_fees: parseFloat(e.target.value) || 0})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Total Cost ($)</Label>
+                <Input type="number" value={formData.total_cost} disabled className="bg-gray-50" />
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="booked">Booked</SelectItem>
+                    <SelectItem value="picked_up">Picked Up</SelectItem>
+                    <SelectItem value="in_transit">In Transit</SelectItem>
+                    <SelectItem value="customs_clearance">Customs Clearance</SelectItem>
+                    <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Carrier Name</Label>
+                <Input value={formData.carrier_name} onChange={(e) => setFormData({...formData, carrier_name: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Tracking Number</Label>
+                <Input value={formData.tracking_number} onChange={(e) => setFormData({...formData, tracking_number: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Container Number</Label>
+                <Input value={formData.container_number} onChange={(e) => setFormData({...formData, container_number: e.target.value})} />
+              </div>
+            </div>
 
-        <div className="flex justify-end gap-3">
+            <div className="space-y-2">
+              <Label>Cargo Description</Label>
+              <Textarea value={formData.cargo_description} onChange={(e) => setFormData({...formData, cargo_description: e.target.value})} rows={2} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="declaration" className="space-y-4">
+            <LoadingDeclarationForm
+              declaration={formData.loading_declaration}
+              onChange={(declaration) => setFormData({ ...formData, loading_declaration: declaration })}
+            />
+          </TabsContent>
+        </Tabs>
+
+        <div className="flex justify-end gap-3 pt-4 border-t">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700">
             {shipment ? 'Update' : 'Create'} Shipment
