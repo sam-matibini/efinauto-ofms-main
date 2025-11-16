@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Package } from "lucide-react";
+import { Plus, Package, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -12,10 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import LoadingDeclarationDialog from "../components/freight/LoadingDeclarationDialog";
 
 export default function Freight() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingShipment, setEditingShipment] = useState(null);
+  const [loadingDeclOpen, setLoadingDeclOpen] = useState(false);
+  const [selectedShipment, setSelectedShipment] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: shipments = [] } = useQuery({
@@ -44,12 +47,26 @@ export default function Freight() {
     },
   });
 
+  const createLoadingDeclarationMutation = useMutation({
+    mutationFn: (data) => base44.entities.LoadingDeclaration.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loading-declarations'] });
+      setLoadingDeclOpen(false);
+      setSelectedShipment(null);
+      toast.success("Loading declaration created!");
+    },
+  });
+
   const handleSave = (formData) => {
     if (editingShipment) {
       updateMutation.mutate({ id: editingShipment.id, data: formData });
     } else {
       createMutation.mutate(formData);
     }
+  };
+
+  const handleLoadingDeclSave = (formData) => {
+    createLoadingDeclarationMutation.mutate(formData);
   };
 
   const statusColors = {
@@ -86,16 +103,16 @@ export default function Freight() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
           >
-            <Card 
-              className="border-none shadow-md hover:shadow-lg transition-all cursor-pointer"
-              onClick={() => {
-                setEditingShipment(shipment);
-                setDialogOpen(true);
-              }}
-            >
+            <Card className="border-none shadow-md hover:shadow-lg transition-all">
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
-                  <div className="space-y-2 flex-1">
+                  <div 
+                    className="space-y-2 flex-1 cursor-pointer"
+                    onClick={() => {
+                      setEditingShipment(shipment);
+                      setDialogOpen(true);
+                    }}
+                  >
                     <div className="flex items-center gap-3 flex-wrap">
                       <Package className="w-5 h-5 text-blue-600" />
                       <h3 className="font-bold text-lg">{shipment.shipment_number || 'Shipment'}</h3>
@@ -126,9 +143,22 @@ export default function Freight() {
                     <p className="text-2xl font-bold text-blue-600">
                       ${shipment.total_cost?.toLocaleString() || '0'}
                     </p>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-gray-500 mt-1 mb-3">
                       {shipment.payment_status === 'paid' ? '✓ Paid' : 'Pending'}
                     </p>
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedShipment(shipment);
+                        setLoadingDeclOpen(true);
+                      }}
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Loading Declaration
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -145,6 +175,16 @@ export default function Freight() {
         }}
         shipment={editingShipment}
         onSave={handleSave}
+      />
+
+      <LoadingDeclarationDialog
+        open={loadingDeclOpen}
+        onClose={() => {
+          setLoadingDeclOpen(false);
+          setSelectedShipment(null);
+        }}
+        shipment={selectedShipment}
+        onSave={handleLoadingDeclSave}
       />
     </div>
   );
