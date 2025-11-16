@@ -34,7 +34,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useCompany } from "../components/shared/CompanyContext";
 
 export default function Customers() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,7 +41,6 @@ export default function Customers() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [deletingCustomer, setDeletingCustomer] = useState(null);
-  const { selectedCompanyId } = useCompany();
 
   const queryClient = useQueryClient();
 
@@ -90,20 +88,10 @@ export default function Customers() {
   });
 
   const handleSave = (formData) => {
-    if (!formData.full_name || !formData.phone) {
-      toast.error("Please fill in all required fields (Name and Phone)");
-      return;
-    }
-
-    const dataToSave = {
-      ...formData,
-      company_id: selectedCompanyId
-    };
-
     if (editingCustomer) {
-      updateMutation.mutate({ id: editingCustomer.id, data: dataToSave });
+      updateMutation.mutate({ id: editingCustomer.id, data: formData });
     } else {
-      createMutation.mutate(dataToSave);
+      createMutation.mutate(formData);
     }
   };
 
