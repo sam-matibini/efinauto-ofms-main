@@ -58,6 +58,7 @@ export default function Customers() {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
+      console.log("Creating customer with data:", data);
       return await base44.entities.Customer.create(data);
     },
     onSuccess: () => {
@@ -74,6 +75,7 @@ export default function Customers() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
+      console.log("Updating customer with data:", data);
       return await base44.entities.Customer.update(id, data);
     },
     onSuccess: () => {
@@ -122,15 +124,29 @@ export default function Customers() {
       return;
     }
 
-    const dataToSave = {
-      ...formData,
-      company_id: selectedCompanyId
+    // Clean the data - remove empty strings and undefined values
+    const cleanData = {
+      company_id: selectedCompanyId,
+      full_name: formData.full_name,
+      phone: formData.phone,
+      customer_type: formData.customer_type || "individual"
     };
 
+    // Only add optional fields if they have values
+    if (formData.email) cleanData.email = formData.email;
+    if (formData.address) cleanData.address = formData.address;
+    if (formData.city) cleanData.city = formData.city;
+    if (formData.country) cleanData.country = formData.country;
+    if (formData.company_name) cleanData.company_name = formData.company_name;
+    if (formData.tax_id) cleanData.tax_id = formData.tax_id;
+    if (formData.notes) cleanData.notes = formData.notes;
+
+    console.log("Saving customer data:", cleanData);
+
     if (editingCustomer) {
-      updateMutation.mutate({ id: editingCustomer.id, data: dataToSave });
+      updateMutation.mutate({ id: editingCustomer.id, data: cleanData });
     } else {
-      createMutation.mutate(dataToSave);
+      createMutation.mutate(cleanData);
     }
   };
 
@@ -336,21 +352,34 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
   });
 
   React.useEffect(() => {
-    if (customer) {
-      setFormData(customer);
-    } else {
-      setFormData({
-        full_name: "",
-        email: "",
-        phone: "",
-        address: "",
-        city: "",
-        country: "",
-        customer_type: "individual",
-        company_name: "",
-        tax_id: "",
-        notes: ""
-      });
+    if (open) {
+      if (customer) {
+        setFormData({
+          full_name: customer.full_name || "",
+          email: customer.email || "",
+          phone: customer.phone || "",
+          address: customer.address || "",
+          city: customer.city || "",
+          country: customer.country || "",
+          customer_type: customer.customer_type || "individual",
+          company_name: customer.company_name || "",
+          tax_id: customer.tax_id || "",
+          notes: customer.notes || ""
+        });
+      } else {
+        setFormData({
+          full_name: "",
+          email: "",
+          phone: "",
+          address: "",
+          city: "",
+          country: "",
+          customer_type: "individual",
+          company_name: "",
+          tax_id: "",
+          notes: ""
+        });
+      }
     }
   }, [customer, open]);
 
@@ -366,14 +395,14 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
             <div className="space-y-2">
               <Label>Full Name *</Label>
               <Input 
-                value={formData.full_name || ""} 
+                value={formData.full_name} 
                 onChange={(e) => setFormData({...formData, full_name: e.target.value})} 
               />
             </div>
             <div className="space-y-2">
               <Label>Phone *</Label>
               <Input 
-                value={formData.phone || ""} 
+                value={formData.phone} 
                 onChange={(e) => setFormData({...formData, phone: e.target.value})} 
               />
             </div>
@@ -381,7 +410,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
               <Label>Email</Label>
               <Input 
                 type="email" 
-                value={formData.email || ""} 
+                value={formData.email} 
                 onChange={(e) => setFormData({...formData, email: e.target.value})} 
               />
             </div>
@@ -402,14 +431,14 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
                 <div className="space-y-2">
                   <Label>Company Name</Label>
                   <Input 
-                    value={formData.company_name || ""} 
+                    value={formData.company_name} 
                     onChange={(e) => setFormData({...formData, company_name: e.target.value})} 
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Tax ID</Label>
                   <Input 
-                    value={formData.tax_id || ""} 
+                    value={formData.tax_id} 
                     onChange={(e) => setFormData({...formData, tax_id: e.target.value})} 
                   />
                 </div>
@@ -419,7 +448,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
             <div className="space-y-2 col-span-2">
               <Label>Address</Label>
               <Textarea 
-                value={formData.address || ""} 
+                value={formData.address} 
                 onChange={(e) => setFormData({...formData, address: e.target.value})} 
                 rows={2} 
               />
@@ -428,14 +457,14 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
             <div className="space-y-2">
               <Label>City</Label>
               <Input 
-                value={formData.city || ""} 
+                value={formData.city} 
                 onChange={(e) => setFormData({...formData, city: e.target.value})} 
               />
             </div>
             <div className="space-y-2">
               <Label>Country</Label>
               <Input 
-                value={formData.country || ""} 
+                value={formData.country} 
                 onChange={(e) => setFormData({...formData, country: e.target.value})} 
               />
             </div>
@@ -444,7 +473,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
           <div className="space-y-2">
             <Label>Notes</Label>
             <Textarea 
-              value={formData.notes || ""} 
+              value={formData.notes} 
               onChange={(e) => setFormData({...formData, notes: e.target.value})} 
               rows={3} 
             />
