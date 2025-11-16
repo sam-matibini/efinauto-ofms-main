@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, Trash2, Edit, CheckCircle } from "lucide-react";
+import { Plus, Search, Trash2, Edit, CheckCircle, Package, Barcode, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 export default function Salvage() {
   const { selectedCompanyId } = useCompany();
@@ -155,6 +156,12 @@ export default function Salvage() {
                           Manifest
                         </Badge>
                       )}
+                      {vehicle.dismantling_log?.length > 0 && (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                          <Package className="w-3 h-3 mr-1" />
+                          {vehicle.dismantling_log.length} logs
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm text-gray-600">
                       <strong>VIN:</strong> {vehicle.vin}
@@ -191,12 +198,13 @@ export default function Salvage() {
         }}
         salvage={editingSalvage}
         onSave={handleSave}
+        companyId={selectedCompanyId}
       />
     </div>
   );
 }
 
-function SalvageDialog({ open, onClose, salvage, onSave }) {
+function SalvageDialog({ open, onClose, salvage, onSave, companyId }) {
   const [activeTab, setActiveTab] = useState("basic");
   const [formData, setFormData] = useState(salvage || {
     salvage_number: `SALV-${Date.now()}`,
@@ -229,6 +237,7 @@ function SalvageDialog({ open, onClose, salvage, onSave }) {
       scrap_value: 0
     },
     dismantling_log: [],
+    parts_extracted: [],
     notes: ""
   });
 
@@ -251,7 +260,9 @@ function SalvageDialog({ open, onClose, salvage, onSave }) {
           copper_kg: 0,
           total_weight_kg: 0,
           scrap_value: 0
-        }
+        },
+        dismantling_log: salvage.dismantling_log || [],
+        parts_extracted: salvage.parts_extracted || []
       });
     }
   }, [salvage]);
@@ -277,17 +288,18 @@ function SalvageDialog({ open, onClose, salvage, onSave }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{salvage ? 'Edit Salvage Vehicle' : 'Add Salvage Vehicle'}</DialogTitle>
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="compliance">Compliance</TabsTrigger>
             <TabsTrigger value="scrap">Scrap Weights</TabsTrigger>
             <TabsTrigger value="dismantling">Dismantling</TabsTrigger>
+            <TabsTrigger value="parts">Parts</TabsTrigger>
           </TabsList>
 
           <TabsContent value="basic" className="space-y-4">
@@ -586,7 +598,16 @@ function SalvageDialog({ open, onClose, salvage, onSave }) {
           </TabsContent>
 
           <TabsContent value="dismantling" className="space-y-4">
-            <p className="text-sm text-gray-500">Dismantling log feature coming soon - track parts extracted, operator, and timestamps</p>
+            <DismantlingLogTab formData={formData} setFormData={setFormData} />
+          </TabsContent>
+
+          <TabsContent value="parts" className="space-y-4">
+            <PartsExtractedTab 
+              formData={formData} 
+              setFormData={setFormData} 
+              companyId={companyId}
+              salvageVehicle={salvage}
+            />
           </TabsContent>
         </Tabs>
 
@@ -598,5 +619,397 @@ function SalvageDialog({ open, onClose, salvage, onSave }) {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function DismantlingLogTab({ formData, setFormData }) {
+  const [newLog, setNewLog] = useState({
+    date: new Date().toISOString().split('T')[0],
+    operator: "",
+    part_extracted: "",
+    condition: "good",
+    notes: ""
+  });
+
+  const addLogEntry = () => {
+    if (!newLog.operator || !newLog.part_extracted) {
+      toast.error("Operator and part extracted are required");
+      return;
+    }
+
+    const logEntry = {
+      ...newLog,
+      timestamp: new Date().toISOString()
+    };
+
+    setFormData({
+      ...formData,
+      dismantling_log: [...(formData.dismantling_log || []), logEntry]
+    });
+
+    setNewLog({
+      date: new Date().toISOString().split('T')[0],
+      operator: "",
+      part_extracted: "",
+      condition: "good",
+      notes: ""
+    });
+
+    toast.success("Log entry added");
+  };
+
+  const removeLogEntry = (index) => {
+    const updatedLog = formData.dismantling_log.filter((_, i) => i !== index);
+    setFormData({ ...formData, dismantling_log: updatedLog });
+    toast.success("Log entry removed");
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <h4 className="font-semibold text-blue-900 mb-3">Add Dismantling Log Entry</h4>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label>Date</Label>
+            <Input
+              type="date"
+              value={newLog.date}
+              onChange={(e) => setNewLog({ ...newLog, date: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Operator *</Label>
+            <Input
+              value={newLog.operator}
+              onChange={(e) => setNewLog({ ...newLog, operator: e.target.value })}
+              placeholder="Operator name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Part Extracted *</Label>
+            <Input
+              value={newLog.part_extracted}
+              onChange={(e) => setNewLog({ ...newLog, part_extracted: e.target.value })}
+              placeholder="e.g., Engine, Transmission"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Condition</Label>
+            <Select value={newLog.condition} onValueChange={(v) => setNewLog({ ...newLog, condition: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="excellent">Excellent</SelectItem>
+                <SelectItem value="good">Good</SelectItem>
+                <SelectItem value="fair">Fair</SelectItem>
+                <SelectItem value="poor">Poor</SelectItem>
+                <SelectItem value="scrap">Scrap</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2 col-span-2">
+            <Label>Notes</Label>
+            <Textarea
+              value={newLog.notes}
+              onChange={(e) => setNewLog({ ...newLog, notes: e.target.value })}
+              rows={2}
+              placeholder="Additional notes..."
+            />
+          </div>
+        </div>
+        <Button onClick={addLogEntry} className="mt-3 bg-blue-600 hover:bg-blue-700" size="sm">
+          <Plus className="w-4 h-4 mr-2" />
+          Add Log Entry
+        </Button>
+      </div>
+
+      <div className="space-y-3">
+        <h4 className="font-semibold text-gray-900">Dismantling History ({formData.dismantling_log?.length || 0})</h4>
+        {formData.dismantling_log?.length === 0 ? (
+          <p className="text-sm text-gray-500 text-center py-8">No dismantling logs yet</p>
+        ) : (
+          formData.dismantling_log?.map((log, index) => (
+            <Card key={index} className="border border-gray-200">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm font-semibold">{log.part_extracted}</span>
+                      <Badge variant="outline" className="text-xs">{log.condition}</Badge>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      <strong>Operator:</strong> {log.operator} | <strong>Date:</strong> {log.date}
+                    </p>
+                    {log.timestamp && (
+                      <p className="text-xs text-gray-400">
+                        Logged: {format(new Date(log.timestamp), 'MMM d, yyyy h:mm a')}
+                      </p>
+                    )}
+                    {log.notes && (
+                      <p className="text-sm text-gray-600 mt-1">{log.notes}</p>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeLogEntry(index)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PartsExtractedTab({ formData, setFormData, companyId, salvageVehicle }) {
+  const [showPartForm, setShowPartForm] = useState(false);
+  const [selectedPartId, setSelectedPartId] = useState(null);
+  const queryClient = useQueryClient();
+
+  const { data: parts = [] } = useQuery({
+    queryKey: ['parts', companyId],
+    queryFn: () => base44.entities.Part.filter({ company_id: companyId }, '-created_date'),
+    enabled: !!companyId,
+    initialData: [],
+  });
+
+  const createPartMutation = useMutation({
+    mutationFn: (data) => base44.entities.Part.create({ ...data, company_id: companyId }),
+    onSuccess: (newPart) => {
+      queryClient.invalidateQueries({ queryKey: ['parts'] });
+      
+      const updatedPartsExtracted = [...(formData.parts_extracted || []), newPart.id];
+      setFormData({ ...formData, parts_extracted: updatedPartsExtracted });
+      
+      setShowPartForm(false);
+      toast.success("Part created and linked!");
+    },
+  });
+
+  const linkExistingPart = () => {
+    if (!selectedPartId) {
+      toast.error("Please select a part");
+      return;
+    }
+
+    if (formData.parts_extracted?.includes(selectedPartId)) {
+      toast.error("Part already linked");
+      return;
+    }
+
+    const updatedPartsExtracted = [...(formData.parts_extracted || []), selectedPartId];
+    setFormData({ ...formData, parts_extracted: updatedPartsExtracted });
+    setSelectedPartId(null);
+    toast.success("Part linked!");
+  };
+
+  const unlinkPart = (partId) => {
+    const updatedPartsExtracted = formData.parts_extracted.filter(id => id !== partId);
+    setFormData({ ...formData, parts_extracted: updatedPartsExtracted });
+    toast.success("Part unlinked");
+  };
+
+  const generateBarcode = (part) => {
+    const barcodeData = `${part.part_number}-${part.id}`;
+    
+    toast.success(`Barcode: ${barcodeData}`, {
+      duration: 5000,
+      description: "Copy this code for your barcode printer"
+    });
+  };
+
+  const linkedParts = parts.filter(p => formData.parts_extracted?.includes(p.id));
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <Button 
+          onClick={() => setShowPartForm(!showPartForm)} 
+          variant="outline"
+          size="sm"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Create New Part
+        </Button>
+      </div>
+
+      {showPartForm && (
+        <CreatePartForm 
+          onSubmit={(data) => createPartMutation.mutate(data)}
+          onCancel={() => setShowPartForm(false)}
+          salvageVehicle={salvageVehicle}
+        />
+      )}
+
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <Label className="mb-2 block">Link Existing Part</Label>
+        <div className="flex gap-2">
+          <Select value={selectedPartId} onValueChange={setSelectedPartId}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Select a part..." />
+            </SelectTrigger>
+            <SelectContent>
+              {parts.map((part) => (
+                <SelectItem key={part.id} value={part.id}>
+                  {part.name} ({part.part_number})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={linkExistingPart} size="sm">Link</Button>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <h4 className="font-semibold text-gray-900">Linked Parts ({linkedParts.length})</h4>
+        {linkedParts.length === 0 ? (
+          <p className="text-sm text-gray-500 text-center py-8">No parts extracted yet</p>
+        ) : (
+          <div className="grid gap-3">
+            {linkedParts.map((part) => (
+              <Card key={part.id} className="border border-gray-200">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1 flex-1">
+                      <h5 className="font-semibold">{part.name}</h5>
+                      <p className="text-sm text-gray-600">
+                        <strong>Part #:</strong> {part.part_number} | 
+                        <strong className="ml-2">Category:</strong> {part.category}
+                      </p>
+                      {part.selling_price && (
+                        <p className="text-sm text-gray-600">
+                          <strong>Price:</strong> ${part.selling_price} | 
+                          <strong className="ml-2">Stock:</strong> {part.quantity}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => generateBarcode(part)}
+                      >
+                        <Barcode className="w-4 h-4 mr-1" />
+                        Barcode
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => unlinkPart(part.id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CreatePartForm({ onSubmit, onCancel, salvageVehicle }) {
+  const [partData, setPartData] = useState({
+    part_number: `PART-${Date.now()}`,
+    name: "",
+    description: "",
+    category: "engine",
+    compatible_makes: salvageVehicle?.make || "",
+    compatible_models: salvageVehicle?.model || "",
+    quantity: 1,
+    cost_price: 0,
+    selling_price: 0,
+    location: salvageVehicle?.location || ""
+  });
+
+  return (
+    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+      <h4 className="font-semibold text-blue-900 mb-3">Create New Part</h4>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label>Part Name *</Label>
+          <Input
+            value={partData.name}
+            onChange={(e) => setPartData({ ...partData, name: e.target.value })}
+            placeholder="e.g., Engine Block"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Part Number</Label>
+          <Input
+            value={partData.part_number}
+            onChange={(e) => setPartData({ ...partData, part_number: e.target.value })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Category</Label>
+          <Select value={partData.category} onValueChange={(v) => setPartData({ ...partData, category: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="engine">Engine</SelectItem>
+              <SelectItem value="transmission">Transmission</SelectItem>
+              <SelectItem value="brakes">Brakes</SelectItem>
+              <SelectItem value="suspension">Suspension</SelectItem>
+              <SelectItem value="electrical">Electrical</SelectItem>
+              <SelectItem value="body_parts">Body Parts</SelectItem>
+              <SelectItem value="interior">Interior</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Quantity</Label>
+          <Input
+            type="number"
+            value={partData.quantity}
+            onChange={(e) => setPartData({ ...partData, quantity: parseInt(e.target.value) })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Cost Price ($)</Label>
+          <Input
+            type="number"
+            step="0.01"
+            value={partData.cost_price}
+            onChange={(e) => setPartData({ ...partData, cost_price: parseFloat(e.target.value) })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Selling Price ($)</Label>
+          <Input
+            type="number"
+            step="0.01"
+            value={partData.selling_price}
+            onChange={(e) => setPartData({ ...partData, selling_price: parseFloat(e.target.value) })}
+          />
+        </div>
+        <div className="space-y-2 col-span-2">
+          <Label>Description</Label>
+          <Textarea
+            value={partData.description}
+            onChange={(e) => setPartData({ ...partData, description: e.target.value })}
+            rows={2}
+          />
+        </div>
+      </div>
+      <div className="flex gap-2 mt-3">
+        <Button onClick={() => onSubmit(partData)} className="bg-blue-600 hover:bg-blue-700" size="sm">
+          Create Part
+        </Button>
+        <Button onClick={onCancel} variant="outline" size="sm">
+          Cancel
+        </Button>
+      </div>
+    </div>
   );
 }
