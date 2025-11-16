@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, User, Edit, Trash2, Phone, Mail, MapPin } from "lucide-react";
+import { Plus, Search, User, Edit, Trash2, Phone, Mail, MapPin, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   Dialog,
@@ -34,6 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useCompany } from "../components/shared/CompanyContext";
 
 export default function Customers() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -41,41 +42,64 @@ export default function Customers() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [deletingCustomer, setDeletingCustomer] = useState(null);
+  const { selectedCompanyId } = useCompany();
 
   const queryClient = useQueryClient();
 
   const { data: customers = [], isLoading } = useQuery({
-    queryKey: ['customers'],
-    queryFn: () => base44.entities.Customer.list('-created_date'),
+    queryKey: ['customers', selectedCompanyId],
+    queryFn: async () => {
+      const allCustomers = await base44.entities.Customer.list('-created_date');
+      return allCustomers;
+    },
+    enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Customer.create(data),
+    mutationFn: async (data) => {
+      return await base44.entities.Customer.create(data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       setDialogOpen(false);
       setEditingCustomer(null);
       toast.success("Customer added successfully!");
     },
+    onError: (error) => {
+      console.error("Create error:", error);
+      toast.error("Failed to add customer: " + (error.message || "Unknown error"));
+    },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Customer.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      return await base44.entities.Customer.update(id, data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       setDialogOpen(false);
       setEditingCustomer(null);
       toast.success("Customer updated successfully!");
     },
+    onError: (error) => {
+      console.error("Update error:", error);
+      toast.error("Failed to update customer: " + (error.message || "Unknown error"));
+    },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Customer.delete(id),
+    mutationFn: async (id) => {
+      return await base44.entities.Customer.delete(id);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       setDeletingCustomer(null);
       toast.success("Customer deleted successfully!");
+    },
+    onError: (error) => {
+      console.error("Delete error:", error);
+      toast.error("Failed to delete customer");
     },
   });
 
@@ -88,10 +112,25 @@ export default function Customers() {
   });
 
   const handleSave = (formData) => {
+    if (!selectedCompanyId) {
+      toast.error("Please select a company first");
+      return;
+    }
+
+    if (!formData.full_name || !formData.phone) {
+      toast.error("Please fill in all required fields (Name and Phone)");
+      return;
+    }
+
+    const dataToSave = {
+      ...formData,
+      company_id: selectedCompanyId
+    };
+
     if (editingCustomer) {
-      updateMutation.mutate({ id: editingCustomer.id, data: formData });
+      updateMutation.mutate({ id: editingCustomer.id, data: dataToSave });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(dataToSave);
     }
   };
 
@@ -100,6 +139,18 @@ export default function Customers() {
     business: "bg-purple-100 text-purple-800",
     government: "bg-green-100 text-green-800"
   };
+
+  if (!selectedCompanyId) {
+    return (
+      <div className="p-6 md:p-8 max-w-7xl mx-auto">
+        <div className="text-center py-16">
+          <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">No Company Selected</h3>
+          <p className="text-gray-500">Please select a company from the sidebar to view customers</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
@@ -145,7 +196,11 @@ export default function Customers() {
         </div>
       </div>
 
-      {filteredCustomers.length === 0 ? (
+      {isLoading ? (
+        <div className="text-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />
+        </div>
+      ) : filteredCustomers.length === 0 ? (
         <div className="text-center py-16">
           <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-700 mb-2">No customers found</h3>
@@ -240,6 +295,7 @@ export default function Customers() {
         }}
         customer={editingCustomer}
         onSave={handleSave}
+        isSaving={createMutation.isPending || updateMutation.isPending}
       />
 
       <AlertDialog open={!!deletingCustomer} onOpenChange={() => setDeletingCustomer(null)}>
@@ -265,8 +321,8 @@ export default function Customers() {
   );
 }
 
-function CustomerDialog({ open, onClose, customer, onSave }) {
-  const [formData, setFormData] = useState(customer || {
+function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
+  const [formData, setFormData] = useState({
     full_name: "",
     email: "",
     phone: "",
@@ -280,8 +336,23 @@ function CustomerDialog({ open, onClose, customer, onSave }) {
   });
 
   React.useEffect(() => {
-    if (customer) setFormData(customer);
-  }, [customer]);
+    if (customer) {
+      setFormData(customer);
+    } else {
+      setFormData({
+        full_name: "",
+        email: "",
+        phone: "",
+        address: "",
+        city: "",
+        country: "",
+        customer_type: "individual",
+        company_name: "",
+        tax_id: "",
+        notes: ""
+      });
+    }
+  }, [customer, open]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -294,15 +365,25 @@ function CustomerDialog({ open, onClose, customer, onSave }) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Full Name *</Label>
-              <Input value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} />
+              <Input 
+                value={formData.full_name || ""} 
+                onChange={(e) => setFormData({...formData, full_name: e.target.value})} 
+              />
             </div>
             <div className="space-y-2">
               <Label>Phone *</Label>
-              <Input value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+              <Input 
+                value={formData.phone || ""} 
+                onChange={(e) => setFormData({...formData, phone: e.target.value})} 
+              />
             </div>
             <div className="space-y-2">
               <Label>Email</Label>
-              <Input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+              <Input 
+                type="email" 
+                value={formData.email || ""} 
+                onChange={(e) => setFormData({...formData, email: e.target.value})} 
+              />
             </div>
             <div className="space-y-2">
               <Label>Customer Type</Label>
@@ -320,40 +401,71 @@ function CustomerDialog({ open, onClose, customer, onSave }) {
               <>
                 <div className="space-y-2">
                   <Label>Company Name</Label>
-                  <Input value={formData.company_name} onChange={(e) => setFormData({...formData, company_name: e.target.value})} />
+                  <Input 
+                    value={formData.company_name || ""} 
+                    onChange={(e) => setFormData({...formData, company_name: e.target.value})} 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Tax ID</Label>
-                  <Input value={formData.tax_id} onChange={(e) => setFormData({...formData, tax_id: e.target.value})} />
+                  <Input 
+                    value={formData.tax_id || ""} 
+                    onChange={(e) => setFormData({...formData, tax_id: e.target.value})} 
+                  />
                 </div>
               </>
             )}
 
             <div className="space-y-2 col-span-2">
               <Label>Address</Label>
-              <Textarea value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} rows={2} />
+              <Textarea 
+                value={formData.address || ""} 
+                onChange={(e) => setFormData({...formData, address: e.target.value})} 
+                rows={2} 
+              />
             </div>
 
             <div className="space-y-2">
               <Label>City</Label>
-              <Input value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})} />
+              <Input 
+                value={formData.city || ""} 
+                onChange={(e) => setFormData({...formData, city: e.target.value})} 
+              />
             </div>
             <div className="space-y-2">
               <Label>Country</Label>
-              <Input value={formData.country} onChange={(e) => setFormData({...formData, country: e.target.value})} />
+              <Input 
+                value={formData.country || ""} 
+                onChange={(e) => setFormData({...formData, country: e.target.value})} 
+              />
             </div>
           </div>
 
           <div className="space-y-2">
             <Label>Notes</Label>
-            <Textarea value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={3} />
+            <Textarea 
+              value={formData.notes || ""} 
+              onChange={(e) => setFormData({...formData, notes: e.target.value})} 
+              rows={3} 
+            />
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700">
-            {customer ? 'Update' : 'Add'} Customer
+          <Button variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
+          <Button 
+            onClick={() => onSave(formData)} 
+            className="bg-blue-600 hover:bg-blue-700"
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>{customer ? 'Update' : 'Add'} Customer</>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
