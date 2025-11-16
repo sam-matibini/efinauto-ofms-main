@@ -10,7 +10,8 @@ import {
   Plane,
   Package,
   Users,
-  Building2
+  Building2,
+  Trash2
 } from "lucide-react";
 import {
   Sidebar,
@@ -64,6 +65,11 @@ const navigationItems = [
     title: "Auto Repair",
     url: createPageUrl("Repairs"),
     icon: Wrench,
+  },
+  {
+    title: "Salvage & Dismantling",
+    url: createPageUrl("Salvage"),
+    icon: Trash2,
   },
   {
     title: "Exports",

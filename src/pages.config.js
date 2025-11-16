@@ -9,7 +9,8 @@ import Freight from './pages/Freight';
 import Sales from './pages/Sales';
 import Customers from './pages/Customers';
 import Companies from './pages/Companies';
-import Layout from './Layout.jsx';
+import Salvage from './pages/Salvage';
+import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
@@ -24,10 +25,11 @@ export const PAGES = {
     "Sales": Sales,
     "Customers": Customers,
     "Companies": Companies,
+    "Salvage": Salvage,
 }
 
 export const pagesConfig = {
     mainPage: "Dashboard",
     Pages: PAGES,
-    Layout: Layout,
+    Layout: __Layout,
 };
