@@ -10,6 +10,7 @@ import Sales from './pages/Sales';
 import Customers from './pages/Customers';
 import Companies from './pages/Companies';
 import Salvage from './pages/Salvage';
+import Notifications from './pages/Notifications';
 import __Layout from './Layout.jsx';
 
 
@@ -26,6 +27,7 @@ export const PAGES = {
     "Customers": Customers,
     "Companies": Companies,
     "Salvage": Salvage,
+    "Notifications": Notifications,
 }
 
 export const pagesConfig = {
