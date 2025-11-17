@@ -319,6 +319,7 @@ function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, p
   const [formData, setFormData] = useState({
     shipment_number: `FRT-${Date.now()}`,
     deal_number: "",
+    seal_number: "", // Added seal_number
     export_id: "",
     customer_name: "",
     customer_phone: "",
@@ -355,7 +356,8 @@ function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, p
         setFormData({
           ...shipment,
           cargo_items: shipment.cargo_items || [],
-          deal_number: shipment.deal_number || ""
+          deal_number: shipment.deal_number || "",
+          seal_number: shipment.seal_number || "" // Added seal_number
         });
         const customer = customers.find(c => c.full_name === shipment.customer_name);
         setSelectedCustomer(customer || null);
@@ -363,6 +365,7 @@ function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, p
         setFormData({
           shipment_number: `FRT-${Date.now()}`,
           deal_number: "",
+          seal_number: "", // Added seal_number
           export_id: "",
           customer_name: "",
           customer_phone: "",
@@ -619,6 +622,10 @@ function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, p
               <div className="space-y-2">
                 <Label>Container Number</Label>
                 <Input value={formData.container_number} onChange={(e) => setFormData({...formData, container_number: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Seal Number</Label>
+                <Input value={formData.seal_number} onChange={(e) => setFormData({...formData, seal_number: e.target.value})} />
               </div>
             </div>
 
