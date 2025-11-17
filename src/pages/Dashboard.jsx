@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Car, Settings, Wrench, DollarSign, ShoppingCart, Plane, Package, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { useCompany } from "@/hooks/useCompany";
+import { useCompany } from "../components/shared/CompanyContext";
 
 function StatsCard({ title, value, icon: Icon, bgColor, textColor, index = 0 }) {
   return (
