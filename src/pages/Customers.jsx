@@ -124,7 +124,6 @@ export default function Customers() {
       return;
     }
 
-    // Clean the data - remove empty strings and undefined values
     const cleanData = {
       company_id: selectedCompanyId,
       full_name: formData.full_name,
@@ -132,7 +131,6 @@ export default function Customers() {
       customer_type: formData.customer_type || "individual"
     };
 
-    // Only add optional fields if they have values
     if (formData.email) cleanData.email = formData.email;
     if (formData.address) cleanData.address = formData.address;
     if (formData.city) cleanData.city = formData.city;
@@ -383,6 +381,8 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
     }
   }, [customer, open]);
 
+  const isFormValid = formData.full_name?.trim() && formData.phone?.trim();
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -485,7 +485,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
           <Button 
             onClick={() => onSave(formData)} 
             className="bg-blue-600 hover:bg-blue-700"
-            disabled={isSaving}
+            disabled={isSaving || !isFormValid}
           >
             {isSaving ? (
               <>
