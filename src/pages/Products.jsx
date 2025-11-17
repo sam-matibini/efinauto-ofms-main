@@ -10,26 +10,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Package, Plus } from "lucide-react";
+import { Search, Filter, Package, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import ProductCard from "../components/products/ProductCard";
 import StockAdjustmentDialog from "../components/products/StockAdjustmentDialog";
-import { useCompany } from "../components/shared/CompanyContext";
 
 export default function Products() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const { selectedCompanyId } = useCompany();
 
   const queryClient = useQueryClient();
 
   const { data: products = [], isLoading } = useQuery({
-    queryKey: ['products', selectedCompanyId],
+    queryKey: ['products'],
     queryFn: () => base44.entities.Product.list('-updated_date'),
-    enabled: !!selectedCompanyId,
     initialData: [],
   });
 
@@ -57,18 +54,6 @@ export default function Products() {
       data: productData
     });
   };
-
-  if (!selectedCompanyId) {
-    return (
-      <div className="p-6 md:p-8 max-w-7xl mx-auto">
-        <div className="text-center py-16">
-          <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">No Company Selected</h3>
-          <p className="text-gray-500">Please select a company from the sidebar to view products</p>
-        </div>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (
