@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -39,7 +40,7 @@ export default function Vehicles() {
   const { data: vehicles = [], isLoading } = useQuery({
     queryKey: ['vehicles', selectedCompanyId],
     queryFn: async () => {
-      const allVehicles = await base44.entities.Vehicle.list('-created_date');
+      const allVehicles = await base44.entities.Vehicle.filter({ company_id: selectedCompanyId }, '-created_date');
       return allVehicles;
     },
     enabled: !!selectedCompanyId,
@@ -52,7 +53,7 @@ export default function Vehicles() {
       return await base44.entities.Vehicle.create(data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles', selectedCompanyId] }); // Invalidate with company ID
       setDialogOpen(false);
       setEditingVehicle(null);
       toast.success("Vehicle added successfully!");
@@ -69,7 +70,7 @@ export default function Vehicles() {
       return await base44.entities.Vehicle.update(id, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles', selectedCompanyId] }); // Invalidate with company ID
       setDialogOpen(false);
       setEditingVehicle(null);
       toast.success("Vehicle updated successfully!");

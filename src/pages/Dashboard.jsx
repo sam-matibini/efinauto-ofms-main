@@ -1,9 +1,11 @@
+
 import React from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Car, Settings, Wrench, DollarSign, ShoppingCart, Plane, Package, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "framer-motion";
+import { useCompany } from "@/hooks/useCompany";
 
 function StatsCard({ title, value, icon: Icon, bgColor, textColor, index = 0 }) {
   return (
@@ -31,39 +33,47 @@ function StatsCard({ title, value, icon: Icon, bgColor, textColor, index = 0 }) 
 }
 
 export default function Dashboard() {
+  const { selectedCompanyId } = useCompany();
+
   const { data: vehicles = [] } = useQuery({
-    queryKey: ['vehicles'],
-    queryFn: () => base44.entities.Vehicle.list(),
+    queryKey: ['vehicles', selectedCompanyId],
+    queryFn: () => base44.entities.Vehicle.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: parts = [] } = useQuery({
-    queryKey: ['parts'],
-    queryFn: () => base44.entities.Part.list(),
+    queryKey: ['parts', selectedCompanyId],
+    queryFn: () => base44.entities.Part.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: sales = [] } = useQuery({
-    queryKey: ['sales'],
-    queryFn: () => base44.entities.Sale.list('-created_date'),
+    queryKey: ['sales', selectedCompanyId],
+    queryFn: () => base44.entities.Sale.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: repairs = [] } = useQuery({
-    queryKey: ['repairs'],
-    queryFn: () => base44.entities.RepairOrder.list('-created_date'),
+    queryKey: ['repairs', selectedCompanyId],
+    queryFn: () => base44.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: exports = [] } = useQuery({
-    queryKey: ['exports'],
-    queryFn: () => base44.entities.Export.list('-created_date'),
+    queryKey: ['exports', selectedCompanyId],
+    queryFn: () => base44.entities.Export.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: shipments = [] } = useQuery({
-    queryKey: ['shipments'],
-    queryFn: () => base44.entities.FreightShipment.list('-created_date'),
+    queryKey: ['shipments', selectedCompanyId],
+    queryFn: () => base44.entities.FreightShipment.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
     initialData: [],
   });
 

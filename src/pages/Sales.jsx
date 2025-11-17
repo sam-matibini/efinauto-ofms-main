@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -33,16 +34,36 @@ export default function Sales() {
   const queryClient = useQueryClient();
 
   const { data: sales = [] } = useQuery({
-    queryKey: ['sales'],
-    queryFn: () => base44.entities.Sale.list('-created_date'),
+    queryKey: ['sales', selectedCompanyId],
+    queryFn: () => base44.entities.Sale.filter({ company_id: selectedCompanyId }, '-created_date'),
+    enabled: !!selectedCompanyId,
     initialData: [],
   });
 
+  const { data: customers = [] } = useQuery({
+    queryKey: ['customers', selectedCompanyId],
+    queryFn: () => base44.entities.Customer.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ['vehicles', selectedCompanyId],
+    queryFn: () => base44.entities.Vehicle.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  // This query fetches the selected company details to be used in BillOfSale
   const { data: company } = useQuery({
     queryKey: ['company', selectedCompanyId],
-    queryFn: () => base44.entities.Company.filter({ id: selectedCompanyId }),
+    queryFn: async () => {
+      if (!selectedCompanyId) return []; // Return empty array if no company ID, will result in 'undefined' after select
+      const result = await base44.entities.Company.filter({ id: selectedCompanyId });
+      return result;
+    },
     enabled: !!selectedCompanyId,
-    select: (data) => data?.[0],
+    select: (data) => data?.[0], // Select the first (and only) company object
   });
 
   const createMutation = useMutation({

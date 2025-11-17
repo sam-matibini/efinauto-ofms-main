@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -31,21 +32,21 @@ export default function Notifications() {
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', selectedCompanyId],
-    queryFn: async () => await base44.entities.Customer.list('-created_date'),
+    queryFn: () => base44.entities.Customer.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: preferences = [], isLoading } = useQuery({
     queryKey: ['notification-preferences', selectedCompanyId],
-    queryFn: async () => await base44.entities.NotificationPreference.list('-created_date'),
+    queryFn: () => base44.entities.NotificationPreference.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: logs = [] } = useQuery({
     queryKey: ['notification-logs', selectedCompanyId],
-    queryFn: async () => await base44.entities.NotificationLog.list('-created_date', 50),
+    queryFn: () => base44.entities.NotificationLog.filter({ company_id: selectedCompanyId }, '-created_date', 50),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
@@ -59,7 +60,7 @@ export default function Notifications() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notification-preferences'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-preferences', selectedCompanyId] }); // Invalidate with companyId
       setDialogOpen(false);
       setSelectedCustomer(null);
       toast.success("Notification preferences saved!");

@@ -26,9 +26,16 @@ export default function Salvage() {
   const [editingSalvage, setEditingSalvage] = useState(null);
   const queryClient = useQueryClient();
 
-  const { data: salvageVehicles = [] } = useQuery({
-    queryKey: ['salvage', selectedCompanyId],
-    queryFn: () => base44.entities.SalvageVehicle.filter({ company_id: selectedCompanyId }, '-intake_date'),
+  const { data: salvageVehicles = [], isLoading } = useQuery({
+    queryKey: ['salvage-vehicles', selectedCompanyId],
+    queryFn: () => base44.entities.SalvageVehicle.filter({ company_id: selectedCompanyId }, '-created_date'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: parts = [] } = useQuery({
+    queryKey: ['parts', selectedCompanyId],
+    queryFn: () => base44.entities.Part.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
@@ -36,7 +43,7 @@ export default function Salvage() {
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.SalvageVehicle.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['salvage'] });
+      queryClient.invalidateQueries({ queryKey: ['salvage-vehicles'] });
       setDialogOpen(false);
       setEditingSalvage(null);
       toast.success("Salvage vehicle added!");
@@ -46,7 +53,7 @@ export default function Salvage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.SalvageVehicle.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['salvage'] });
+      queryClient.invalidateQueries({ queryKey: ['salvage-vehicles'] });
       setDialogOpen(false);
       setEditingSalvage(null);
       toast.success("Salvage vehicle updated!");
@@ -134,66 +141,72 @@ export default function Salvage() {
       </div>
 
       <div className="grid gap-4">
-        {filteredVehicles.map((vehicle, index) => (
-          <motion.div
-            key={vehicle.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-          >
-            <Card className="border-none shadow-md hover:shadow-lg transition-all cursor-pointer"
-              onClick={() => {
-                setEditingSalvage(vehicle);
-                setDialogOpen(true);
-              }}>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-2 flex-1">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <h3 className="font-bold text-lg">
-                        {vehicle.year} {vehicle.make} {vehicle.model}
-                      </h3>
-                      <Badge className={statusColors[vehicle.status]}>
-                        {vehicle.status}
-                      </Badge>
-                      {vehicle.manifest_generated && (
-                        <Badge className="bg-green-100 text-green-800">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Manifest
+        {isLoading ? (
+          <p className="text-center text-gray-500">Loading salvage vehicles...</p>
+        ) : filteredVehicles.length === 0 ? (
+          <p className="text-center text-gray-500 py-8">No salvage vehicles found.</p>
+        ) : (
+          filteredVehicles.map((vehicle, index) => (
+            <motion.div
+              key={vehicle.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <Card className="border-none shadow-md hover:shadow-lg transition-all cursor-pointer"
+                onClick={() => {
+                  setEditingSalvage(vehicle);
+                  setDialogOpen(true);
+                }}>
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <h3 className="font-bold text-lg">
+                          {vehicle.year} {vehicle.make} {vehicle.model}
+                        </h3>
+                        <Badge className={statusColors[vehicle.status]}>
+                          {vehicle.status}
                         </Badge>
-                      )}
-                      {vehicle.dismantling_log?.length > 0 && (
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                          <Package className="w-3 h-3 mr-1" />
-                          {vehicle.dismantling_log.length} logs
-                        </Badge>
+                        {vehicle.manifest_generated && (
+                          <Badge className="bg-green-100 text-green-800">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Manifest
+                          </Badge>
+                        )}
+                        {vehicle.dismantling_log?.length > 0 && (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                            <Package className="w-3 h-3 mr-1" />
+                            {vehicle.dismantling_log.length} logs
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        <strong>VIN:</strong> {vehicle.vin}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        <strong>Location:</strong> {vehicle.location || 'Not assigned'} | 
+                        <strong className="ml-2">Intake:</strong> {vehicle.intake_date}
+                      </p>
+                      {vehicle.scrap_weights?.total_weight_kg > 0 && (
+                        <p className="text-sm text-gray-500">
+                          <strong>Scrap Weight:</strong> {vehicle.scrap_weights.total_weight_kg} kg | 
+                          <strong className="ml-2">Value:</strong> ${vehicle.scrap_weights.scrap_value}
+                        </p>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600">
-                      <strong>VIN:</strong> {vehicle.vin}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      <strong>Location:</strong> {vehicle.location || 'Not assigned'} | 
-                      <strong className="ml-2">Intake:</strong> {vehicle.intake_date}
-                    </p>
-                    {vehicle.scrap_weights?.total_weight_kg > 0 && (
-                      <p className="text-sm text-gray-500">
-                        <strong>Scrap Weight:</strong> {vehicle.scrap_weights.total_weight_kg} kg | 
-                        <strong className="ml-2">Value:</strong> ${vehicle.scrap_weights.scrap_value}
+                    <div className="text-right ml-4">
+                      <p className="text-lg font-bold text-gray-900">
+                        ${vehicle.estimated_value?.toLocaleString() || 0}
                       </p>
-                    )}
+                      <p className="text-sm text-gray-500">Est. Value</p>
+                    </div>
                   </div>
-                  <div className="text-right ml-4">
-                    <p className="text-lg font-bold text-gray-900">
-                      ${vehicle.estimated_value?.toLocaleString() || 0}
-                    </p>
-                    <p className="text-sm text-gray-500">Est. Value</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))
+        )}
       </div>
 
       <SalvageDialog
@@ -205,12 +218,13 @@ export default function Salvage() {
         salvage={editingSalvage}
         onSave={handleSave}
         companyId={selectedCompanyId}
+        allParts={parts} // Pass the fetched parts to the dialog
       />
     </div>
   );
 }
 
-function SalvageDialog({ open, onClose, salvage, onSave, companyId }) {
+function SalvageDialog({ open, onClose, salvage, onSave, companyId, allParts }) {
   const [activeTab, setActiveTab] = useState("basic");
   const [formData, setFormData] = useState(salvage || {
     salvage_number: `SALV-${Date.now()}`,
@@ -251,13 +265,20 @@ function SalvageDialog({ open, onClose, salvage, onSave, companyId }) {
     if (salvage) {
       setFormData({
         ...salvage,
+        // Ensure nested objects exist even if undefined from API
         compliance: salvage.compliance || {
           tires_removed: false,
           fluids_drained: false,
           battery_removed: false,
           airbags_deployed: false,
           catalytic_converter_removed: false,
-          hazmat_handled: false
+          hazmat_handled: false,
+          tires_removed_date: '',
+          fluids_drained_date: '',
+          battery_removed_date: '',
+          airbags_date: '',
+          hazmat_notes: '',
+          recycler_license_number: ''
         },
         scrap_weights: salvage.scrap_weights || {
           ferrous_metal_kg: 0,
@@ -269,6 +290,48 @@ function SalvageDialog({ open, onClose, salvage, onSave, companyId }) {
         },
         dismantling_log: salvage.dismantling_log || [],
         parts_extracted: salvage.parts_extracted || []
+      });
+    } else {
+      // Reset formData for new vehicle if dialog was previously used for editing
+      setFormData({
+        salvage_number: `SALV-${Date.now()}`,
+        vin: "",
+        make: "",
+        model: "",
+        year: new Date().getFullYear(),
+        color: "",
+        mileage: 0,
+        intake_date: new Date().toISOString().split('T')[0],
+        intake_condition: "complete",
+        location: "",
+        status: "received",
+        purchase_price: 0,
+        estimated_value: 0,
+        compliance: {
+          tires_removed: false,
+          fluids_drained: false,
+          battery_removed: false,
+          airbags_deployed: false,
+          catalytic_converter_removed: false,
+          hazmat_handled: false,
+          tires_removed_date: '',
+          fluids_drained_date: '',
+          battery_removed_date: '',
+          airbags_date: '',
+          hazmat_notes: '',
+          recycler_license_number: ''
+        },
+        scrap_weights: {
+          ferrous_metal_kg: 0,
+          non_ferrous_metal_kg: 0,
+          aluminum_kg: 0,
+          copper_kg: 0,
+          total_weight_kg: 0,
+          scrap_value: 0
+        },
+        dismantling_log: [],
+        parts_extracted: [],
+        notes: ""
       });
     }
   }, [salvage]);
@@ -618,6 +681,7 @@ function SalvageDialog({ open, onClose, salvage, onSave, companyId }) {
               setFormData={setFormData} 
               companyId={companyId}
               salvageVehicle={salvage}
+              allParts={allParts} // Pass allParts down
             />
           </TabsContent>
         </Tabs>
@@ -782,22 +846,18 @@ function DismantlingLogTab({ formData, setFormData }) {
   );
 }
 
-function PartsExtractedTab({ formData, setFormData, companyId, salvageVehicle }) {
+function PartsExtractedTab({ formData, setFormData, companyId, salvageVehicle, allParts }) {
   const [showPartForm, setShowPartForm] = useState(false);
   const [selectedPartId, setSelectedPartId] = useState(null);
   const queryClient = useQueryClient();
 
-  const { data: parts = [] } = useQuery({
-    queryKey: ['parts', companyId],
-    queryFn: () => base44.entities.Part.filter({ company_id: companyId }, '-created_date'),
-    enabled: !!companyId,
-    initialData: [],
-  });
+  // The parts query is now handled in the parent Salvage component and passed via allParts prop
+  // const { data: parts = [] } = useQuery({ ... });
 
   const createPartMutation = useMutation({
     mutationFn: (data) => base44.entities.Part.create({ ...data, company_id: companyId }),
     onSuccess: (newPart) => {
-      queryClient.invalidateQueries({ queryKey: ['parts'] });
+      queryClient.invalidateQueries({ queryKey: ['parts'] }); // Invalidate global parts query
       
       const updatedPartsExtracted = [...(formData.parts_extracted || []), newPart.id];
       setFormData({ ...formData, parts_extracted: updatedPartsExtracted });
@@ -839,7 +899,7 @@ function PartsExtractedTab({ formData, setFormData, companyId, salvageVehicle })
     });
   };
 
-  const linkedParts = parts.filter(p => formData.parts_extracted?.includes(p.id));
+  const linkedParts = allParts.filter(p => formData.parts_extracted?.includes(p.id));
 
   return (
     <div className="space-y-4">
@@ -870,7 +930,7 @@ function PartsExtractedTab({ formData, setFormData, companyId, salvageVehicle })
               <SelectValue placeholder="Select a part..." />
             </SelectTrigger>
             <SelectContent>
-              {parts.map((part) => (
+              {allParts.map((part) => (
                 <SelectItem key={part.id} value={part.id}>
                   {part.name} ({part.part_number})
                 </SelectItem>

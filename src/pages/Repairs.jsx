@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useContext, useEffect } from "react"; // Added useContext and useEffect
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -14,23 +14,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import CustomerSelector from "../components/shared/CustomerSelector";
+import { CompanyContext } from "../context/CompanyContext"; // Assuming CompanyContext path
 
 export default function Repairs() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRepair, setEditingRepair] = useState(null);
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { selectedCompanyId } = useContext(CompanyContext); // Get selected company ID from context
 
   const { data: repairs = [] } = useQuery({
-    queryKey: ['repairs'],
-    queryFn: () => base44.entities.RepairOrder.list('-created_date'),
+    queryKey: ['repairs', selectedCompanyId],
+    queryFn: () => base44.entities.RepairOrder.filter({ company_id: selectedCompanyId }, '-created_date'),
+    enabled: !!selectedCompanyId, // Only run query if a company is selected
+    initialData: [],
+  });
+
+  const { data: customers = [] } = useQuery({
+    queryKey: ['customers', selectedCompanyId],
+    queryFn: () => base44.entities.Customer.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId, // Only run query if a company is selected
     initialData: [],
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.RepairOrder.create(data),
+    mutationFn: (data) => base44.entities.RepairOrder.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['repairs'] });
+      queryClient.invalidateQueries({ queryKey: ['repairs', selectedCompanyId] });
       setDialogOpen(false);
       setEditingRepair(null);
       toast.success("Repair order created!");
@@ -38,9 +48,9 @@ export default function Repairs() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.RepairOrder.update(id, data),
+    mutationFn: ({ id, data }) => base44.entities.RepairOrder.update(id, { ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['repairs'] });
+      queryClient.invalidateQueries({ queryKey: ['repairs', selectedCompanyId] });
       setDialogOpen(false);
       setEditingRepair(null);
       toast.success("Repair order updated!");
@@ -48,9 +58,9 @@ export default function Repairs() {
   });
 
   const createCustomerMutation = useMutation({
-    mutationFn: (data) => base44.entities.Customer.create(data),
+    mutationFn: (data) => base44.entities.Customer.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['customers', selectedCompanyId] });
       setCustomerDialogOpen(false);
       toast.success("Customer added!");
     },
@@ -59,6 +69,10 @@ export default function Repairs() {
   const handleSave = (formData) => {
     if (!formData.customer_name || !formData.customer_phone || !formData.vehicle_make || !formData.vehicle_model) {
       toast.error("Please fill in all required fields: Customer Name, Phone, Vehicle Make, Vehicle Model");
+      return;
+    }
+    if (!selectedCompanyId) {
+      toast.error("Please select a company before creating/editing repair orders.");
       return;
     }
 
@@ -95,11 +109,23 @@ export default function Repairs() {
         <Button onClick={() => {
           setEditingRepair(null);
           setDialogOpen(true);
-        }} className="bg-blue-600 hover:bg-blue-700">
+        }} className="bg-blue-600 hover:bg-blue-700" disabled={!selectedCompanyId}>
           <Plus className="w-4 h-4 mr-2" />
           New Repair Order
         </Button>
       </div>
+
+      {!selectedCompanyId && (
+        <div className="text-center text-gray-500 py-10">
+          Please select a company to view and manage repair orders.
+        </div>
+      )}
+
+      {selectedCompanyId && repairs.length === 0 && (
+        <div className="text-center text-gray-500 py-10">
+          No repair orders found for this company. Click "New Repair Order" to get started!
+        </div>
+      )}
 
       <div className="grid gap-4">
         {repairs.map((repair, index) => (
@@ -109,7 +135,7 @@ export default function Repairs() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
           >
-            <Card 
+            <Card
               className="border-none shadow-md hover:shadow-lg transition-all cursor-pointer"
               onClick={() => {
                 setEditingRepair(repair);
@@ -169,6 +195,8 @@ export default function Repairs() {
         repair={editingRepair}
         onSave={handleSave}
         onCreateCustomer={() => setCustomerDialogOpen(true)}
+        customers={customers} // Pass customers data
+        selectedCompanyId={selectedCompanyId} // Pass selectedCompanyId
       />
 
       <QuickCustomerDialog
@@ -180,8 +208,8 @@ export default function Repairs() {
   );
 }
 
-function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer }) {
-  const [formData, setFormData] = useState(repair || {
+function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer, customers, selectedCompanyId }) {
+  const getInitialFormData = (companyId) => ({
     order_number: `RO-${Date.now()}`,
     customer_id: null,
     customer_name: "",
@@ -202,40 +230,21 @@ function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer }) {
     total_cost: 0,
     payment_status: "pending",
     start_date: new Date().toISOString().split('T')[0],
-    notes: ""
+    notes: "",
+    company_id: companyId, // Include company_id in initial form data
   });
 
-  React.useEffect(() => {
-    if (repair) setFormData(repair);
-    else {
-      // Reset form data if no repair is being edited
-      setFormData({
-        order_number: `RO-${Date.now()}`,
-        customer_id: null,
-        customer_name: "",
-        customer_phone: "",
-        vehicle_make: "",
-        vehicle_model: "",
-        vehicle_year: new Date().getFullYear(),
-        vehicle_plate: "",
-        mileage: 0,
-        service_type: "routine_maintenance",
-        description: "",
-        diagnosis: "",
-        status: "pending",
-        priority: "medium",
-        assigned_technician: "",
-        labor_cost: 0,
-        parts_cost: 0,
-        total_cost: 0,
-        payment_status: "pending",
-        start_date: new Date().toISOString().split('T')[0],
-        notes: ""
-      });
-    }
-  }, [repair, open]); // Added 'open' to dependency array to reset when dialog opens for new repair
+  const [formData, setFormData] = useState(repair || getInitialFormData(selectedCompanyId));
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (repair) {
+      setFormData(repair);
+    } else {
+      setFormData(getInitialFormData(selectedCompanyId));
+    }
+  }, [repair, open, selectedCompanyId]); // Added selectedCompanyId to dependencies
+
+  useEffect(() => {
     const total = (parseFloat(formData.labor_cost) || 0) + (parseFloat(formData.parts_cost) || 0);
     setFormData(prev => ({ ...prev, total_cost: total }));
   }, [formData.labor_cost, formData.parts_cost]);
@@ -245,14 +254,16 @@ function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer }) {
       ...formData,
       customer_id: customer.id,
       customer_name: customer.full_name,
-      customer_phone: customer.phone
+      customer_phone: customer.phone,
+      // Add other customer details if needed, e.g., email
     });
   };
 
-  const canSave = formData.customer_name?.trim().length > 0 && 
+  const canSave = formData.customer_name?.trim().length > 0 &&
                   formData.customer_phone?.trim().length > 0 &&
                   formData.vehicle_make?.trim().length > 0 &&
-                  formData.vehicle_model?.trim().length > 0;
+                  formData.vehicle_model?.trim().length > 0 &&
+                  !!formData.company_id; // Ensure company_id is present
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -260,7 +271,7 @@ function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer }) {
         <DialogHeader>
           <DialogTitle>{repair ? 'Edit Repair Order' : 'New Repair Order'}</DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Select Customer</Label>
@@ -268,6 +279,8 @@ function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer }) {
               value={formData.customer_id}
               onSelect={handleCustomerSelect}
               onCreateNew={onCreateCustomer}
+              customers={customers} // Pass customers to the selector
+              selectedCompanyId={selectedCompanyId} // Pass selectedCompanyId to CustomerSelector if it needs it
             />
           </div>
 
@@ -371,8 +384,8 @@ function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer }) {
 
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button 
-            onClick={() => onSave(formData)} 
+          <Button
+            onClick={() => onSave(formData)}
             className="bg-blue-600 hover:bg-blue-700"
             disabled={!canSave}
           >
@@ -393,7 +406,7 @@ function QuickCustomerDialog({ open, onClose, onSave }) {
   });
 
   // Reset form when dialog opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (open) {
       setFormData({
         full_name: "",
@@ -428,8 +441,8 @@ function QuickCustomerDialog({ open, onClose, onSave }) {
         </div>
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button 
-            onClick={() => onSave(formData)} 
+          <Button
+            onClick={() => onSave(formData)}
             className="bg-blue-600 hover:bg-blue-700"
             disabled={!canSave}
           >

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -36,7 +37,7 @@ export default function Parts() {
 
   const { data: parts = [], isLoading } = useQuery({
     queryKey: ['parts', selectedCompanyId],
-    queryFn: () => base44.entities.Part.list('-updated_date'),
+    queryFn: () => base44.entities.Part.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });

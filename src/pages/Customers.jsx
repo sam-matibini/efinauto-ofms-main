@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -51,10 +52,7 @@ export default function Customers() {
 
   const { data: customers = [], isLoading } = useQuery({
     queryKey: ['customers', selectedCompanyId],
-    queryFn: async () => {
-      const allCustomers = await base44.entities.Customer.list('-created_date');
-      return allCustomers;
-    },
+    queryFn: () => base44.entities.Customer.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });

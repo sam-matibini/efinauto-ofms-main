@@ -25,28 +25,28 @@ export default function Exports() {
 
   const { data: exports = [] } = useQuery({
     queryKey: ['exports', selectedCompanyId],
-    queryFn: () => base44.entities.Export.list('-created_date'),
+    queryFn: () => base44.entities.Export.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', selectedCompanyId],
-    queryFn: () => base44.entities.Customer.list(),
+    queryFn: () => base44.entities.Customer.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles', selectedCompanyId],
-    queryFn: () => base44.entities.Vehicle.list(),
+    queryFn: () => base44.entities.Vehicle.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: parts = [] } = useQuery({
     queryKey: ['parts', selectedCompanyId],
-    queryFn: () => base44.entities.Part.list(),
+    queryFn: () => base44.entities.Part.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
