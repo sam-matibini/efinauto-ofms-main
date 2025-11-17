@@ -12,7 +12,8 @@ import {
   Users,
   Building2,
   Trash2,
-  Bell
+  Bell,
+  BarChart3
 } from "lucide-react";
 import {
   Sidebar,
@@ -81,6 +82,11 @@ const navigationItems = [
     title: "Freight & Cargo",
     url: createPageUrl("Freight"),
     icon: Package,
+  },
+  {
+    title: "Reports",
+    url: createPageUrl("Reports"),
+    icon: BarChart3,
   },
   {
     title: "Notifications",
