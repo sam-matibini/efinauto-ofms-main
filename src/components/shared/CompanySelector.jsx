@@ -35,15 +35,17 @@ export default function CompanySelector() {
   return (
     <Select value={selectedCompanyId || ""} onValueChange={setSelectedCompanyId}>
       <SelectTrigger className="w-full bg-white">
-        <div className="flex items-center gap-2">
-          <Building2 className="w-4 h-4" />
-          <SelectValue placeholder="Select company..." />
+        <div className="flex items-center gap-2 min-w-0">
+          <Building2 className="w-4 h-4 flex-shrink-0" />
+          <SelectValue placeholder="Select company..." className="truncate" />
         </div>
       </SelectTrigger>
       <SelectContent>
         {activeCompanies.map((company) => (
-          <SelectItem key={company.id} value={company.id}>
-            {company.name}
+          <SelectItem key={company.id} value={company.id} className="cursor-pointer">
+            <div className="truncate" title={company.name}>
+              {company.name}
+            </div>
           </SelectItem>
         ))}
       </SelectContent>
