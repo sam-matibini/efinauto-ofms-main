@@ -17,11 +17,13 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Package, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useCompany } from "../components/shared/CompanyContext";
 
 export default function AddProduct() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
+  const { selectedCompanyId } = useCompany();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -45,7 +47,7 @@ export default function AddProduct() {
       navigate(createPageUrl("Products"));
     },
     onError: (error) => {
-      toast.error("Failed to add product. Please try again.");
+      toast.error("Failed to add product: " + (error.message || "Unknown error"));
     }
   });
 
@@ -67,13 +69,25 @@ export default function AddProduct() {
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    if (!selectedCompanyId) {
+      toast.error("Please select a company first");
+      return;
+    }
+
     if (!formData.name || !formData.sku) {
       toast.error("Please fill in required fields (Name and SKU)");
       return;
     }
 
-    createProductMutation.mutate(formData);
+    const dataToSubmit = {
+      ...formData,
+      company_id: selectedCompanyId
+    };
+
+    createProductMutation.mutate(dataToSubmit);
   };
+
+  const canSubmit = formData.name.trim().length > 0 && formData.sku.trim().length > 0 && !!selectedCompanyId;
 
   return (
     <div className="p-6 md:p-8 max-w-4xl mx-auto">
@@ -285,7 +299,7 @@ export default function AddProduct() {
           <Button 
             type="submit" 
             className="bg-blue-600 hover:bg-blue-700"
-            disabled={createProductMutation.isPending}
+            disabled={createProductMutation.isPending || !canSubmit}
           >
             {createProductMutation.isPending ? (
               <>
