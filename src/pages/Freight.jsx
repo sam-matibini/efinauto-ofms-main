@@ -53,6 +53,13 @@ export default function Freight() {
     initialData: [],
   });
 
+  const { data: exports = [] } = useQuery({
+    queryKey: ['exports', selectedCompanyId],
+    queryFn: () => base44.entities.Export.list('-created_date'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.FreightShipment.create({...data, company_id: selectedCompanyId}),
     onSuccess: () => {
@@ -179,6 +186,7 @@ export default function Freight() {
                       </Badge>
                       <Badge variant="outline">{shipment.shipment_type}</Badge>
                       <Badge variant="outline">{shipment.cargo_type}</Badge>
+                      {shipment.export_id && <Badge className="bg-purple-100 text-purple-800">Linked to Export</Badge>}
                     </div>
                     <p className="text-gray-600">
                       <strong>Customer:</strong> {shipment.customer_name}
@@ -236,6 +244,7 @@ export default function Freight() {
         customers={customers}
         vehicles={vehicles}
         parts={parts}
+        exports={exports}
       />
 
       <LoadingDeclarationDialog
@@ -246,14 +255,16 @@ export default function Freight() {
         }}
         shipment={selectedShipment}
         onSave={handleLoadingDeclSave}
+        exports={exports}
       />
     </div>
   );
 }
 
-function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, parts }) {
+function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, parts, exports }) {
   const [formData, setFormData] = useState({
     shipment_number: `FRT-${Date.now()}`,
+    export_id: "",
     customer_name: "",
     customer_phone: "",
     shipment_type: "sea",
@@ -295,6 +306,7 @@ function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, p
       } else {
         setFormData({
           shipment_number: `FRT-${Date.now()}`,
+          export_id: "",
           customer_name: "",
           customer_phone: "",
           shipment_type: "sea",
@@ -333,6 +345,25 @@ function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, p
       customer_name: customer.full_name,
       customer_phone: customer.phone || ""
     });
+  };
+
+  const handleExportSelect = (exportId) => {
+    const exportOrder = exports.find(e => e.id === exportId);
+    if (exportOrder) {
+      setFormData({
+        ...formData,
+        export_id: exportId,
+        customer_name: exportOrder.customer_name || "",
+        customer_phone: exportOrder.customer_phone || "",
+        destination_country: exportOrder.destination_country || "",
+        destination_location: exportOrder.destination_port || "",
+        cargo_description: exportOrder.items?.map(i => i.description).join(', ') || "",
+        cargo_value: exportOrder.total_value || 0,
+        cargo_items: exportOrder.items || [],
+        number_of_items: exportOrder.items?.length || 0
+      });
+      toast.success("Export order data loaded!");
+    }
   };
 
   const addCargoItem = (type, id) => {
@@ -408,6 +439,22 @@ function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, p
 
           <TabsContent value="basic" className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2 col-span-2">
+                <Label>Link to Export Order (Optional)</Label>
+                <Select value={formData.export_id} onValueChange={handleExportSelect}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select export order..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {exports.map(exp => (
+                      <SelectItem key={exp.id} value={exp.id}>
+                        {exp.export_number} - {exp.customer_name} → {exp.destination_country}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label>Customer *</Label>
                 <CustomerSelector

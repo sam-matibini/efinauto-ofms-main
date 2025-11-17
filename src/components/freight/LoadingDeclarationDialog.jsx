@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Mail, Loader2, Eye, Edit, Save } from "lucide-react";
+import { Plus, Trash2, Mail, Loader2, Edit, Save } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { base44 } from "@/api/base44Client";
@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export default function LoadingDeclarationDialog({ open, onClose, shipment, onSave }) {
+export default function LoadingDeclarationDialog({ open, onClose, shipment, onSave, exports }) {
   const { selectedCompanyId } = useCompany();
   const [isSending, setIsSending] = useState(false);
   const [recipientEmail, setRecipientEmail] = useState("");
@@ -43,17 +43,19 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     initialData: [],
   });
 
-  const { data: parts = [] } = useQuery({
-    queryKey: ['parts', selectedCompanyId],
-    queryFn: () => base44.entities.Part.list(),
-    enabled: open && !!selectedCompanyId,
-    initialData: [],
-  });
+  // Note: The original code includes a 'parts' query, but it's not used. Keeping it as is.
+  // const { data: parts = [] } = useQuery({
+  //   queryKey: ['parts', selectedCompanyId],
+  //   queryFn: () => base44.entities.Part.list(),
+  //   enabled: open && !!selectedCompanyId,
+  //   initialData: [],
+  // });
 
   const inStockVehicles = vehicles.filter(v => v.status === 'in_stock');
   
   const [formData, setFormData] = useState({
     company_id: selectedCompanyId,
+    export_id: "", // Added export_id
     shipment_id: shipment?.id || "",
     booking_number: shipment?.tracking_number || "",
     container_number: shipment?.container_number || "",
@@ -86,6 +88,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     if (open && shipment) {
       setFormData({
         company_id: selectedCompanyId,
+        export_id: shipment.export_id || "", // Added export_id
         shipment_id: shipment.id || "",
         booking_number: shipment.tracking_number || "",
         container_number: shipment.container_number || "",
@@ -121,7 +124,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
           name: company.name || "",
           tax_id: company.tax_id || "",
           address_postal: company.address || "",
-          city_province: `${company.city || ""}, ${company.country || ""}`,
+          city_province: `${company.city || ""}, ${company.province || ""}, ${company.country || ""}`, // Changed to include province
           telephone: company.phone || "",
           email: company.email || ""
         }
@@ -145,6 +148,39 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
           tax_id_passport: customer.tax_id || ""
         }
       });
+    }
+  };
+
+  const handleExportSelect = (exportId) => {
+    const exportOrder = exports?.find(e => e.id === exportId);
+    if (exportOrder) {
+      // Load vehicles from export items
+      const exportVehicles = (exportOrder.items || [])
+        .filter(item => item.description && item.value) // Ensure item has description and value
+        .map(item => ({
+          year: "", // Year might not be directly available from export item
+          make_model: item.description || "",
+          vin: "", // VIN might not be directly available from export item
+          weight: 0, // Weight might not be directly available from export item
+          value: item.value || 0,
+          saved: false
+        }));
+
+      setFormData({
+        ...formData,
+        export_id: exportId,
+        consignee: {
+          ...formData.consignee,
+          name: exportOrder.customer_name || "",
+          city_country: exportOrder.destination_country || "",
+          telephone: exportOrder.customer_phone || "",
+          email: exportOrder.customer_email || ""
+        },
+        commodity: exportOrder.items?.map(i => i.description).join(', ') || "",
+        value: exportOrder.total_value || 0,
+        vehicles: exportVehicles
+      });
+      toast.success("Export order data loaded!");
     }
   };
 
@@ -504,6 +540,22 @@ This is an automated message from eFinAuto Center Freight Management System.
           <Card>
             <CardContent className="p-4">
               <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2 col-span-3">
+                  <Label>Link to Export Order (Optional)</Label>
+                  <Select value={formData.export_id} onValueChange={handleExportSelect}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select export order..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(exports || []).map(exp => (
+                        <SelectItem key={exp.id} value={exp.id}>
+                          {exp.export_number} - {exp.customer_name} → {exp.destination_country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="space-y-2">
                   <Label>Booking Number *</Label>
                   <Input
@@ -818,19 +870,36 @@ This is an automated message from eFinAuto Center Freight Management System.
                         </div>
                       </div>
                       
-                      <div className="flex justify-end">
-                        <Button 
-                          onClick={addVehicle} 
-                          size="sm" 
-                          variant="outline"
-                          className="text-blue-600 border-blue-600 hover:bg-blue-50"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Add Vehicle
-                        </Button>
-                      </div>
+                      {/* Only show "Add Vehicle" button if it's the last vehicle and it's saved OR if there are no vehicles */}
+                      {index === formData.vehicles.length -1 && vehicle.saved && (
+                        <div className="flex justify-end">
+                            <Button 
+                              onClick={addVehicle} 
+                              size="sm" 
+                              variant="outline"
+                              className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              Add Vehicle
+                            </Button>
+                        </div>
+                      )}
+                      
                     </div>
                   ))}
+                </div>
+              )}
+              {formData.vehicles.length === 0 && (
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={addVehicle} 
+                    size="sm" 
+                    variant="outline"
+                    className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Vehicle
+                  </Button>
                 </div>
               )}
             </CardContent>
