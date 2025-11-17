@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -50,7 +51,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     shipment_id: shipment?.id || "",
     booking_number: shipment?.tracking_number || "",
     container_number: shipment?.container_number || "",
-    seal_number: "",
+    seal_number: shipment?.seal_number || "",
     exporter: {
       name: "",
       tax_id: "",
@@ -83,7 +84,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
         shipment_id: shipment.id || "",
         booking_number: shipment.tracking_number || "",
         container_number: shipment.container_number || "",
-        seal_number: "",
+        seal_number: shipment.seal_number || "",
         exporter: formData.exporter,
         consignee: {
           name: shipment.customer_name || "",
@@ -151,10 +152,13 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
           year: "",
           make_model: item.description || "",
           vin: "",
-          weight: 0,
+          weight: item.weight || 0, // Include item.weight
           value: item.value || 0,
           saved: false
         }));
+
+      // Calculate total weight from items
+      const totalWeight = (exportOrder.items || []).reduce((sum, item) => sum + (item.weight || 0) * (item.quantity || 1), 0);
 
       setFormData({
         ...formData,
@@ -167,6 +171,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
           email: exportOrder.customer_email || ""
         },
         commodity: exportOrder.items?.map(i => i.description).join(', ') || "",
+        weight: totalWeight, // Use calculated totalWeight
         value: exportOrder.total_value || 0,
         vehicles: exportVehicles
       });
@@ -454,11 +459,11 @@ This is an automated message from eFinAuto Center Freight Management System.
                   </div>
                   <div>
                     <Label className="text-xs text-gray-600">Total Weight</Label>
-                    <p className="font-medium">{totalWeight} kg</p>
+                    <p className="font-medium">{savedData.weight || totalWeight} kg</p>
                   </div>
                   <div>
                     <Label className="text-xs text-gray-600">Total Value</Label>
-                    <p className="font-medium text-green-600">${totalValue?.toLocaleString()}</p>
+                    <p className="font-medium text-green-600">${savedData.value || totalValue?.toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
@@ -711,13 +716,29 @@ This is an automated message from eFinAuto Center Freight Management System.
           <Card>
             <CardContent className="p-4">
               <h3 className="font-semibold mb-4">Commodity Information</h3>
-              <div className="space-y-3">
-                <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 col-span-2">
                   <Label>Commodity</Label>
                   <Textarea
                     value={formData.commodity}
                     onChange={(e) => setFormData({ ...formData, commodity: e.target.value })}
                     rows={2}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Total Weight (kg)</Label>
+                  <Input
+                    type="number"
+                    value={formData.weight}
+                    onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Total Value ($)</Label>
+                  <Input
+                    type="number"
+                    value={formData.value}
+                    onChange={(e) => setFormData({ ...formData, value: parseFloat(e.target.value) || 0 })}
                   />
                 </div>
               </div>
