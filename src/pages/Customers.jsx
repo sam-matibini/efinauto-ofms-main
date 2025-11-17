@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -417,6 +418,8 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
         });
         if (customer.email) {
           validateEmail(customer.email);
+        } else {
+          setEmailValid(null); // Clear validation for empty email
         }
       } else {
         setFormData({
@@ -440,7 +443,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
   }, [customer, open]);
 
   const validateEmail = (email) => {
-    if (!email) {
+    if (!email || email.trim() === "") {
       setEmailValid(null);
       return;
     }
@@ -449,7 +452,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
     const isValid = emailRegex.test(email);
     setEmailValid(isValid);
     
-    if (!isValid && email.length > 3) {
+    if (!isValid && email.length > 3) { // Only show toast if it's clearly invalid and long enough to be an attempt
       toast.error("Invalid email format");
     }
   };
@@ -483,7 +486,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
 
   const canSave = formData.full_name?.trim().length > 0 && 
                   formData.phone?.trim().length > 0 &&
-                  (emailValid !== false);
+                  (!formData.email || emailValid !== false); // Allow empty email, but if not empty, it must be valid
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -575,7 +578,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
                     placeholder="Enter email"
                     className={emailValid === false ? "border-red-300" : ""}
                   />
-                  {emailValid === false && (
+                  {emailValid === false && formData.email.trim() !== "" && (
                     <p className="text-xs text-red-600">Please enter a valid email address</p>
                   )}
                 </div>
