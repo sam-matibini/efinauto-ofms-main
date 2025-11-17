@@ -13,7 +13,8 @@ import {
   Building2,
   Trash2,
   Bell,
-  BarChart3
+  BarChart3,
+  UserCog
 } from "lucide-react";
 import {
   Sidebar,
@@ -87,6 +88,11 @@ const navigationItems = [
     title: "Reports",
     url: createPageUrl("Reports"),
     icon: BarChart3,
+  },
+  {
+    title: "User Management",
+    url: createPageUrl("UserManagement"),
+    icon: UserCog,
   },
   {
     title: "Notifications",
