@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -135,16 +134,16 @@ export default function Customers() {
       customer_type: formData.customer_type || "individual"
     };
 
-    if (formData.email) cleanData.email = formData.email;
-    if (formData.address) cleanData.address = formData.address;
-    if (formData.city) cleanData.city = formData.city;
-    if (formData.country) cleanData.country = formData.country;
-    if (formData.latitude) cleanData.latitude = formData.latitude;
-    if (formData.longitude) cleanData.longitude = formData.longitude;
-    if (formData.profile_picture_url) cleanData.profile_picture_url = formData.profile_picture_url;
-    if (formData.company_name) cleanData.company_name = formData.company_name;
-    if (formData.tax_id) cleanData.tax_id = formData.tax_id;
-    if (formData.notes) cleanData.notes = formData.notes;
+    if (formData.email && formData.email.trim()) cleanData.email = formData.email;
+    if (formData.address && formData.address.trim()) cleanData.address = formData.address;
+    if (formData.city && formData.city.trim()) cleanData.city = formData.city;
+    if (formData.country && formData.country.trim()) cleanData.country = formData.country;
+    if (formData.latitude !== "" && !isNaN(formData.latitude)) cleanData.latitude = Number(formData.latitude);
+    if (formData.longitude !== "" && !isNaN(formData.longitude)) cleanData.longitude = Number(formData.longitude);
+    if (formData.profile_picture_url && formData.profile_picture_url.trim()) cleanData.profile_picture_url = formData.profile_picture_url;
+    if (formData.company_name && formData.company_name.trim()) cleanData.company_name = formData.company_name;
+    if (formData.tax_id && formData.tax_id.trim()) cleanData.tax_id = formData.tax_id;
+    if (formData.notes && formData.notes.trim()) cleanData.notes = formData.notes;
 
     console.log("Saving customer data:", cleanData);
 
@@ -408,8 +407,8 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
           address: customer.address || "",
           city: customer.city || "",
           country: customer.country || "",
-          latitude: customer.latitude || "",
-          longitude: customer.longitude || "",
+          latitude: customer.latitude !== undefined ? customer.latitude : "",
+          longitude: customer.longitude !== undefined ? customer.longitude : "",
           profile_picture_url: customer.profile_picture_url || "",
           customer_type: customer.customer_type || "individual",
           company_name: customer.company_name || "",
@@ -419,7 +418,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
         if (customer.email) {
           validateEmail(customer.email);
         } else {
-          setEmailValid(null); // Clear validation for empty email
+          setEmailValid(null);
         }
       } else {
         setFormData({
@@ -451,10 +450,6 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const isValid = emailRegex.test(email);
     setEmailValid(isValid);
-    
-    if (!isValid && email.length > 3) { // Only show toast if it's clearly invalid and long enough to be an attempt
-      toast.error("Invalid email format");
-    }
   };
 
   const handleEmailChange = (e) => {
@@ -486,7 +481,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
 
   const canSave = formData.full_name?.trim().length > 0 && 
                   formData.phone?.trim().length > 0 &&
-                  (!formData.email || emailValid !== false); // Allow empty email, but if not empty, it must be valid
+                  (!formData.email || !formData.email.trim() || emailValid !== false);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -663,7 +658,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
                   type="number"
                   step="any"
                   value={formData.latitude} 
-                  onChange={(e) => setFormData({...formData, latitude: parseFloat(e.target.value) || ""})} 
+                  onChange={(e) => setFormData({...formData, latitude: e.target.value})} 
                   placeholder="e.g., 45.4215"
                 />
               </div>
@@ -673,7 +668,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
                   type="number"
                   step="any"
                   value={formData.longitude} 
-                  onChange={(e) => setFormData({...formData, longitude: parseFloat(e.target.value) || ""})} 
+                  onChange={(e) => setFormData({...formData, longitude: e.target.value})} 
                   placeholder="e.g., -75.6972"
                 />
               </div>
