@@ -1,5 +1,4 @@
-
-import React, { useState, useContext, useEffect } from "react"; // Added useContext and useEffect
+import React, { useState, useContext, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -14,26 +13,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import CustomerSelector from "../components/shared/CustomerSelector";
-import { CompanyContext } from "../context/CompanyContext"; // Assuming CompanyContext path
+import { useCompany } from "../components/shared/CompanyContext";
 
 export default function Repairs() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRepair, setEditingRepair] = useState(null);
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const queryClient = useQueryClient();
-  const { selectedCompanyId } = useContext(CompanyContext); // Get selected company ID from context
+  const { selectedCompanyId } = useCompany();
 
   const { data: repairs = [] } = useQuery({
     queryKey: ['repairs', selectedCompanyId],
     queryFn: () => base44.entities.RepairOrder.filter({ company_id: selectedCompanyId }, '-created_date'),
-    enabled: !!selectedCompanyId, // Only run query if a company is selected
+    enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', selectedCompanyId],
     queryFn: () => base44.entities.Customer.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId, // Only run query if a company is selected
+    enabled: !!selectedCompanyId,
     initialData: [],
   });
 
@@ -195,8 +194,8 @@ export default function Repairs() {
         repair={editingRepair}
         onSave={handleSave}
         onCreateCustomer={() => setCustomerDialogOpen(true)}
-        customers={customers} // Pass customers data
-        selectedCompanyId={selectedCompanyId} // Pass selectedCompanyId
+        customers={customers}
+        selectedCompanyId={selectedCompanyId}
       />
 
       <QuickCustomerDialog
@@ -231,7 +230,7 @@ function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer, custome
     payment_status: "pending",
     start_date: new Date().toISOString().split('T')[0],
     notes: "",
-    company_id: companyId, // Include company_id in initial form data
+    company_id: companyId,
   });
 
   const [formData, setFormData] = useState(repair || getInitialFormData(selectedCompanyId));
@@ -242,7 +241,7 @@ function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer, custome
     } else {
       setFormData(getInitialFormData(selectedCompanyId));
     }
-  }, [repair, open, selectedCompanyId]); // Added selectedCompanyId to dependencies
+  }, [repair, open, selectedCompanyId]);
 
   useEffect(() => {
     const total = (parseFloat(formData.labor_cost) || 0) + (parseFloat(formData.parts_cost) || 0);
@@ -255,7 +254,6 @@ function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer, custome
       customer_id: customer.id,
       customer_name: customer.full_name,
       customer_phone: customer.phone,
-      // Add other customer details if needed, e.g., email
     });
   };
 
@@ -263,7 +261,7 @@ function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer, custome
                   formData.customer_phone?.trim().length > 0 &&
                   formData.vehicle_make?.trim().length > 0 &&
                   formData.vehicle_model?.trim().length > 0 &&
-                  !!formData.company_id; // Ensure company_id is present
+                  !!formData.company_id;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -279,8 +277,6 @@ function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer, custome
               value={formData.customer_id}
               onSelect={handleCustomerSelect}
               onCreateNew={onCreateCustomer}
-              customers={customers} // Pass customers to the selector
-              selectedCompanyId={selectedCompanyId} // Pass selectedCompanyId to CustomerSelector if it needs it
             />
           </div>
 
@@ -405,7 +401,6 @@ function QuickCustomerDialog({ open, onClose, onSave }) {
     customer_type: "individual"
   });
 
-  // Reset form when dialog opens
   useEffect(() => {
     if (open) {
       setFormData({
