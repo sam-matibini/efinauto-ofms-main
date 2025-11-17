@@ -289,6 +289,7 @@ function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, p
     carrier_name: "",
     tracking_number: "",
     container_number: "",
+    seal_number: "", // Added seal_number
     payment_status: "pending",
     notes: ""
   });
@@ -300,7 +301,8 @@ function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, p
       if (shipment) {
         setFormData({
           ...shipment,
-          cargo_items: shipment.cargo_items || []
+          cargo_items: shipment.cargo_items || [],
+          seal_number: shipment.seal_number || "" // Ensure seal_number is set from shipment
         });
         const customer = customers.find(c => c.full_name === shipment.customer_name);
         setSelectedCustomer(customer || null);
@@ -331,6 +333,7 @@ function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, p
           carrier_name: "",
           tracking_number: "",
           container_number: "",
+          seal_number: "", // Ensure seal_number is reset for new shipment
           payment_status: "pending",
           notes: ""
         });
@@ -555,6 +558,10 @@ function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, p
               <div className="space-y-2">
                 <Label>Container Number</Label>
                 <Input value={formData.container_number} onChange={(e) => setFormData({...formData, container_number: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Seal Number</Label>
+                <Input value={formData.seal_number} onChange={(e) => setFormData({...formData, seal_number: e.target.value})} />
               </div>
             </div>
 
