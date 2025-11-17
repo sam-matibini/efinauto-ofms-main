@@ -718,59 +718,74 @@ This is an automated message from eFinAuto Center Freight Management System.
               {formData.vehicles.length > 0 && (
                 <div className="space-y-3">
                   {formData.vehicles.map((vehicle, index) => (
-                    <div key={index} className="flex gap-3 items-start border-b pb-3">
-                      <div className="grid grid-cols-5 gap-3 flex-1">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Year</Label>
-                          <Input
-                            type="number"
-                            value={vehicle.year}
-                            onChange={(e) => updateVehicle(index, 'year', parseInt(e.target.value) || "")}
-                            placeholder="2020"
-                          />
+                    <div key={index} className="space-y-3">
+                      <div className="flex gap-3 items-start border-b pb-3">
+                        <div className="grid grid-cols-5 gap-3 flex-1">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Year</Label>
+                            <Input
+                              type="number"
+                              value={vehicle.year}
+                              onChange={(e) => updateVehicle(index, 'year', parseInt(e.target.value) || "")}
+                              placeholder="2020"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Make & Model</Label>
+                            <Input
+                              value={vehicle.make_model}
+                              onChange={(e) => updateVehicle(index, 'make_model', e.target.value)}
+                              placeholder="Toyota Camry"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">VIN Number</Label>
+                            <Input
+                              value={vehicle.vin}
+                              onChange={(e) => updateVehicle(index, 'vin', e.target.value)}
+                              placeholder="VIN"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Weight (kg)</Label>
+                            <Input
+                              type="number"
+                              value={vehicle.weight}
+                              onChange={(e) => updateVehicle(index, 'weight', parseFloat(e.target.value) || 0)}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Value ($)</Label>
+                            <Input
+                              type="number"
+                              value={vehicle.value}
+                              onChange={(e) => updateVehicle(index, 'value', parseFloat(e.target.value) || 0)}
+                            />
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Make & Model</Label>
-                          <Input
-                            value={vehicle.make_model}
-                            onChange={(e) => updateVehicle(index, 'make_model', e.target.value)}
-                            placeholder="Toyota Camry"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">VIN Number</Label>
-                          <Input
-                            value={vehicle.vin}
-                            onChange={(e) => updateVehicle(index, 'vin', e.target.value)}
-                            placeholder="VIN"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Weight (kg)</Label>
-                          <Input
-                            type="number"
-                            value={vehicle.weight}
-                            onChange={(e) => updateVehicle(index, 'weight', parseFloat(e.target.value) || 0)}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Value ($)</Label>
-                          <Input
-                            type="number"
-                            value={vehicle.value}
-                            onChange={(e) => updateVehicle(index, 'value', parseFloat(e.target.value) || 0)}
-                          />
-                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeVehicle(index)}
+                          className="mt-5"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </Button>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeVehicle(index)}
-                        className="mt-5"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </Button>
+                      
+                      {/* Add Vehicle button after each vehicle */}
+                      <div className="flex justify-end">
+                        <Button 
+                          onClick={addVehicle} 
+                          size="sm" 
+                          variant="outline"
+                          className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Vehicle
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
