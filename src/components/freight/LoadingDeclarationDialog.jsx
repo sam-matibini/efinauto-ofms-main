@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -43,19 +42,11 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     initialData: [],
   });
 
-  // Note: The original code includes a 'parts' query, but it's not used. Keeping it as is.
-  // const { data: parts = [] } = useQuery({
-  //   queryKey: ['parts', selectedCompanyId],
-  //   queryFn: () => base44.entities.Part.list(),
-  //   enabled: open && !!selectedCompanyId,
-  //   initialData: [],
-  // });
-
   const inStockVehicles = vehicles.filter(v => v.status === 'in_stock');
   
   const [formData, setFormData] = useState({
     company_id: selectedCompanyId,
-    export_id: "", // Added export_id
+    export_id: "",
     shipment_id: shipment?.id || "",
     booking_number: shipment?.tracking_number || "",
     container_number: shipment?.container_number || "",
@@ -88,7 +79,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     if (open && shipment) {
       setFormData({
         company_id: selectedCompanyId,
-        export_id: shipment.export_id || "", // Added export_id
+        export_id: shipment.export_id || "",
         shipment_id: shipment.id || "",
         booking_number: shipment.tracking_number || "",
         container_number: shipment.container_number || "",
@@ -124,7 +115,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
           name: company.name || "",
           tax_id: company.tax_id || "",
           address_postal: company.address || "",
-          city_province: `${company.city || ""}, ${company.province || ""}, ${company.country || ""}`, // Changed to include province
+          city_province: `${company.city || ""}, ${company.province || ""}, ${company.country || ""}`,
           telephone: company.phone || "",
           email: company.email || ""
         }
@@ -154,14 +145,13 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
   const handleExportSelect = (exportId) => {
     const exportOrder = exports?.find(e => e.id === exportId);
     if (exportOrder) {
-      // Load vehicles from export items
       const exportVehicles = (exportOrder.items || [])
-        .filter(item => item.description && item.value) // Ensure item has description and value
+        .filter(item => item.description && item.value)
         .map(item => ({
-          year: "", // Year might not be directly available from export item
+          year: "",
           make_model: item.description || "",
-          vin: "", // VIN might not be directly available from export item
-          weight: 0, // Weight might not be directly available from export item
+          vin: "",
+          weight: 0,
           value: item.value || 0,
           saved: false
         }));
@@ -318,6 +308,10 @@ This is an automated message from eFinAuto Center Freight Management System.
   };
 
   if (viewMode && savedData) {
+    // Calculate totals from vehicles
+    const totalWeight = savedData.vehicles.reduce((sum, v) => sum + (parseFloat(v.weight) || 0), 0);
+    const totalValue = savedData.vehicles.reduce((sum, v) => sum + (parseFloat(v.value) || 0), 0);
+
     return (
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -355,67 +349,6 @@ This is an automated message from eFinAuto Center Freight Management System.
                 </div>
               </CardContent>
             </Card>
-
-            {/* Commodity Information */}
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="font-semibold mb-3 text-lg">Commodity Information</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label className="text-xs text-gray-600">Commodity</Label>
-                    <p className="font-medium">{savedData.commodity || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-gray-600">Total Weight</Label>
-                    <p className="font-medium">{savedData.weight} kg</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-gray-600">Total Value</Label>
-                    <p className="font-medium text-green-600">${savedData.value?.toLocaleString()}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Vehicle Information */}
-            {savedData.vehicles.length > 0 && (
-              <Card className="border-indigo-200">
-                <CardContent className="p-4">
-                  <h3 className="font-semibold mb-3 text-lg">Vehicle Information</h3>
-                  <div className="space-y-3">
-                    {savedData.vehicles.map((vehicle, index) => (
-                      <div key={index} className="border rounded-lg p-3 bg-gray-50">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="font-semibold text-indigo-600">Vehicle {index + 1}</span>
-                        </div>
-                        <div className="grid grid-cols-5 gap-3 text-sm">
-                          <div>
-                            <Label className="text-xs text-gray-600">Year</Label>
-                            <p className="font-medium">{vehicle.year}</p>
-                          </div>
-                          <div>
-                            <Label className="text-xs text-gray-600">Make & Model</Label>
-                            <p className="font-medium">{vehicle.make_model}</p>
-                          </div>
-                          <div>
-                            <Label className="text-xs text-gray-600">VIN Number</Label>
-                            <p className="font-medium">{vehicle.vin}</p>
-                          </div>
-                          <div>
-                            <Label className="text-xs text-gray-600">Weight</Label>
-                            <p className="font-medium">{vehicle.weight} kg</p>
-                          </div>
-                          <div>
-                            <Label className="text-xs text-gray-600">Value</Label>
-                            <p className="font-medium text-green-600">${vehicle.value?.toLocaleString()}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Exporter & Consignee */}
             <div className="grid md:grid-cols-2 gap-6">
@@ -481,6 +414,55 @@ This is an automated message from eFinAuto Center Freight Management System.
                 </CardContent>
               </Card>
             </div>
+
+            {/* Commodity Information - Table Format */}
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="font-semibold mb-3 text-lg">Commodity Information</h3>
+                
+                {savedData.vehicles.length > 0 && (
+                  <div className="mb-4">
+                    <table className="w-full border-collapse border border-gray-300">
+                      <thead>
+                        <tr className="bg-gray-100">
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-semibold">YR</th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-semibold">MAKE & MODEL</th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-semibold">VIN NUMBER</th>
+                          <th className="border border-gray-300 px-3 py-2 text-right text-sm font-semibold">WEIGHT</th>
+                          <th className="border border-gray-300 px-3 py-2 text-right text-sm font-semibold">VALUE</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {savedData.vehicles.map((vehicle, index) => (
+                          <tr key={index}>
+                            <td className="border border-gray-300 px-3 py-2">{vehicle.year}</td>
+                            <td className="border border-gray-300 px-3 py-2">{vehicle.make_model}</td>
+                            <td className="border border-gray-300 px-3 py-2">{vehicle.vin}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right">{vehicle.weight}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right">${vehicle.value?.toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-3 gap-4 mt-4">
+                  <div>
+                    <Label className="text-xs text-gray-600">Commodity</Label>
+                    <p className="font-medium">{savedData.commodity || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-600">Total Weight</Label>
+                    <p className="font-medium">{totalWeight} kg</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-600">Total Value</Label>
+                    <p className="font-medium text-green-600">${totalValue?.toLocaleString()}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Email Section */}
             <Card className="border-blue-200 bg-blue-50/50">
@@ -581,7 +563,7 @@ This is an automated message from eFinAuto Center Freight Management System.
             </CardContent>
           </Card>
 
-          {/* Credentials Section */}
+          {/* Exporter & Consignee - Moved Above Commodity */}
           <div className="grid md:grid-cols-2 gap-6">
             {/* Exporter */}
             <Card>
@@ -725,32 +707,17 @@ This is an automated message from eFinAuto Center Freight Management System.
             </Card>
           </div>
 
-          {/* Commodity, Weight, Value */}
+          {/* Commodity Information - Now Below Exporter/Consignee */}
           <Card>
             <CardContent className="p-4">
-              <div className="grid grid-cols-3 gap-4">
+              <h3 className="font-semibold mb-4">Commodity Information</h3>
+              <div className="space-y-3">
                 <div className="space-y-2">
                   <Label>Commodity</Label>
                   <Textarea
                     value={formData.commodity}
                     onChange={(e) => setFormData({ ...formData, commodity: e.target.value })}
                     rows={2}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Weight (kg)</Label>
-                  <Input
-                    type="number"
-                    value={formData.weight}
-                    onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) || 0 })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Value ($)</Label>
-                  <Input
-                    type="number"
-                    value={formData.value}
-                    onChange={(e) => setFormData({ ...formData, value: parseFloat(e.target.value) || 0 })}
                   />
                 </div>
               </div>
@@ -870,7 +837,6 @@ This is an automated message from eFinAuto Center Freight Management System.
                         </div>
                       </div>
                       
-                      {/* Only show "Add Vehicle" button if it's the last vehicle and it's saved OR if there are no vehicles */}
                       {index === formData.vehicles.length -1 && vehicle.saved && (
                         <div className="flex justify-end">
                             <Button 
