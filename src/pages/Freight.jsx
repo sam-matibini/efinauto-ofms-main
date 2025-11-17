@@ -265,6 +265,7 @@ export default function Freight() {
 function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, parts, exports }) {
   const [formData, setFormData] = useState({
     shipment_number: `FRT-${Date.now()}`,
+    deal_number: "",
     export_id: "",
     customer_name: "",
     customer_phone: "",
@@ -289,7 +290,7 @@ function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, p
     carrier_name: "",
     tracking_number: "",
     container_number: "",
-    seal_number: "", // Added seal_number
+    seal_number: "",
     payment_status: "pending",
     notes: ""
   });
@@ -302,13 +303,15 @@ function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, p
         setFormData({
           ...shipment,
           cargo_items: shipment.cargo_items || [],
-          seal_number: shipment.seal_number || "" // Ensure seal_number is set from shipment
+          seal_number: shipment.seal_number || "",
+          deal_number: shipment.deal_number || ""
         });
         const customer = customers.find(c => c.full_name === shipment.customer_name);
         setSelectedCustomer(customer || null);
       } else {
         setFormData({
           shipment_number: `FRT-${Date.now()}`,
+          deal_number: "",
           export_id: "",
           customer_name: "",
           customer_phone: "",
@@ -333,7 +336,7 @@ function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, p
           carrier_name: "",
           tracking_number: "",
           container_number: "",
-          seal_number: "", // Ensure seal_number is reset for new shipment
+          seal_number: "",
           payment_status: "pending",
           notes: ""
         });
@@ -468,8 +471,16 @@ function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, p
                 />
               </div>
               <div className="space-y-2">
+                <Label>Customer Name *</Label>
+                <Input value={formData.customer_name} onChange={(e) => setFormData({...formData, customer_name: e.target.value})} />
+              </div>
+              <div className="space-y-2">
                 <Label>Customer Phone</Label>
                 <Input value={formData.customer_phone} onChange={(e) => setFormData({...formData, customer_phone: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Deal Number</Label>
+                <Input value={formData.deal_number} onChange={(e) => setFormData({...formData, deal_number: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label>Shipment Type</Label>
