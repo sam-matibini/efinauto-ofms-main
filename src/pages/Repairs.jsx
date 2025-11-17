@@ -24,6 +24,7 @@ import RepairOrderDialog from "@/components/repairs/RepairOrderDialog";
 import AppointmentDialog from "@/components/repairs/AppointmentDialog";
 import ServicePackagesDialog from "@/components/repairs/ServicePackagesDialog";
 import RepairOrderCard from "@/components/repairs/RepairOrderCard";
+import InvoiceGenerator from "@/components/repairs/InvoiceGenerator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function RepairsPage() {
@@ -34,8 +35,10 @@ export default function RepairsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
   const [packagesDialogOpen, setPackagesDialogOpen] = useState(false);
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
   const [selectedPackage, setSelectedPackage] = useState(null);
+  const [invoiceOrder, setInvoiceOrder] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -105,6 +108,11 @@ export default function RepairsPage() {
   const handlePackageSelect = (pkg) => {
     setSelectedPackage(pkg);
     setDialogOpen(true);
+  };
+
+  const handleGenerateInvoice = (order) => {
+    setInvoiceOrder(order);
+    setInvoiceDialogOpen(true);
   };
 
   const filteredOrders = repairOrders.filter(order => {
@@ -296,6 +304,7 @@ export default function RepairsPage() {
                     order={order} 
                     onEdit={handleEdit}
                     onDelete={handleDelete}
+                    onGenerateInvoice={handleGenerateInvoice}
                   />
                 ))}
               </div>
@@ -316,6 +325,7 @@ export default function RepairsPage() {
                     order={order} 
                     onEdit={handleEdit}
                     onDelete={handleDelete}
+                    onGenerateInvoice={handleGenerateInvoice}
                   />
                 ))}
               </div>
@@ -336,6 +346,7 @@ export default function RepairsPage() {
                     order={order} 
                     onEdit={handleEdit}
                     onDelete={handleDelete}
+                    onGenerateInvoice={handleGenerateInvoice}
                   />
                 ))}
               </div>
@@ -356,6 +367,7 @@ export default function RepairsPage() {
                     order={order} 
                     onEdit={handleEdit}
                     onDelete={handleDelete}
+                    onGenerateInvoice={handleGenerateInvoice}
                   />
                 ))}
               </div>
@@ -380,6 +392,7 @@ export default function RepairsPage() {
                 order={order} 
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                onGenerateInvoice={handleGenerateInvoice}
                 fullWidth
               />
             ))
@@ -409,6 +422,15 @@ export default function RepairsPage() {
         open={packagesDialogOpen}
         onClose={() => setPackagesDialogOpen(false)}
         onSelectPackage={handlePackageSelect}
+      />
+
+      <InvoiceGenerator
+        open={invoiceDialogOpen}
+        onClose={() => {
+          setInvoiceDialogOpen(false);
+          setInvoiceOrder(null);
+        }}
+        repairOrder={invoiceOrder}
       />
     </div>
   );
