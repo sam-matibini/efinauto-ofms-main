@@ -14,6 +14,7 @@ import Notifications from './pages/Notifications';
 import Reports from './pages/Reports';
 import UserManagement from './pages/UserManagement';
 import Technicians from './pages/Technicians';
+import Analytics from './pages/Analytics';
 import __Layout from './Layout.jsx';
 
 
@@ -34,6 +35,7 @@ export const PAGES = {
     "Reports": Reports,
     "UserManagement": UserManagement,
     "Technicians": Technicians,
+    "Analytics": Analytics,
 }
 
 export const pagesConfig = {

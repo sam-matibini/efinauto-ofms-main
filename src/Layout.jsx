@@ -15,7 +15,8 @@ import {
   Bell,
   BarChart3,
   UserCog,
-  HardHat
+  HardHat,
+  LineChart
 } from "lucide-react";
 import {
   Sidebar,
@@ -94,6 +95,11 @@ const navigationItems = [
     title: "Reports",
     url: createPageUrl("Reports"),
     icon: BarChart3,
+  },
+  {
+    title: "Analytics",
+    url: createPageUrl("Analytics"),
+    icon: LineChart,
   },
   {
     title: "User Management",
