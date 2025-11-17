@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import LoadingDeclarationDialog from "../components/freight/LoadingDeclarationDialog";
+import DocumentGenerationDialog from "../components/freight/DocumentGenerationDialog";
 import { useCompany } from "../components/shared/CompanyContext";
 import CustomerSelector from "../components/shared/CustomerSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,6 +23,7 @@ export default function Freight() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingShipment, setEditingShipment] = useState(null);
   const [loadingDeclOpen, setLoadingDeclOpen] = useState(false);
+  const [docGenOpen, setDocGenOpen] = useState(false); // Added docGenOpen state
   const [selectedShipment, setSelectedShipment] = useState(null);
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
@@ -233,6 +236,20 @@ export default function Freight() {
                     <Button
                       onClick={(e) => {
                         e.stopPropagation();
+                        const linkedExport = exports.find(exp => exp.id === shipment.export_id);
+                        setSelectedShipment({ ...shipment, linkedExport });
+                        setDocGenOpen(true);
+                      }}
+                      size="sm"
+                      variant="outline"
+                      className="w-full text-green-600 hover:text-green-700 hover:bg-green-50"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Generate Docs
+                    </Button>
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setSelectedShipment(shipment);
                         setLoadingDeclOpen(true);
                       }}
@@ -283,6 +300,16 @@ export default function Freight() {
         shipment={selectedShipment}
         onSave={handleLoadingDeclSave}
         exports={exports}
+      />
+
+      <DocumentGenerationDialog
+        open={docGenOpen}
+        onClose={() => {
+          setDocGenOpen(false);
+          setSelectedShipment(null);
+        }}
+        shipment={selectedShipment}
+        exportOrder={selectedShipment?.linkedExport}
       />
     </div>
   );
