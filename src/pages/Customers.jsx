@@ -117,33 +117,35 @@ export default function Customers() {
   });
 
   const handleSave = (formData) => {
+    console.log("handleSave called with:", formData);
+    
     if (!selectedCompanyId) {
       toast.error("Please select a company first");
       return;
     }
 
-    if (!formData.full_name || !formData.phone) {
+    if (!formData.full_name?.trim() || !formData.phone?.trim()) {
       toast.error("Please fill in all required fields (Name and Phone)");
       return;
     }
 
     const cleanData = {
       company_id: selectedCompanyId,
-      full_name: formData.full_name,
-      phone: formData.phone,
+      full_name: formData.full_name.trim(),
+      phone: formData.phone.trim(),
       customer_type: formData.customer_type || "individual"
     };
 
-    if (formData.email && formData.email.trim()) cleanData.email = formData.email;
-    if (formData.address && formData.address.trim()) cleanData.address = formData.address;
-    if (formData.city && formData.city.trim()) cleanData.city = formData.city;
-    if (formData.country && formData.country.trim()) cleanData.country = formData.country;
+    if (formData.email && formData.email.trim()) cleanData.email = formData.email.trim();
+    if (formData.address && formData.address.trim()) cleanData.address = formData.address.trim();
+    if (formData.city && formData.city.trim()) cleanData.city = formData.city.trim();
+    if (formData.country && formData.country.trim()) cleanData.country = formData.country.trim();
     if (formData.latitude !== "" && !isNaN(formData.latitude)) cleanData.latitude = Number(formData.latitude);
     if (formData.longitude !== "" && !isNaN(formData.longitude)) cleanData.longitude = Number(formData.longitude);
-    if (formData.profile_picture_url && formData.profile_picture_url.trim()) cleanData.profile_picture_url = formData.profile_picture_url;
-    if (formData.company_name && formData.company_name.trim()) cleanData.company_name = formData.company_name;
-    if (formData.tax_id && formData.tax_id.trim()) cleanData.tax_id = formData.tax_id;
-    if (formData.notes && formData.notes.trim()) cleanData.notes = formData.notes;
+    if (formData.profile_picture_url && formData.profile_picture_url.trim()) cleanData.profile_picture_url = formData.profile_picture_url.trim();
+    if (formData.company_name && formData.company_name.trim()) cleanData.company_name = formData.company_name.trim();
+    if (formData.tax_id && formData.tax_id.trim()) cleanData.tax_id = formData.tax_id.trim();
+    if (formData.notes && formData.notes.trim()) cleanData.notes = formData.notes.trim();
 
     console.log("Saving customer data:", cleanData);
 
@@ -479,9 +481,11 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
     setUploading(false);
   };
 
-  const canSave = formData.full_name?.trim().length > 0 && 
-                  formData.phone?.trim().length > 0 &&
-                  (!formData.email || !formData.email.trim() || emailValid !== false);
+  const hasRequiredFields = formData.full_name.trim().length > 0 && formData.phone.trim().length > 0;
+  const emailIsValid = !formData.email.trim() || emailValid !== false;
+  const canSave = hasRequiredFields && emailIsValid;
+
+  console.log("Customer form validation:", { hasRequiredFields, emailIsValid, canSave, formData });
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

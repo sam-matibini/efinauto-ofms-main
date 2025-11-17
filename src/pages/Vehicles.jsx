@@ -90,6 +90,8 @@ export default function Vehicles() {
   });
 
   const handleSave = (formData) => {
+    console.log("handleSave called with:", formData);
+    
     if (!selectedCompanyId) {
       toast.error("Please select a company first");
       return;
@@ -386,10 +388,13 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
     setUploading(false);
   };
 
-  const canSave = formData.vin?.trim().length > 0 && 
-                  formData.make?.trim().length > 0 && 
-                  formData.model?.trim().length > 0 && 
-                  formData.year;
+  const hasRequiredFields = formData.vin.trim().length > 0 && 
+                           formData.make.trim().length > 0 && 
+                           formData.model.trim().length > 0 && 
+                           formData.year;
+  const canSave = hasRequiredFields;
+
+  console.log("Vehicle form validation:", { hasRequiredFields, canSave, formData });
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
