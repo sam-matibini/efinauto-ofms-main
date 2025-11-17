@@ -98,15 +98,41 @@ export default function Vehicles() {
       return;
     }
 
-    const dataToSave = {
-      ...formData,
-      company_id: selectedCompanyId
+    const cleanData = {
+      company_id: selectedCompanyId,
+      vin: formData.vin,
+      make: formData.make,
+      model: formData.model,
+      year: formData.year,
+      ownership_type: formData.ownership_type || "dealership_owned",
+      condition: formData.condition || "used",
+      status: formData.status || "in_stock",
+      fuel_type: formData.fuel_type || "petrol",
+      transmission: formData.transmission || "manual"
     };
 
+    if (formData.color && formData.color.trim()) cleanData.color = formData.color;
+    if (formData.mileage !== undefined && formData.mileage !== null && formData.mileage !== "") {
+      cleanData.mileage = Number(formData.mileage);
+    }
+    if (formData.purchase_price !== undefined && formData.purchase_price !== null && formData.purchase_price !== "") {
+      cleanData.purchase_price = Number(formData.purchase_price);
+    }
+    if (formData.selling_price !== undefined && formData.selling_price !== null && formData.selling_price !== "") {
+      cleanData.selling_price = Number(formData.selling_price);
+    }
+    if (formData.engine_capacity && formData.engine_capacity.trim()) cleanData.engine_capacity = formData.engine_capacity;
+    if (formData.features && formData.features.trim()) cleanData.features = formData.features;
+    if (formData.location && formData.location.trim()) cleanData.location = formData.location;
+    if (formData.images && formData.images.length > 0) cleanData.images = formData.images;
+    if (formData.notes && formData.notes.trim()) cleanData.notes = formData.notes;
+
+    console.log("Saving vehicle data:", cleanData);
+
     if (editingVehicle) {
-      updateMutation.mutate({ id: editingVehicle.id, data: dataToSave });
+      updateMutation.mutate({ id: editingVehicle.id, data: cleanData });
     } else {
-      createMutation.mutate(dataToSave);
+      createMutation.mutate(cleanData);
     }
   };
 
@@ -308,17 +334,38 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
   });
 
   React.useEffect(() => {
-    if (vehicle) {
-      setFormData(vehicle);
-    } else {
-      setFormData({
-        ownership_type: "dealership_owned",
-        vin: "", make: "", model: "", year: new Date().getFullYear(),
-        color: "", mileage: 0, condition: "used", status: "in_stock",
-        purchase_price: 0, selling_price: 0, fuel_type: "petrol",
-        transmission: "manual", engine_capacity: "", features: "",
-        location: "", images: [], notes: ""
-      });
+    if (open) {
+      if (vehicle) {
+        setFormData({
+          ownership_type: vehicle.ownership_type || "dealership_owned",
+          vin: vehicle.vin || "",
+          make: vehicle.make || "",
+          model: vehicle.model || "",
+          year: vehicle.year || new Date().getFullYear(),
+          color: vehicle.color || "",
+          mileage: vehicle.mileage !== undefined ? vehicle.mileage : 0,
+          condition: vehicle.condition || "used",
+          status: vehicle.status || "in_stock",
+          purchase_price: vehicle.purchase_price !== undefined ? vehicle.purchase_price : 0,
+          selling_price: vehicle.selling_price !== undefined ? vehicle.selling_price : 0,
+          fuel_type: vehicle.fuel_type || "petrol",
+          transmission: vehicle.transmission || "manual",
+          engine_capacity: vehicle.engine_capacity || "",
+          features: vehicle.features || "",
+          location: vehicle.location || "",
+          images: vehicle.images || [],
+          notes: vehicle.notes || ""
+        });
+      } else {
+        setFormData({
+          ownership_type: "dealership_owned",
+          vin: "", make: "", model: "", year: new Date().getFullYear(),
+          color: "", mileage: 0, condition: "used", status: "in_stock",
+          purchase_price: 0, selling_price: 0, fuel_type: "petrol",
+          transmission: "manual", engine_capacity: "", features: "",
+          location: "", images: [], notes: ""
+        });
+      }
     }
   }, [vehicle, open]);
 
@@ -338,6 +385,11 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
     setUploading(false);
   };
 
+  const canSave = formData.vin?.trim().length > 0 && 
+                  formData.make?.trim().length > 0 && 
+                  formData.model?.trim().length > 0 && 
+                  formData.year;
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -347,10 +399,20 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
         
         <div className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2 col-span-2">
+              <Label>Ownership Type</Label>
+              <Select value={formData.ownership_type} onValueChange={(v) => setFormData({...formData, ownership_type: v})}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dealership_owned">Dealership Owned</SelectItem>
+                  <SelectItem value="customer_owned_export">Customer Owned (Export Only)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label>VIN *</Label>
               <Input 
-                value={formData.vin || ""} 
+                value={formData.vin} 
                 onChange={(e) => setFormData({...formData, vin: e.target.value})} 
                 placeholder="KM8JUCAG3EU930041" 
               />
@@ -358,24 +420,24 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
             <div className="space-y-2">
               <Label>Make *</Label>
               <Input 
-                value={formData.make || ""} 
+                value={formData.make} 
                 onChange={(e) => setFormData({...formData, make: e.target.value})} 
-                placeholder="HYUNDAI TUCSON" 
+                placeholder="HYUNDAI" 
               />
             </div>
             <div className="space-y-2">
               <Label>Model *</Label>
               <Input 
-                value={formData.model || ""} 
+                value={formData.model} 
                 onChange={(e) => setFormData({...formData, model: e.target.value})} 
-                placeholder="GLS/LIMITED/SE" 
+                placeholder="TUCSON" 
               />
             </div>
             <div className="space-y-2">
               <Label>Year *</Label>
               <Input 
                 type="number" 
-                value={formData.year || new Date().getFullYear()} 
+                value={formData.year} 
                 onChange={(e) => setFormData({...formData, year: parseInt(e.target.value) || new Date().getFullYear()})} 
                 placeholder="2014" 
               />
@@ -383,7 +445,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
             <div className="space-y-2">
               <Label>Color</Label>
               <Input 
-                value={formData.color || ""} 
+                value={formData.color} 
                 onChange={(e) => setFormData({...formData, color: e.target.value})} 
               />
             </div>
@@ -391,8 +453,8 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
               <Label>Mileage (km)</Label>
               <Input 
                 type="number" 
-                value={formData.mileage || 0} 
-                onChange={(e) => setFormData({...formData, mileage: parseInt(e.target.value) || 0})} 
+                value={formData.mileage} 
+                onChange={(e) => setFormData({...formData, mileage: e.target.value})} 
                 placeholder="0" 
               />
             </div>
@@ -424,8 +486,8 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
               <Label>Purchase Price ($)</Label>
               <Input 
                 type="number" 
-                value={formData.purchase_price || 0} 
-                onChange={(e) => setFormData({...formData, purchase_price: parseFloat(e.target.value) || 0})} 
+                value={formData.purchase_price} 
+                onChange={(e) => setFormData({...formData, purchase_price: e.target.value})} 
                 placeholder="0" 
               />
             </div>
@@ -433,8 +495,8 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
               <Label>Selling Price ($)</Label>
               <Input 
                 type="number" 
-                value={formData.selling_price || 0} 
-                onChange={(e) => setFormData({...formData, selling_price: parseFloat(e.target.value) || 0})} 
+                value={formData.selling_price} 
+                onChange={(e) => setFormData({...formData, selling_price: e.target.value})} 
                 placeholder="0" 
               />
             </div>
@@ -485,7 +547,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
           <div className="space-y-2">
             <Label>Notes</Label>
             <Textarea 
-              value={formData.notes || ""} 
+              value={formData.notes} 
               onChange={(e) => setFormData({...formData, notes: e.target.value})} 
               rows={3} 
             />
@@ -497,7 +559,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
           <Button 
             onClick={() => onSave(formData)} 
             className="bg-blue-600 hover:bg-blue-700"
-            disabled={isSaving}
+            disabled={isSaving || !canSave}
           >
             {isSaving ? (
               <>
