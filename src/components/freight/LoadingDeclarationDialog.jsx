@@ -350,26 +350,31 @@ This is an automated message from eFinAuto Center Freight Management System.
           @media print {
             @page {
               size: A4;
-              margin: 10mm;
+              margin: 15mm;
             }
             
-            body * {
-              visibility: hidden;
+            /* Hide everything except the print content */
+            body > *:not(#loading-declaration-print) {
+              display: none !important;
             }
             
-            #loading-declaration-content,
-            #loading-declaration-content * {
-              visibility: visible;
+            /* Hide dialog overlay and backdrop */
+            [role="dialog"],
+            [data-radix-popper-content-wrapper],
+            .fixed.inset-0 {
+              all: unset !important;
+              position: static !important;
+              transform: none !important;
             }
             
-            #loading-declaration-content {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 100%;
-              background: white;
-              padding: 0;
-              margin: 0;
+            #loading-declaration-print {
+              display: block !important;
+              position: static !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
             }
             
             .no-print {
@@ -377,66 +382,65 @@ This is an automated message from eFinAuto Center Freight Management System.
             }
             
             .print-title {
-              display: block !important;
               text-align: center;
-              font-size: 18px;
+              font-size: 20px;
               font-weight: bold;
-              margin-bottom: 15px;
+              margin-bottom: 20px;
             }
             
             .print-section {
-              margin-bottom: 12px;
+              margin-bottom: 15px;
               page-break-inside: avoid;
             }
             
             .print-header {
               background-color: #eff6ff !important;
-              padding: 8px !important;
+              padding: 10px !important;
               border: 1px solid #ddd;
-              margin-bottom: 10px;
+              margin-bottom: 15px;
             }
             
             .print-card {
               border: 1px solid #ddd;
-              padding: 8px !important;
-              margin-bottom: 8px;
+              padding: 10px !important;
+              margin-bottom: 10px;
               background: white;
             }
             
             .print-grid-2 {
               display: grid;
               grid-template-columns: 1fr 1fr;
-              gap: 10px;
+              gap: 15px;
             }
             
             .print-grid-3 {
               display: grid;
               grid-template-columns: 1fr 1fr 1fr;
-              gap: 8px;
+              gap: 10px;
             }
             
             .print-label {
-              font-size: 9px !important;
+              font-size: 10px !important;
               color: #666 !important;
-              margin-bottom: 2px;
+              margin-bottom: 3px;
             }
             
             .print-value {
-              font-size: 11px !important;
+              font-size: 12px !important;
               font-weight: 500;
             }
             
             .print-table {
               width: 100%;
               border-collapse: collapse;
-              font-size: 10px !important;
-              margin-top: 8px;
+              font-size: 11px !important;
+              margin-top: 10px;
             }
             
             .print-table th,
             .print-table td {
               border: 1px solid #999;
-              padding: 4px 6px !important;
+              padding: 6px 8px !important;
             }
             
             .print-table th {
@@ -445,8 +449,8 @@ This is an automated message from eFinAuto Center Freight Management System.
             }
             
             h3 {
-              font-size: 12px !important;
-              margin-bottom: 6px !important;
+              font-size: 14px !important;
+              margin-bottom: 8px !important;
             }
           }
         `}</style>
@@ -485,8 +489,8 @@ This is an automated message from eFinAuto Center Freight Management System.
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-6 py-4" id="loading-declaration-content">
-            <h1 className="print-title" style={{display: 'none'}}>Loading Declaration</h1>
+          <div className="space-y-6 py-4" id="loading-declaration-print">
+            <h1 className="print-title">Loading Declaration</h1>
             
             {/* Header Section */}
             <Card className="bg-blue-50 border-blue-200 print-header print-section">
@@ -533,7 +537,7 @@ This is an automated message from eFinAuto Center Freight Management System.
                     <div>
                       <Label className="text-xs text-gray-600 print-label">Contact</Label>
                       <p className="font-medium print-value">{savedData.exporter.telephone}</p>
-                      <p className="font-medium text-blue-600 print-value">{savedData.exporter.email}</p>
+                      <p className="font-medium print-value">{savedData.exporter.email}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -562,7 +566,7 @@ This is an automated message from eFinAuto Center Freight Management System.
                     <div>
                       <Label className="text-xs text-gray-600 print-label">Contact</Label>
                       <p className="font-medium print-value">{savedData.consignee.telephone}</p>
-                      <p className="font-medium text-blue-600 print-value">{savedData.consignee.email}</p>
+                      <p className="font-medium print-value">{savedData.consignee.email}</p>
                     </div>
                     <div>
                       <Label className="text-xs text-gray-600 print-label">Tax ID / Passport</Label>
@@ -616,7 +620,7 @@ This is an automated message from eFinAuto Center Freight Management System.
                   </div>
                   <div>
                     <Label className="text-xs text-gray-600 print-label">Total Value</Label>
-                    <p className="font-medium text-green-600 print-value">${savedData.value || totalValue?.toLocaleString()}</p>
+                    <p className="font-medium print-value">${savedData.value || totalValue?.toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
