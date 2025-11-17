@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -384,7 +383,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
     }
   }, [customer, open]);
 
-  const canSave = formData.full_name.trim() && formData.phone.trim();
+  const canSave = formData.full_name?.trim().length > 0 && formData.phone?.trim().length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
