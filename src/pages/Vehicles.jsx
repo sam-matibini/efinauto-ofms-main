@@ -196,7 +196,7 @@ export default function Vehicles() {
             <SelectContent>
               <SelectItem value="all">All Ownership</SelectItem>
               <SelectItem value="dealership_owned">Dealership Owned</SelectItem>
-              <SelectItem value="customer_owned_export">Customer Owned (Export Only)</SelectItem>
+              <SelectItem value="customer_owned_export">Customer Owned (Export)</SelectItem>
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -252,7 +252,7 @@ export default function Vehicles() {
                       {vehicle.status?.replace(/_/g, ' ')}
                     </Badge>
                     <Badge className={ownershipColors[vehicle.ownership_type || 'dealership_owned']}>
-                      {vehicle.ownership_type === 'customer_owned_export' ? 'Customer Export' : 'Dealership'}
+                      {vehicle.ownership_type === 'customer_owned_export' ? 'Customer' : 'Dealership'}
                     </Badge>
                   </div>
                 </div>
@@ -405,6 +405,16 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
         
         <div className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Ownership Type</Label>
+              <Select value={formData.ownership_type} onValueChange={(v) => setFormData({...formData, ownership_type: v})}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dealership_owned">Dealership Owned</SelectItem>
+                  <SelectItem value="customer_owned_export">Customer Owned (Export)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label>VIN *</Label>
               <Input 
