@@ -9,11 +9,29 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function LoadingDeclarationDialog({ open, onClose, shipment, onSave }) {
   const { selectedCompanyId } = useCompany();
   const [isSending, setIsSending] = useState(false);
   const [recipientEmail, setRecipientEmail] = useState("");
+  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+
+  const { data: companies = [] } = useQuery({
+    queryKey: ['companies'],
+    queryFn: () => base44.entities.Company.list(),
+    enabled: open,
+    initialData: [],
+  });
+
+  const { data: customers = [] } = useQuery({
+    queryKey: ['customers', selectedCompanyId],
+    queryFn: () => base44.entities.Customer.list(),
+    enabled: open && !!selectedCompanyId,
+    initialData: [],
+  });
   
   const [formData, setFormData] = useState({
     company_id: selectedCompanyId,
@@ -44,6 +62,70 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     vehicles: [],
     status: "draft"
   });
+
+  React.useEffect(() => {
+    if (open && shipment) {
+      setFormData({
+        company_id: selectedCompanyId,
+        shipment_id: shipment.id || "",
+        booking_number: shipment.tracking_number || "",
+        container_number: shipment.container_number || "",
+        seal_number: "",
+        exporter: formData.exporter,
+        consignee: {
+          name: shipment.customer_name || "",
+          address_street: shipment.destination_location || "",
+          postal_code: "",
+          city_country: shipment.destination_country || "",
+          telephone: shipment.customer_phone || "",
+          email: "",
+          tax_id_passport: ""
+        },
+        commodity: shipment.cargo_description || "",
+        weight: shipment.total_weight || 0,
+        value: shipment.cargo_value || 0,
+        vehicles: [],
+        status: "draft"
+      });
+    }
+  }, [open, shipment, selectedCompanyId]);
+
+  const handleCompanySelect = (companyId) => {
+    const company = companies.find(c => c.id === companyId);
+    setSelectedCompany(company);
+    if (company) {
+      setFormData({
+        ...formData,
+        exporter: {
+          name: company.name || "",
+          tax_id: company.tax_id || "",
+          address_postal: company.address || "",
+          city_province: `${company.city || ""}, ${company.country || ""}`,
+          telephone: company.phone || "",
+          email: company.email || ""
+        }
+      });
+    }
+  };
+
+  const handleCustomerSelect = (customerId) => {
+    const customer = customers.find(c => c.id === customerId);
+    setSelectedCustomer(customer);
+    if (customer) {
+      setFormData({
+        ...formData,
+        consignee: {
+          name: customer.full_name || "",
+          address_street: customer.address || "",
+          postal_code: "",
+          city_country: `${customer.city || ""}, ${customer.country || ""}`,
+          telephone: customer.phone || "",
+          email: customer.email || "",
+          tax_id_passport: customer.tax_id || ""
+        }
+      });
+    }
+  };
 
   const addVehicle = () => {
     setFormData({
@@ -185,6 +267,21 @@ This is an automated message from eFinAuto Center Freight Management System.
                 <h3 className="font-semibold mb-4">Exporter</h3>
                 <div className="space-y-3">
                   <div className="space-y-2">
+                    <Label>Select Company</Label>
+                    <Select onValueChange={handleCompanySelect} value={selectedCompany?.id}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose company..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {companies.map(company => (
+                          <SelectItem key={company.id} value={company.id}>
+                            {company.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
                     <Label>Exporter Name</Label>
                     <Input
                       value={formData.exporter.name}
@@ -236,6 +333,21 @@ This is an automated message from eFinAuto Center Freight Management System.
               <CardContent className="p-4">
                 <h3 className="font-semibold mb-4">Consignee</h3>
                 <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label>Select Customer</Label>
+                    <Select onValueChange={handleCustomerSelect} value={selectedCustomer?.id}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose customer..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {customers.map(customer => (
+                          <SelectItem key={customer.id} value={customer.id}>
+                            {customer.full_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-2">
                     <Label>Consignee Name</Label>
                     <Input
