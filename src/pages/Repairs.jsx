@@ -1,28 +1,44 @@
-import React, { useState, useContext, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Wrench } from "lucide-react";
-import { motion } from "framer-motion";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Plus, 
+  Search, 
+  Wrench, 
+  Calendar,
+  Clock,
+  DollarSign,
+  Users,
+  CheckCircle,
+  AlertCircle,
+  Filter
+} from "lucide-react";
+import { useCompany } from "@/components/shared/CompanyContext";
 import { toast } from "sonner";
-import CustomerSelector from "../components/shared/CustomerSelector";
-import { useCompany } from "../components/shared/CompanyContext";
+import RepairOrderDialog from "@/components/repairs/RepairOrderDialog";
+import AppointmentDialog from "@/components/repairs/AppointmentDialog";
+import ServicePackagesDialog from "@/components/repairs/ServicePackagesDialog";
+import RepairOrderCard from "@/components/repairs/RepairOrderCard";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export default function Repairs() {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingRepair, setEditingRepair] = useState(null);
-  const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
-  const queryClient = useQueryClient();
+export default function RepairsPage() {
   const { selectedCompanyId } = useCompany();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
+  const [packagesDialogOpen, setPackagesDialogOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState(null);
 
-  const { data: repairs = [] } = useQuery({
+  const queryClient = useQueryClient();
+
+  const { data: repairOrders = [], isLoading } = useQuery({
     queryKey: ['repairs', selectedCompanyId],
     queryFn: () => base44.entities.RepairOrder.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
@@ -37,311 +53,203 @@ export default function Repairs() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.RepairOrder.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: (data) => base44.entities.RepairOrder.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['repairs', selectedCompanyId] });
+      queryClient.invalidateQueries({ queryKey: ['repairs'] });
+      toast.success("Repair order created successfully");
       setDialogOpen(false);
-      setEditingRepair(null);
-      toast.success("Repair order created!");
+      setEditingOrder(null);
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.RepairOrder.update(id, { ...data, company_id: selectedCompanyId }),
+    mutationFn: ({ id, data }) => base44.entities.RepairOrder.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['repairs', selectedCompanyId] });
+      queryClient.invalidateQueries({ queryKey: ['repairs'] });
+      toast.success("Repair order updated successfully");
       setDialogOpen(false);
-      setEditingRepair(null);
-      toast.success("Repair order updated!");
+      setEditingOrder(null);
     },
   });
 
-  const createCustomerMutation = useMutation({
-    mutationFn: (data) => base44.entities.Customer.create({ ...data, company_id: selectedCompanyId }),
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.RepairOrder.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers', selectedCompanyId] });
-      setCustomerDialogOpen(false);
-      toast.success("Customer added!");
+      queryClient.invalidateQueries({ queryKey: ['repairs'] });
+      toast.success("Repair order deleted");
     },
   });
 
-  const handleSave = (formData) => {
-    if (!formData.customer_name || !formData.customer_phone || !formData.vehicle_make || !formData.vehicle_model) {
-      toast.error("Please fill in all required fields: Customer Name, Phone, Vehicle Make, Vehicle Model");
-      return;
-    }
-    if (!selectedCompanyId) {
-      toast.error("Please select a company before creating/editing repair orders.");
-      return;
-    }
-
-    if (editingRepair) {
-      updateMutation.mutate({ id: editingRepair.id, data: formData });
+  const handleSave = (data) => {
+    if (editingOrder) {
+      updateMutation.mutate({ id: editingOrder.id, data });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(data);
     }
   };
 
-  const statusColors = {
-    pending: "bg-yellow-100 text-yellow-800",
-    in_progress: "bg-blue-100 text-blue-800",
-    waiting_parts: "bg-purple-100 text-purple-800",
-    completed: "bg-green-100 text-green-800",
-    picked_up: "bg-gray-100 text-gray-800",
-    cancelled: "bg-red-100 text-red-800"
+  const handleEdit = (order) => {
+    setEditingOrder(order);
+    setDialogOpen(true);
   };
 
-  const priorityColors = {
-    low: "bg-gray-100 text-gray-800",
-    medium: "bg-blue-100 text-blue-800",
-    high: "bg-orange-100 text-orange-800",
-    urgent: "bg-red-100 text-red-800"
+  const handleDelete = (id) => {
+    if (window.confirm("Are you sure you want to delete this repair order?")) {
+      deleteMutation.mutate(id);
+    }
   };
 
-  return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Auto Repair Orders</h1>
-          <p className="text-gray-600">{repairs.length} total orders</p>
-        </div>
-        <Button onClick={() => {
-          setEditingRepair(null);
-          setDialogOpen(true);
-        }} className="bg-blue-600 hover:bg-blue-700" disabled={!selectedCompanyId}>
-          <Plus className="w-4 h-4 mr-2" />
-          New Repair Order
-        </Button>
-      </div>
-
-      {!selectedCompanyId && (
-        <div className="text-center text-gray-500 py-10">
-          Please select a company to view and manage repair orders.
-        </div>
-      )}
-
-      {selectedCompanyId && repairs.length === 0 && (
-        <div className="text-center text-gray-500 py-10">
-          No repair orders found for this company. Click "New Repair Order" to get started!
-        </div>
-      )}
-
-      <div className="grid gap-4">
-        {repairs.map((repair, index) => (
-          <motion.div
-            key={repair.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-          >
-            <Card
-              className="border-none shadow-md hover:shadow-lg transition-all cursor-pointer"
-              onClick={() => {
-                setEditingRepair(repair);
-                setDialogOpen(true);
-              }}
-            >
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-2 flex-1">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <h3 className="font-bold text-lg">
-                        {repair.vehicle_make} {repair.vehicle_model} {repair.vehicle_year}
-                      </h3>
-                      <Badge className={statusColors[repair.status]}>
-                        {repair.status?.replace(/_/g, ' ')}
-                      </Badge>
-                      <Badge className={priorityColors[repair.priority]}>
-                        {repair.priority} priority
-                      </Badge>
-                    </div>
-                    <p className="text-gray-600">
-                      <strong>Customer:</strong> {repair.customer_name} | {repair.customer_phone}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      <strong>Service:</strong> {repair.service_type?.replace(/_/g, ' ')}
-                    </p>
-                    {repair.description && (
-                      <p className="text-sm text-gray-600">{repair.description}</p>
-                    )}
-                    {repair.assigned_technician && (
-                      <p className="text-sm text-gray-500">
-                        <strong>Technician:</strong> {repair.assigned_technician}
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-right ml-4">
-                    <p className="text-2xl font-bold text-blue-600">
-                      ${repair.total_cost?.toLocaleString() || '0'}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {repair.payment_status === 'paid' ? '✓ Paid' : 'Pending'}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-
-      <RepairDialog
-        open={dialogOpen}
-        onClose={() => {
-          setDialogOpen(false);
-          setEditingRepair(null);
-        }}
-        repair={editingRepair}
-        onSave={handleSave}
-        onCreateCustomer={() => setCustomerDialogOpen(true)}
-        customers={customers}
-        selectedCompanyId={selectedCompanyId}
-      />
-
-      <QuickCustomerDialog
-        open={customerDialogOpen}
-        onClose={() => setCustomerDialogOpen(false)}
-        onSave={(data) => createCustomerMutation.mutate(data)}
-      />
-    </div>
-  );
-}
-
-function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer, customers, selectedCompanyId }) {
-  const getInitialFormData = (companyId) => ({
-    order_number: `RO-${Date.now()}`,
-    customer_id: null,
-    customer_name: "",
-    customer_phone: "",
-    vehicle_make: "",
-    vehicle_model: "",
-    vehicle_year: new Date().getFullYear(),
-    vehicle_plate: "",
-    mileage: 0,
-    service_type: "routine_maintenance",
-    description: "",
-    diagnosis: "",
-    status: "pending",
-    priority: "medium",
-    assigned_technician: "",
-    labor_cost: 0,
-    parts_cost: 0,
-    total_cost: 0,
-    payment_status: "pending",
-    start_date: new Date().toISOString().split('T')[0],
-    notes: "",
-    company_id: companyId,
+  const filteredOrders = repairOrders.filter(order => {
+    const matchesSearch = 
+      order.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.vehicle_vin?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.vehicle_plate?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
+    const matchesPriority = priorityFilter === "all" || order.priority === priorityFilter;
+    
+    return matchesSearch && matchesStatus && matchesPriority;
   });
 
-  const [formData, setFormData] = useState(repair || getInitialFormData(selectedCompanyId));
-
-  useEffect(() => {
-    if (repair) {
-      setFormData(repair);
-    } else {
-      setFormData(getInitialFormData(selectedCompanyId));
-    }
-  }, [repair, open, selectedCompanyId]);
-
-  useEffect(() => {
-    const total = (parseFloat(formData.labor_cost) || 0) + (parseFloat(formData.parts_cost) || 0);
-    setFormData(prev => ({ ...prev, total_cost: total }));
-  }, [formData.labor_cost, formData.parts_cost]);
-
-  const handleCustomerSelect = (customer) => {
-    setFormData({
-      ...formData,
-      customer_id: customer.id,
-      customer_name: customer.full_name,
-      customer_phone: customer.phone,
-    });
+  const ordersByStatus = {
+    pending: filteredOrders.filter(o => o.status === 'pending'),
+    in_progress: filteredOrders.filter(o => o.status === 'in_progress'),
+    waiting_parts: filteredOrders.filter(o => o.status === 'waiting_parts'),
+    completed: filteredOrders.filter(o => o.status === 'completed'),
   };
 
-  const canSave = formData.customer_name?.trim().length > 0 &&
-                  formData.customer_phone?.trim().length > 0 &&
-                  formData.vehicle_make?.trim().length > 0 &&
-                  formData.vehicle_model?.trim().length > 0 &&
-                  !!formData.company_id;
+  const stats = {
+    total: repairOrders.length,
+    active: repairOrders.filter(o => ['pending', 'in_progress', 'waiting_parts'].includes(o.status)).length,
+    completed: repairOrders.filter(o => o.status === 'completed').length,
+    revenue: repairOrders.filter(o => o.payment_status === 'paid').reduce((sum, o) => sum + (o.total_cost || 0), 0),
+  };
+
+  if (!selectedCompanyId) {
+    return (
+      <div className="p-6">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <p className="text-yellow-800">Please select a company to view repair orders.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{repair ? 'Edit Repair Order' : 'New Repair Order'}</DialogTitle>
-        </DialogHeader>
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Auto Repair Center</h1>
+          <p className="text-gray-500 mt-1">Comprehensive repair order management</p>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={() => setPackagesDialogOpen(true)} variant="outline">
+            <Wrench className="w-4 h-4 mr-2" />
+            Service Packages
+          </Button>
+          <Button onClick={() => setAppointmentDialogOpen(true)} variant="outline">
+            <Calendar className="w-4 h-4 mr-2" />
+            Schedule
+          </Button>
+          <Button onClick={() => setDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="w-4 h-4 mr-2" />
+            New Repair Order
+          </Button>
+        </div>
+      </div>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label>Select Customer</Label>
-            <CustomerSelector
-              value={formData.customer_id}
-              onSelect={handleCustomerSelect}
-              onCreateNew={onCreateCustomer}
-            />
-          </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Orders</p>
+                <h3 className="text-2xl font-bold text-gray-900">{stats.total}</h3>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <Wrench className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Customer Name *</Label>
-              <Input value={formData.customer_name} onChange={(e) => setFormData({...formData, customer_name: e.target.value})} />
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Active Jobs</p>
+                <h3 className="text-2xl font-bold text-gray-900">{stats.active}</h3>
+              </div>
+              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                <Clock className="w-6 h-6 text-yellow-600" />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Phone *</Label>
-              <Input value={formData.customer_phone} onChange={(e) => setFormData({...formData, customer_phone: e.target.value})} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Completed</p>
+                <h3 className="text-2xl font-bold text-gray-900">{stats.completed}</h3>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Vehicle Make *</Label>
-              <Input value={formData.vehicle_make} onChange={(e) => setFormData({...formData, vehicle_make: e.target.value})} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Revenue</p>
+                <h3 className="text-2xl font-bold text-gray-900">${stats.revenue.toLocaleString()}</h3>
+              </div>
+              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-purple-600" />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Vehicle Model *</Label>
-              <Input value={formData.vehicle_model} onChange={(e) => setFormData({...formData, vehicle_model: e.target.value})} />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Search and Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex items-center gap-2 flex-1">
+              <Search className="w-5 h-5 text-gray-400" />
+              <Input
+                placeholder="Search by order #, customer, VIN, or plate..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="border-0 focus-visible:ring-0"
+              />
             </div>
-            <div className="space-y-2">
-              <Label>Year</Label>
-              <Input type="number" value={formData.vehicle_year} onChange={(e) => setFormData({...formData, vehicle_year: parseInt(e.target.value) || new Date().getFullYear()})} />
-            </div>
-            <div className="space-y-2">
-              <Label>License Plate</Label>
-              <Input value={formData.vehicle_plate} onChange={(e) => setFormData({...formData, vehicle_plate: e.target.value})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Service Type</Label>
-              <Select value={formData.service_type} onValueChange={(v) => setFormData({...formData, service_type: v})}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+            <div className="flex gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="routine_maintenance">Routine Maintenance</SelectItem>
-                  <SelectItem value="oil_change">Oil Change</SelectItem>
-                  <SelectItem value="brake_service">Brake Service</SelectItem>
-                  <SelectItem value="engine_repair">Engine Repair</SelectItem>
-                  <SelectItem value="transmission_repair">Transmission Repair</SelectItem>
-                  <SelectItem value="electrical_repair">Electrical Repair</SelectItem>
-                  <SelectItem value="body_work">Body Work</SelectItem>
-                  <SelectItem value="tire_service">Tire Service</SelectItem>
-                  <SelectItem value="inspection">Inspection</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
                   <SelectItem value="waiting_parts">Waiting Parts</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="picked_up">Picked Up</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Priority</Label>
-              <Select value={formData.priority} onValueChange={(v) => setFormData({...formData, priority: v})}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Priority" />
+                </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All Priority</SelectItem>
                   <SelectItem value="low">Low</SelectItem>
                   <SelectItem value="medium">Medium</SelectItem>
                   <SelectItem value="high">High</SelectItem>
@@ -349,102 +257,145 @@ function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer, custome
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Assigned Technician</Label>
-              <Input value={formData.assigned_technician} onChange={(e) => setFormData({...formData, assigned_technician: e.target.value})} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Repair Orders - Kanban View */}
+      <Tabs defaultValue="kanban" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="kanban">Kanban Board</TabsTrigger>
+          <TabsTrigger value="list">List View</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="kanban" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Pending */}
+            <div>
+              <div className="bg-gray-100 rounded-t-lg p-3 border-b-2 border-gray-400">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  Pending ({ordersByStatus.pending.length})
+                </h3>
+              </div>
+              <div className="space-y-3 p-3 bg-gray-50 rounded-b-lg min-h-[200px]">
+                {ordersByStatus.pending.map(order => (
+                  <RepairOrderCard 
+                    key={order.id} 
+                    order={order} 
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Labor Cost ($)</Label>
-              <Input type="number" value={formData.labor_cost} onChange={(e) => setFormData({...formData, labor_cost: parseFloat(e.target.value) || 0})} />
+
+            {/* In Progress */}
+            <div>
+              <div className="bg-blue-100 rounded-t-lg p-3 border-b-2 border-blue-400">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  In Progress ({ordersByStatus.in_progress.length})
+                </h3>
+              </div>
+              <div className="space-y-3 p-3 bg-blue-50 rounded-b-lg min-h-[200px]">
+                {ordersByStatus.in_progress.map(order => (
+                  <RepairOrderCard 
+                    key={order.id} 
+                    order={order} 
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Parts Cost ($)</Label>
-              <Input type="number" value={formData.parts_cost} onChange={(e) => setFormData({...formData, parts_cost: parseFloat(e.target.value) || 0})} />
+
+            {/* Waiting Parts */}
+            <div>
+              <div className="bg-yellow-100 rounded-t-lg p-3 border-b-2 border-yellow-400">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  Waiting Parts ({ordersByStatus.waiting_parts.length})
+                </h3>
+              </div>
+              <div className="space-y-3 p-3 bg-yellow-50 rounded-b-lg min-h-[200px]">
+                {ordersByStatus.waiting_parts.map(order => (
+                  <RepairOrderCard 
+                    key={order.id} 
+                    order={order} 
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Total Cost ($)</Label>
-              <Input type="number" value={formData.total_cost} disabled className="bg-gray-50" />
+
+            {/* Completed */}
+            <div>
+              <div className="bg-green-100 rounded-t-lg p-3 border-b-2 border-green-400">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" />
+                  Completed ({ordersByStatus.completed.length})
+                </h3>
+              </div>
+              <div className="space-y-3 p-3 bg-green-50 rounded-b-lg min-h-[200px]">
+                {ordersByStatus.completed.map(order => (
+                  <RepairOrderCard 
+                    key={order.id} 
+                    order={order} 
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
             </div>
           </div>
+        </TabsContent>
 
-          <div className="space-y-2">
-            <Label>Problem Description</Label>
-            <Textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} rows={2} />
-          </div>
+        <TabsContent value="list" className="space-y-3">
+          {isLoading ? (
+            <p className="text-center text-gray-500 py-8">Loading...</p>
+          ) : filteredOrders.length === 0 ? (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Wrench className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No repair orders found</p>
+              </CardContent>
+            </Card>
+          ) : (
+            filteredOrders.map(order => (
+              <RepairOrderCard 
+                key={order.id} 
+                order={order} 
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                fullWidth
+              />
+            ))
+          )}
+        </TabsContent>
+      </Tabs>
 
-          <div className="space-y-2">
-            <Label>Diagnosis</Label>
-            <Textarea value={formData.diagnosis} onChange={(e) => setFormData({...formData, diagnosis: e.target.value})} rows={2} />
-          </div>
-        </div>
+      <RepairOrderDialog
+        open={dialogOpen}
+        onClose={() => {
+          setDialogOpen(false);
+          setEditingOrder(null);
+        }}
+        order={editingOrder}
+        onSave={handleSave}
+        customers={customers}
+      />
 
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button
-            onClick={() => onSave(formData)}
-            className="bg-blue-600 hover:bg-blue-700"
-            disabled={!canSave}
-          >
-            {repair ? 'Update' : 'Create'} Order
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
+      <AppointmentDialog
+        open={appointmentDialogOpen}
+        onClose={() => setAppointmentDialogOpen(false)}
+      />
 
-function QuickCustomerDialog({ open, onClose, onSave }) {
-  const [formData, setFormData] = useState({
-    full_name: "",
-    phone: "",
-    email: "",
-    customer_type: "individual"
-  });
-
-  useEffect(() => {
-    if (open) {
-      setFormData({
-        full_name: "",
-        phone: "",
-        email: "",
-        customer_type: "individual"
-      });
-    }
-  }, [open]);
-
-  const canSave = formData.full_name?.trim().length > 0 && formData.phone?.trim().length > 0;
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Quick Add Customer</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label>Full Name *</Label>
-            <Input value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} />
-          </div>
-          <div className="space-y-2">
-            <Label>Phone *</Label>
-            <Input value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
-          </div>
-          <div className="space-y-2">
-            <Label>Email</Label>
-            <Input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
-          </div>
-        </div>
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button
-            onClick={() => onSave(formData)}
-            className="bg-blue-600 hover:bg-blue-700"
-            disabled={!canSave}
-          >
-            Add Customer
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+      <ServicePackagesDialog
+        open={packagesDialogOpen}
+        onClose={() => setPackagesDialogOpen(false)}
+      />
+    </div>
   );
 }
