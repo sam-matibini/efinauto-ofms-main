@@ -11,7 +11,8 @@ import {
   Package,
   Users,
   Building2,
-  Trash2
+  Trash2,
+  Bell
 } from "lucide-react";
 import {
   Sidebar,
@@ -80,6 +81,11 @@ const navigationItems = [
     title: "Freight & Cargo",
     url: createPageUrl("Freight"),
     icon: Package,
+  },
+  {
+    title: "Notifications",
+    url: createPageUrl("Notifications"),
+    icon: Bell,
   },
 ];
 
