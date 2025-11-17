@@ -230,6 +230,18 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     toast.success("Vehicle information saved!");
   };
 
+  // Auto-calculate total weight and value from vehicles
+  React.useEffect(() => {
+    const totalWeight = formData.vehicles.reduce((sum, v) => sum + (parseFloat(v.weight) || 0), 0);
+    const totalValue = formData.vehicles.reduce((sum, v) => sum + (parseFloat(v.value) || 0), 0);
+    
+    setFormData(prev => ({
+      ...prev,
+      weight: totalWeight,
+      value: totalValue
+    }));
+  }, [formData.vehicles]);
+
   const handleSaveDeclaration = () => {
     setSavedData(formData);
     setViewMode(true);
