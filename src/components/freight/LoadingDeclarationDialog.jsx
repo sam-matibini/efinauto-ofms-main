@@ -32,6 +32,22 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     enabled: open && !!selectedCompanyId,
     initialData: [],
   });
+
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ['vehicles', selectedCompanyId],
+    queryFn: () => base44.entities.Vehicle.list(),
+    enabled: open && !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: parts = [] } = useQuery({
+    queryKey: ['parts', selectedCompanyId],
+    queryFn: () => base44.entities.Part.list(),
+    enabled: open && !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const inStockVehicles = vehicles.filter(v => v.status === 'in_stock');
   
   const [formData, setFormData] = useState({
     company_id: selectedCompanyId,
@@ -123,6 +139,23 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
           email: customer.email || "",
           tax_id_passport: customer.tax_id || ""
         }
+      });
+    }
+  };
+
+  const handleVehicleSelect = (vehicleId) => {
+    const vehicle = vehicles.find(v => v.id === vehicleId);
+    if (vehicle) {
+      const newVehicle = {
+        year: vehicle.year || "",
+        make_model: `${vehicle.make} ${vehicle.model}`,
+        vin: vehicle.vin || "",
+        weight: 0,
+        value: vehicle.selling_price || 0
+      };
+      setFormData({
+        ...formData,
+        vehicles: [...formData.vehicles, newVehicle]
       });
     }
   };
@@ -440,10 +473,24 @@ This is an automated message from eFinAuto Center Freight Management System.
             <CardContent className="p-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-semibold">Vehicle Information (if loaded)</h3>
-                <Button onClick={addVehicle} size="sm" variant="outline">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Vehicle
-                </Button>
+                <div className="flex gap-2">
+                  <Select onValueChange={handleVehicleSelect}>
+                    <SelectTrigger className="w-64">
+                      <SelectValue placeholder="Select from in-stock vehicles" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {inStockVehicles.map(vehicle => (
+                        <SelectItem key={vehicle.id} value={vehicle.id}>
+                          {vehicle.year} {vehicle.make} {vehicle.model} - {vehicle.vin}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={addVehicle} size="sm" variant="outline">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Vehicle
+                  </Button>
+                </div>
               </div>
 
               {formData.vehicles.length > 0 && (
