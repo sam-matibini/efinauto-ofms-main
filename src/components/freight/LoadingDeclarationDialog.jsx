@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -91,7 +90,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
         booking_number: shipment.tracking_number || "",
         container_number: shipment.container_number || "",
         seal_number: shipment.seal_number || "",
-        exporter: formData.exporter, // Keep existing exporter from previous state if any
+        exporter: formData.exporter,
         consignee: {
           name: shipment.customer_name || "",
           address_street: shipment.destination_location || "",
@@ -158,12 +157,11 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
           year: "",
           make_model: item.description || "",
           vin: "",
-          weight: item.weight || 0, // Include item.weight
+          weight: item.weight || 0,
           value: item.value || 0,
           saved: false
         }));
 
-      // Calculate total weight from items
       const totalWeight = (exportOrder.items || []).reduce((sum, item) => sum + (item.weight || 0) * (item.quantity || 1), 0);
 
       setFormData({
@@ -177,7 +175,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
           email: exportOrder.customer_email || ""
         },
         commodity: exportOrder.items?.map(i => i.description).join(', ') || "",
-        weight: totalWeight, // Use calculated totalWeight
+        weight: totalWeight,
         value: exportOrder.total_value || 0,
         vehicles: exportVehicles
       });
@@ -236,7 +234,6 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     toast.success("Vehicle information saved!");
   };
 
-  // Auto-calculate total weight and value from vehicles
   React.useEffect(() => {
     const totalWeight = formData.vehicles.reduce((sum, v) => sum + (parseFloat(v.weight) || 0), 0);
     const totalValue = formData.vehicles.reduce((sum, v) => sum + (parseFloat(v.value) || 0), 0);
@@ -253,6 +250,48 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     setViewMode(true);
     onSave(formData);
     toast.success("Loading declaration saved successfully!");
+  };
+
+  const handleEmailDeclaration = async () => {
+    if (!recipientEmail) {
+      toast.error("Please enter recipient email address");
+      return;
+    }
+
+    if (!formData.booking_number) {
+      toast.error("Booking number is required");
+      return;
+    }
+
+    setIsSending(true);
+    
+    try {
+      const emailBody = generateEmailBody(savedData || formData);
+
+      await base44.integrations.Core.SendEmail({
+        to: recipientEmail,
+        subject: `Loading Declaration - ${(savedData || formData).booking_number}`,
+        body: emailBody
+      });
+
+      toast.success("Loading declaration sent successfully!");
+      setRecipientEmail("");
+    } catch (error) {
+      console.error('Email error:', error);
+      toast.error("Failed to send email");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+    toast.success("Print dialog opened");
+  };
+
+  const handleDownloadPDF = () => {
+    window.print();
+    toast.success("Use your browser's print dialog to save as PDF");
   };
 
   const generateEmailBody = (data) => {
@@ -302,93 +341,50 @@ This is an automated message from eFinAuto Center Freight Management System.
     `;
   };
 
-  const handleEmailDeclaration = async () => {
-    if (!recipientEmail) {
-      toast.error("Please enter recipient email address");
-      return;
-    }
-
-    if (!formData.booking_number) {
-      toast.error("Booking number is required");
-      return;
-    }
-
-    setIsSending(true);
-    
-    try {
-      const emailBody = generateEmailBody(formData);
-
-      await base44.integrations.Core.SendEmail({
-        to: recipientEmail,
-        subject: `Loading Declaration - ${formData.booking_number}`,
-        body: emailBody
-      });
-
-      toast.success("Loading declaration sent successfully!");
-      setRecipientEmail("");
-    } catch (error) {
-      console.error('Email error:', error);
-      toast.error("Failed to send email");
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  const handlePrint = () => {
-    window.print();
-    toast.success("Print dialog opened");
-  };
-
-  const handleDownloadPDF = () => {
-    window.print(); // Triggers browser's print dialog, user can choose 'Save as PDF'
-    toast.success("Use your browser's print dialog to save as PDF");
-  };
-
-  const handleEmailPDF = async () => {
-    if (!recipientEmail) {
-      toast.error("Please enter recipient email address");
-      return;
-    }
-
-    if (!savedData?.booking_number) {
-      toast.error("Booking number is required to email declaration.");
-      return;
-    }
-
-    setIsSending(true);
-    
-    try {
-      const emailBody = generateEmailBody(savedData);
-
-      await base44.integrations.Core.SendEmail({
-        to: recipientEmail,
-        subject: `Loading Declaration - ${savedData.booking_number}`,
-        body: emailBody
-      });
-
-      toast.success("Loading declaration sent successfully!");
-      setRecipientEmail("");
-    } catch (error) {
-      console.error('Email error:', error);
-      toast.error("Failed to send email");
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-
   if (viewMode && savedData) {
-    // Calculate totals from vehicles
     const totalWeight = savedData.vehicles.reduce((sum, v) => sum + (parseFloat(v.weight) || 0), 0);
     const totalValue = savedData.vehicles.reduce((sum, v) => sum + (parseFloat(v.value) || 0), 0);
 
     return (
       <Dialog open={open} onOpenChange={onClose}>
+        <style>{`
+          @media print {
+            body * {
+              visibility: hidden;
+            }
+            #loading-declaration-content,
+            #loading-declaration-content * {
+              visibility: visible;
+            }
+            #loading-declaration-content {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+              padding: 20px;
+              background: white;
+            }
+            .no-print {
+              display: none !important;
+            }
+            [role="dialog"] {
+              position: static !important;
+              max-width: 100% !important;
+              max-height: none !important;
+              overflow: visible !important;
+              box-shadow: none !important;
+              border: none !important;
+            }
+            [data-state="open"] {
+              overflow: visible !important;
+            }
+          }
+        `}</style>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+          <DialogHeader className="no-print">
             <DialogTitle className="flex items-center justify-between">
               <span>Loading Declaration - Saved</span>
-              <div className="flex gap-2 no-print"> {/* Added no-print class */}
+              <div className="flex gap-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm">
@@ -420,6 +416,8 @@ This is an automated message from eFinAuto Center Freight Management System.
           </DialogHeader>
 
           <div className="space-y-6 py-4" id="loading-declaration-content">
+            <h1 className="text-2xl font-bold text-center mb-6" style={{display: 'none', printStyle: 'block'}}>Loading Declaration</h1>
+            
             {/* Header Section */}
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="p-4">
@@ -555,7 +553,7 @@ This is an automated message from eFinAuto Center Freight Management System.
             </Card>
 
             {/* Email Section */}
-            <Card className="border-blue-200 bg-blue-50/50 no-print"> {/* Added no-print class */}
+            <Card className="border-blue-200 bg-blue-50/50 no-print">
               <CardContent className="p-4">
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
                   <Mail className="w-4 h-4" />
@@ -571,7 +569,7 @@ This is an automated message from eFinAuto Center Freight Management System.
                     />
                   </div>
                   <Button 
-                    onClick={handleEmailPDF} // Changed to handleEmailPDF
+                    onClick={handleEmailDeclaration}
                     disabled={isSending || !recipientEmail}
                     className="bg-blue-600 hover:bg-blue-700"
                   >
@@ -592,7 +590,7 @@ This is an automated message from eFinAuto Center Freight Management System.
             </Card>
           </div>
 
-          <div className="flex justify-end no-print"> {/* Added no-print class */}
+          <div className="flex justify-end no-print">
             <Button onClick={onClose}>Close</Button>
           </div>
         </DialogContent>
@@ -653,7 +651,7 @@ This is an automated message from eFinAuto Center Freight Management System.
             </CardContent>
           </Card>
 
-          {/* Exporter & Consignee - Moved Above Commodity */}
+          {/* Exporter & Consignee */}
           <div className="grid md:grid-cols-2 gap-6">
             {/* Exporter */}
             <Card>
@@ -797,7 +795,7 @@ This is an automated message from eFinAuto Center Freight Management System.
             </Card>
           </div>
 
-          {/* Commodity Information - Now Below Exporter/Consignee */}
+          {/* Commodity Information */}
           <Card>
             <CardContent className="p-4">
               <h3 className="font-semibold mb-4">Commodity Information</h3>
@@ -994,7 +992,7 @@ This is an automated message from eFinAuto Center Freight Management System.
                   />
                 </div>
                 <Button 
-                  onClick={handleEmailDeclaration} // This remains for the edit view
+                  onClick={handleEmailDeclaration}
                   disabled={isSending || !recipientEmail}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
