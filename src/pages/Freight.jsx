@@ -61,6 +61,9 @@ export default function Freight() {
       setEditingShipment(null);
       toast.success("Freight shipment created!");
     },
+    onError: (error) => {
+      toast.error(`Failed to create shipment: ${error.message || 'Unknown error'}`);
+    }
   });
 
   const updateMutation = useMutation({
@@ -71,6 +74,9 @@ export default function Freight() {
       setEditingShipment(null);
       toast.success("Shipment updated!");
     },
+    onError: (error) => {
+      toast.error(`Failed to update shipment: ${error.message || 'Unknown error'}`);
+    }
   });
 
   const createLoadingDeclarationMutation = useMutation({
@@ -280,7 +286,10 @@ function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, p
   React.useEffect(() => {
     if (open) {
       if (shipment) {
-        setFormData(shipment);
+        setFormData({
+          ...shipment,
+          cargo_items: shipment.cargo_items || []
+        });
         const customer = customers.find(c => c.full_name === shipment.customer_name);
         setSelectedCustomer(customer || null);
       } else {
@@ -494,6 +503,10 @@ function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, p
               <div className="space-y-2">
                 <Label>Tracking Number</Label>
                 <Input value={formData.tracking_number} onChange={(e) => setFormData({...formData, tracking_number: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Container Number</Label>
+                <Input value={formData.container_number} onChange={(e) => setFormData({...formData, container_number: e.target.value})} />
               </div>
             </div>
 
