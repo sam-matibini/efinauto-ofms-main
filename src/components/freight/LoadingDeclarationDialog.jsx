@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -91,7 +90,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
         booking_number: shipment.tracking_number || "",
         container_number: shipment.container_number || "",
         seal_number: shipment.seal_number || "",
-        exporter: formData.exporter, // Keep existing exporter from previous state if any
+        exporter: formData.exporter,
         consignee: {
           name: shipment.customer_name || "",
           address_street: shipment.destination_location || "",
@@ -158,12 +157,11 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
           year: "",
           make_model: item.description || "",
           vin: "",
-          weight: item.weight || 0, // Include item.weight
+          weight: item.weight || 0,
           value: item.value || 0,
           saved: false
         }));
 
-      // Calculate total weight from items
       const totalWeight = (exportOrder.items || []).reduce((sum, item) => sum + (item.weight || 0) * (item.quantity || 1), 0);
 
       setFormData({
@@ -177,7 +175,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
           email: exportOrder.customer_email || ""
         },
         commodity: exportOrder.items?.map(i => i.description).join(', ') || "",
-        weight: totalWeight, // Use calculated totalWeight
+        weight: totalWeight,
         value: exportOrder.total_value || 0,
         vehicles: exportVehicles
       });
@@ -236,7 +234,6 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     toast.success("Vehicle information saved!");
   };
 
-  // Auto-calculate total weight and value from vehicles
   React.useEffect(() => {
     const totalWeight = formData.vehicles.reduce((sum, v) => sum + (parseFloat(v.weight) || 0), 0);
     const totalValue = formData.vehicles.reduce((sum, v) => sum + (parseFloat(v.value) || 0), 0);
@@ -253,6 +250,47 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     setViewMode(true);
     onSave(formData);
     toast.success("Loading declaration saved successfully!");
+  };
+
+  const handleEmailDeclaration = async () => {
+    if (!recipientEmail) {
+      toast.error("Please enter recipient email address");
+      return;
+    }
+
+    if (!formData.booking_number) {
+      toast.error("Booking number is required");
+      return;
+    }
+
+    setIsSending(true);
+    
+    try {
+      const emailBody = generateEmailBody(savedData || formData);
+
+      await base44.integrations.Core.SendEmail({
+        to: recipientEmail,
+        subject: `Loading Declaration - ${(savedData || formData).booking_number}`,
+        body: emailBody
+      });
+
+      toast.success("Loading declaration sent successfully!");
+      setRecipientEmail("");
+    } catch (error) {
+      console.error('Email error:', error);
+      toast.error("Failed to send email");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDownloadPDF = () => {
+    window.print();
+    toast.success("Use your browser's print dialog to save as PDF");
   };
 
   const generateEmailBody = (data) => {
@@ -302,93 +340,121 @@ This is an automated message from eFinAuto Center Freight Management System.
     `;
   };
 
-  const handleEmailDeclaration = async () => {
-    if (!recipientEmail) {
-      toast.error("Please enter recipient email address");
-      return;
-    }
-
-    if (!formData.booking_number) {
-      toast.error("Booking number is required");
-      return;
-    }
-
-    setIsSending(true);
-    
-    try {
-      const emailBody = generateEmailBody(formData);
-
-      await base44.integrations.Core.SendEmail({
-        to: recipientEmail,
-        subject: `Loading Declaration - ${formData.booking_number}`,
-        body: emailBody
-      });
-
-      toast.success("Loading declaration sent successfully!");
-      setRecipientEmail("");
-    } catch (error) {
-      console.error('Email error:', error);
-      toast.error("Failed to send email");
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  const handlePrint = () => {
-    window.print();
-    toast.success("Print dialog opened");
-  };
-
-  const handleDownloadPDF = () => {
-    window.print(); // Triggers browser's print dialog, user can choose 'Save as PDF'
-    toast.success("Use your browser's print dialog to save as PDF");
-  };
-
-  const handleEmailPDF = async () => {
-    if (!recipientEmail) {
-      toast.error("Please enter recipient email address");
-      return;
-    }
-
-    if (!savedData?.booking_number) {
-      toast.error("Booking number is required to email declaration.");
-      return;
-    }
-
-    setIsSending(true);
-    
-    try {
-      const emailBody = generateEmailBody(savedData);
-
-      await base44.integrations.Core.SendEmail({
-        to: recipientEmail,
-        subject: `Loading Declaration - ${savedData.booking_number}`,
-        body: emailBody
-      });
-
-      toast.success("Loading declaration sent successfully!");
-      setRecipientEmail("");
-    } catch (error) {
-      console.error('Email error:', error);
-      toast.error("Failed to send email");
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-
   if (viewMode && savedData) {
-    // Calculate totals from vehicles
     const totalWeight = savedData.vehicles.reduce((sum, v) => sum + (parseFloat(v.weight) || 0), 0);
     const totalValue = savedData.vehicles.reduce((sum, v) => sum + (parseFloat(v.value) || 0), 0);
 
     return (
       <Dialog open={open} onOpenChange={onClose}>
+        <style>{`
+          @media print {
+            @page {
+              size: A4;
+              margin: 10mm;
+            }
+            
+            body * {
+              visibility: hidden;
+            }
+            
+            #loading-declaration-content,
+            #loading-declaration-content * {
+              visibility: visible;
+            }
+            
+            #loading-declaration-content {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+              background: white;
+              padding: 0;
+              margin: 0;
+            }
+            
+            .no-print {
+              display: none !important;
+            }
+            
+            .print-title {
+              display: block !important;
+              text-align: center;
+              font-size: 18px;
+              font-weight: bold;
+              margin-bottom: 15px;
+            }
+            
+            .print-section {
+              margin-bottom: 12px;
+              page-break-inside: avoid;
+            }
+            
+            .print-header {
+              background-color: #eff6ff !important;
+              padding: 8px !important;
+              border: 1px solid #ddd;
+              margin-bottom: 10px;
+            }
+            
+            .print-card {
+              border: 1px solid #ddd;
+              padding: 8px !important;
+              margin-bottom: 8px;
+              background: white;
+            }
+            
+            .print-grid-2 {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 10px;
+            }
+            
+            .print-grid-3 {
+              display: grid;
+              grid-template-columns: 1fr 1fr 1fr;
+              gap: 8px;
+            }
+            
+            .print-label {
+              font-size: 9px !important;
+              color: #666 !important;
+              margin-bottom: 2px;
+            }
+            
+            .print-value {
+              font-size: 11px !important;
+              font-weight: 500;
+            }
+            
+            .print-table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 10px !important;
+              margin-top: 8px;
+            }
+            
+            .print-table th,
+            .print-table td {
+              border: 1px solid #999;
+              padding: 4px 6px !important;
+            }
+            
+            .print-table th {
+              background-color: #f3f4f6 !important;
+              font-weight: 600;
+            }
+            
+            h3 {
+              font-size: 12px !important;
+              margin-bottom: 6px !important;
+            }
+          }
+        `}</style>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+          <DialogHeader className="no-print">
             <DialogTitle className="flex items-center justify-between">
               <span>Loading Declaration - Saved</span>
-              <div className="flex gap-2 no-print"> {/* Added no-print class */}
+              <div className="flex gap-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm">
@@ -420,85 +486,87 @@ This is an automated message from eFinAuto Center Freight Management System.
           </DialogHeader>
 
           <div className="space-y-6 py-4" id="loading-declaration-content">
+            <h1 className="print-title" style={{display: 'none'}}>Loading Declaration</h1>
+            
             {/* Header Section */}
-            <Card className="bg-blue-50 border-blue-200">
+            <Card className="bg-blue-50 border-blue-200 print-header print-section">
               <CardContent className="p-4">
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-4 print-grid-3">
                   <div>
-                    <Label className="text-xs text-gray-600">Booking Number</Label>
-                    <p className="font-semibold">{savedData.booking_number}</p>
+                    <Label className="text-xs text-gray-600 print-label">Booking Number</Label>
+                    <p className="font-semibold print-value">{savedData.booking_number}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-gray-600">Container Number</Label>
-                    <p className="font-semibold">{savedData.container_number || 'N/A'}</p>
+                    <Label className="text-xs text-gray-600 print-label">Container Number</Label>
+                    <p className="font-semibold print-value">{savedData.container_number || 'N/A'}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-gray-600">Seal Number</Label>
-                    <p className="font-semibold">{savedData.seal_number || 'N/A'}</p>
+                    <Label className="text-xs text-gray-600 print-label">Seal Number</Label>
+                    <p className="font-semibold print-value">{savedData.seal_number || 'N/A'}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Exporter & Consignee */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
+            <div className="grid md:grid-cols-2 gap-6 print-grid-2 print-section">
+              <Card className="print-card">
                 <CardContent className="p-4">
                   <h3 className="font-semibold mb-3">Exporter</h3>
                   <div className="space-y-2 text-sm">
                     <div>
-                      <Label className="text-xs text-gray-600">Name</Label>
-                      <p className="font-medium">{savedData.exporter.name}</p>
+                      <Label className="text-xs text-gray-600 print-label">Name</Label>
+                      <p className="font-medium print-value">{savedData.exporter.name}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-600">Tax ID</Label>
-                      <p className="font-medium">{savedData.exporter.tax_id}</p>
+                      <Label className="text-xs text-gray-600 print-label">Tax ID</Label>
+                      <p className="font-medium print-value">{savedData.exporter.tax_id}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-600">Address</Label>
-                      <p className="font-medium">{savedData.exporter.address_postal}</p>
+                      <Label className="text-xs text-gray-600 print-label">Address</Label>
+                      <p className="font-medium print-value">{savedData.exporter.address_postal}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-600">City & Province</Label>
-                      <p className="font-medium">{savedData.exporter.city_province}</p>
+                      <Label className="text-xs text-gray-600 print-label">City & Province</Label>
+                      <p className="font-medium print-value">{savedData.exporter.city_province}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-600">Contact</Label>
-                      <p className="font-medium">{savedData.exporter.telephone}</p>
-                      <p className="font-medium text-blue-600">{savedData.exporter.email}</p>
+                      <Label className="text-xs text-gray-600 print-label">Contact</Label>
+                      <p className="font-medium print-value">{savedData.exporter.telephone}</p>
+                      <p className="font-medium text-blue-600 print-value">{savedData.exporter.email}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="print-card">
                 <CardContent className="p-4">
                   <h3 className="font-semibold mb-3">Consignee</h3>
                   <div className="space-y-2 text-sm">
                     <div>
-                      <Label className="text-xs text-gray-600">Name</Label>
-                      <p className="font-medium">{savedData.consignee.name}</p>
+                      <Label className="text-xs text-gray-600 print-label">Name</Label>
+                      <p className="font-medium print-value">{savedData.consignee.name}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-600">Address</Label>
-                      <p className="font-medium">{savedData.consignee.address_street}</p>
+                      <Label className="text-xs text-gray-600 print-label">Address</Label>
+                      <p className="font-medium print-value">{savedData.consignee.address_street}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-600">Postal Code</Label>
-                      <p className="font-medium">{savedData.consignee.postal_code}</p>
+                      <Label className="text-xs text-gray-600 print-label">Postal Code</Label>
+                      <p className="font-medium print-value">{savedData.consignee.postal_code}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-600">City & Country</Label>
-                      <p className="font-medium">{savedData.consignee.city_country}</p>
+                      <Label className="text-xs text-gray-600 print-label">City & Country</Label>
+                      <p className="font-medium print-value">{savedData.consignee.city_country}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-600">Contact</Label>
-                      <p className="font-medium">{savedData.consignee.telephone}</p>
-                      <p className="font-medium text-blue-600">{savedData.consignee.email}</p>
+                      <Label className="text-xs text-gray-600 print-label">Contact</Label>
+                      <p className="font-medium print-value">{savedData.consignee.telephone}</p>
+                      <p className="font-medium text-blue-600 print-value">{savedData.consignee.email}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-600">Tax ID / Passport</Label>
-                      <p className="font-medium">{savedData.consignee.tax_id_passport}</p>
+                      <Label className="text-xs text-gray-600 print-label">Tax ID / Passport</Label>
+                      <p className="font-medium print-value">{savedData.consignee.tax_id_passport}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -506,13 +574,13 @@ This is an automated message from eFinAuto Center Freight Management System.
             </div>
 
             {/* Commodity Information - Table Format */}
-            <Card>
+            <Card className="print-card print-section">
               <CardContent className="p-4">
                 <h3 className="font-semibold mb-3 text-lg">Commodity Information</h3>
                 
                 {savedData.vehicles.length > 0 && (
                   <div className="mb-4">
-                    <table className="w-full border-collapse border border-gray-300">
+                    <table className="w-full border-collapse border border-gray-300 print-table">
                       <thead>
                         <tr className="bg-gray-100">
                           <th className="border border-gray-300 px-3 py-2 text-left text-sm font-semibold">YR</th>
@@ -537,25 +605,25 @@ This is an automated message from eFinAuto Center Freight Management System.
                   </div>
                 )}
 
-                <div className="grid grid-cols-3 gap-4 mt-4">
+                <div className="grid grid-cols-3 gap-4 mt-4 print-grid-3">
                   <div>
-                    <Label className="text-xs text-gray-600">Commodity</Label>
-                    <p className="font-medium">{savedData.commodity || 'N/A'}</p>
+                    <Label className="text-xs text-gray-600 print-label">Commodity</Label>
+                    <p className="font-medium print-value">{savedData.commodity || 'N/A'}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-gray-600">Total Weight</Label>
-                    <p className="font-medium">{savedData.weight || totalWeight} kg</p>
+                    <Label className="text-xs text-gray-600 print-label">Total Weight</Label>
+                    <p className="font-medium print-value">{savedData.weight || totalWeight} kg</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-gray-600">Total Value</Label>
-                    <p className="font-medium text-green-600">${savedData.value || totalValue?.toLocaleString()}</p>
+                    <Label className="text-xs text-gray-600 print-label">Total Value</Label>
+                    <p className="font-medium text-green-600 print-value">${savedData.value || totalValue?.toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Email Section */}
-            <Card className="border-blue-200 bg-blue-50/50 no-print"> {/* Added no-print class */}
+            <Card className="border-blue-200 bg-blue-50/50 no-print">
               <CardContent className="p-4">
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
                   <Mail className="w-4 h-4" />
@@ -571,7 +639,7 @@ This is an automated message from eFinAuto Center Freight Management System.
                     />
                   </div>
                   <Button 
-                    onClick={handleEmailPDF} // Changed to handleEmailPDF
+                    onClick={handleEmailDeclaration}
                     disabled={isSending || !recipientEmail}
                     className="bg-blue-600 hover:bg-blue-700"
                   >
@@ -592,7 +660,7 @@ This is an automated message from eFinAuto Center Freight Management System.
             </Card>
           </div>
 
-          <div className="flex justify-end no-print"> {/* Added no-print class */}
+          <div className="flex justify-end no-print">
             <Button onClick={onClose}>Close</Button>
           </div>
         </DialogContent>
@@ -653,7 +721,7 @@ This is an automated message from eFinAuto Center Freight Management System.
             </CardContent>
           </Card>
 
-          {/* Exporter & Consignee - Moved Above Commodity */}
+          {/* Exporter & Consignee */}
           <div className="grid md:grid-cols-2 gap-6">
             {/* Exporter */}
             <Card>
@@ -797,7 +865,7 @@ This is an automated message from eFinAuto Center Freight Management System.
             </Card>
           </div>
 
-          {/* Commodity Information - Now Below Exporter/Consignee */}
+          {/* Commodity Information */}
           <Card>
             <CardContent className="p-4">
               <h3 className="font-semibold mb-4">Commodity Information</h3>
@@ -994,7 +1062,7 @@ This is an automated message from eFinAuto Center Freight Management System.
                   />
                 </div>
                 <Button 
-                  onClick={handleEmailDeclaration} // This remains for the edit view
+                  onClick={handleEmailDeclaration}
                   disabled={isSending || !recipientEmail}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
