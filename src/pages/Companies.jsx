@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -88,6 +87,8 @@ export default function Companies() {
       code: formData.code,
       address: formData.address || "",
       city: formData.city || "",
+      province: formData.province || "",
+      postal_code: formData.postal_code || "",
       country: formData.country || "",
       phone: formData.phone || "",
       email: formData.email || "",
@@ -227,6 +228,8 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
     code: "",
     address: "",
     city: "",
+    province: "",
+    postal_code: "",
     country: "",
     phone: "",
     email: "",
@@ -244,6 +247,8 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
         code: "",
         address: "",
         city: "",
+        province: "",
+        postal_code: "",
         country: "",
         phone: "",
         email: "",
@@ -304,7 +309,7 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
                 value={formData.address} 
                 onChange={(e) => setFormData({...formData, address: e.target.value})} 
                 rows={2}
-                placeholder="e.g., 908 Redonda Street"
+                placeholder="e.g., 3-122 Kildare Ave East"
               />
             </div>
             <div className="space-y-2">
@@ -312,7 +317,23 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
               <Input 
                 value={formData.city} 
                 onChange={(e) => setFormData({...formData, city: e.target.value})}
-                placeholder="e.g., Oakbank"
+                placeholder="e.g., Winnipeg, MB"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Province/State</Label>
+              <Input 
+                value={formData.province} 
+                onChange={(e) => setFormData({...formData, province: e.target.value})}
+                placeholder="e.g., Manitoba"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Postal Code/ZIP</Label>
+              <Input 
+                value={formData.postal_code} 
+                onChange={(e) => setFormData({...formData, postal_code: e.target.value})}
+                placeholder="e.g., R2C 5G1"
               />
             </div>
             <div className="space-y-2">
@@ -328,6 +349,7 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
               <Input 
                 value={formData.tax_id} 
                 onChange={(e) => setFormData({...formData, tax_id: e.target.value})}
+                placeholder="e.g., 155027-6"
               />
             </div>
             <div className="space-y-2">
