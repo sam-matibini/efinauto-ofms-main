@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Clock, Save, Package } from "lucide-react";
+import { Save, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCompany } from "@/components/shared/CompanyContext";
 import CustomerSelector from "@/components/shared/CustomerSelector";
@@ -49,6 +51,13 @@ export default function RepairOrderDialog({ open, onClose, order, selectedPackag
     notes: ""
   });
 
+  const { data: technicians = [] } = useQuery({
+    queryKey: ['technicians', selectedCompanyId],
+    queryFn: () => base44.entities.Technician.filter({ company_id: selectedCompanyId, status: 'active' }),
+    enabled: !!selectedCompanyId && open,
+    initialData: [],
+  });
+
   useEffect(() => {
     if (order) {
       setFormData({
@@ -56,7 +65,6 @@ export default function RepairOrderDialog({ open, onClose, order, selectedPackag
         ...order
       });
     } else if (selectedPackage) {
-      // Pre-fill from service package
       setFormData({
         ...formData,
         description: selectedPackage.description || selectedPackage.name,
@@ -163,11 +171,18 @@ export default function RepairOrderDialog({ open, onClose, order, selectedPackag
               </div>
               <div className="space-y-2">
                 <Label>Assigned Technician</Label>
-                <Input
-                  value={formData.assigned_technician}
-                  onChange={(e) => setFormData({ ...formData, assigned_technician: e.target.value })}
-                  placeholder="Technician name"
-                />
+                <Select value={formData.assigned_technician} onValueChange={(value) => setFormData({ ...formData, assigned_technician: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select technician" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {technicians.map(tech => (
+                      <SelectItem key={tech.id} value={tech.full_name}>
+                        {tech.full_name} - {tech.certification_level}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </TabsContent>

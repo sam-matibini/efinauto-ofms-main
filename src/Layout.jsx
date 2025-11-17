@@ -14,7 +14,8 @@ import {
   Trash2,
   Bell,
   BarChart3,
-  UserCog
+  UserCog,
+  HardHat
 } from "lucide-react";
 import {
   Sidebar,
@@ -68,6 +69,11 @@ const navigationItems = [
     title: "Auto Repair",
     url: createPageUrl("Repairs"),
     icon: Wrench,
+  },
+  {
+    title: "Technicians",
+    url: createPageUrl("Technicians"),
+    icon: HardHat,
   },
   {
     title: "Salvage & Dismantling",

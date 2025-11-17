@@ -13,6 +13,7 @@ import Salvage from './pages/Salvage';
 import Notifications from './pages/Notifications';
 import Reports from './pages/Reports';
 import UserManagement from './pages/UserManagement';
+import Technicians from './pages/Technicians';
 import __Layout from './Layout.jsx';
 
 
@@ -32,6 +33,7 @@ export const PAGES = {
     "Notifications": Notifications,
     "Reports": Reports,
     "UserManagement": UserManagement,
+    "Technicians": Technicians,
 }
 
 export const pagesConfig = {
