@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -293,8 +292,7 @@ function TimesheetDialog({ open, onClose, entry, technicians, repairOrders, onSa
                 <SelectValue placeholder="Select order" />
               </SelectTrigger>
               <SelectContent>
-                {/* Option to clear selection */}
-                <SelectItem value={""}>None</SelectItem> 
+                <SelectItem value={null}>None</SelectItem>
                 {repairOrders.map(order => (
                   <SelectItem key={order.id} value={order.id}>
                     {order.order_number} - {order.customer_name}
@@ -335,10 +333,9 @@ function TimesheetDialog({ open, onClose, entry, technicians, repairOrders, onSa
             <Label>Total Hours</Label>
             <Input
               type="number"
-              value={formData.total_hours.toFixed(2)} {/* Display with 2 decimal places */}
+              value={formData.total_hours}
               onChange={(e) => setFormData({ ...formData, total_hours: parseFloat(e.target.value) || 0 })}
               step="0.25"
-              readOnly={!!(formData.clock_in && formData.clock_out)} // Make read-only if both times are set
             />
           </div>
 
@@ -375,7 +372,7 @@ function TimesheetDialog({ open, onClose, entry, technicians, repairOrders, onSa
 
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(formData)} disabled={!formData.technician_id || !formData.date || !formData.clock_in}>
+          <Button onClick={() => onSave(formData)}>
             {entry ? 'Update' : 'Save'} Entry
           </Button>
         </div>
