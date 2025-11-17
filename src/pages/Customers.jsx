@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -383,6 +384,8 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
     }
   }, [customer, open]);
 
+  const canSave = formData.full_name.trim() && formData.phone.trim();
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -397,6 +400,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
               <Input 
                 value={formData.full_name} 
                 onChange={(e) => setFormData({...formData, full_name: e.target.value})} 
+                placeholder="Enter full name"
               />
             </div>
             <div className="space-y-2">
@@ -404,6 +408,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
               <Input 
                 value={formData.phone} 
                 onChange={(e) => setFormData({...formData, phone: e.target.value})} 
+                placeholder="Enter phone number"
               />
             </div>
             <div className="space-y-2">
@@ -412,6 +417,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
                 type="email" 
                 value={formData.email} 
                 onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                placeholder="Enter email"
               />
             </div>
             <div className="space-y-2">
@@ -433,6 +439,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
                   <Input 
                     value={formData.company_name} 
                     onChange={(e) => setFormData({...formData, company_name: e.target.value})} 
+                    placeholder="Enter company name"
                   />
                 </div>
                 <div className="space-y-2">
@@ -440,6 +447,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
                   <Input 
                     value={formData.tax_id} 
                     onChange={(e) => setFormData({...formData, tax_id: e.target.value})} 
+                    placeholder="Enter tax ID"
                   />
                 </div>
               </>
@@ -451,6 +459,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
                 value={formData.address} 
                 onChange={(e) => setFormData({...formData, address: e.target.value})} 
                 rows={2} 
+                placeholder="Enter address"
               />
             </div>
 
@@ -459,6 +468,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
               <Input 
                 value={formData.city} 
                 onChange={(e) => setFormData({...formData, city: e.target.value})} 
+                placeholder="Enter city"
               />
             </div>
             <div className="space-y-2">
@@ -466,6 +476,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
               <Input 
                 value={formData.country} 
                 onChange={(e) => setFormData({...formData, country: e.target.value})} 
+                placeholder="Enter country"
               />
             </div>
           </div>
@@ -476,6 +487,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
               value={formData.notes} 
               onChange={(e) => setFormData({...formData, notes: e.target.value})} 
               rows={3} 
+              placeholder="Enter any additional notes"
             />
           </div>
         </div>
@@ -484,8 +496,8 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
           <Button variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
           <Button 
             onClick={() => onSave(formData)} 
-            className="bg-blue-600 hover:bg-blue-700"
-            disabled={isSaving}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+            disabled={isSaving || !canSave}
           >
             {isSaving ? (
               <>
@@ -493,7 +505,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
                 Saving...
               </>
             ) : (
-              <>{customer ? 'Update' : 'Add'} Customer</>
+              <>{customer ? 'Update' : 'Save'} Customer</>
             )}
           </Button>
         </DialogFooter>
