@@ -13,7 +13,7 @@ import CustomerSelector from "@/components/shared/CustomerSelector";
 import PartsSelector from "@/components/repairs/PartsSelector";
 import TimeTrackingTab from "@/components/repairs/TimeTrackingTab";
 
-export default function RepairOrderDialog({ open, onClose, order, onSave, customers }) {
+export default function RepairOrderDialog({ open, onClose, order, selectedPackage, onSave, customers }) {
   const { selectedCompanyId } = useCompany();
   const [formData, setFormData] = useState({
     company_id: selectedCompanyId,
@@ -54,8 +54,23 @@ export default function RepairOrderDialog({ open, onClose, order, onSave, custom
         ...formData,
         ...order
       });
+    } else if (selectedPackage) {
+      // Pre-fill from service package
+      const estimatedHours = (selectedPackage.duration_minutes || 0) / 60;
+      const laborCost = estimatedHours * formData.hourly_rate;
+      const description = selectedPackage.description || 
+        `${selectedPackage.name}\n\nIncludes:\n${(selectedPackage.includes || []).map(item => `• ${item}`).join('\n')}`;
+      
+      setFormData({
+        ...formData,
+        service_type: selectedPackage.service_type || formData.service_type,
+        description: description,
+        total_labor_hours: estimatedHours,
+        labor_cost: laborCost,
+        total_cost: selectedPackage.price || 0
+      });
     }
-  }, [order]);
+  }, [order, selectedPackage, open]);
 
   useEffect(() => {
     const laborCost = (formData.total_labor_hours || 0) * (formData.hourly_rate || 0);
@@ -89,7 +104,9 @@ export default function RepairOrderDialog({ open, onClose, order, onSave, custom
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{order ? 'Edit' : 'Create'} Repair Order</DialogTitle>
+          <DialogTitle>
+            {order ? 'Edit' : selectedPackage ? `New Repair Order - ${selectedPackage.name}` : 'Create'} Repair Order
+          </DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="basic" className="w-full">
