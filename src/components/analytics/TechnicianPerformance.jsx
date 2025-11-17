@@ -3,34 +3,32 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { TrendingUp, Award, Clock, CheckCircle, Sparkles } from "lucide-react";
+import { TrendingUp, Award, Clock, CheckCircle, Sparkles, ArrowUp, ArrowDown } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
-export default function TechnicianPerformance({ technicians, repairOrders, timesheets, dateRange }) {
+export default function TechnicianPerformance({ technicians, repairOrders, timesheets, filters, comparisonData }) {
   const [insights, setInsights] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const cutoffDate = useMemo(() => {
-    const date = new Date();
-    date.setDate(date.getDate() - dateRange);
-    return date.toISOString().split('T')[0];
-  }, [dateRange]);
-
   const performanceData = useMemo(() => {
+    // Filter timesheets based on date range
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - filters.dateRange);
+    const cutoffStr = cutoffDate.toISOString().split('T')[0];
+
     return technicians.map(tech => {
       const techOrders = repairOrders.filter(order => 
-        order.assigned_technician === tech.full_name &&
-        order.start_date >= cutoffDate
+        order.assigned_technician === tech.full_name
       );
 
       const completedOrders = techOrders.filter(o => o.status === 'completed');
       const techTimesheets = timesheets.filter(ts => 
         ts.technician_id === tech.id &&
-        ts.date >= cutoffDate
+        ts.date >= cutoffStr
       );
 
       const totalHours = techTimesheets.reduce((sum, ts) => sum + (ts.total_hours || 0), 0);
@@ -60,7 +58,30 @@ export default function TechnicianPerformance({ technicians, repairOrders, times
         revenuePerHour: totalHours > 0 ? revenue / totalHours : 0,
       };
     });
-  }, [technicians, repairOrders, timesheets, cutoffDate]);
+  }, [technicians, repairOrders, timesheets, filters]);
+
+  // Calculate comparison metrics
+  const comparisonMetrics = useMemo(() => {
+    if (!comparisonData) return null;
+
+    return technicians.map(tech => {
+      const prevOrders = comparisonData.filter(order => 
+        order.assigned_technician === tech.full_name
+      );
+      const prevCompleted = prevOrders.filter(o => o.status === 'completed');
+      const prevRevenue = prevCompleted.reduce((sum, o) => sum + (o.total_cost || 0), 0);
+
+      const current = performanceData.find(p => p.id === tech.id);
+      
+      return {
+        id: tech.id,
+        name: tech.full_name,
+        jobsChange: current ? current.jobsCompleted - prevCompleted.length : 0,
+        revenueChange: current ? current.revenue - prevRevenue : 0,
+        revenueChangePercent: prevRevenue > 0 ? ((current.revenue - prevRevenue) / prevRevenue * 100) : 0,
+      };
+    });
+  }, [comparisonData, technicians, performanceData]);
 
   const sortedByRevenue = [...performanceData].sort((a, b) => b.revenue - a.revenue);
   const topPerformer = sortedByRevenue[0];
@@ -87,6 +108,8 @@ ${performanceData.map(tech => `
 - ${tech.name}: ${tech.jobsCompleted} jobs completed, ${tech.totalHours.toFixed(1)} hours, ${tech.efficiency.toFixed(1)}% efficiency, $${tech.revenue.toFixed(0)} revenue
 `).join('')}
 
+${comparisonMetrics ? `\nComparison with previous period:\n${comparisonMetrics.map(m => `- ${m.name}: ${m.jobsChange > 0 ? '+' : ''}${m.jobsChange} jobs, ${m.revenueChangePercent.toFixed(1)}% revenue change`).join('\n')}` : ''}
+
 Provide 3-4 specific, actionable insights about:
 1. Top performers and what they're doing well
 2. Areas for improvement for underperformers
@@ -108,6 +131,15 @@ Keep it concise and practical.`;
       toast.error("Failed to generate insights");
     }
   });
+
+  const getChangeIndicator = (change) => {
+    if (change > 0) {
+      return <ArrowUp className="w-4 h-4 text-green-600" />;
+    } else if (change < 0) {
+      return <ArrowDown className="w-4 h-4 text-red-600" />;
+    }
+    return null;
+  };
 
   return (
     <div className="space-y-6">
@@ -229,37 +261,51 @@ Keep it concise and practical.`;
                   <th className="p-3 text-right text-sm font-semibold">Efficiency</th>
                   <th className="p-3 text-right text-sm font-semibold">Revenue</th>
                   <th className="p-3 text-right text-sm font-semibold">$/Hour</th>
-                  <th className="p-3 text-right text-sm font-semibold">Avg Days</th>
+                  {comparisonMetrics && <th className="p-3 text-right text-sm font-semibold">Change</th>}
                 </tr>
               </thead>
               <tbody>
-                {sortedByRevenue.map((tech, index) => (
-                  <tr key={tech.id} className="border-t hover:bg-gray-50">
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        {index === 0 && <Award className="w-4 h-4 text-yellow-500" />}
-                        <span className="font-medium">{tech.name}</span>
-                      </div>
-                    </td>
-                    <td className="p-3 text-right">{tech.jobsCompleted}</td>
-                    <td className="p-3 text-right">{tech.totalHours.toFixed(1)}</td>
-                    <td className="p-3 text-right">{tech.billableHours.toFixed(1)}</td>
-                    <td className="p-3 text-right">
-                      <Badge className={
-                        tech.efficiency >= 80 ? "bg-green-100 text-green-700" :
-                        tech.efficiency >= 60 ? "bg-yellow-100 text-yellow-700" :
-                        "bg-red-100 text-red-700"
-                      }>
-                        {tech.efficiency.toFixed(1)}%
-                      </Badge>
-                    </td>
-                    <td className="p-3 text-right font-semibold text-green-600">
-                      ${tech.revenue.toLocaleString()}
-                    </td>
-                    <td className="p-3 text-right">${tech.revenuePerHour.toFixed(0)}</td>
-                    <td className="p-3 text-right">{tech.avgCompletionTime.toFixed(1)}</td>
-                  </tr>
-                ))}
+                {sortedByRevenue.map((tech, index) => {
+                  const comparison = comparisonMetrics?.find(c => c.id === tech.id);
+                  
+                  return (
+                    <tr key={tech.id} className="border-t hover:bg-gray-50">
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          {index === 0 && <Award className="w-4 h-4 text-yellow-500" />}
+                          <span className="font-medium">{tech.name}</span>
+                        </div>
+                      </td>
+                      <td className="p-3 text-right">{tech.jobsCompleted}</td>
+                      <td className="p-3 text-right">{tech.totalHours.toFixed(1)}</td>
+                      <td className="p-3 text-right">{tech.billableHours.toFixed(1)}</td>
+                      <td className="p-3 text-right">
+                        <Badge className={
+                          tech.efficiency >= 80 ? "bg-green-100 text-green-700" :
+                          tech.efficiency >= 60 ? "bg-yellow-100 text-yellow-700" :
+                          "bg-red-100 text-red-700"
+                        }>
+                          {tech.efficiency.toFixed(1)}%
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-right font-semibold text-green-600">
+                        ${tech.revenue.toLocaleString()}
+                      </td>
+                      <td className="p-3 text-right">${tech.revenuePerHour.toFixed(0)}</td>
+                      {comparison && (
+                        <td className="p-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {getChangeIndicator(comparison.revenueChange)}
+                            <span className={comparison.revenueChange >= 0 ? "text-green-600" : "text-red-600"}>
+                              {comparison.revenueChangePercent > 0 ? '+' : ''}
+                              {comparison.revenueChangePercent.toFixed(1)}%
+                            </span>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

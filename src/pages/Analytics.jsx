@@ -4,16 +4,27 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, TrendingUp, Users, Wrench, Sparkles, Calendar } from "lucide-react";
+import { BarChart3, TrendingUp, Users, Wrench, Sparkles, Filter, X } from "lucide-react";
 import { useCompany } from "@/components/shared/CompanyContext";
 import TechnicianPerformance from "@/components/analytics/TechnicianPerformance";
 import RepairTrends from "@/components/analytics/RepairTrends";
 import PredictiveInsights from "@/components/analytics/PredictiveInsights";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import AnalyticsFilters from "@/components/analytics/AnalyticsFilters";
+import { Badge } from "@/components/ui/badge";
 
 export default function AnalyticsPage() {
   const { selectedCompanyId } = useCompany();
-  const [dateRange, setDateRange] = useState("30"); // days
+  const [filters, setFilters] = useState({
+    dateRange: 30,
+    startDate: null,
+    endDate: null,
+    technicianId: "all",
+    vehicleMake: "all",
+    vehicleModel: "all",
+    serviceType: "all",
+    partId: "all",
+    compareWith: null, // Previous period comparison
+  });
 
   const { data: repairOrders = [] } = useQuery({
     queryKey: ['repairs', selectedCompanyId],
@@ -43,6 +54,109 @@ export default function AnalyticsPage() {
     initialData: [],
   });
 
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ['vehicles', selectedCompanyId],
+    queryFn: () => base44.entities.Vehicle.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  // Filter data based on selected filters
+  const filteredData = React.useMemo(() => {
+    let filtered = [...repairOrders];
+    
+    // Date filtering
+    const cutoffDate = new Date();
+    if (filters.startDate && filters.endDate) {
+      filtered = filtered.filter(order => {
+        const orderDate = new Date(order.start_date);
+        return orderDate >= new Date(filters.startDate) && orderDate <= new Date(filters.endDate);
+      });
+    } else {
+      cutoffDate.setDate(cutoffDate.getDate() - filters.dateRange);
+      const cutoffStr = cutoffDate.toISOString().split('T')[0];
+      filtered = filtered.filter(order => order.start_date >= cutoffStr);
+    }
+
+    // Technician filter
+    if (filters.technicianId !== "all") {
+      const tech = technicians.find(t => t.id === filters.technicianId);
+      if (tech) {
+        filtered = filtered.filter(order => order.assigned_technician === tech.full_name);
+      }
+    }
+
+    // Vehicle make filter
+    if (filters.vehicleMake !== "all") {
+      filtered = filtered.filter(order => order.vehicle_make === filters.vehicleMake);
+    }
+
+    // Vehicle model filter
+    if (filters.vehicleModel !== "all") {
+      filtered = filtered.filter(order => order.vehicle_model === filters.vehicleModel);
+    }
+
+    // Service type filter
+    if (filters.serviceType !== "all") {
+      filtered = filtered.filter(order => order.service_type === filters.serviceType);
+    }
+
+    // Part filter
+    if (filters.partId !== "all") {
+      filtered = filtered.filter(order => {
+        if (!order.parts_used || !Array.isArray(order.parts_used)) return false;
+        return order.parts_used.some(part => part.part_id === filters.partId);
+      });
+    }
+
+    return filtered;
+  }, [repairOrders, filters, technicians]);
+
+  // Get comparison data for previous period
+  const comparisonData = React.useMemo(() => {
+    if (!filters.compareWith) return null;
+
+    const daysToCompare = filters.dateRange;
+    const comparisonCutoff = new Date();
+    comparisonCutoff.setDate(comparisonCutoff.getDate() - (daysToCompare * 2));
+    const comparisonEnd = new Date();
+    comparisonEnd.setDate(comparisonEnd.getDate() - daysToCompare);
+    
+    const cutoffStr = comparisonCutoff.toISOString().split('T')[0];
+    const endStr = comparisonEnd.toISOString().split('T')[0];
+
+    return repairOrders.filter(order => {
+      const orderDate = order.start_date;
+      return orderDate >= cutoffStr && orderDate < endStr;
+    });
+  }, [repairOrders, filters]);
+
+  const activeFiltersCount = Object.entries(filters).filter(([key, value]) => {
+    if (key === 'dateRange' || key === 'startDate' || key === 'endDate' || key === 'compareWith') return false;
+    return value !== "all";
+  }).length;
+
+  const clearFilters = () => {
+    setFilters({
+      dateRange: 30,
+      startDate: null,
+      endDate: null,
+      technicianId: "all",
+      vehicleMake: "all",
+      vehicleModel: "all",
+      serviceType: "all",
+      partId: "all",
+      compareWith: null,
+    });
+  };
+
+  const stats = {
+    repairs: filteredData.length,
+    technicians: technicians.filter(t => t.status === 'active').length,
+    hours: timesheets.reduce((sum, t) => sum + (t.total_hours || 0), 0),
+    revenue: filteredData.reduce((sum, r) => sum + (r.total_cost || 0), 0),
+  };
+
   if (!selectedCompanyId) {
     return (
       <div className="p-6">
@@ -55,7 +169,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
             <Sparkles className="w-8 h-8 text-blue-600" />
@@ -63,30 +177,52 @@ export default function AnalyticsPage() {
           </h1>
           <p className="text-gray-500 mt-1">Advanced insights and predictive analytics</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-gray-500" />
-          <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">Last 7 Days</SelectItem>
-              <SelectItem value="30">Last 30 Days</SelectItem>
-              <SelectItem value="90">Last 90 Days</SelectItem>
-              <SelectItem value="365">Last Year</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
-      {/* Quick Stats */}
+      {/* Filters Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="w-5 h-5" />
+              Filters & Segmentation
+              {activeFiltersCount > 0 && (
+                <Badge className="bg-blue-600">{activeFiltersCount} active</Badge>
+              )}
+            </CardTitle>
+            {activeFiltersCount > 0 && (
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                <X className="w-4 h-4 mr-2" />
+                Clear All
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <AnalyticsFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            technicians={technicians}
+            parts={parts}
+            vehicles={vehicles}
+            repairOrders={repairOrders}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Repairs</p>
-                <h3 className="text-2xl font-bold text-gray-900">{repairOrders.length}</h3>
+                <p className="text-sm text-gray-600">Filtered Repairs</p>
+                <h3 className="text-2xl font-bold text-gray-900">{stats.repairs}</h3>
+                {comparisonData && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    vs {comparisonData.length} previous period
+                  </p>
+                )}
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <Wrench className="w-6 h-6 text-blue-600" />
@@ -100,9 +236,7 @@ export default function AnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Active Technicians</p>
-                <h3 className="text-2xl font-bold text-gray-900">
-                  {technicians.filter(t => t.status === 'active').length}
-                </h3>
+                <h3 className="text-2xl font-bold text-gray-900">{stats.technicians}</h3>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                 <Users className="w-6 h-6 text-green-600" />
@@ -116,9 +250,7 @@ export default function AnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Hours</p>
-                <h3 className="text-2xl font-bold text-gray-900">
-                  {timesheets.reduce((sum, t) => sum + (t.total_hours || 0), 0).toFixed(0)}
-                </h3>
+                <h3 className="text-2xl font-bold text-gray-900">{stats.hours.toFixed(0)}</h3>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
                 <BarChart3 className="w-6 h-6 text-purple-600" />
@@ -132,9 +264,12 @@ export default function AnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Revenue</p>
-                <h3 className="text-2xl font-bold text-gray-900">
-                  ${repairOrders.reduce((sum, r) => sum + (r.total_cost || 0), 0).toLocaleString()}
-                </h3>
+                <h3 className="text-2xl font-bold text-gray-900">${stats.revenue.toLocaleString()}</h3>
+                {comparisonData && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    vs ${comparisonData.reduce((sum, r) => sum + (r.total_cost || 0), 0).toLocaleString()}
+                  </p>
+                )}
               </div>
               <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-yellow-600" />
@@ -155,26 +290,28 @@ export default function AnalyticsPage() {
         <TabsContent value="performance" className="space-y-4">
           <TechnicianPerformance 
             technicians={technicians}
-            repairOrders={repairOrders}
+            repairOrders={filteredData}
             timesheets={timesheets}
-            dateRange={parseInt(dateRange)}
+            filters={filters}
+            comparisonData={comparisonData}
           />
         </TabsContent>
 
         <TabsContent value="trends" className="space-y-4">
           <RepairTrends 
-            repairOrders={repairOrders}
+            repairOrders={filteredData}
             parts={parts}
-            dateRange={parseInt(dateRange)}
+            filters={filters}
+            comparisonData={comparisonData}
           />
         </TabsContent>
 
         <TabsContent value="predictive" className="space-y-4">
           <PredictiveInsights 
-            repairOrders={repairOrders}
+            repairOrders={filteredData}
             parts={parts}
             timesheets={timesheets}
-            dateRange={parseInt(dateRange)}
+            filters={filters}
           />
         </TabsContent>
       </Tabs>
