@@ -16,7 +16,8 @@ import {
   Users,
   CheckCircle,
   AlertCircle,
-  Filter
+  Filter,
+  CalendarDays
 } from "lucide-react";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { toast } from "sonner";
@@ -25,6 +26,8 @@ import AppointmentDialog from "@/components/repairs/AppointmentDialog";
 import ServicePackagesDialog from "@/components/repairs/ServicePackagesDialog";
 import RepairOrderCard from "@/components/repairs/RepairOrderCard";
 import InvoiceGenerator from "@/components/repairs/InvoiceGenerator";
+import TechnicianScheduler from "@/components/technicians/TechnicianScheduler";
+import WorkloadDashboard from "@/components/technicians/WorkloadDashboard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function RepairsPage() {
@@ -36,6 +39,7 @@ export default function RepairsPage() {
   const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
   const [packagesDialogOpen, setPackagesDialogOpen] = useState(false);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [schedulerDialogOpen, setSchedulerDialogOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [invoiceOrder, setInvoiceOrder] = useState(null);
@@ -160,6 +164,10 @@ export default function RepairsPage() {
           <p className="text-gray-500 mt-1">Comprehensive repair order management</p>
         </div>
         <div className="flex gap-2">
+          <Button onClick={() => setSchedulerDialogOpen(true)} variant="outline">
+            <CalendarDays className="w-4 h-4 mr-2" />
+            Scheduler
+          </Button>
           <Button onClick={() => setPackagesDialogOpen(true)} variant="outline">
             <Wrench className="w-4 h-4 mr-2" />
             Service Packages
@@ -280,16 +288,16 @@ export default function RepairsPage() {
         </CardContent>
       </Card>
 
-      {/* Repair Orders - Kanban View */}
+      {/* Main Tabs */}
       <Tabs defaultValue="kanban" className="space-y-4">
         <TabsList>
           <TabsTrigger value="kanban">Kanban Board</TabsTrigger>
           <TabsTrigger value="list">List View</TabsTrigger>
+          <TabsTrigger value="workload">Workload</TabsTrigger>
         </TabsList>
 
         <TabsContent value="kanban" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Pending */}
             <div>
               <div className="bg-gray-100 rounded-t-lg p-3 border-b-2 border-gray-400">
                 <h3 className="font-semibold flex items-center gap-2">
@@ -310,7 +318,6 @@ export default function RepairsPage() {
               </div>
             </div>
 
-            {/* In Progress */}
             <div>
               <div className="bg-blue-100 rounded-t-lg p-3 border-b-2 border-blue-400">
                 <h3 className="font-semibold flex items-center gap-2">
@@ -331,7 +338,6 @@ export default function RepairsPage() {
               </div>
             </div>
 
-            {/* Waiting Parts */}
             <div>
               <div className="bg-yellow-100 rounded-t-lg p-3 border-b-2 border-yellow-400">
                 <h3 className="font-semibold flex items-center gap-2">
@@ -352,7 +358,6 @@ export default function RepairsPage() {
               </div>
             </div>
 
-            {/* Completed */}
             <div>
               <div className="bg-green-100 rounded-t-lg p-3 border-b-2 border-green-400">
                 <h3 className="font-semibold flex items-center gap-2">
@@ -398,6 +403,10 @@ export default function RepairsPage() {
             ))
           )}
         </TabsContent>
+
+        <TabsContent value="workload" className="space-y-4">
+          <WorkloadDashboard />
+        </TabsContent>
       </Tabs>
 
       <RepairOrderDialog
@@ -431,6 +440,11 @@ export default function RepairsPage() {
           setInvoiceOrder(null);
         }}
         repairOrder={invoiceOrder}
+      />
+
+      <TechnicianScheduler
+        open={schedulerDialogOpen}
+        onClose={() => setSchedulerDialogOpen(false)}
       />
     </div>
   );
