@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -56,6 +57,11 @@ export default function Repairs() {
   });
 
   const handleSave = (formData) => {
+    if (!formData.customer_name || !formData.customer_phone || !formData.vehicle_make || !formData.vehicle_model) {
+      toast.error("Please fill in all required fields: Customer Name, Phone, Vehicle Make, Vehicle Model");
+      return;
+    }
+
     if (editingRepair) {
       updateMutation.mutate({ id: editingRepair.id, data: formData });
     } else {
@@ -201,10 +207,36 @@ function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer }) {
 
   React.useEffect(() => {
     if (repair) setFormData(repair);
-  }, [repair]);
+    else {
+      // Reset form data if no repair is being edited
+      setFormData({
+        order_number: `RO-${Date.now()}`,
+        customer_id: null,
+        customer_name: "",
+        customer_phone: "",
+        vehicle_make: "",
+        vehicle_model: "",
+        vehicle_year: new Date().getFullYear(),
+        vehicle_plate: "",
+        mileage: 0,
+        service_type: "routine_maintenance",
+        description: "",
+        diagnosis: "",
+        status: "pending",
+        priority: "medium",
+        assigned_technician: "",
+        labor_cost: 0,
+        parts_cost: 0,
+        total_cost: 0,
+        payment_status: "pending",
+        start_date: new Date().toISOString().split('T')[0],
+        notes: ""
+      });
+    }
+  }, [repair, open]); // Added 'open' to dependency array to reset when dialog opens for new repair
 
   React.useEffect(() => {
-    const total = (formData.labor_cost || 0) + (formData.parts_cost || 0);
+    const total = (parseFloat(formData.labor_cost) || 0) + (parseFloat(formData.parts_cost) || 0);
     setFormData(prev => ({ ...prev, total_cost: total }));
   }, [formData.labor_cost, formData.parts_cost]);
 
@@ -216,6 +248,11 @@ function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer }) {
       customer_phone: customer.phone
     });
   };
+
+  const canSave = formData.customer_name?.trim().length > 0 && 
+                  formData.customer_phone?.trim().length > 0 &&
+                  formData.vehicle_make?.trim().length > 0 &&
+                  formData.vehicle_model?.trim().length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -253,7 +290,7 @@ function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer }) {
             </div>
             <div className="space-y-2">
               <Label>Year</Label>
-              <Input type="number" value={formData.vehicle_year} onChange={(e) => setFormData({...formData, vehicle_year: parseInt(e.target.value)})} />
+              <Input type="number" value={formData.vehicle_year} onChange={(e) => setFormData({...formData, vehicle_year: parseInt(e.target.value) || new Date().getFullYear()})} />
             </div>
             <div className="space-y-2">
               <Label>License Plate</Label>
@@ -334,7 +371,11 @@ function RepairDialog({ open, onClose, repair, onSave, onCreateCustomer }) {
 
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700">
+          <Button 
+            onClick={() => onSave(formData)} 
+            className="bg-blue-600 hover:bg-blue-700"
+            disabled={!canSave}
+          >
             {repair ? 'Update' : 'Create'} Order
           </Button>
         </div>
@@ -350,6 +391,20 @@ function QuickCustomerDialog({ open, onClose, onSave }) {
     email: "",
     customer_type: "individual"
   });
+
+  // Reset form when dialog opens
+  React.useEffect(() => {
+    if (open) {
+      setFormData({
+        full_name: "",
+        phone: "",
+        email: "",
+        customer_type: "individual"
+      });
+    }
+  }, [open]);
+
+  const canSave = formData.full_name?.trim().length > 0 && formData.phone?.trim().length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -373,7 +428,11 @@ function QuickCustomerDialog({ open, onClose, onSave }) {
         </div>
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700">
+          <Button 
+            onClick={() => onSave(formData)} 
+            className="bg-blue-600 hover:bg-blue-700"
+            disabled={!canSave}
+          >
             Add Customer
           </Button>
         </div>

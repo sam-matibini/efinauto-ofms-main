@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -58,6 +59,11 @@ export default function Freight() {
   });
 
   const handleSave = (formData) => {
+    if (!formData.customer_name || !formData.origin_country || !formData.destination_country) {
+      toast.error("Customer name, origin and destination countries are required");
+      return;
+    }
+
     if (editingShipment) {
       updateMutation.mutate({ id: editingShipment.id, data: formData });
     } else {
@@ -230,6 +236,35 @@ function FreightDialog({ open, onClose, shipment, onSave }) {
 
   React.useEffect(() => {
     if (shipment) setFormData(shipment);
+    else {
+      setFormData({ // Reset form for new shipment
+        shipment_number: `FRT-${Date.now()}`,
+        customer_name: "",
+        customer_phone: "",
+        shipment_type: "sea",
+        cargo_type: "vehicle",
+        origin_location: "",
+        origin_country: "",
+        destination_location: "",
+        destination_country: "",
+        cargo_description: "",
+        number_of_items: 1,
+        total_weight: 0,
+        total_volume: 0,
+        cargo_value: 0,
+        freight_cost: 0,
+        insurance_cost: 0,
+        handling_fees: 0,
+        customs_fees: 0,
+        total_cost: 0,
+        status: "booked",
+        carrier_name: "",
+        tracking_number: "",
+        container_number: "",
+        payment_status: "pending",
+        notes: ""
+      });
+    }
   }, [shipment]);
 
   React.useEffect(() => {
@@ -237,6 +272,10 @@ function FreightDialog({ open, onClose, shipment, onSave }) {
                   (formData.handling_fees || 0) + (formData.customs_fees || 0);
     setFormData(prev => ({ ...prev, total_cost: total }));
   }, [formData.freight_cost, formData.insurance_cost, formData.handling_fees, formData.customs_fees]);
+
+  const canSave = formData.customer_name?.trim().length > 0 && 
+                  formData.origin_country?.trim().length > 0 &&
+                  formData.destination_country?.trim().length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -349,7 +388,11 @@ function FreightDialog({ open, onClose, shipment, onSave }) {
 
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700">
+          <Button 
+            onClick={() => onSave(formData)} 
+            className="bg-blue-600 hover:bg-blue-700"
+            disabled={!canSave}
+          >
             {shipment ? 'Update' : 'Create'} Shipment
           </Button>
         </div>

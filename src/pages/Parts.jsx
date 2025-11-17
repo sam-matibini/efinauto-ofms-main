@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, Settings, AlertTriangle, Edit } from "lucide-react";
+import { Plus, Search, Settings, AlertTriangle, Edit, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   Dialog,
@@ -23,28 +23,35 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useCompany } from "../components/shared/CompanyContext";
 
 export default function Parts() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPart, setEditingPart] = useState(null);
+  const { selectedCompanyId } = useCompany();
 
   const queryClient = useQueryClient();
 
   const { data: parts = [], isLoading } = useQuery({
-    queryKey: ['parts'],
+    queryKey: ['parts', selectedCompanyId],
     queryFn: () => base44.entities.Part.list('-updated_date'),
+    enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Part.create(data),
+    mutationFn: (data) => base44.entities.Part.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['parts'] });
       setDialogOpen(false);
       setEditingPart(null);
       toast.success("Part added successfully!");
+    },
+    onError: (error) => {
+      console.error("Create error:", error);
+      toast.error("Failed to add part: " + (error.message || "Unknown error"));
     },
   });
 
@@ -56,6 +63,10 @@ export default function Parts() {
       setEditingPart(null);
       toast.success("Part updated successfully!");
     },
+    onError: (error) => {
+      console.error("Update error:", error);
+      toast.error("Failed to update part: " + (error.message || "Unknown error"));
+    },
   });
 
   const filteredParts = parts.filter(p => {
@@ -66,12 +77,34 @@ export default function Parts() {
   });
 
   const handleSave = (formData) => {
+    if (!selectedCompanyId) {
+      toast.error("Please select a company first");
+      return;
+    }
+
+    if (!formData.part_number || !formData.name) {
+      toast.error("Part number and name are required");
+      return;
+    }
+
     if (editingPart) {
       updateMutation.mutate({ id: editingPart.id, data: formData });
     } else {
       createMutation.mutate(formData);
     }
   };
+
+  if (!selectedCompanyId) {
+    return (
+      <div className="p-6 md:p-8 max-w-7xl mx-auto">
+        <div className="text-center py-16">
+          <Settings className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">No Company Selected</h3>
+          <p className="text-gray-500">Please select a company from the sidebar to view parts</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
@@ -128,63 +161,75 @@ export default function Parts() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredParts.map((part, index) => {
-          const isLowStock = part.quantity <= part.reorder_level;
-          
-          return (
-            <motion.div
-              key={part.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <Card className="hover:shadow-lg transition-all border-none shadow-md">
-                <CardContent className="p-5 space-y-3">
-                  {isLowStock && (
-                    <Badge className="bg-orange-500 text-white">
-                      <AlertTriangle className="w-3 h-3 mr-1" />
-                      Low Stock
-                    </Badge>
-                  )}
-                  
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-900">{part.name}</h3>
-                    <p className="text-sm text-gray-500">{part.part_number}</p>
-                  </div>
-
-                  <Badge variant="outline">{part.category?.replace(/_/g, ' ')}</Badge>
-
-                  <div className="grid grid-cols-2 gap-3 pt-3 border-t">
+      {isLoading ? (
+        <div className="text-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />
+        </div>
+      ) : filteredParts.length === 0 ? (
+        <div className="text-center py-16">
+          <Settings className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">No parts found</h3>
+          <p className="text-gray-500 mb-6">Add your first part to get started</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredParts.map((part, index) => {
+            const isLowStock = part.quantity <= part.reorder_level;
+            
+            return (
+              <motion.div
+                key={part.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Card className="hover:shadow-lg transition-all border-none shadow-md">
+                  <CardContent className="p-5 space-y-3">
+                    {isLowStock && (
+                      <Badge className="bg-orange-500 text-white">
+                        <AlertTriangle className="w-3 h-3 mr-1" />
+                        Low Stock
+                      </Badge>
+                    )}
+                    
                     <div>
-                      <p className="text-xs text-gray-500">In Stock</p>
-                      <p className="text-xl font-bold">{part.quantity}</p>
+                      <h3 className="font-bold text-lg text-gray-900">{part.name}</h3>
+                      <p className="text-sm text-gray-500">{part.part_number}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Price</p>
-                      <p className="text-xl font-bold text-blue-600">
-                        ${part.selling_price?.toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
 
-                  <Button 
-                    onClick={() => {
-                      setEditingPart(part);
-                      setDialogOpen(true);
-                    }}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          );
-        })}
-      </div>
+                    <Badge variant="outline">{part.category?.replace(/_/g, ' ')}</Badge>
+
+                    <div className="grid grid-cols-2 gap-3 pt-3 border-t">
+                      <div>
+                        <p className="text-xs text-gray-500">In Stock</p>
+                        <p className="text-xl font-bold">{part.quantity}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Price</p>
+                        <p className="text-xl font-bold text-blue-600">
+                          ${part.selling_price?.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <Button 
+                      onClick={() => {
+                        setEditingPart(part);
+                        setDialogOpen(true);
+                      }}
+                      className="w-full"
+                      variant="outline"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
 
       <PartDialog
         open={dialogOpen}
@@ -194,13 +239,14 @@ export default function Parts() {
         }}
         part={editingPart}
         onSave={handleSave}
+        isSaving={createMutation.isPending || updateMutation.isPending}
       />
     </div>
   );
 }
 
-function PartDialog({ open, onClose, part, onSave }) {
-  const [formData, setFormData] = useState(part || {
+function PartDialog({ open, onClose, part, onSave, isSaving }) {
+  const [formData, setFormData] = useState({
     part_number: "", name: "", description: "", category: "other",
     compatible_makes: "", compatible_models: "", quantity: 0,
     reorder_level: 5, cost_price: 0, selling_price: 0,
@@ -208,8 +254,21 @@ function PartDialog({ open, onClose, part, onSave }) {
   });
 
   React.useEffect(() => {
-    if (part) setFormData(part);
-  }, [part]);
+    if (open) {
+      if (part) {
+        setFormData(part);
+      } else {
+        setFormData({
+          part_number: "", name: "", description: "", category: "other",
+          compatible_makes: "", compatible_models: "", quantity: 0,
+          reorder_level: 5, cost_price: 0, selling_price: 0,
+          supplier: "", location: "", image_url: ""
+        });
+      }
+    }
+  }, [part, open]);
+
+  const canSave = formData.part_number?.trim().length > 0 && formData.name?.trim().length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -222,15 +281,15 @@ function PartDialog({ open, onClose, part, onSave }) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Part Number *</Label>
-              <Input value={formData.part_number} onChange={(e) => setFormData({...formData, part_number: e.target.value})} />
+              <Input value={formData.part_number || ""} onChange={(e) => setFormData({...formData, part_number: e.target.value})} />
             </div>
             <div className="space-y-2">
               <Label>Name *</Label>
-              <Input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
+              <Input value={formData.name || ""} onChange={(e) => setFormData({...formData, name: e.target.value})} />
             </div>
             <div className="space-y-2 col-span-2">
               <Label>Description</Label>
-              <Textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
+              <Textarea value={formData.description || ""} onChange={(e) => setFormData({...formData, description: e.target.value})} />
             </div>
             <div className="space-y-2">
               <Label>Category</Label>
@@ -256,23 +315,34 @@ function PartDialog({ open, onClose, part, onSave }) {
             </div>
             <div className="space-y-2">
               <Label>Quantity</Label>
-              <Input type="number" value={formData.quantity} onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value)})} />
+              <Input type="number" value={formData.quantity || 0} onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 0})} />
             </div>
             <div className="space-y-2">
               <Label>Reorder Level</Label>
-              <Input type="number" value={formData.reorder_level} onChange={(e) => setFormData({...formData, reorder_level: parseInt(e.target.value)})} />
+              <Input type="number" value={formData.reorder_level || 5} onChange={(e) => setFormData({...formData, reorder_level: parseInt(e.target.value) || 5})} />
             </div>
             <div className="space-y-2">
               <Label>Selling Price ($)</Label>
-              <Input type="number" step="0.01" value={formData.selling_price} onChange={(e) => setFormData({...formData, selling_price: parseFloat(e.target.value)})} />
+              <Input type="number" step="0.01" value={formData.selling_price || 0} onChange={(e) => setFormData({...formData, selling_price: parseFloat(e.target.value) || 0})} />
             </div>
           </div>
         </div>
 
         <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700">
-            {part ? 'Update' : 'Add'} Part
+          <Button variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
+          <Button 
+            onClick={() => onSave(formData)} 
+            className="bg-blue-600 hover:bg-blue-700"
+            disabled={isSaving || !canSave}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>{part ? 'Update' : 'Add'} Part</>
+            )}
           </Button>
         </div>
       </DialogContent>

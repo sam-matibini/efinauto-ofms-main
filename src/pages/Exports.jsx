@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -32,6 +33,9 @@ export default function Exports() {
       setEditingExport(null);
       toast.success("Export order created!");
     },
+    onError: (error) => {
+      toast.error(`Failed to create export order: ${error.message || 'Unknown error'}`);
+    }
   });
 
   const updateMutation = useMutation({
@@ -42,9 +46,17 @@ export default function Exports() {
       setEditingExport(null);
       toast.success("Export order updated!");
     },
+    onError: (error) => {
+      toast.error(`Failed to update export order: ${error.message || 'Unknown error'}`);
+    }
   });
 
   const handleSave = (formData) => {
+    if (!formData.customer_name || !formData.destination_country) {
+      toast.error("Customer name and destination country are required");
+      return;
+    }
+
     if (editingExport) {
       updateMutation.mutate({ id: editingExport.id, data: formData });
     } else {
@@ -166,8 +178,33 @@ function ExportDialog({ open, onClose, exportOrder, onSave }) {
   });
 
   React.useEffect(() => {
-    if (exportOrder) setFormData(exportOrder);
-  }, [exportOrder]);
+    // Reset form data when the dialog opens or exportOrder changes
+    if (open) {
+      setFormData(exportOrder || {
+        export_number: `EXP-${Date.now()}`,
+        export_type: "vehicle",
+        customer_name: "",
+        customer_country: "",
+        customer_email: "",
+        customer_phone: "",
+        destination_country: "",
+        destination_port: "",
+        destination_address: "",
+        total_value: 0,
+        freight_cost: 0,
+        customs_value: 0,
+        insurance_cost: 0,
+        status: "pending",
+        payment_terms: "advance",
+        payment_status: "pending",
+        tracking_number: "",
+        notes: ""
+      });
+    }
+  }, [open, exportOrder]);
+
+  const canSave = formData.customer_name?.trim().length > 0 && 
+                  formData.destination_country?.trim().length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -250,7 +287,11 @@ function ExportDialog({ open, onClose, exportOrder, onSave }) {
 
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700">
+          <Button 
+            onClick={() => onSave(formData)} 
+            className="bg-blue-600 hover:bg-blue-700"
+            disabled={!canSave}
+          >
             {exportOrder ? 'Update' : 'Create'} Export Order
           </Button>
         </div>

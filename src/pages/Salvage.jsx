@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -61,6 +62,11 @@ export default function Salvage() {
   });
 
   const handleSave = (formData) => {
+    if (!formData.vin || !formData.make || !formData.model || !formData.year) {
+      toast.error("VIN, Make, Model, and Year are required");
+      return;
+    }
+
     if (editingSalvage) {
       updateMutation.mutate({ id: editingSalvage.id, data: formData });
     } else {
@@ -285,6 +291,11 @@ function SalvageDialog({ open, onClose, salvage, onSave, companyId }) {
     formData.scrap_weights?.aluminum_kg,
     formData.scrap_weights?.copper_kg
   ]);
+
+  const canSave = formData.vin?.trim().length > 0 && 
+                  formData.make?.trim().length > 0 &&
+                  formData.model?.trim().length > 0 &&
+                  formData.year > 0;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -613,7 +624,11 @@ function SalvageDialog({ open, onClose, salvage, onSave, companyId }) {
 
         <div className="flex justify-end gap-3 pt-4 border-t">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700">
+          <Button 
+            onClick={() => onSave(formData)} 
+            className="bg-blue-600 hover:bg-blue-700"
+            disabled={!canSave}
+          >
             {salvage ? 'Update' : 'Add'} Vehicle
           </Button>
         </div>

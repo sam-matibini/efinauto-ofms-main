@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -253,7 +254,7 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
     }
   }, [company, open]);
 
-  const isValid = formData.name && formData.code;
+  const canSave = formData.name?.trim().length > 0 && formData.code?.trim().length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -347,7 +348,7 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
           <Button 
             onClick={() => onSave(formData)} 
             className="bg-blue-600 hover:bg-blue-700"
-            disabled={!isValid || isLoading}
+            disabled={!canSave || isLoading}
           >
             {isLoading ? "Saving..." : company ? 'Update Company' : 'Add Company'}
           </Button>
