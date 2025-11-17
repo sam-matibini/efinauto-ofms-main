@@ -1,9 +1,10 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Plane, Trash2 } from "lucide-react";
+import { Plus, Plane } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -12,39 +13,20 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import CustomerSelector from "../components/shared/CustomerSelector";
-import { useCompany } from "../components/shared/CompanyContext";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Exports() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingExport, setEditingExport] = useState(null);
-  const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
 
   const { data: exports = [] } = useQuery({
-    queryKey: ['exports', selectedCompanyId],
+    queryKey: ['exports'],
     queryFn: () => base44.entities.Export.list('-created_date'),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  const { data: vehicles = [] } = useQuery({
-    queryKey: ['vehicles', selectedCompanyId],
-    queryFn: () => base44.entities.Vehicle.list(),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  const { data: parts = [] } = useQuery({
-    queryKey: ['parts', selectedCompanyId],
-    queryFn: () => base44.entities.Part.list(),
-    enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Export.create({...data, company_id: selectedCompanyId}),
+    mutationFn: (data) => base44.entities.Export.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exports'] });
       setDialogOpen(false);
@@ -90,18 +72,6 @@ export default function Exports() {
     in_transit: "bg-cyan-100 text-cyan-800",
     delivered: "bg-green-100 text-green-800"
   };
-
-  if (!selectedCompanyId) {
-    return (
-      <div className="p-6 md:p-8 max-w-7xl mx-auto">
-        <div className="text-center py-16">
-          <Plane className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">No Company Selected</h3>
-          <p className="text-gray-500">Please select a company from the sidebar</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
@@ -151,11 +121,6 @@ export default function Exports() {
                     <p className="text-sm text-gray-500">
                       <strong>Destination:</strong> {exportOrder.destination_country} - {exportOrder.destination_port || 'N/A'}
                     </p>
-                    {exportOrder.items && exportOrder.items.length > 0 && (
-                      <p className="text-sm text-gray-500">
-                        <strong>Items:</strong> {exportOrder.items.length} item(s)
-                      </p>
-                    )}
                     {exportOrder.tracking_number && (
                       <p className="text-sm text-gray-500">
                         <strong>Tracking:</strong> {exportOrder.tracking_number}
@@ -185,15 +150,13 @@ export default function Exports() {
         }}
         exportOrder={editingExport}
         onSave={handleSave}
-        vehicles={vehicles}
-        parts={parts}
       />
     </div>
   );
 }
 
-function ExportDialog({ open, onClose, exportOrder, onSave, vehicles, parts }) {
-  const [formData, setFormData] = useState({
+function ExportDialog({ open, onClose, exportOrder, onSave }) {
+  const [formData, setFormData] = useState(exportOrder || {
     export_number: `EXP-${Date.now()}`,
     export_type: "vehicle",
     customer_name: "",
@@ -203,7 +166,6 @@ function ExportDialog({ open, onClose, exportOrder, onSave, vehicles, parts }) {
     destination_country: "",
     destination_port: "",
     destination_address: "",
-    items: [],
     total_value: 0,
     freight_cost: 0,
     customs_value: 0,
@@ -215,290 +177,113 @@ function ExportDialog({ open, onClose, exportOrder, onSave, vehicles, parts }) {
     notes: ""
   });
 
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-
   React.useEffect(() => {
+    // Reset form data when the dialog opens or exportOrder changes
     if (open) {
-      if (exportOrder) {
-        setFormData(exportOrder);
-      } else {
-        setFormData({
-          export_number: `EXP-${Date.now()}`,
-          export_type: "vehicle",
-          customer_name: "",
-          customer_country: "",
-          customer_email: "",
-          customer_phone: "",
-          destination_country: "",
-          destination_port: "",
-          destination_address: "",
-          items: [],
-          total_value: 0,
-          freight_cost: 0,
-          customs_value: 0,
-          insurance_cost: 0,
-          status: "pending",
-          payment_terms: "advance",
-          payment_status: "pending",
-          tracking_number: "",
-          notes: ""
-        });
-        setSelectedCustomer(null);
-      }
+      setFormData(exportOrder || {
+        export_number: `EXP-${Date.now()}`,
+        export_type: "vehicle",
+        customer_name: "",
+        customer_country: "",
+        customer_email: "",
+        customer_phone: "",
+        destination_country: "",
+        destination_port: "",
+        destination_address: "",
+        total_value: 0,
+        freight_cost: 0,
+        customs_value: 0,
+        insurance_cost: 0,
+        status: "pending",
+        payment_terms: "advance",
+        payment_status: "pending",
+        tracking_number: "",
+        notes: ""
+      });
     }
   }, [open, exportOrder]);
-
-  React.useEffect(() => {
-    if (selectedCustomer) {
-      setFormData(prev => ({
-        ...prev,
-        customer_name: selectedCustomer.full_name,
-        customer_email: selectedCustomer.email || "",
-        customer_phone: selectedCustomer.phone || "",
-        customer_country: selectedCustomer.country || ""
-      }));
-    }
-  }, [selectedCustomer]);
-
-  const handleAddItem = (type) => {
-    const newItem = { description: "", quantity: 1, value: 0 };
-    setFormData({ ...formData, items: [...(formData.items || []), newItem] });
-  };
-
-  const handleRemoveItem = (index) => {
-    const newItems = formData.items.filter((_, i) => i !== index);
-    setFormData({ ...formData, items: newItems });
-  };
-
-  const handleItemChange = (index, field, value) => {
-    const newItems = [...formData.items];
-    newItems[index][field] = value;
-    setFormData({ ...formData, items: newItems });
-  };
-
-  const handleSelectVehicle = (vehicleId) => {
-    const vehicle = vehicles.find(v => v.id === vehicleId);
-    if (vehicle) {
-      const description = `${vehicle.year} ${vehicle.make} ${vehicle.model} (VIN: ${vehicle.vin})`;
-      handleAddItem('vehicle');
-      const newItems = [...(formData.items || [])];
-      newItems[newItems.length - 1] = {
-        description,
-        quantity: 1,
-        value: vehicle.selling_price || 0,
-        vehicle_id: vehicleId
-      };
-      setFormData({ ...formData, items: newItems });
-    }
-  };
-
-  const handleSelectPart = (partId) => {
-    const part = parts.find(p => p.id === partId);
-    if (part) {
-      const description = `${part.name} (${part.part_number})`;
-      handleAddItem('part');
-      const newItems = [...(formData.items || [])];
-      newItems[newItems.length - 1] = {
-        description,
-        quantity: 1,
-        value: part.selling_price || 0,
-        part_id: partId
-      };
-      setFormData({ ...formData, items: newItems });
-    }
-  };
-
-  React.useEffect(() => {
-    const itemsTotal = (formData.items || []).reduce((sum, item) => sum + (item.quantity * item.value), 0);
-    setFormData(prev => ({ ...prev, total_value: itemsTotal }));
-  }, [formData.items]);
 
   const canSave = formData.customer_name?.trim().length > 0 && 
                   formData.destination_country?.trim().length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{exportOrder ? 'Edit Export Order' : 'New Export Order'}</DialogTitle>
         </DialogHeader>
         
-        <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="basic">Basic Info</TabsTrigger>
-            <TabsTrigger value="items">Items</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="basic" className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Export Type</Label>
-                <Select value={formData.export_type} onValueChange={(v) => setFormData({...formData, export_type: v})}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="vehicle">Vehicle</SelectItem>
-                    <SelectItem value="parts">Parts</SelectItem>
-                    <SelectItem value="mixed">Mixed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Select Customer</Label>
-                <CustomerSelector
-                  selectedCustomerId={selectedCustomer?.id}
-                  onSelect={setSelectedCustomer}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Customer Name *</Label>
-                <Input value={formData.customer_name} onChange={(e) => setFormData({...formData, customer_name: e.target.value})} />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Customer Country</Label>
-                <Input value={formData.customer_country} onChange={(e) => setFormData({...formData, customer_country: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label>Customer Phone</Label>
-                <Input value={formData.customer_phone} onChange={(e) => setFormData({...formData, customer_phone: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label>Customer Email</Label>
-                <Input value={formData.customer_email} onChange={(e) => setFormData({...formData, customer_email: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label>Destination Country *</Label>
-                <Input value={formData.destination_country} onChange={(e) => setFormData({...formData, destination_country: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label>Destination Port</Label>
-                <Input value={formData.destination_port} onChange={(e) => setFormData({...formData, destination_port: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label>Total Value ($)</Label>
-                <Input type="number" value={formData.total_value} disabled className="bg-gray-50" />
-              </div>
-              <div className="space-y-2">
-                <Label>Freight Cost ($)</Label>
-                <Input type="number" value={formData.freight_cost} onChange={(e) => setFormData({...formData, freight_cost: parseFloat(e.target.value) || 0})} />
-              </div>
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="documents_prepared">Documents Prepared</SelectItem>
-                    <SelectItem value="customs_cleared">Customs Cleared</SelectItem>
-                    <SelectItem value="shipped">Shipped</SelectItem>
-                    <SelectItem value="in_transit">In Transit</SelectItem>
-                    <SelectItem value="delivered">Delivered</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Tracking Number</Label>
-                <Input value={formData.tracking_number} onChange={(e) => setFormData({...formData, tracking_number: e.target.value})} />
-              </div>
-            </div>
-
+        <div className="space-y-4 py-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Destination Address</Label>
-              <Textarea value={formData.destination_address} onChange={(e) => setFormData({...formData, destination_address: e.target.value})} rows={2} />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Notes</Label>
-              <Textarea value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={2} />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="items" className="space-y-4 py-4">
-            <div className="flex gap-2 mb-4">
-              <Select onValueChange={handleSelectVehicle}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Add Vehicle" />
-                </SelectTrigger>
+              <Label>Export Type</Label>
+              <Select value={formData.export_type} onValueChange={(v) => setFormData({...formData, export_type: v})}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {vehicles.map(v => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.year} {v.make} {v.model} - ${v.selling_price?.toLocaleString()}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="vehicle">Vehicle</SelectItem>
+                  <SelectItem value="parts">Parts</SelectItem>
+                  <SelectItem value="mixed">Mixed</SelectItem>
                 </SelectContent>
               </Select>
-
-              <Select onValueChange={handleSelectPart}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Add Part" />
-                </SelectTrigger>
+            </div>
+            <div className="space-y-2">
+              <Label>Customer Name *</Label>
+              <Input value={formData.customer_name} onChange={(e) => setFormData({...formData, customer_name: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Customer Country</Label>
+              <Input value={formData.customer_country} onChange={(e) => setFormData({...formData, customer_country: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Customer Phone</Label>
+              <Input value={formData.customer_phone} onChange={(e) => setFormData({...formData, customer_phone: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Destination Country *</Label>
+              <Input value={formData.destination_country} onChange={(e) => setFormData({...formData, destination_country: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Destination Port</Label>
+              <Input value={formData.destination_port} onChange={(e) => setFormData({...formData, destination_port: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Total Value ($)</Label>
+              <Input type="number" value={formData.total_value} onChange={(e) => setFormData({...formData, total_value: parseFloat(e.target.value) || 0})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Freight Cost ($)</Label>
+              <Input type="number" value={formData.freight_cost} onChange={(e) => setFormData({...formData, freight_cost: parseFloat(e.target.value) || 0})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {parts.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name} ({p.part_number}) - ${p.selling_price?.toFixed(2)}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="documents_prepared">Documents Prepared</SelectItem>
+                  <SelectItem value="customs_cleared">Customs Cleared</SelectItem>
+                  <SelectItem value="shipped">Shipped</SelectItem>
+                  <SelectItem value="in_transit">In Transit</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
                 </SelectContent>
               </Select>
-
-              <Button onClick={() => handleAddItem('manual')} variant="outline">
-                Manual Item
-              </Button>
             </div>
-
-            <div className="space-y-3">
-              {(formData.items || []).map((item, index) => (
-                <div key={index} className="border rounded-lg p-4 space-y-3">
-                  <div className="flex gap-2 items-start">
-                    <div className="flex-1 space-y-2">
-                      <Label>Description</Label>
-                      <Input 
-                        value={item.description} 
-                        onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                        placeholder="Item description"
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveItem(index)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label>Quantity</Label>
-                      <Input 
-                        type="number" 
-                        value={item.quantity} 
-                        onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 1)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Value ($)</Label>
-                      <Input 
-                        type="number" 
-                        value={item.value} 
-                        onChange={(e) => handleItemChange(index, 'value', parseFloat(e.target.value) || 0)}
-                      />
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    Total: ${((item.quantity || 0) * (item.value || 0)).toLocaleString()}
-                  </p>
-                </div>
-              ))}
+            <div className="space-y-2">
+              <Label>Tracking Number</Label>
+              <Input value={formData.tracking_number} onChange={(e) => setFormData({...formData, tracking_number: e.target.value})} />
             </div>
+          </div>
 
-            {(!formData.items || formData.items.length === 0) && (
-              <p className="text-center text-gray-500 py-8">No items added yet</p>
-            )}
-          </TabsContent>
-        </Tabs>
+          <div className="space-y-2">
+            <Label>Destination Address</Label>
+            <Textarea value={formData.destination_address} onChange={(e) => setFormData({...formData, destination_address: e.target.value})} rows={2} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Notes</Label>
+            <Textarea value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={2} />
+          </div>
+        </div>
 
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
