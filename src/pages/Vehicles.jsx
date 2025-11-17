@@ -114,6 +114,7 @@ export default function Vehicles() {
       fuel_type: formData.fuel_type || "petrol",
       transmission: formData.transmission || "manual",
       mileage: Number(formData.mileage) || 0,
+      weight: Number(formData.weight) || 0,
       purchase_price: Number(formData.purchase_price) || 0,
       selling_price: Number(formData.selling_price) || 0
     };
@@ -325,7 +326,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
   const [formData, setFormData] = useState({
     ownership_type: "dealership_owned",
     vin: "", make: "", model: "", year: new Date().getFullYear(),
-    color: "", mileage: 0, condition: "used", status: "in_stock",
+    color: "", mileage: 0, weight: 0, condition: "used", status: "in_stock",
     purchase_price: 0, selling_price: 0, fuel_type: "petrol",
     transmission: "manual", engine_capacity: "", features: "",
     location: "", images: [], notes: ""
@@ -342,6 +343,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
           year: vehicle.year || new Date().getFullYear(),
           color: vehicle.color || "",
           mileage: vehicle.mileage !== undefined ? vehicle.mileage : 0,
+          weight: vehicle.weight !== undefined ? vehicle.weight : 0,
           condition: vehicle.condition || "used",
           status: vehicle.status || "in_stock",
           purchase_price: vehicle.purchase_price !== undefined ? vehicle.purchase_price : 0,
@@ -358,7 +360,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
         setFormData({
           ownership_type: "dealership_owned",
           vin: "", make: "", model: "", year: new Date().getFullYear(),
-          color: "", mileage: 0, condition: "used", status: "in_stock",
+          color: "", mileage: 0, weight: 0, condition: "used", status: "in_stock",
           purchase_price: 0, selling_price: 0, fuel_type: "petrol",
           transmission: "manual", engine_capacity: "", features: "",
           location: "", images: [], notes: ""
@@ -462,6 +464,15 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
                 type="number" 
                 value={formData.mileage} 
                 onChange={(e) => setFormData({...formData, mileage: parseInt(e.target.value) || 0})} 
+                placeholder="0" 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Weight (kg)</Label>
+              <Input 
+                type="number" 
+                value={formData.weight} 
+                onChange={(e) => setFormData({...formData, weight: parseFloat(e.target.value) || 0})} 
                 placeholder="0" 
               />
             </div>
