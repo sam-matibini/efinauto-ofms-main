@@ -1,10 +1,11 @@
+
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Mail, Loader2, Eye, Edit } from "lucide-react";
+import { Plus, Trash2, Mail, Loader2, Eye, Edit, Save } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { base44 } from "@/api/base44Client";
@@ -155,7 +156,8 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
         make_model: `${vehicle.make} ${vehicle.model}`,
         vin: vehicle.vin || "",
         weight: vehicle.weight || 0,
-        value: vehicle.selling_price || 0
+        value: vehicle.selling_price || 0,
+        saved: false
       };
       setFormData({
         ...formData,
@@ -167,7 +169,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
   const addVehicle = () => {
     setFormData({
       ...formData,
-      vehicles: [...formData.vehicles, { year: "", make_model: "", vin: "", weight: 0, value: 0 }]
+      vehicles: [...formData.vehicles, { year: "", make_model: "", vin: "", weight: 0, value: 0, saved: false }]
     });
   };
 
@@ -180,8 +182,21 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
 
   const updateVehicle = (index, field, value) => {
     const updated = [...formData.vehicles];
-    updated[index] = { ...updated[index], [field]: value };
+    updated[index] = { ...updated[index], [field]: value, saved: false };
     setFormData({ ...formData, vehicles: updated });
+  };
+
+  const saveVehicle = (index) => {
+    const vehicle = formData.vehicles[index];
+    if (!vehicle.year || !vehicle.make_model || !vehicle.vin) {
+      toast.error("Please fill in Year, Make & Model, and VIN Number");
+      return;
+    }
+    
+    const updated = [...formData.vehicles];
+    updated[index] = { ...updated[index], saved: true };
+    setFormData({ ...formData, vehicles: updated });
+    toast.success("Vehicle information saved!");
   };
 
   const handleSaveDeclaration = () => {
@@ -719,7 +734,7 @@ This is an automated message from eFinAuto Center Freight Management System.
                 <div className="space-y-3">
                   {formData.vehicles.map((vehicle, index) => (
                     <div key={index} className="space-y-3">
-                      <div className="flex gap-3 items-start border-b pb-3">
+                      <div className="flex gap-3 items-start border rounded-lg p-3 bg-gray-50">
                         <div className="grid grid-cols-5 gap-3 flex-1">
                           <div className="space-y-1">
                             <Label className="text-xs">Year</Label>
@@ -728,6 +743,7 @@ This is an automated message from eFinAuto Center Freight Management System.
                               value={vehicle.year}
                               onChange={(e) => updateVehicle(index, 'year', parseInt(e.target.value) || "")}
                               placeholder="2020"
+                              disabled={vehicle.saved}
                             />
                           </div>
                           <div className="space-y-1">
@@ -736,6 +752,7 @@ This is an automated message from eFinAuto Center Freight Management System.
                               value={vehicle.make_model}
                               onChange={(e) => updateVehicle(index, 'make_model', e.target.value)}
                               placeholder="Toyota Camry"
+                              disabled={vehicle.saved}
                             />
                           </div>
                           <div className="space-y-1">
@@ -744,6 +761,7 @@ This is an automated message from eFinAuto Center Freight Management System.
                               value={vehicle.vin}
                               onChange={(e) => updateVehicle(index, 'vin', e.target.value)}
                               placeholder="VIN"
+                              disabled={vehicle.saved}
                             />
                           </div>
                           <div className="space-y-1">
@@ -752,6 +770,7 @@ This is an automated message from eFinAuto Center Freight Management System.
                               type="number"
                               value={vehicle.weight}
                               onChange={(e) => updateVehicle(index, 'weight', parseFloat(e.target.value) || 0)}
+                              disabled={vehicle.saved}
                             />
                           </div>
                           <div className="space-y-1">
@@ -760,21 +779,45 @@ This is an automated message from eFinAuto Center Freight Management System.
                               type="number"
                               value={vehicle.value}
                               onChange={(e) => updateVehicle(index, 'value', parseFloat(e.target.value) || 0)}
+                              disabled={vehicle.saved}
                             />
                           </div>
                         </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeVehicle(index)}
-                          className="mt-5"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </Button>
+                        <div className="flex gap-2 mt-5">
+                          {!vehicle.saved ? (
+                            <Button
+                              type="button"
+                              size="icon"
+                              onClick={() => saveVehicle(index)}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <Save className="w-4 h-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                const updated = [...formData.vehicles];
+                                updated[index] = { ...updated[index], saved: false };
+                                setFormData({ ...formData, vehicles: updated });
+                              }}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeVehicle(index)}
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </Button>
+                        </div>
                       </div>
                       
-                      {/* Add Vehicle button after each vehicle */}
                       <div className="flex justify-end">
                         <Button 
                           onClick={addVehicle} 
