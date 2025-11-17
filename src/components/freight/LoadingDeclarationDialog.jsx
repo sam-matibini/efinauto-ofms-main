@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Mail, Loader2 } from "lucide-react";
+import { Plus, Trash2, Mail, Loader2, Eye, Edit } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { base44 } from "@/api/base44Client";
@@ -18,6 +18,8 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
   const [recipientEmail, setRecipientEmail] = useState("");
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [viewMode, setViewMode] = useState(false);
+  const [savedData, setSavedData] = useState(null);
 
   const { data: companies = [] } = useQuery({
     queryKey: ['companies'],
@@ -103,6 +105,8 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
         vehicles: [],
         status: "draft"
       });
+      setViewMode(false);
+      setSavedData(null);
     }
   }, [open, shipment, selectedCompanyId]);
 
@@ -150,7 +154,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
         year: vehicle.year || "",
         make_model: `${vehicle.make} ${vehicle.model}`,
         vin: vehicle.vin || "",
-        weight: 0,
+        weight: vehicle.weight || 0,
         value: vehicle.selling_price || 0
       };
       setFormData({
@@ -178,6 +182,13 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     const updated = [...formData.vehicles];
     updated[index] = { ...updated[index], [field]: value };
     setFormData({ ...formData, vehicles: updated });
+  };
+
+  const handleSaveDeclaration = () => {
+    setSavedData(formData);
+    setViewMode(true);
+    onSave(formData);
+    toast.success("Loading declaration saved successfully!");
   };
 
   const handleEmailDeclaration = async () => {
@@ -254,6 +265,217 @@ This is an automated message from eFinAuto Center Freight Management System.
       setIsSending(false);
     }
   };
+
+  if (viewMode && savedData) {
+    return (
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Loading Declaration - Saved</span>
+              <Button
+                onClick={() => setViewMode(false)}
+                variant="outline"
+                size="sm"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Header Section */}
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="p-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-xs text-gray-600">Booking Number</Label>
+                    <p className="font-semibold">{savedData.booking_number}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-600">Container Number</Label>
+                    <p className="font-semibold">{savedData.container_number || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-600">Seal Number</Label>
+                    <p className="font-semibold">{savedData.seal_number || 'N/A'}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Commodity Information */}
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="font-semibold mb-3 text-lg">Commodity Information</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-xs text-gray-600">Commodity</Label>
+                    <p className="font-medium">{savedData.commodity || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-600">Total Weight</Label>
+                    <p className="font-medium">{savedData.weight} kg</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-600">Total Value</Label>
+                    <p className="font-medium text-green-600">${savedData.value?.toLocaleString()}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Vehicle Information */}
+            {savedData.vehicles.length > 0 && (
+              <Card className="border-indigo-200">
+                <CardContent className="p-4">
+                  <h3 className="font-semibold mb-3 text-lg">Vehicle Information</h3>
+                  <div className="space-y-3">
+                    {savedData.vehicles.map((vehicle, index) => (
+                      <div key={index} className="border rounded-lg p-3 bg-gray-50">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="font-semibold text-indigo-600">Vehicle {index + 1}</span>
+                        </div>
+                        <div className="grid grid-cols-5 gap-3 text-sm">
+                          <div>
+                            <Label className="text-xs text-gray-600">Year</Label>
+                            <p className="font-medium">{vehicle.year}</p>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-gray-600">Make & Model</Label>
+                            <p className="font-medium">{vehicle.make_model}</p>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-gray-600">VIN Number</Label>
+                            <p className="font-medium">{vehicle.vin}</p>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-gray-600">Weight</Label>
+                            <p className="font-medium">{vehicle.weight} kg</p>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-gray-600">Value</Label>
+                            <p className="font-medium text-green-600">${vehicle.value?.toLocaleString()}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Exporter & Consignee */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardContent className="p-4">
+                  <h3 className="font-semibold mb-3">Exporter</h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <Label className="text-xs text-gray-600">Name</Label>
+                      <p className="font-medium">{savedData.exporter.name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-600">Tax ID</Label>
+                      <p className="font-medium">{savedData.exporter.tax_id}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-600">Address</Label>
+                      <p className="font-medium">{savedData.exporter.address_postal}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-600">City & Province</Label>
+                      <p className="font-medium">{savedData.exporter.city_province}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-600">Contact</Label>
+                      <p className="font-medium">{savedData.exporter.telephone}</p>
+                      <p className="font-medium text-blue-600">{savedData.exporter.email}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <h3 className="font-semibold mb-3">Consignee</h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <Label className="text-xs text-gray-600">Name</Label>
+                      <p className="font-medium">{savedData.consignee.name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-600">Address</Label>
+                      <p className="font-medium">{savedData.consignee.address_street}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-600">Postal Code</Label>
+                      <p className="font-medium">{savedData.consignee.postal_code}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-600">City & Country</Label>
+                      <p className="font-medium">{savedData.consignee.city_country}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-600">Contact</Label>
+                      <p className="font-medium">{savedData.consignee.telephone}</p>
+                      <p className="font-medium text-blue-600">{savedData.consignee.email}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-600">Tax ID / Passport</Label>
+                      <p className="font-medium">{savedData.consignee.tax_id_passport}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Email Section */}
+            <Card className="border-blue-200 bg-blue-50/50">
+              <CardContent className="p-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  Email to Shipping Company
+                </h3>
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <Input
+                      type="email"
+                      placeholder="Enter shipping company email address"
+                      value={recipientEmail}
+                      onChange={(e) => setRecipientEmail(e.target.value)}
+                    />
+                  </div>
+                  <Button 
+                    onClick={handleEmailDeclaration}
+                    disabled={isSending || !recipientEmail}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {isSending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-4 h-4 mr-2" />
+                        Send Email
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={onClose}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -596,7 +818,7 @@ This is an automated message from eFinAuto Center Freight Management System.
 
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={handleSaveDeclaration} className="bg-blue-600 hover:bg-blue-700">
             Save Loading Declaration
           </Button>
         </div>
