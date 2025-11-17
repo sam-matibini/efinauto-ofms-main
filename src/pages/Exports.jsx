@@ -52,12 +52,25 @@ export default function Exports() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Export.create({...data, company_id: selectedCompanyId}),
+    mutationFn: async (data) => {
+      const exportOrder = await base44.entities.Export.create({...data, company_id: selectedCompanyId});
+      
+      // Update vehicle statuses to 'exported' for vehicles in the export
+      const vehicleItems = (data.items || []).filter(item => item.vehicle_id);
+      for (const item of vehicleItems) {
+        if (item.vehicle_id) {
+          await base44.entities.Vehicle.update(item.vehicle_id, { status: 'exported' });
+        }
+      }
+      
+      return exportOrder;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exports'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] }); // Invalidate vehicles query
       setDialogOpen(false);
       setEditingExport(null);
-      toast.success("Export order created!");
+      toast.success("Export order created and vehicle statuses updated!");
     },
     onError: (error) => {
       toast.error(`Failed to create export order: ${error.message || 'Unknown error'}`);
@@ -65,9 +78,24 @@ export default function Exports() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Export.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const result = await base44.entities.Export.update(id, data);
+      
+      // Update vehicle statuses when export status changes to 'delivered'
+      if (data.status === 'delivered') {
+        const vehicleItems = (data.items || []).filter(item => item.vehicle_id);
+        for (const item of vehicleItems) {
+          if (item.vehicle_id) {
+            await base44.entities.Vehicle.update(item.vehicle_id, { status: 'exported' });
+          }
+        }
+      }
+      
+      return result;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exports'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] }); // Invalidate vehicles query
       setDialogOpen(false);
       setEditingExport(null);
       toast.success("Export order updated!");

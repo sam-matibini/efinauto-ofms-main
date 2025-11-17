@@ -68,7 +68,7 @@ export default function Sales() {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const sale = await base44.entities.Sale.create(data);
+      const sale = await base44.entities.Sale.create({...data, company_id: selectedCompanyId});
       
       if (data.vehicle_id) {
         await base44.entities.Vehicle.update(data.vehicle_id, { status: 'sold' });
