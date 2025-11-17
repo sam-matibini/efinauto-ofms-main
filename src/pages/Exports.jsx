@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -228,7 +229,13 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
   React.useEffect(() => {
     if (open) {
       if (exportOrder) {
-        setFormData(exportOrder);
+        // Ensure items have 'weight' property for existing orders if missing
+        const updatedItems = exportOrder.items?.map(item => ({
+          ...item,
+          weight: item.weight ?? 0 // Default to 0 if weight is undefined or null
+        })) || [];
+
+        setFormData({ ...exportOrder, items: updatedItems });
         const customer = customers.find(c => c.full_name === exportOrder.customer_name);
         setSelectedCustomer(customer || null);
       } else {
@@ -272,7 +279,7 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
   const addItem = () => {
     setFormData({
       ...formData,
-      items: [...(formData.items || []), { description: "", quantity: 1, value: 0 }]
+      items: [...(formData.items || []), { description: "", quantity: 1, weight: 0, value: 0 }]
     });
   };
 
@@ -298,6 +305,7 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
         items: [...(formData.items || []), { 
           description, 
           quantity: 1, 
+          weight: vehicle.weight || 0, // Added weight
           value: vehicle.selling_price || 0,
           vehicle_id: vehicle.id
         }]
@@ -313,6 +321,7 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
         items: [...(formData.items || []), { 
           description: `${part.name} (Part #: ${part.part_number})`, 
           quantity: 1, 
+          weight: 0, // Added weight, default to 0 for parts
           value: part.selling_price || 0,
           part_id: part.id
         }]
@@ -455,7 +464,7 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
               {(formData.items || []).map((item, index) => (
                 <Card key={index} className="p-4">
                   <div className="grid grid-cols-12 gap-3">
-                    <div className="col-span-5">
+                    <div className="col-span-4">
                       <Label className="text-xs">Description</Label>
                       <Input
                         value={item.description}
@@ -472,6 +481,14 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
                       />
                     </div>
                     <div className="col-span-2">
+                      <Label className="text-xs">Weight (kg)</Label>
+                      <Input
+                        type="number"
+                        value={item.weight || 0}
+                        onChange={(e) => updateItem(index, 'weight', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="col-span-2">
                       <Label className="text-xs">Unit Value ($)</Label>
                       <Input
                         type="number"
@@ -479,7 +496,7 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
                         onChange={(e) => updateItem(index, 'value', parseFloat(e.target.value) || 0)}
                       />
                     </div>
-                    <div className="col-span-2">
+                    <div className="col-span-1">
                       <Label className="text-xs">Total ($)</Label>
                       <Input
                         type="number"
