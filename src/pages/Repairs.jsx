@@ -35,6 +35,7 @@ export default function RepairsPage() {
   const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
   const [packagesDialogOpen, setPackagesDialogOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
+  const [selectedPackage, setSelectedPackage] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -59,6 +60,7 @@ export default function RepairsPage() {
       toast.success("Repair order created successfully");
       setDialogOpen(false);
       setEditingOrder(null);
+      setSelectedPackage(null);
     },
   });
 
@@ -69,6 +71,7 @@ export default function RepairsPage() {
       toast.success("Repair order updated successfully");
       setDialogOpen(false);
       setEditingOrder(null);
+      setSelectedPackage(null);
     },
   });
 
@@ -97,6 +100,11 @@ export default function RepairsPage() {
     if (window.confirm("Are you sure you want to delete this repair order?")) {
       deleteMutation.mutate(id);
     }
+  };
+
+  const handlePackageSelect = (pkg) => {
+    setSelectedPackage(pkg);
+    setDialogOpen(true);
   };
 
   const filteredOrders = repairOrders.filter(order => {
@@ -152,7 +160,10 @@ export default function RepairsPage() {
             <Calendar className="w-4 h-4 mr-2" />
             Schedule
           </Button>
-          <Button onClick={() => setDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={() => {
+            setSelectedPackage(null);
+            setDialogOpen(true);
+          }} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="w-4 h-4 mr-2" />
             New Repair Order
           </Button>
@@ -381,8 +392,10 @@ export default function RepairsPage() {
         onClose={() => {
           setDialogOpen(false);
           setEditingOrder(null);
+          setSelectedPackage(null);
         }}
         order={editingOrder}
+        selectedPackage={selectedPackage}
         onSave={handleSave}
         customers={customers}
       />
@@ -395,6 +408,7 @@ export default function RepairsPage() {
       <ServicePackagesDialog
         open={packagesDialogOpen}
         onClose={() => setPackagesDialogOpen(false)}
+        onSelectPackage={handlePackageSelect}
       />
     </div>
   );

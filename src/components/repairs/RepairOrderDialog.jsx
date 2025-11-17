@@ -7,13 +7,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Clock, Save } from "lucide-react";
+import { Plus, Trash2, Clock, Save, Package } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useCompany } from "@/components/shared/CompanyContext";
 import CustomerSelector from "@/components/shared/CustomerSelector";
 import PartsSelector from "@/components/repairs/PartsSelector";
 import TimeTrackingTab from "@/components/repairs/TimeTrackingTab";
 
-export default function RepairOrderDialog({ open, onClose, order, onSave, customers }) {
+export default function RepairOrderDialog({ open, onClose, order, selectedPackage, onSave, customers }) {
   const { selectedCompanyId } = useCompany();
   const [formData, setFormData] = useState({
     company_id: selectedCompanyId,
@@ -54,13 +55,23 @@ export default function RepairOrderDialog({ open, onClose, order, onSave, custom
         ...formData,
         ...order
       });
+    } else if (selectedPackage) {
+      // Pre-fill from service package
+      setFormData({
+        ...formData,
+        description: selectedPackage.description || selectedPackage.name,
+        total_labor_hours: selectedPackage.labor_hours || 0,
+        labor_cost: selectedPackage.price || 0,
+        parts_used: selectedPackage.parts_included || [],
+        notes: selectedPackage.includes?.join('\n') || ""
+      });
     }
-  }, [order]);
+  }, [order, selectedPackage, open]);
 
   useEffect(() => {
     const laborCost = (formData.total_labor_hours || 0) * (formData.hourly_rate || 0);
     const partsCost = (formData.parts_used || []).reduce((sum, p) => sum + (p.total_cost || 0), 0);
-    const taxAmount = (laborCost + partsCost) * 0.13; // 13% tax
+    const taxAmount = (laborCost + partsCost) * 0.13;
     const totalCost = laborCost + partsCost + taxAmount;
     
     setFormData(prev => ({
@@ -89,7 +100,15 @@ export default function RepairOrderDialog({ open, onClose, order, onSave, custom
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{order ? 'Edit' : 'Create'} Repair Order</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {order ? 'Edit' : 'Create'} Repair Order
+            {selectedPackage && (
+              <Badge className="bg-green-100 text-green-700">
+                <Package className="w-3 h-3 mr-1" />
+                Using: {selectedPackage.name}
+              </Badge>
+            )}
+          </DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="basic" className="w-full">
