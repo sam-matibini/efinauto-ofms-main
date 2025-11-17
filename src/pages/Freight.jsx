@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -87,6 +86,17 @@ export default function Freight() {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.FreightShipment.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shipments'] });
+      toast.success("Shipment deleted!");
+    },
+    onError: (error) => {
+      toast.error(`Failed to delete shipment: ${error.message || 'Unknown error'}`);
+    }
+  });
+
   const createLoadingDeclarationMutation = useMutation({
     mutationFn: (data) => base44.entities.LoadingDeclaration.create({...data, company_id: selectedCompanyId}),
     onSuccess: () => {
@@ -107,6 +117,13 @@ export default function Freight() {
       updateMutation.mutate({ id: editingShipment.id, data: formData });
     } else {
       createMutation.mutate(formData);
+    }
+  };
+
+  const handleDelete = (shipmentId, e) => {
+    e.stopPropagation();
+    if (confirm("Are you sure you want to delete this shipment?")) {
+      deleteMutation.mutate(shipmentId);
     }
   };
 
@@ -206,11 +223,11 @@ export default function Freight() {
                       </p>
                     )}
                   </div>
-                  <div className="text-right ml-4">
+                  <div className="text-right ml-4 space-y-2">
                     <p className="text-2xl font-bold text-blue-600">
                       ${shipment.total_cost?.toLocaleString() || '0'}
                     </p>
-                    <p className="text-sm text-gray-500 mt-1 mb-3">
+                    <p className="text-sm text-gray-500">
                       {shipment.payment_status === 'paid' ? '✓ Paid' : 'Pending'}
                     </p>
                     <Button
@@ -225,6 +242,15 @@ export default function Freight() {
                     >
                       <FileText className="w-4 h-4 mr-2" />
                       Loading Declaration
+                    </Button>
+                    <Button
+                      onClick={(e) => handleDelete(shipment.id, e)}
+                      size="sm"
+                      variant="outline"
+                      className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete
                     </Button>
                   </div>
                 </div>

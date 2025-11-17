@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -55,7 +54,6 @@ export default function Exports() {
     mutationFn: async (data) => {
       const exportOrder = await base44.entities.Export.create({...data, company_id: selectedCompanyId});
       
-      // Update vehicle statuses to 'exported' for vehicles in the export
       const vehicleItems = (data.items || []).filter(item => item.vehicle_id);
       for (const item of vehicleItems) {
         if (item.vehicle_id) {
@@ -67,7 +65,7 @@ export default function Exports() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exports'] });
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] }); // Invalidate vehicles query
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       setDialogOpen(false);
       setEditingExport(null);
       toast.success("Export order created and vehicle statuses updated!");
@@ -81,7 +79,6 @@ export default function Exports() {
     mutationFn: async ({ id, data }) => {
       const result = await base44.entities.Export.update(id, data);
       
-      // Update vehicle statuses when export status changes to 'delivered'
       if (data.status === 'delivered') {
         const vehicleItems = (data.items || []).filter(item => item.vehicle_id);
         for (const item of vehicleItems) {
@@ -95,13 +92,24 @@ export default function Exports() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exports'] });
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] }); // Invalidate vehicles query
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       setDialogOpen(false);
       setEditingExport(null);
       toast.success("Export order updated!");
     },
     onError: (error) => {
       toast.error(`Failed to update export order: ${error.message || 'Unknown error'}`);
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Export.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exports'] });
+      toast.success("Export order deleted!");
+    },
+    onError: (error) => {
+      toast.error(`Failed to delete export order: ${error.message || 'Unknown error'}`);
     }
   });
 
@@ -115,6 +123,13 @@ export default function Exports() {
       updateMutation.mutate({ id: editingExport.id, data: formData });
     } else {
       createMutation.mutate(formData);
+    }
+  };
+
+  const handleDelete = (exportId, e) => {
+    e.stopPropagation();
+    if (confirm("Are you sure you want to delete this export order?")) {
+      deleteMutation.mutate(exportId);
     }
   };
 
@@ -163,16 +178,16 @@ export default function Exports() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
           >
-            <Card 
-              className="border-none shadow-md hover:shadow-lg transition-all cursor-pointer"
-              onClick={() => {
-                setEditingExport(exportOrder);
-                setDialogOpen(true);
-              }}
-            >
+            <Card className="border-none shadow-md hover:shadow-lg transition-all">
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
-                  <div className="space-y-2 flex-1">
+                  <div 
+                    className="space-y-2 flex-1 cursor-pointer"
+                    onClick={() => {
+                      setEditingExport(exportOrder);
+                      setDialogOpen(true);
+                    }}
+                  >
                     <div className="flex items-center gap-3">
                       <Plane className="w-5 h-5 text-blue-600" />
                       <h3 className="font-bold text-lg">{exportOrder.export_number || 'Export Order'}</h3>
@@ -198,13 +213,22 @@ export default function Exports() {
                       </p>
                     )}
                   </div>
-                  <div className="text-right ml-4">
+                  <div className="text-right ml-4 space-y-2">
                     <p className="text-2xl font-bold text-blue-600">
                       ${exportOrder.total_value?.toLocaleString() || '0'}
                     </p>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-gray-500">
                       {exportOrder.payment_status === 'paid' ? '✓ Paid' : 'Pending Payment'}
                     </p>
+                    <Button
+                      onClick={(e) => handleDelete(exportOrder.id, e)}
+                      size="sm"
+                      variant="outline"
+                      className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -257,10 +281,9 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
   React.useEffect(() => {
     if (open) {
       if (exportOrder) {
-        // Ensure items have 'weight' property for existing orders if missing
         const updatedItems = exportOrder.items?.map(item => ({
           ...item,
-          weight: item.weight ?? 0 // Default to 0 if weight is undefined or null
+          weight: item.weight ?? 0
         })) || [];
 
         setFormData({ ...exportOrder, items: updatedItems });
@@ -333,7 +356,7 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
         items: [...(formData.items || []), { 
           description, 
           quantity: 1, 
-          weight: vehicle.weight || 0, // Added weight
+          weight: vehicle.weight || 0,
           value: vehicle.selling_price || 0,
           vehicle_id: vehicle.id
         }]
@@ -349,7 +372,7 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
         items: [...(formData.items || []), { 
           description: `${part.name} (Part #: ${part.part_number})`, 
           quantity: 1, 
-          weight: 0, // Added weight, default to 0 for parts
+          weight: 0,
           value: part.selling_price || 0,
           part_id: part.id
         }]
