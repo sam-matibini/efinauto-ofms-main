@@ -124,7 +124,7 @@ export default function Layout({ children, currentPageName }) {
             <SidebarHeader className="border-b border-gray-200 p-6">
               <div className="flex items-center gap-3 mb-4">
                 <img 
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69156af15abcfb916d821138/88d46d364_3Logov1.png" 
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69156af15abcfb916d821138/3ec91c15a_3Logov2.png" 
                   alt="eFinAuto Center Logo" 
                   className="w-12 h-12 rounded-lg object-cover"
                 />
