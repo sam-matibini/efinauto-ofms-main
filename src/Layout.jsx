@@ -123,9 +123,11 @@ export default function Layout({ children, currentPageName }) {
           <Sidebar className="border-r border-gray-200 bg-white">
             <SidebarHeader className="border-b border-gray-200 p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
-                  <Car className="w-6 h-6 text-white" />
-                </div>
+                <img 
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69156af15abcfb916d821138/88d46d364_3Logov1.png" 
+                  alt="eFinAuto Center Logo" 
+                  className="w-12 h-12 rounded-lg object-cover"
+                />
                 <div>
                   <h2 className="font-bold text-gray-900 text-lg">eFinAuto Center</h2>
                   <p className="text-xs text-gray-500">Car Dealership & Services</p>
