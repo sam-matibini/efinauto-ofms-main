@@ -23,6 +23,8 @@ export default function AIPartsSearchUSA() {
   const queryClient = useQueryClient();
 
   const handleSearch = async () => {
+    console.log("USA search button clicked");
+    
     if (!searchQuery.trim()) {
       toast.error("Please enter a part name or description");
       return;

@@ -24,6 +24,8 @@ export default function AIPartsSearchLocal() {
   const queryClient = useQueryClient();
 
   const handleSearch = async () => {
+    console.log("Local search button clicked");
+    
     if (!searchQuery.trim()) {
       toast.error("Please enter a part name or description");
       return;
