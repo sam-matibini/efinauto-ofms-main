@@ -53,7 +53,9 @@ export default function UserManagement() {
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
-    queryFn: () => base44.entities.User.list('-created_date'),
+    queryFn: async () => {
+      return await base44.entities.User.list('-created_date');
+    },
     initialData: [],
   });
 
