@@ -5,7 +5,7 @@ import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import AccountDialog from "./AccountDialog";
 
@@ -14,6 +14,7 @@ export default function ChartOfAccounts() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ['accounts', selectedCompanyId],
@@ -32,6 +33,98 @@ export default function ChartOfAccounts() {
       toast.error("Failed to delete account");
     }
   });
+
+  const handleGenerateAccounts = async () => {
+    setIsGenerating(true);
+    try {
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `Generate a comprehensive chart of accounts for an automotive dealership and service center business. Include standard accounts for:
+        
+        ASSETS (1000-1999):
+        - Cash and bank accounts
+        - Accounts receivable
+        - Vehicle inventory
+        - Parts inventory
+        - Equipment and tools
+        - Property and buildings
+        
+        LIABILITIES (2000-2999):
+        - Accounts payable
+        - Loans and credit lines
+        - Taxes payable
+        
+        EQUITY (3000-3999):
+        - Owner's equity
+        - Retained earnings
+        
+        REVENUE (4000-4999):
+        - Vehicle sales revenue
+        - Service and repair revenue
+        - Parts sales revenue
+        - Extended warranty revenue
+        - Other income
+        
+        EXPENSES (5000-5999):
+        - Cost of vehicles sold
+        - Cost of parts sold
+        - Labor and wages
+        - Rent and utilities
+        - Marketing and advertising
+        - Insurance
+        - Office supplies
+        - Vehicle operating expenses
+        - Professional fees
+        
+        Return ONLY a JSON array of accounts with this structure for each account:
+        {
+          "account_code": "1000",
+          "account_name": "Cash - Operating",
+          "account_type": "asset",
+          "account_category": "cash",
+          "balance": 0,
+          "description": "Primary operating cash account"
+        }`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            accounts: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  account_code: { type: "string" },
+                  account_name: { type: "string" },
+                  account_type: { type: "string" },
+                  account_category: { type: "string" },
+                  balance: { type: "number" },
+                  description: { type: "string" }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (response?.accounts) {
+        const accountsToCreate = response.accounts.map(acc => ({
+          ...acc,
+          company_id: selectedCompanyId
+        }));
+
+        await Promise.all(
+          accountsToCreate.map(account => base44.entities.Account.create(account))
+        );
+
+        queryClient.invalidateQueries({ queryKey: ['accounts'] });
+        toast.success(`${accountsToCreate.length} accounts created successfully!`);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to generate accounts");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const handleEdit = (account) => {
     setEditingAccount(account);
@@ -66,10 +159,22 @@ export default function ChartOfAccounts() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold">Chart of Accounts</h2>
-        <Button onClick={() => { setEditingAccount(null); setDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Account
-        </Button>
+        <div className="flex gap-2">
+          {accounts.length === 0 && (
+            <Button 
+              onClick={handleGenerateAccounts} 
+              disabled={isGenerating}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              {isGenerating ? "Generating..." : "AI Generate Accounts"}
+            </Button>
+          )}
+          <Button onClick={() => { setEditingAccount(null); setDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Account
+          </Button>
+        </div>
       </div>
 
       {Object.entries(groupedAccounts).map(([type, typeAccounts]) => (
