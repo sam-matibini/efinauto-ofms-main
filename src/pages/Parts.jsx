@@ -235,23 +235,8 @@ export default function Parts() {
           </Card>
           </div>
 
-          {/* AI Parts Search - Local Near Me */}
-          <div className="mt-6">
-          <AIPartsSearchLocal />
-          </div>
-
-          {/* AI Parts Search - Canada */}
-          <div className="mt-6">
-          <AIPartsSearchCanada />
-          </div>
-
-          {/* AI Parts Search - USA */}
-          <div className="mt-6">
-          <AIPartsSearchUSA />
-          </div>
-
           {/* Search and Filters */}
-      <Card>
+          <Card className="mt-6">
         <CardContent className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
@@ -297,10 +282,25 @@ export default function Parts() {
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+          </Card>
 
-      {/* Parts Grid */}
+          {/* AI Parts Search - Local Near Me */}
+          <div className="mt-6">
+          <AIPartsSearchLocal />
+          </div>
+
+          {/* AI Parts Search - Canada */}
+          <div className="mt-6">
+          <AIPartsSearchCanada />
+          </div>
+
+          {/* AI Parts Search - USA */}
+          <div className="mt-6">
+          <AIPartsSearchUSA />
+          </div>
+
+          {/* Parts Grid */}
       {isLoading ? (
         <div className="text-center py-12">
           <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />
