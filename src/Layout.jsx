@@ -131,7 +131,7 @@ export default function Layout({ children, currentPageName }) {
                   />
                 </div>
                 <div>
-                  <h2 className="font-bold text-white text-lg">eFinAuto Center</h2>
+                  <h2 className="font-bold text-lg" style={{ color: '#1e293b' }}>eFinAuto Center</h2>
                   <p className="text-xs" style={{ color: '#1e293b' }}>Car Dealership & Services</p>
                 </div>
               </div>
