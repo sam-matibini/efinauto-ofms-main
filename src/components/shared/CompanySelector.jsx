@@ -34,9 +34,9 @@ export default function CompanySelector() {
 
   return (
     <Select value={selectedCompanyId || ""} onValueChange={setSelectedCompanyId}>
-      <SelectTrigger className="w-full bg-white">
+      <SelectTrigger className="w-full bg-white" style={{ color: '#1e293b' }}>
         <div className="flex items-center gap-2 min-w-0">
-          <Building2 className="w-4 h-4 flex-shrink-0" />
+          <Building2 className="w-4 h-4 flex-shrink-0" style={{ color: '#1e293b' }} />
           <SelectValue placeholder="Select company..." className="truncate" />
         </div>
       </SelectTrigger>
