@@ -9,6 +9,8 @@ import { FileText, Download, Loader2, Wand2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCompany } from "@/components/shared/CompanyContext";
+import { useQuery } from "@tanstack/react-query";
 
 const defaultTemplates = {
   bill_of_lading: `Generate a professional Bill of Lading document with the following structure:
@@ -101,10 +103,17 @@ Marks and numbers on packages.`
 };
 
 export default function DocumentGenerationDialog({ open, onClose, shipment, exportOrder }) {
+  const { selectedCompanyId } = useCompany();
   const [documentType, setDocumentType] = useState("bill_of_lading");
   const [customTemplate, setCustomTemplate] = useState(defaultTemplates.bill_of_lading);
   const [generatedDocument, setGeneratedDocument] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const { data: company } = useQuery({
+    queryKey: ['company', selectedCompanyId],
+    queryFn: () => base44.entities.Company.filter({ id: selectedCompanyId }).then(res => res[0]),
+    enabled: !!selectedCompanyId && open,
+  });
 
   React.useEffect(() => {
     if (open) {
@@ -115,6 +124,18 @@ export default function DocumentGenerationDialog({ open, onClose, shipment, expo
 
   const prepareShipmentData = () => {
     const data = {
+      company: {
+        name: company?.name || "N/A",
+        logo_url: company?.logo_url || "",
+        address: company?.address || "",
+        city: company?.city || "",
+        province: company?.province || "",
+        postal_code: company?.postal_code || "",
+        phone: company?.phone || "",
+        email: company?.email || "",
+        gst_number: company?.gst_number || "",
+        dealer_permit_number: company?.dealer_permit_number || ""
+      },
       shipment: {
         shipment_number: shipment?.shipment_number || "N/A",
         booking_number: shipment?.tracking_number || "N/A",
@@ -165,6 +186,8 @@ export default function DocumentGenerationDialog({ open, onClose, shipment, expo
 Use the following data to generate the document:
 
 ${JSON.stringify(shipmentData, null, 2)}
+
+IMPORTANT: If company logo_url is provided, include it at the top of the document with an [IMAGE: Company Logo] placeholder followed by the company name.
 
 Generate a complete, professional document ready for use. Include all relevant details from the provided data. Format it clearly with proper sections and professional language.`;
 
