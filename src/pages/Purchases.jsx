@@ -50,6 +50,55 @@ export default function Purchases() {
     initialData: [],
   });
 
+  const { data: vendors = [] } = useQuery({
+    queryKey: ['vendors', selectedCompanyId],
+    queryFn: () => base44.entities.Vendor.filter({ company_id: selectedCompanyId }, '-created_date'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: expenses = [] } = useQuery({
+    queryKey: ['expenses', selectedCompanyId],
+    queryFn: () => base44.entities.Expense.filter({ company_id: selectedCompanyId }, '-expense_date'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: bills = [] } = useQuery({
+    queryKey: ['bills', selectedCompanyId],
+    queryFn: () => base44.entities.Bill.filter({ company_id: selectedCompanyId }, '-bill_date'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: recurringExpenses = [] } = useQuery({
+    queryKey: ['recurringExpenses', selectedCompanyId],
+    queryFn: () => base44.entities.RecurringExpense.filter({ company_id: selectedCompanyId }, '-created_date'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: recurringBills = [] } = useQuery({
+    queryKey: ['recurringBills', selectedCompanyId],
+    queryFn: () => base44.entities.RecurringBill.filter({ company_id: selectedCompanyId }, '-created_date'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: paymentsMade = [] } = useQuery({
+    queryKey: ['paymentsMade', selectedCompanyId],
+    queryFn: () => base44.entities.PaymentMade.filter({ company_id: selectedCompanyId }, '-payment_date'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: vendorCredits = [] } = useQuery({
+    queryKey: ['vendorCredits', selectedCompanyId],
+    queryFn: () => base44.entities.VendorCredit.filter({ company_id: selectedCompanyId }, '-created_date'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
   const createMutation = useMutation({
     mutationFn: async (data) => {
       const purchase = await base44.entities.Purchase.create({ ...data, company_id: selectedCompanyId });
