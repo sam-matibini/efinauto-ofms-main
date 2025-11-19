@@ -7,12 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Search, ArrowUpCircle, ArrowDownCircle, Download, Printer, FileText } from "lucide-react";
 import { format } from "date-fns";
 
-export default function TransactionsList({ transactions }) {
+export default function TransactionsList({ transactions, dateRange }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
 
   const filteredTransactions = transactions.filter(t => {
+    // Filter by date range if provided
+    if (dateRange) {
+      const transDate = new Date(t.transaction_date);
+      if (transDate < dateRange.from || transDate > dateRange.to) {
+        return false;
+      }
+    }
+    
     const matchesSearch = !searchTerm || 
       t.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
