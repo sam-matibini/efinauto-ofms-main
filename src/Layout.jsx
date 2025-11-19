@@ -16,7 +16,8 @@ import {
   BarChart3,
   UserCog,
   HardHat,
-  LineChart
+  LineChart,
+  FileText
 } from "lucide-react";
 import {
   Sidebar,
@@ -60,6 +61,11 @@ const navigationItems = [
     title: "Parts Inventory",
     url: createPageUrl("Parts"),
     icon: Settings,
+  },
+  {
+    title: "Purchases",
+    url: createPageUrl("Purchases"),
+    icon: ShoppingCart,
   },
   {
     title: "Sales",

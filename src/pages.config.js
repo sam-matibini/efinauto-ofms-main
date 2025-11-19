@@ -16,6 +16,7 @@ import UserManagement from './pages/UserManagement';
 import Technicians from './pages/Technicians';
 import Analytics from './pages/Analytics';
 import TechnicianMobile from './pages/TechnicianMobile';
+import Purchases from './pages/Purchases';
 import __Layout from './Layout.jsx';
 
 
@@ -38,6 +39,7 @@ export const PAGES = {
     "Technicians": Technicians,
     "Analytics": Analytics,
     "TechnicianMobile": TechnicianMobile,
+    "Purchases": Purchases,
 }
 
 export const pagesConfig = {
