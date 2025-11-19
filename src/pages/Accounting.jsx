@@ -270,7 +270,11 @@ export default function Accounting() {
           </TabsContent>
 
           <TabsContent value="transactions">
-            <TransactionsList transactions={transactions} dateRange={currentDateRange} />
+            <TransactionsList 
+              transactions={transactions} 
+              dateRange={currentDateRange} 
+              comparativePeriods={activePeriods}
+            />
           </TabsContent>
 
           <TabsContent value="profit-loss">
@@ -293,7 +297,7 @@ export default function Accounting() {
           </TabsContent>
 
           <TabsContent value="fixed-assets">
-            <FixedAssetsRegister />
+            <FixedAssetsRegister comparativePeriods={activePeriods} />
           </TabsContent>
 
           <TabsContent value="accounts">

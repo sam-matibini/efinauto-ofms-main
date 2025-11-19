@@ -16,7 +16,7 @@ import JournalEntryDialog from "./JournalEntryDialog";
 import ImportTransactionsDialog from "./ImportTransactionsDialog";
 import TemplateDialog from "./TemplateDialog";
 
-export default function TransactionsList({ transactions, dateRange }) {
+export default function TransactionsList({ transactions, dateRange, comparativePeriods = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
@@ -25,11 +25,14 @@ export default function TransactionsList({ transactions, dateRange }) {
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [createFromTemplateOpen, setCreateFromTemplateOpen] = useState(false);
 
+  // Use first comparative period if available, otherwise use dateRange
+  const currentPeriod = comparativePeriods.length > 0 ? comparativePeriods[0] : dateRange;
+
   const filteredTransactions = transactions.filter(t => {
     // Filter by date range if provided
-    if (dateRange) {
+    if (currentPeriod) {
       const transDate = new Date(t.transaction_date);
-      if (transDate < dateRange.from || transDate > dateRange.to) {
+      if (transDate < currentPeriod.from || transDate > currentPeriod.to) {
         return false;
       }
     }
@@ -109,7 +112,14 @@ export default function TransactionsList({ transactions, dateRange }) {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>All Transactions</CardTitle>
+          <div>
+            <CardTitle>All Transactions</CardTitle>
+            {currentPeriod && (
+              <p className="text-sm text-gray-500 mt-1">
+                {format(currentPeriod.from, 'MMM d, yyyy')} - {format(currentPeriod.to, 'MMM d, yyyy')}
+              </p>
+            )}
+          </div>
           <div className="flex gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

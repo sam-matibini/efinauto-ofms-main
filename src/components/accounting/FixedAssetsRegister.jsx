@@ -11,11 +11,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Package, Plus, Edit, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
 
-export default function FixedAssetsRegister() {
+export default function FixedAssetsRegister({ comparativePeriods = [] }) {
   const { selectedCompanyId } = useCompany();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
   const queryClient = useQueryClient();
+
+  const currentPeriod = comparativePeriods.length > 0 ? comparativePeriods[0] : null;
 
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles', selectedCompanyId],
@@ -36,16 +38,27 @@ export default function FixedAssetsRegister() {
 
   // Calculate depreciation (simple straight-line for demo)
   const calculateDepreciation = (purchasePrice, purchaseDate, usefulLife = 5) => {
-    const yearsSincePurchase = (new Date() - new Date(purchaseDate)) / (365 * 24 * 60 * 60 * 1000);
+    // Use period end date if available, otherwise current date
+    const endDate = currentPeriod ? currentPeriod.to : new Date();
+    const yearsSincePurchase = (endDate - new Date(purchaseDate)) / (365 * 24 * 60 * 60 * 1000);
     const annualDepreciation = purchasePrice / usefulLife;
     const accumulatedDepreciation = Math.min(annualDepreciation * yearsSincePurchase, purchasePrice);
     const netBookValue = purchasePrice - accumulatedDepreciation;
     return { accumulatedDepreciation, netBookValue, annualDepreciation };
   };
 
+  // Filter assets by period if provided
+  const filteredVehicles = currentPeriod
+    ? vehicles.filter(v => new Date(v.created_date) <= currentPeriod.to)
+    : vehicles;
+  
+  const filteredPurchases = currentPeriod
+    ? purchases.filter(p => new Date(p.order_date) <= currentPeriod.to)
+    : purchases;
+
   // Combine vehicles and equipment into fixed assets
   const fixedAssets = [
-    ...vehicles.map(v => ({
+    ...filteredVehicles.map(v => ({
       id: v.id,
       type: 'Vehicle',
       description: `${v.year} ${v.make} ${v.model}`,
@@ -54,7 +67,7 @@ export default function FixedAssetsRegister() {
       serialNumber: v.vin,
       status: v.status
     })),
-    ...purchases.filter(p => p.purchase_type === 'equipment').map(p => ({
+    ...filteredPurchases.filter(p => p.purchase_type === 'equipment').map(p => ({
       id: p.id,
       type: 'Equipment',
       description: p.items?.[0]?.description || 'Equipment',
@@ -105,10 +118,17 @@ export default function FixedAssetsRegister() {
     <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle className="flex items-center gap-2">
-            <Package className="w-5 h-5" />
-            Fixed Assets Register
-          </CardTitle>
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="w-5 h-5" />
+              Fixed Assets Register
+            </CardTitle>
+            {currentPeriod && (
+              <p className="text-sm text-gray-500 mt-1">
+                As of {new Date(currentPeriod.to).toLocaleDateString()}
+              </p>
+            )}
+          </div>
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="w-4 h-4 mr-2" />
             Export CSV
