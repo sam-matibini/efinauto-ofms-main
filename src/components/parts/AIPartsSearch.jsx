@@ -5,14 +5,20 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, Search, Loader2, ExternalLink, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
+import { Sparkles, Search, Loader2, ExternalLink, TrendingUp, TrendingDown, DollarSign, Mail, Printer, Plus, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useCompany } from "../shared/CompanyContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function AIPartsSearch() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedSource, setSelectedSource] = useState(null);
+  const [isGeneratingPO, setIsGeneratingPO] = useState(false);
+  const { selectedCompanyId } = useCompany();
+  const queryClient = useQueryClient();
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -89,6 +95,128 @@ Provide price comparison and recommendations. If a part is not found at a retail
     if (avail.includes("limited") || avail.includes("low")) return "bg-yellow-100 text-yellow-800";
     if (avail.includes("out") || avail.includes("not available")) return "bg-red-100 text-red-800";
     return "bg-gray-100 text-gray-800";
+  };
+
+  const handleAddToParts = async (source) => {
+    if (!selectedCompanyId) {
+      toast.error("Please select a company first");
+      return;
+    }
+
+    try {
+      const partData = {
+        company_id: selectedCompanyId,
+        name: source.part_name,
+        part_number: source.part_number || `AUTO-${Date.now()}`,
+        description: `Auto-imported from ${source.retailer}`,
+        cost_price: source.price,
+        selling_price: source.price * 1.3,
+        quantity: 0,
+        reorder_level: 5,
+        supplier: source.retailer,
+        category: "other"
+      };
+
+      await base44.entities.Part.create(partData);
+      queryClient.invalidateQueries({ queryKey: ['parts'] });
+      toast.success(`Part added to inventory from ${source.retailer}`);
+    } catch (error) {
+      console.error("Error adding part:", error);
+      toast.error("Failed to add part to inventory");
+    }
+  };
+
+  const handleGeneratePO = async (source, deliveryMethod) => {
+    setIsGeneratingPO(true);
+
+    try {
+      const poData = await base44.integrations.Core.InvokeLLM({
+        prompt: `Generate a professional purchase order document for the following part:
+
+Supplier: ${source.retailer}
+Part Name: ${source.part_name}
+Part Number: ${source.part_number || 'N/A'}
+Price: $${source.price} ${source.currency}
+Quantity: 1
+
+Include standard PO sections:
+- PO Number (generate unique number)
+- Date
+- Supplier details
+- Buyer details (eFinAuto Center)
+- Item description with part number and price
+- Total amount
+- Terms and conditions
+- Delivery instructions
+
+Format as a professional business document.`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            po_number: { type: "string" },
+            date: { type: "string" },
+            supplier_name: { type: "string" },
+            items: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  description: { type: "string" },
+                  part_number: { type: "string" },
+                  quantity: { type: "number" },
+                  unit_price: { type: "number" },
+                  total: { type: "number" }
+                }
+              }
+            },
+            subtotal: { type: "number" },
+            tax: { type: "number" },
+            grand_total: { type: "number" },
+            notes: { type: "string" }
+          }
+        }
+      });
+
+      const emailBody = `
+Purchase Order: ${poData.po_number}
+Date: ${poData.date}
+
+Supplier: ${poData.supplier_name}
+
+Items:
+${poData.items.map(item => 
+  `- ${item.description} (Part #: ${item.part_number})
+  Qty: ${item.quantity} × $${item.unit_price} = $${item.total}`
+).join('\n')}
+
+Subtotal: $${poData.subtotal}
+Tax: $${poData.tax}
+Grand Total: $${poData.grand_total}
+
+Notes: ${poData.notes || 'N/A'}
+      `;
+
+      if (deliveryMethod === 'email') {
+        await base44.integrations.Core.SendEmail({
+          to: "orders@example.com",
+          subject: `Purchase Order ${poData.po_number} - ${source.retailer}`,
+          body: emailBody
+        });
+        toast.success("Purchase order sent via email!");
+      } else {
+        toast.success("Purchase order generated! Ready for fax transmission.", {
+          description: emailBody,
+          duration: 10000
+        });
+      }
+
+      setSelectedSource(null);
+    } catch (error) {
+      console.error("Error generating PO:", error);
+      toast.error("Failed to generate purchase order");
+    } finally {
+      setIsGeneratingPO(false);
+    }
   };
 
   return (
@@ -221,17 +349,36 @@ Provide price comparison and recommendations. If a part is not found at a retail
                           <p className="text-xs text-gray-500">{source.currency}</p>
                         </div>
                       </div>
-                      {source.url && source.url !== "N/A" && (
-                        <a
-                          href={source.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
+                      <div className="flex gap-2 mt-4">
+                        {source.url && source.url !== "N/A" && (
+                          <a
+                            href={source.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
+                          >
+                            View Product
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleAddToParts(source)}
+                          className="ml-auto"
                         >
-                          View Product
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
+                          <Plus className="w-4 h-4 mr-1" />
+                          Add to Inventory
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => setSelectedSource(source)}
+                          className="bg-purple-600 hover:bg-purple-700"
+                        >
+                          <Mail className="w-4 h-4 mr-1" />
+                          Create PO
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -244,6 +391,57 @@ Provide price comparison and recommendations. If a part is not found at a retail
               Close
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Purchase Order Dialog */}
+      <Dialog open={!!selectedSource} onOpenChange={() => setSelectedSource(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Generate Purchase Order</DialogTitle>
+          </DialogHeader>
+          {selectedSource && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-sm text-gray-600 mb-1">Part</p>
+                <p className="font-semibold">{selectedSource.part_name}</p>
+                <p className="text-sm text-gray-600 mt-2">Supplier</p>
+                <p className="font-semibold">{selectedSource.retailer}</p>
+                <p className="text-sm text-gray-600 mt-2">Price</p>
+                <p className="font-semibold text-green-600">${selectedSource.price?.toFixed(2)}</p>
+              </div>
+              <p className="text-sm text-gray-600">
+                Select delivery method for the purchase order:
+              </p>
+              <div className="space-y-2">
+                <Button
+                  onClick={() => handleGeneratePO(selectedSource, 'email')}
+                  disabled={isGeneratingPO}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                >
+                  {isGeneratingPO ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <Mail className="w-4 h-4 mr-2" />
+                  )}
+                  Send via Email
+                </Button>
+                <Button
+                  onClick={() => handleGeneratePO(selectedSource, 'fax')}
+                  disabled={isGeneratingPO}
+                  variant="outline"
+                  className="w-full"
+                >
+                  {isGeneratingPO ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <Printer className="w-4 h-4 mr-2" />
+                  )}
+                  Generate for Fax
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>
