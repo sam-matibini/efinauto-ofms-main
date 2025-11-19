@@ -1,7 +1,9 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { DollarSign } from "lucide-react";
+import { DollarSign, Download, Printer } from "lucide-react";
+import { format } from "date-fns";
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
@@ -58,8 +60,50 @@ export default function RevenueOverview({ transactions, sales, repairs, purchase
     });
   }
 
+  const exportToCSV = () => {
+    const headers = ['Revenue Type', 'Amount'];
+    const revenueRows = revenueByType.map(item => [item.name, item.value]);
+    
+    const trendHeaders = ['Month', 'Revenue', 'Expenses', 'Profit'];
+    const trendRows = monthlyRevenue.map(item => [item.month, item.revenue, item.expenses, item.profit]);
+    
+    const csvContent = [
+      ['Revenue Overview Report'],
+      ['Generated on', format(new Date(), 'MMMM d, yyyy')],
+      [],
+      ['Revenue by Type'],
+      headers,
+      ...revenueRows,
+      [],
+      ['Monthly Trend'],
+      trendHeaders,
+      ...trendRows
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `revenue-overview-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="space-y-6">
+      <div className="flex justify-end gap-2 mb-4">
+        <Button onClick={exportToCSV} variant="outline" size="sm">
+          <Download className="w-4 h-4 mr-2" />
+          Export CSV
+        </Button>
+        <Button onClick={handlePrint} variant="outline" size="sm">
+          <Printer className="w-4 h-4 mr-2" />
+          Print
+        </Button>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue by Type */}
         <Card>
