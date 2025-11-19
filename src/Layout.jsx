@@ -132,7 +132,7 @@ export default function Layout({ children, currentPageName }) {
                 </div>
                 <div>
                   <h2 className="font-bold text-white text-lg">eFinAuto Center</h2>
-                  <p className="text-xs text-gray-400">Car Dealership & Services</p>
+                  <p className="text-xs text-gray-300">Car Dealership & Services</p>
                 </div>
               </div>
               <CompanySelector />
@@ -172,7 +172,7 @@ export default function Layout({ children, currentPageName }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-white text-sm truncate">Admin User</p>
-                  <p className="text-xs text-gray-400 truncate">Dealership Manager</p>
+                  <p className="text-xs text-gray-300 truncate">Dealership Manager</p>
                 </div>
               </div>
             </SidebarFooter>
