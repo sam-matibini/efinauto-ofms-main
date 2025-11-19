@@ -143,6 +143,46 @@ export default function Accounting() {
           </Button>
         </div>
 
+        {/* Comparative Periods Summary */}
+        {activePeriods.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Comparative Period Analysis</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-2">Period</th>
+                      <th className="text-right py-2 px-2">Revenue</th>
+                      <th className="text-right py-2 px-2">Expenses</th>
+                      <th className="text-right py-2 px-2">Net Profit</th>
+                      <th className="text-right py-2 px-2">Margin %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {periodMetrics.map((period, idx) => {
+                      const margin = period.revenue > 0 ? ((period.profit / period.revenue) * 100).toFixed(1) : '0.0';
+                      return (
+                        <tr key={idx} className="border-b hover:bg-gray-50">
+                          <td className="py-2 px-2 font-medium">{period.label}</td>
+                          <td className="text-right py-2 px-2 text-green-600">${period.revenue.toLocaleString()}</td>
+                          <td className="text-right py-2 px-2 text-red-600">${period.expenses.toLocaleString()}</td>
+                          <td className={`text-right py-2 px-2 font-semibold ${period.profit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                            ${period.profit.toLocaleString()}
+                          </td>
+                          <td className="text-right py-2 px-2">{margin}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
@@ -225,6 +265,7 @@ export default function Accounting() {
               sales={sales}
               repairs={repairs}
               purchases={purchases}
+              comparativePeriods={activePeriods}
             />
           </TabsContent>
 

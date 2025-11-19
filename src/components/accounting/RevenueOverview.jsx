@@ -7,58 +7,87 @@ import { format } from "date-fns";
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
-export default function RevenueOverview({ transactions, sales, repairs, purchases }) {
+export default function RevenueOverview({ transactions, sales, repairs, purchases, comparativePeriods = [] }) {
+  const currentPeriod = comparativePeriods[0];
+  
+  // Filter transactions by current period if available
+  const filteredTransactions = currentPeriod 
+    ? transactions.filter(t => {
+        const transDate = new Date(t.transaction_date);
+        return transDate >= currentPeriod.from && transDate <= currentPeriod.to;
+      })
+    : transactions;
+
   // Revenue by type
   const revenueByType = [
     {
       name: 'Vehicle Sales',
-      value: transactions.filter(t => t.transaction_type === 'sale_revenue').reduce((sum, t) => sum + t.amount, 0)
+      value: filteredTransactions.filter(t => t.transaction_type === 'sale_revenue').reduce((sum, t) => sum + t.amount, 0)
     },
     {
       name: 'Service Revenue',
-      value: transactions.filter(t => t.transaction_type === 'service_revenue').reduce((sum, t) => sum + t.amount, 0)
+      value: filteredTransactions.filter(t => t.transaction_type === 'service_revenue').reduce((sum, t) => sum + t.amount, 0)
     },
     {
       name: 'Parts Revenue',
-      value: transactions.filter(t => t.transaction_type === 'parts_revenue').reduce((sum, t) => sum + t.amount, 0)
+      value: filteredTransactions.filter(t => t.transaction_type === 'parts_revenue').reduce((sum, t) => sum + t.amount, 0)
     },
     {
       name: 'Other Income',
-      value: transactions.filter(t => t.transaction_type === 'other_income').reduce((sum, t) => sum + t.amount, 0)
+      value: filteredTransactions.filter(t => t.transaction_type === 'other_income').reduce((sum, t) => sum + t.amount, 0)
     }
   ].filter(item => item.value > 0);
 
-  // Monthly revenue trend (last 6 months)
-  const monthlyRevenue = [];
-  for (let i = 5; i >= 0; i--) {
-    const date = new Date();
-    date.setMonth(date.getMonth() - i);
-    const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-    const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-    
-    const revenue = transactions
-      .filter(t => {
-        if (t.category !== 'revenue') return false;
-        const tDate = new Date(t.transaction_date);
-        return tDate >= monthStart && tDate <= monthEnd;
+  // Comparative periods trend
+  const periodRevenue = comparativePeriods.length > 0 
+    ? comparativePeriods.map(period => {
+        const periodTransactions = transactions.filter(t => {
+          const tDate = new Date(t.transaction_date);
+          return tDate >= period.from && tDate <= period.to;
+        });
+        
+        const revenue = periodTransactions.filter(t => t.category === 'revenue').reduce((sum, t) => sum + t.amount, 0);
+        const expenses = periodTransactions.filter(t => t.category === 'expense').reduce((sum, t) => sum + t.amount, 0);
+        
+        return {
+          month: period.label,
+          revenue: revenue,
+          expenses: expenses,
+          profit: revenue - expenses
+        };
       })
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    const expenses = transactions
-      .filter(t => {
-        if (t.category !== 'expense') return false;
-        const tDate = new Date(t.transaction_date);
-        return tDate >= monthStart && tDate <= monthEnd;
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
+    : (() => {
+        // Fallback to last 6 months if no comparative periods
+        const monthlyData = [];
+        for (let i = 5; i >= 0; i--) {
+          const date = new Date();
+          date.setMonth(date.getMonth() - i);
+          const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+          const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+          
+          const revenue = transactions.filter(t => {
+            if (t.category !== 'revenue') return false;
+            const tDate = new Date(t.transaction_date);
+            return tDate >= monthStart && tDate <= monthEnd;
+          }).reduce((sum, t) => sum + t.amount, 0);
+          
+          const expenses = transactions.filter(t => {
+            if (t.category !== 'expense') return false;
+            const tDate = new Date(t.transaction_date);
+            return tDate >= monthStart && tDate <= monthEnd;
+          }).reduce((sum, t) => sum + t.amount, 0);
 
-    monthlyRevenue.push({
-      month: date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-      revenue: revenue,
-      expenses: expenses,
-      profit: revenue - expenses
-    });
-  }
+          monthlyData.push({
+            month: date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+            revenue: revenue,
+            expenses: expenses,
+            profit: revenue - expenses
+          });
+        }
+        return monthlyData;
+      })();
+
+  const monthlyRevenue = periodRevenue;
 
   const exportToCSV = () => {
     const headers = ['Revenue Type', 'Amount'];
@@ -165,10 +194,10 @@ export default function RevenueOverview({ transactions, sales, repairs, purchase
         </Card>
       </div>
 
-      {/* Monthly Trend */}
+      {/* Comparative Periods Trend */}
       <Card>
         <CardHeader>
-          <CardTitle>Revenue & Profit Trend (6 Months)</CardTitle>
+          <CardTitle>{comparativePeriods.length > 0 ? 'Revenue & Profit by Period' : 'Revenue & Profit Trend (6 Months)'}</CardTitle>
         </CardHeader>
         <CardContent>
           {monthlyRevenue.length > 0 ? (
