@@ -4,18 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { ROLES, ROLE_INFO } from "@/components/shared/permissions";
 
 export default function UserInviteDialog({ open, onClose }) {
   const [inviteData, setInviteData] = useState({
     email: "",
     full_name: "",
-    role: ROLES.READ_ONLY,
+    role: "user",
     company_id: "",
     department: "",
     employee_id: ""
@@ -42,7 +40,7 @@ export default function UserInviteDialog({ open, onClose }) {
     toast.info("Please use the Base44 dashboard to invite users with email invitations.");
     
     setIsInviting(false);
-    setInviteData({ email: "", full_name: "", role: ROLES.READ_ONLY, company_id: "", department: "", employee_id: "" });
+    setInviteData({ email: "", full_name: "", role: "user", company_id: "", department: "", employee_id: "" });
     onClose();
   };
 
@@ -77,31 +75,30 @@ export default function UserInviteDialog({ open, onClose }) {
           </div>
 
           <div className="space-y-2">
-            <Label>Role *</Label>
+            <Label>Role</Label>
             <Select value={inviteData.role} onValueChange={(value) => setInviteData({ ...inviteData, role: value })}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(ROLE_INFO).map(([roleKey, roleData]) => (
-                  <SelectItem key={roleKey} value={roleKey}>
-                    <div className="flex items-center gap-2">
-                      <span>{roleData.label}</span>
-                    </div>
-                  </SelectItem>
-                ))}
+                <SelectItem value="admin">Administrator</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="sales">Sales Staff</SelectItem>
+                <SelectItem value="technician">Technician</SelectItem>
+                <SelectItem value="inventory_manager">Inventory Manager</SelectItem>
+                <SelectItem value="accountant">Accountant</SelectItem>
+                <SelectItem value="user">Regular User</SelectItem>
               </SelectContent>
             </Select>
-            {inviteData.role && ROLE_INFO[inviteData.role] && (
-              <div className="mt-2">
-                <Badge className={ROLE_INFO[inviteData.role].color}>
-                  {ROLE_INFO[inviteData.role].label}
-                </Badge>
-                <p className="text-xs text-gray-600 mt-1">
-                  {ROLE_INFO[inviteData.role].description}
-                </p>
-              </div>
-            )}
+            <p className="text-xs text-gray-500">
+              {inviteData.role === 'admin' && 'Full system access and user management'}
+              {inviteData.role === 'manager' && 'Manage company operations and staff'}
+              {inviteData.role === 'sales' && 'Handle sales, customers, and vehicles'}
+              {inviteData.role === 'technician' && 'Manage repairs and service orders'}
+              {inviteData.role === 'inventory_manager' && 'Manage parts and vehicle inventory'}
+              {inviteData.role === 'accountant' && 'Access to financial reports and transactions'}
+              {inviteData.role === 'user' && 'Standard access to company data'}
+            </p>
           </div>
 
           <div className="space-y-2">

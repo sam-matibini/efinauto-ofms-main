@@ -97,89 +97,9 @@ export default function RepairsPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }) => {
-      const updatedOrder = await base44.entities.RepairOrder.update(id, data);
-      
-      // Auto-generate invoice when repair order is completed
-      if (data.status === 'completed' && !updatedOrder.invoice_generated) {
-        try {
-          // Generate invoice automatically
-          const { data: company } = await base44.entities.Company.filter({ id: updatedOrder.company_id });
-          const { data: customer } = await base44.entities.Customer.filter({ id: updatedOrder.customer_id });
-          
-          const invoiceNumber = `INV-${Date.now()}`;
-          const lineItems = [];
-          
-          // Add labor line item
-          if (updatedOrder.total_labor_hours > 0) {
-            lineItems.push({
-              description: `Labor - ${updatedOrder.service_type?.replace(/_/g, ' ')}`,
-              quantity: updatedOrder.total_labor_hours,
-              unit_price: updatedOrder.hourly_rate,
-              total: updatedOrder.labor_cost
-            });
-          }
-          
-          // Add parts line items
-          if (updatedOrder.parts_used && updatedOrder.parts_used.length > 0) {
-            updatedOrder.parts_used.forEach(part => {
-              lineItems.push({
-                description: `Part - ${part.part_name}`,
-                quantity: part.quantity,
-                unit_price: part.unit_cost,
-                total: part.total_cost
-              });
-            });
-          }
-          
-          // Create invoice
-          await base44.entities.Invoice.create({
-            company_id: updatedOrder.company_id,
-            invoice_number: invoiceNumber,
-            repair_order_id: updatedOrder.id,
-            repair_order_number: updatedOrder.order_number,
-            customer_id: updatedOrder.customer_id,
-            customer_name: updatedOrder.customer_name,
-            customer_email: customer?.[0]?.email || '',
-            customer_phone: updatedOrder.customer_phone,
-            customer_address: customer?.[0]?.address || '',
-            vehicle_details: `${updatedOrder.vehicle_year} ${updatedOrder.vehicle_make} ${updatedOrder.vehicle_model} (VIN: ${updatedOrder.vehicle_vin})`,
-            service_date: updatedOrder.completion_date || new Date().toISOString().split('T')[0],
-            invoice_date: new Date().toISOString().split('T')[0],
-            due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            line_items: lineItems,
-            labor_hours: updatedOrder.total_labor_hours,
-            labor_rate: updatedOrder.hourly_rate,
-            labor_cost: updatedOrder.labor_cost,
-            parts_cost: updatedOrder.parts_cost,
-            subtotal: updatedOrder.labor_cost + updatedOrder.parts_cost,
-            tax_rate: 0.13,
-            tax_amount: updatedOrder.tax_amount,
-            total_amount: updatedOrder.total_cost,
-            amount_paid: 0,
-            balance_due: updatedOrder.total_cost,
-            payment_status: 'pending',
-            payment_terms: 'Due upon receipt'
-          });
-          
-          // Mark repair order as having invoice generated
-          await base44.entities.RepairOrder.update(id, {
-            ...data,
-            invoice_generated: true
-          });
-          
-          toast.success("Invoice auto-generated successfully");
-        } catch (error) {
-          console.error("Failed to auto-generate invoice:", error);
-          toast.warning("Repair order completed but invoice generation failed");
-        }
-      }
-      
-      return updatedOrder;
-    },
+    mutationFn: ({ id, data }) => base44.entities.RepairOrder.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repairs'] });
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
       toast.success("Repair order updated successfully");
       setDialogOpen(false);
       setEditingOrder(null);

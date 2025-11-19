@@ -3,12 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { ROLES, ROLE_INFO } from "@/components/shared/permissions";
 
 export default function UserEditDialog({ open, onClose, user, onSave, isLoading }) {
   const { selectedCompanyId } = useCompany();
@@ -94,23 +92,24 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(ROLE_INFO).map(([roleKey, roleData]) => (
-                  <SelectItem key={roleKey} value={roleKey}>
-                    {roleData.label}
-                  </SelectItem>
-                ))}
+                <SelectItem value="admin">Administrator</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="sales">Sales Staff</SelectItem>
+                <SelectItem value="technician">Technician</SelectItem>
+                <SelectItem value="inventory_manager">Inventory Manager</SelectItem>
+                <SelectItem value="accountant">Accountant</SelectItem>
+                <SelectItem value="user">Regular User</SelectItem>
               </SelectContent>
             </Select>
-            {userData.role && ROLE_INFO[userData.role] && (
-              <div className="mt-2">
-                <Badge className={ROLE_INFO[userData.role].color}>
-                  {ROLE_INFO[userData.role].label}
-                </Badge>
-                <p className="text-xs text-gray-600 mt-1">
-                  {ROLE_INFO[userData.role].description}
-                </p>
-              </div>
-            )}
+            <p className="text-xs text-gray-500">
+              {userData.role === 'admin' && 'Full system access and user management'}
+              {userData.role === 'manager' && 'Manage company operations and staff'}
+              {userData.role === 'sales' && 'Handle sales, customers, and vehicles'}
+              {userData.role === 'technician' && 'Manage repairs and service orders'}
+              {userData.role === 'inventory_manager' && 'Manage parts and vehicle inventory'}
+              {userData.role === 'accountant' && 'Access to financial reports and transactions'}
+              {userData.role === 'user' && 'Standard access to company data'}
+            </p>
           </div>
 
           <div className="space-y-2">

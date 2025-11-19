@@ -20,7 +20,6 @@ import {
   FileText,
   DollarSign
 } from "lucide-react";
-import { canAccessModule, MODULES } from "@/components/shared/permissions";
 import {
   Sidebar,
   SidebarContent,
@@ -48,109 +47,91 @@ const navigationItems = [
     title: "Dashboard",
     url: createPageUrl("Dashboard"),
     icon: LayoutDashboard,
-    module: MODULES.DASHBOARD
   },
   {
     title: "Companies",
     url: createPageUrl("Companies"),
     icon: Building2,
-    module: MODULES.COMPANIES
   },
   {
     title: "Customers",
     url: createPageUrl("Customers"),
     icon: Users,
-    module: MODULES.CUSTOMERS
   },
   {
     title: "Vehicles",
     url: createPageUrl("Vehicles"),
     icon: Car,
-    module: MODULES.VEHICLES
   },
   {
     title: "Parts Inventory",
     url: createPageUrl("Parts"),
     icon: Settings,
-    module: MODULES.PARTS
   },
   {
     title: "Purchases",
     url: createPageUrl("Purchases"),
     icon: ShoppingCart,
-    module: MODULES.PURCHASES
   },
   {
     title: "Sales",
     url: createPageUrl("Sales"),
     icon: ShoppingCart,
-    module: MODULES.SALES
   },
   {
     title: "Auto Repair",
     url: createPageUrl("Repairs"),
     icon: Wrench,
-    module: MODULES.REPAIRS
   },
   {
     title: "Technicians",
     url: createPageUrl("Technicians"),
     icon: HardHat,
-    module: MODULES.TECHNICIANS
   },
   {
     title: "Salvage & Dismantling",
     url: createPageUrl("Salvage"),
     icon: Trash2,
-    module: MODULES.SALVAGE
   },
   {
     title: "Exports",
     url: createPageUrl("Exports"),
     icon: Plane,
-    module: MODULES.EXPORTS
   },
   {
     title: "Freight & Cargo",
     url: createPageUrl("Freight"),
     icon: Package,
-    module: MODULES.FREIGHT
   },
   {
     title: "Reports",
     url: createPageUrl("Reports"),
     icon: BarChart3,
-    module: MODULES.REPORTS
   },
   {
     title: "Analytics",
     url: createPageUrl("Analytics"),
     icon: LineChart,
-    module: MODULES.ANALYTICS
   },
   {
     title: "Vehicle Analytics",
     url: createPageUrl("VehicleAnalytics"),
     icon: BarChart3,
-    module: MODULES.ANALYTICS
   },
   {
     title: "Accounting & Revenue",
     url: createPageUrl("Accounting"),
     icon: DollarSign,
-    module: MODULES.ACCOUNTING
   },
   {
     title: "User Management",
     url: createPageUrl("UserManagement"),
     icon: UserCog,
-    module: MODULES.USER_MANAGEMENT
   },
   {
     title: "Notifications",
     url: createPageUrl("Notifications"),
     icon: Bell,
-    module: MODULES.NOTIFICATIONS
   },
 ];
 
@@ -179,12 +160,6 @@ export default function Layout({ children, currentPageName }) {
   const handleLogout = () => {
     base44.auth.logout();
   };
-
-  // Filter navigation items based on user permissions
-  const userRole = currentUser?.data?.role || currentUser?.role;
-  const accessibleItems = navigationItems.filter(item => 
-    canAccessModule(userRole, item.module)
-  );
 
   return (
     <CompanyProvider>
@@ -215,7 +190,7 @@ export default function Layout({ children, currentPageName }) {
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {accessibleItems.map((item) => (
+                    {navigationItems.map((item) => (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton 
                           asChild 
