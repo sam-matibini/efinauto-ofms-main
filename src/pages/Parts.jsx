@@ -176,8 +176,21 @@ export default function Parts() {
       
       <div className="p-6 md:p-8 max-w-7xl mx-auto">
 
+      {/* AI Parts Search - Local Near Me */}
+      <AIPartsSearchLocal />
+
+      {/* AI Parts Search - Canada */}
+      <div className="mt-6">
+        <AIPartsSearchCanada />
+      </div>
+
+      {/* AI Parts Search - USA */}
+      <div className="mt-6">
+        <AIPartsSearchUSA />
+      </div>
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -233,25 +246,10 @@ export default function Parts() {
             </div>
           </CardContent>
         </Card>
-        </div>
+      </div>
 
-        {/* AI Parts Search - Local Near Me */}
-        <div className="mt-6">
-        <AIPartsSearchLocal />
-        </div>
-
-        {/* AI Parts Search - Canada */}
-        <div className="mt-6">
-        <AIPartsSearchCanada />
-        </div>
-
-        {/* AI Parts Search - USA */}
-        <div className="mt-6">
-        <AIPartsSearchUSA />
-        </div>
-
-        {/* Search and Filters */}
-        <Card className="mt-6">
+      {/* Search and Filters */}
+      <Card>
         <CardContent className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
