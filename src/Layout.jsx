@@ -37,6 +37,9 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { CompanyProvider } from "@/components/shared/CompanyContext";
 import CompanySelector from "@/components/shared/CompanySelector";
+import ProfileDialog from "@/components/users/ProfileDialog";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 const navigationItems = [
   {
@@ -128,10 +131,24 @@ const navigationItems = [
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
+  const [profileDialogOpen, setProfileDialogOpen] = React.useState(false);
+  const queryClient = useQueryClient();
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: (data) => base44.auth.updateMe(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      toast.success("Profile updated successfully");
+      setProfileDialogOpen(false);
+    },
+    onError: () => {
+      toast.error("Failed to update profile");
+    }
   });
 
   const handleLogout = () => {
@@ -189,18 +206,28 @@ export default function Layout({ children, currentPageName }) {
 
             <SidebarFooter className="border-t border-gray-700 p-4" style={{ backgroundColor: '#1e293b' }}>
               <div className="flex items-center gap-3 px-2">
-                <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                <button
+                  onClick={() => setProfileDialogOpen(true)}
+                  className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity"
+                  title="Edit Profile"
+                >
                   <span className="text-white font-semibold text-sm">
                     {currentUser?.full_name?.charAt(0).toUpperCase() || 'U'}
                   </span>
-                </div>
+                </button>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-white text-sm truncate">
-                    {currentUser?.full_name || 'User'}
-                  </p>
-                  <p className="text-xs text-gray-300 truncate">
-                    {currentUser?.role?.replace(/_/g, ' ') || 'User'}
-                  </p>
+                  <button
+                    onClick={() => setProfileDialogOpen(true)}
+                    className="text-left hover:opacity-80 transition-opacity"
+                    title="Edit Profile"
+                  >
+                    <p className="font-semibold text-white text-sm truncate">
+                      {currentUser?.full_name || 'User'}
+                    </p>
+                    <p className="text-xs text-gray-300 truncate">
+                      {currentUser?.role?.replace(/_/g, ' ') || 'User'}
+                    </p>
+                  </button>
                 </div>
                 <button
                   onClick={handleLogout}
@@ -224,9 +251,17 @@ export default function Layout({ children, currentPageName }) {
             <div className="flex-1">
               {children}
             </div>
-          </main>
-        </div>
-      </SidebarProvider>
-    </CompanyProvider>
-  );
+            </main>
+
+            <ProfileDialog
+            open={profileDialogOpen}
+            onClose={() => setProfileDialogOpen(false)}
+            user={currentUser}
+            onSave={(data) => updateProfileMutation.mutate(data)}
+            isLoading={updateProfileMutation.isPending}
+            />
+            </div>
+            </SidebarProvider>
+            </CompanyProvider>
+            );
 }
