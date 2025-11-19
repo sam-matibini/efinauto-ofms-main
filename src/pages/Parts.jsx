@@ -151,12 +151,13 @@ export default function Parts() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Parts Inventory</h1>
-          <p className="text-gray-500 mt-1">Manage your parts stock and reorder points</p>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Parts Inventory</h1>
+            <p className="text-sm text-gray-300 mt-1">Manage your parts stock and reorder points</p>
+          </div>
           <Button 
             onClick={() => {
               setEditingPart(null);
@@ -356,6 +357,7 @@ export default function Parts() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }

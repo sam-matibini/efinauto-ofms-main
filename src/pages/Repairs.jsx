@@ -450,6 +450,6 @@ export default function RepairsPage() {
         onClose={() => setSchedulerDialogOpen(false)}
       />
       </div>
-      </div>
-      );
-      }
+    </div>
+  );
+}
