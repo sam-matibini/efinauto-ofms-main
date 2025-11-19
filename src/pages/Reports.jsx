@@ -71,7 +71,7 @@ export default function ReportsPage() {
           </div>
           <div className="flex items-center gap-3">
             <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-40 bg-sky-500 text-white border-sky-600 hover:bg-sky-600">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
