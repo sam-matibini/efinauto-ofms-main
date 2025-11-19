@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Download } from "lucide-react";
 
-export default function RetainedEarningsStatement({ dateRange }) {
+export default function RetainedEarningsStatement({ comparativePeriods = [] }) {
+  const dateRange = comparativePeriods[0] || { from: new Date(), to: new Date() };
   const { selectedCompanyId } = useCompany();
 
   const { data: transactions = [] } = useQuery({

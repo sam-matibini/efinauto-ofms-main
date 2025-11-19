@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Download } from "lucide-react";
 
-export default function BalanceSheet({ dateRange }) {
+export default function BalanceSheet({ comparativePeriods = [] }) {
+  const dateRange = comparativePeriods[0] || { from: new Date(), to: new Date() };
   const { selectedCompanyId } = useCompany();
 
   const { data: accounts = [] } = useQuery({

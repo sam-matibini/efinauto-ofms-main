@@ -4,10 +4,13 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Download, Printer, FileText } from "lucide-react";
 
-export default function ProfitLossStatement({ transactions, dateRange }) {
+export default function ProfitLossStatement({ transactions, comparativePeriods = [] }) {
+  const currentPeriod = comparativePeriods[0] || { from: new Date(), to: new Date(), label: "Current Period" };
+  const dateRange = currentPeriod;
+  
   const filteredTransactions = transactions.filter(t => {
     const transDate = new Date(t.transaction_date);
-    return transDate >= dateRange.from && transDate <= dateRange.to;
+    return transDate >= currentPeriod.from && transDate <= currentPeriod.to;
   });
 
   // Revenue
