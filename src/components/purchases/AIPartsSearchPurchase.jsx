@@ -18,6 +18,7 @@ export default function AIPartsSearchPurchase({ onAddToPurchaseOrder }) {
   const [results, setResults] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedSource, setSelectedSource] = useState(null);
+  const [orderQuantity, setOrderQuantity] = useState(1);
   const [isGeneratingPO, setIsGeneratingPO] = useState(false);
 
   const handleSearch = async () => {
@@ -111,12 +112,13 @@ Provide price comparison and recommendations. If a part is not found at a retail
   };
 
   const handleAddToPO = (source) => {
+    const quantity = 1;
     onAddToPurchaseOrder({
       description: source.part_name,
       part_number: source.part_number || "N/A",
-      quantity: 1,
+      quantity: quantity,
       unit_price: source.price,
-      total: source.price,
+      total: source.price * quantity,
       supplier: source.retailer
     });
     toast.success(`Added ${source.part_name} to purchase order`);
@@ -132,8 +134,9 @@ Provide price comparison and recommendations. If a part is not found at a retail
 Supplier: ${source.retailer}
 Part Name: ${source.part_name}
 Part Number: ${source.part_number || 'N/A'}
-Price: $${source.price} ${source.currency}
-Quantity: 1
+Unit Price: $${source.price} ${source.currency}
+Quantity: ${orderQuantity}
+Subtotal: $${(source.price * orderQuantity).toFixed(2)}
 
 Include standard PO sections:
 - PO Number (generate unique number with format PO-YYYYMMDD-XXX)
@@ -437,23 +440,90 @@ Please confirm receipt of this purchase order.
       </Dialog>
 
       {/* Purchase Order Generation Dialog */}
-      <Dialog open={!!selectedSource} onOpenChange={() => setSelectedSource(null)}>
-        <DialogContent className="max-w-md">
+      <Dialog open={!!selectedSource} onOpenChange={() => { setSelectedSource(null); setOrderQuantity(1); }}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Generate & Send Purchase Order</DialogTitle>
+            <DialogTitle>Generate Purchase Order</DialogTitle>
           </DialogHeader>
           {selectedSource && (
             <div className="space-y-4">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600 mb-1">Part</p>
-                <p className="font-semibold">{selectedSource.part_name}</p>
-                <p className="text-sm text-gray-600 mt-2">Supplier</p>
-                <p className="font-semibold">{selectedSource.retailer}</p>
-                <p className="text-sm text-gray-600 mt-2">Price</p>
-                <p className="font-semibold text-green-600">${selectedSource.price?.toFixed(2)}</p>
+              {/* Order Details */}
+              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div>
+                  <p className="text-sm text-gray-600">Part</p>
+                  <p className="font-semibold">{selectedSource.part_name}</p>
+                  {selectedSource.part_number && selectedSource.part_number !== "N/A" && (
+                    <p className="text-xs text-gray-500">Part #: {selectedSource.part_number}</p>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Supplier</p>
+                  <p className="font-semibold">{selectedSource.retailer}</p>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Unit Price</p>
+                    <p className="font-semibold text-green-600">${selectedSource.price?.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Quantity</p>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={orderQuantity}
+                      onChange={(e) => setOrderQuantity(parseInt(e.target.value) || 1)}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Subtotal</p>
+                    <p className="font-bold text-blue-600 text-lg">
+                      ${((selectedSource.price || 0) * orderQuantity).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
               </div>
+
+              {/* Preview */}
+              <div className="border rounded-lg p-4 bg-white">
+                <h4 className="font-semibold text-gray-900 mb-3">Purchase Order Preview</h4>
+                <div className="text-sm space-y-2 text-gray-700">
+                  <div className="flex justify-between py-1 border-b">
+                    <span>PO Number:</span>
+                    <span className="font-mono">PO-{new Date().toISOString().slice(0,10).replace(/-/g, '')}-{Math.floor(Math.random() * 999)}</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span>Date:</span>
+                    <span>{new Date().toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span>Supplier:</span>
+                    <span className="font-semibold">{selectedSource.retailer}</span>
+                  </div>
+                  <div className="mt-3 pt-3 border-t">
+                    <p className="font-semibold mb-2">Items:</p>
+                    <div className="bg-gray-50 p-2 rounded">
+                      <p className="text-xs">{selectedSource.part_name}</p>
+                      <div className="flex justify-between mt-1 text-xs">
+                        <span>Qty: {orderQuantity} × ${selectedSource.price?.toFixed(2)}</span>
+                        <span className="font-semibold">${((selectedSource.price || 0) * orderQuantity).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 pt-3 border-t space-y-1">
+                    <div className="flex justify-between font-semibold">
+                      <span>Subtotal (before tax):</span>
+                      <span>${((selectedSource.price || 0) * orderQuantity).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Tax will be calculated at checkout</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <p className="text-sm text-gray-600">
-                AI will generate a professional purchase order and send it via your chosen method:
+                Select delivery method for the purchase order:
               </p>
               <div className="space-y-2">
                 <Button
@@ -466,7 +536,7 @@ Please confirm receipt of this purchase order.
                   ) : (
                     <Mail className="w-4 h-4 mr-2" />
                   )}
-                  Generate & Email PO
+                  Send via Email
                 </Button>
                 <Button
                   onClick={() => handleGenerateAndSendPO(selectedSource, 'fax')}
