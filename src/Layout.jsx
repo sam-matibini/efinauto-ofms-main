@@ -123,11 +123,13 @@ export default function Layout({ children, currentPageName }) {
           <Sidebar className="border-r border-gray-800" style={{ backgroundColor: '#1e293b' }}>
             <SidebarHeader className="border-b border-gray-700 p-6">
               <div className="flex items-center gap-3 mb-4">
-                <img 
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69156af15abcfb916d821138/3ec91c15a_3Logov2.png" 
-                  alt="eFinAuto Center Logo" 
-                  className="w-12 h-12 rounded-lg object-cover"
-                />
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center p-2" style={{ backgroundColor: '#1e293b' }}>
+                  <img 
+                    src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69156af15abcfb916d821138/3ec91c15a_3Logov2.png" 
+                    alt="eFinAuto Center Logo" 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
                 <div>
                   <h2 className="font-bold text-white text-lg">eFinAuto Center</h2>
                   <p className="text-xs text-gray-400">Car Dealership & Services</p>
