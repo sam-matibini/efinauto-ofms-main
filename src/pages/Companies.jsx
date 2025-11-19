@@ -23,6 +23,18 @@ export default function Companies() {
 
   const queryClient = useQueryClient();
 
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // Fetch current user
+  useQuery({
+    queryKey: ['currentUser'],
+    queryFn: async () => {
+      const user = await base44.auth.me();
+      setCurrentUser(user);
+      return user;
+    },
+  });
+
   const { data: companies = [], isLoading } = useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
@@ -86,10 +98,18 @@ export default function Companies() {
     }
   });
 
-  const filteredCompanies = companies.filter(c =>
-    c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.code?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter by user's company if not admin
+  const filteredCompanies = companies
+    .filter(c => {
+      // Admin can see all companies
+      if (currentUser?.role === 'admin') return true;
+      // Non-admin users only see their own company
+      return c.id === currentUser?.data?.company_id;
+    })
+    .filter(c =>
+      c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.code?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
   const handleSave = async (formData) => {
     console.log('HandleSave called with:', formData);
@@ -135,16 +155,18 @@ export default function Companies() {
             <h1 className="text-2xl font-bold text-white">Company Management</h1>
             <p className="text-sm text-gray-300 mt-1">{filteredCompanies.length} companies</p>
           </div>
-        <Button 
-          onClick={() => {
-            setEditingCompany(null);
-            setDialogOpen(true);
-          }}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Company
-        </Button>
+        {currentUser?.role === 'admin' && (
+          <Button 
+            onClick={() => {
+              setEditingCompany(null);
+              setDialogOpen(true);
+            }}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Company
+          </Button>
+        )}
         </div>
         </div>
 
@@ -227,16 +249,18 @@ export default function Companies() {
                       <Edit className="w-4 h-4 mr-2" />
                       Edit
                     </Button>
-                    <Button 
-                      onClick={() => {
-                        setCompanyToDelete(company);
-                        setDeleteDialogOpen(true);
-                      }}
-                      variant="outline"
-                      className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {currentUser?.role === 'admin' && (
+                      <Button 
+                        onClick={() => {
+                          setCompanyToDelete(company);
+                          setDeleteDialogOpen(true);
+                        }}
+                        variant="outline"
+                        className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
