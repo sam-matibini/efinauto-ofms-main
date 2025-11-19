@@ -42,6 +42,7 @@ export default function UserManagement() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
+  const [viewMode, setViewMode] = useState("all"); // "all" or "users_only"
 
   const queryClient = useQueryClient();
 
@@ -214,6 +215,14 @@ export default function UserManagement() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="flex-1 border-0 focus-visible:ring-0"
             />
+            <Button 
+              variant={viewMode === "users_only" ? "default" : "outline"}
+              onClick={() => setViewMode(viewMode === "all" ? "users_only" : "all")}
+              className={viewMode === "users_only" ? "bg-blue-600 hover:bg-blue-700" : ""}
+            >
+              <Users className="w-4 h-4 mr-2" />
+              {viewMode === "all" ? "View Users Only" : "View All Roles"}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -221,7 +230,7 @@ export default function UserManagement() {
       {/* Users List */}
       <Card>
         <CardHeader>
-          <CardTitle>All Users</CardTitle>
+          <CardTitle>{viewMode === "users_only" ? "Users Only" : "All Users"}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -230,7 +239,7 @@ export default function UserManagement() {
             <p className="text-center text-gray-500 py-8">No users found</p>
           ) : (
             <div className="space-y-3">
-              {filteredUsers.map((user) => (
+              {(viewMode === "users_only" ? filteredUsers.filter(u => u.role === 'user') : filteredUsers).map((user) => (
                 <div
                   key={user.id}
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
