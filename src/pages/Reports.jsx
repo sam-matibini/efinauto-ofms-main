@@ -62,27 +62,31 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
-          <p className="text-gray-500 mt-1">Business intelligence and insights</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">Last 7 days</SelectItem>
-              <SelectItem value="30">Last 30 days</SelectItem>
-              <SelectItem value="90">Last 90 days</SelectItem>
-              <SelectItem value="365">Last year</SelectItem>
-              <SelectItem value="all">All time</SelectItem>
-            </SelectContent>
-          </Select>
+    <div className="min-h-screen bg-gray-50">
+      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Reports & Analytics</h1>
+            <p className="text-sm text-gray-300 mt-1">Business intelligence and insights</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Select value={dateRange} onValueChange={setDateRange}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">Last 7 days</SelectItem>
+                <SelectItem value="30">Last 30 days</SelectItem>
+                <SelectItem value="90">Last 90 days</SelectItem>
+                <SelectItem value="365">Last year</SelectItem>
+                <SelectItem value="all">All time</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
+      
+      <div className="p-6 space-y-6">
 
       <Tabs defaultValue="sales" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4 lg:w-auto">
@@ -124,8 +128,8 @@ export default function ReportsPage() {
         <TabsContent value="exports">
           <ExportReport exports={exports} dateRange={dateRange} />
         </TabsContent>
-        </Tabs>
-        </div>
-        </div>
-        );
-        }
+      </Tabs>
+      </div>
+    </div>
+  );
+}
