@@ -1,6 +1,8 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { Download, Printer, FileText } from "lucide-react";
 
 export default function ProfitLossStatement({ transactions, dateRange }) {
   const filteredTransactions = transactions.filter(t => {
@@ -68,15 +70,89 @@ export default function ProfitLossStatement({ transactions, dateRange }) {
     </div>
   );
 
+  const exportToCSV = () => {
+    const data = [
+      ['Profit & Loss Statement', `${format(dateRange.from, 'MMM d, yyyy')} - ${format(dateRange.to, 'MMM d, yyyy')}`],
+      [],
+      ['Revenue'],
+      ['Vehicle Sales Revenue', saleRevenue],
+      ['Service Revenue', serviceRevenue],
+      ['Parts Revenue', partsRevenue],
+      ['Other Income', otherIncome],
+      ['Total Revenue', totalRevenue],
+      [],
+      ['Cost of Goods Sold'],
+      ['Vehicle Purchases', vehiclePurchases],
+      ['Parts Purchases', partsPurchases],
+      ['Total COGS', cogs],
+      [],
+      ['Gross Profit', grossProfit],
+      ['Gross Margin %', grossMargin],
+      [],
+      ['Operating Expenses'],
+      ['Labor Expenses', laborExpense],
+      ['Overhead Expenses', overheadExpense],
+      ['Other Expenses', otherExpenses],
+      ['Total Operating Expenses', totalOperatingExpenses],
+      [],
+      ['Net Profit', netProfit],
+      ['Net Margin %', netMargin]
+    ];
+    
+    const csvContent = data.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `profit-loss-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+  };
+
+  const exportToPDF = () => {
+    const printContent = document.getElementById('pl-print-content');
+    const originalContents = document.body.innerHTML;
+    document.body.innerHTML = printContent.innerHTML;
+    window.print();
+    document.body.innerHTML = originalContents;
+    window.location.reload();
+  };
+
+  const handlePrint = () => {
+    const printContent = document.getElementById('pl-print-content');
+    const originalContents = document.body.innerHTML;
+    document.body.innerHTML = printContent.innerHTML;
+    window.print();
+    document.body.innerHTML = originalContents;
+    window.location.reload();
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>Profit & Loss Statement</span>
-          <span className="text-sm font-normal text-gray-600">
-            {format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}
-          </span>
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <CardTitle className="flex items-center justify-between">
+              <span>Profit & Loss Statement</span>
+              <span className="text-sm font-normal text-gray-600">
+                {format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}
+              </span>
+            </CardTitle>
+          </div>
+          <div className="flex gap-2 ml-4">
+            <Button onClick={exportToCSV} variant="outline" size="sm">
+              <Download className="w-4 h-4 mr-2" />
+              CSV
+            </Button>
+            <Button onClick={exportToPDF} variant="outline" size="sm">
+              <FileText className="w-4 h-4 mr-2" />
+              PDF
+            </Button>
+            <Button onClick={handlePrint} variant="outline" size="sm">
+              <Printer className="w-4 h-4 mr-2" />
+              Print
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-1">
@@ -117,6 +193,77 @@ export default function ProfitLossStatement({ transactions, dateRange }) {
             {renderLine('Net Profit', netProfit, true, false, netProfit >= 0 ? 'text-green-600' : 'text-red-600')}
             <div className="text-right text-sm text-gray-600 mt-1">
               Net Margin: {netMargin}%
+            </div>
+          </div>
+
+          {/* Hidden print content */}
+          <div id="pl-print-content" className="hidden print:block">
+            <style>{`
+              @media print {
+                body * { visibility: hidden; }
+                #pl-print-content, #pl-print-content * { visibility: visible; }
+                #pl-print-content { position: absolute; left: 0; top: 0; width: 100%; }
+              }
+            `}</style>
+            <div className="p-8">
+              <h1 className="text-2xl font-bold mb-2">Profit & Loss Statement</h1>
+              <p className="text-sm text-gray-600 mb-6">{format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}</p>
+              
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-bold text-lg mb-2">Revenue</h3>
+                  <table className="w-full mb-2">
+                    <tbody>
+                      <tr><td className="pl-4">Vehicle Sales Revenue</td><td className="text-right">${saleRevenue.toLocaleString()}</td></tr>
+                      <tr><td className="pl-4">Service Revenue</td><td className="text-right">${serviceRevenue.toLocaleString()}</td></tr>
+                      <tr><td className="pl-4">Parts Revenue</td><td className="text-right">${partsRevenue.toLocaleString()}</td></tr>
+                      <tr><td className="pl-4">Other Income</td><td className="text-right">${otherIncome.toLocaleString()}</td></tr>
+                      <tr className="font-bold border-t-2"><td>Total Revenue</td><td className="text-right">${totalRevenue.toLocaleString()}</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-lg mb-2">Cost of Goods Sold</h3>
+                  <table className="w-full mb-2">
+                    <tbody>
+                      <tr><td className="pl-4">Vehicle Purchases</td><td className="text-right">${vehiclePurchases.toLocaleString()}</td></tr>
+                      <tr><td className="pl-4">Parts Purchases</td><td className="text-right">${partsPurchases.toLocaleString()}</td></tr>
+                      <tr className="font-bold border-t-2"><td>Total COGS</td><td className="text-right">${cogs.toLocaleString()}</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="font-bold border-t-2 pt-2">
+                  <table className="w-full">
+                    <tbody>
+                      <tr><td>Gross Profit</td><td className="text-right">${grossProfit.toLocaleString()}</td></tr>
+                      <tr className="text-sm"><td></td><td className="text-right">Gross Margin: {grossMargin}%</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-lg mb-2">Operating Expenses</h3>
+                  <table className="w-full mb-2">
+                    <tbody>
+                      <tr><td className="pl-4">Labor Expenses</td><td className="text-right">${laborExpense.toLocaleString()}</td></tr>
+                      <tr><td className="pl-4">Overhead Expenses</td><td className="text-right">${overheadExpense.toLocaleString()}</td></tr>
+                      <tr><td className="pl-4">Other Expenses</td><td className="text-right">${otherExpenses.toLocaleString()}</td></tr>
+                      <tr className="font-bold border-t-2"><td>Total Operating Expenses</td><td className="text-right">${totalOperatingExpenses.toLocaleString()}</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="font-bold border-t-4 pt-2">
+                  <table className="w-full">
+                    <tbody>
+                      <tr><td>Net Profit</td><td className="text-right">${netProfit.toLocaleString()}</td></tr>
+                      <tr className="text-sm"><td></td><td className="text-right">Net Margin: {netMargin}%</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, ArrowUpCircle, ArrowDownCircle, Download, Printer, FileText } from "lucide-react";
 import { format } from "date-fns";
 
 export default function TransactionsList({ transactions }) {
@@ -42,10 +43,67 @@ export default function TransactionsList({ transactions }) {
     return colors[category] || 'bg-gray-100 text-gray-700';
   };
 
+  const exportToCSV = () => {
+    const headers = ['Date', 'Transaction #', 'Description', 'Customer', 'Category', 'Type', 'Amount', 'Tax', 'Status'];
+    const rows = filteredTransactions.map(t => [
+      format(new Date(t.transaction_date), 'yyyy-MM-dd'),
+      t.transaction_number || '',
+      t.description || '',
+      t.customer_name || '',
+      t.category || '',
+      t.transaction_type || '',
+      t.amount || 0,
+      t.tax_amount || 0,
+      t.status || ''
+    ]);
+    
+    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `transactions-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+  };
+
+  const exportToPDF = () => {
+    const printContent = document.getElementById('transactions-print-content');
+    const originalContents = document.body.innerHTML;
+    document.body.innerHTML = printContent.innerHTML;
+    window.print();
+    document.body.innerHTML = originalContents;
+    window.location.reload();
+  };
+
+  const handlePrint = () => {
+    const printContent = document.getElementById('transactions-print-content');
+    const originalContents = document.body.innerHTML;
+    document.body.innerHTML = printContent.innerHTML;
+    window.print();
+    document.body.innerHTML = originalContents;
+    window.location.reload();
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>All Transactions</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>All Transactions</CardTitle>
+          <div className="flex gap-2">
+            <Button onClick={exportToCSV} variant="outline" size="sm">
+              <Download className="w-4 h-4 mr-2" />
+              CSV
+            </Button>
+            <Button onClick={exportToPDF} variant="outline" size="sm">
+              <FileText className="w-4 h-4 mr-2" />
+              PDF
+            </Button>
+            <Button onClick={handlePrint} variant="outline" size="sm">
+              <Printer className="w-4 h-4 mr-2" />
+              Print
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -128,6 +186,45 @@ export default function TransactionsList({ transactions }) {
                 </div>
               ))
             )}
+          </div>
+
+          {/* Hidden print content */}
+          <div id="transactions-print-content" className="hidden print:block">
+            <style>{`
+              @media print {
+                body * { visibility: hidden; }
+                #transactions-print-content, #transactions-print-content * { visibility: visible; }
+                #transactions-print-content { position: absolute; left: 0; top: 0; width: 100%; }
+              }
+            `}</style>
+            <div className="p-8">
+              <h1 className="text-2xl font-bold mb-4">Transactions Report</h1>
+              <p className="text-sm text-gray-600 mb-6">Generated on {format(new Date(), 'MMMM d, yyyy')}</p>
+              <table className="w-full border-collapse border border-gray-300">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-300 p-2 text-left">Date</th>
+                    <th className="border border-gray-300 p-2 text-left">Transaction #</th>
+                    <th className="border border-gray-300 p-2 text-left">Description</th>
+                    <th className="border border-gray-300 p-2 text-left">Customer</th>
+                    <th className="border border-gray-300 p-2 text-left">Category</th>
+                    <th className="border border-gray-300 p-2 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTransactions.map(t => (
+                    <tr key={t.id}>
+                      <td className="border border-gray-300 p-2">{format(new Date(t.transaction_date), 'MMM d, yyyy')}</td>
+                      <td className="border border-gray-300 p-2">{t.transaction_number || t.id.slice(0, 8)}</td>
+                      <td className="border border-gray-300 p-2">{t.description}</td>
+                      <td className="border border-gray-300 p-2">{t.customer_name || '-'}</td>
+                      <td className="border border-gray-300 p-2">{t.category}</td>
+                      <td className="border border-gray-300 p-2 text-right">${t.amount.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </CardContent>
