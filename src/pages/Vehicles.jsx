@@ -24,6 +24,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useCompany } from "../components/shared/CompanyContext";
+import AIPartsSearchLocal from "@/components/parts/AIPartsSearchLocal";
+import AIPartsSearchCanada from "@/components/parts/AIPartsSearchCanada";
+import AIPartsSearchUSA from "@/components/parts/AIPartsSearchUSA";
+import AIPartsSearchMarketplace from "@/components/parts/AIPartsSearchMarketplace";
 
 export default function Vehicles() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -183,7 +187,25 @@ export default function Vehicles() {
 
         <div className="p-6 md:p-8 max-w-7xl mx-auto">
 
-      <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+      {/* AI Parts Search - Local Near Me */}
+      <AIPartsSearchLocal />
+
+      {/* AI Parts Search - Canada */}
+      <div className="mt-6">
+        <AIPartsSearchCanada />
+      </div>
+
+      {/* AI Parts Search - USA */}
+      <div className="mt-6">
+        <AIPartsSearchUSA />
+      </div>
+
+      {/* AI Parts Search - Marketplaces */}
+      <div className="mt-6">
+        <AIPartsSearchMarketplace />
+      </div>
+
+      <div className="bg-white rounded-xl shadow-md p-6 mb-8 mt-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />

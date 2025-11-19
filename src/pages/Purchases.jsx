@@ -9,6 +9,10 @@ import { Plus, Search, Package, TrendingUp, DollarSign, Clock, FileText, Edit, T
 import { motion } from "framer-motion";
 import { useCompany } from "../components/shared/CompanyContext";
 import { toast } from "sonner";
+import AIPartsSearchLocal from "@/components/parts/AIPartsSearchLocal";
+import AIPartsSearchCanada from "@/components/parts/AIPartsSearchCanada";
+import AIPartsSearchUSA from "@/components/parts/AIPartsSearchUSA";
+import AIPartsSearchMarketplace from "@/components/parts/AIPartsSearchMarketplace";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -145,8 +149,26 @@ export default function Purchases() {
       </div>
 
       <div className="p-6 md:p-8 max-w-7xl mx-auto">
+        {/* AI Parts Search - Local Near Me */}
+        <AIPartsSearchLocal />
+
+        {/* AI Parts Search - Canada */}
+        <div className="mt-6">
+          <AIPartsSearchCanada />
+        </div>
+
+        {/* AI Parts Search - USA */}
+        <div className="mt-6">
+          <AIPartsSearchUSA />
+        </div>
+
+        {/* AI Parts Search - Marketplaces */}
+        <div className="mt-6">
+          <AIPartsSearchMarketplace />
+        </div>
+
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 mt-6">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
