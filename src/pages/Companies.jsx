@@ -373,6 +373,22 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
               />
             </div>
             <div className="space-y-2">
+              <Label>GST Number</Label>
+              <Input 
+                value={formData.gst_number || ""} 
+                onChange={(e) => setFormData({...formData, gst_number: e.target.value})}
+                placeholder="Enter GST number"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>PST Number</Label>
+              <Input 
+                value={formData.pst_number || ""} 
+                onChange={(e) => setFormData({...formData, pst_number: e.target.value})}
+                placeholder="Enter PST number"
+              />
+            </div>
+            <div className="space-y-2">
               <Label>Email</Label>
               <Input 
                 type="email" 
