@@ -6,8 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import AIPartsSearchPurchase from "./AIPartsSearchPurchase";
 
 export default function PurchaseDialog({ open, onClose, purchase, onSave, isSaving }) {
   const [formData, setFormData] = useState({
@@ -96,6 +97,28 @@ export default function PurchaseDialog({ open, onClose, purchase, onSave, isSavi
     });
   };
 
+  const addItemFromSearch = (itemData) => {
+    const newItem = {
+      description: itemData.description,
+      part_number: itemData.part_number,
+      quantity: itemData.quantity,
+      unit_price: itemData.unit_price,
+      total: itemData.total
+    };
+    
+    const newItems = [...formData.items, newItem];
+    const { subtotal, taxAmount, totalAmount } = calculateTotals(newItems, formData.tax_rate, formData.shipping_cost);
+    
+    setFormData({
+      ...formData,
+      items: newItems,
+      supplier_name: formData.supplier_name || itemData.supplier,
+      subtotal,
+      tax_amount: taxAmount,
+      total_amount: totalAmount
+    });
+  };
+
   const removeItem = (index) => {
     const newItems = formData.items.filter((_, i) => i !== index);
     const { subtotal, taxAmount, totalAmount } = calculateTotals(newItems, formData.tax_rate, formData.shipping_cost);
@@ -139,12 +162,23 @@ export default function PurchaseDialog({ open, onClose, purchase, onSave, isSavi
           <DialogTitle>{purchase ? 'Edit Purchase Order' : 'New Purchase Order'}</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs defaultValue="search" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="search" className="flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              AI Search
+            </TabsTrigger>
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="items">Items</TabsTrigger>
             <TabsTrigger value="payment">Payment & Status</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="search" className="space-y-4">
+            <AIPartsSearchPurchase onAddToPurchaseOrder={addItemFromSearch} />
+            <p className="text-sm text-gray-500 text-center">
+              Search results will auto-populate the Items tab
+            </p>
+          </TabsContent>
 
           <TabsContent value="basic" className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
