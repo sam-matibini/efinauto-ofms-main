@@ -8,7 +8,7 @@ import { useCompany } from "@/components/shared/CompanyContext";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 
-export default function UserEditDialog({ open, onClose, user, onSave }) {
+export default function UserEditDialog({ open, onClose, user, onSave, isLoading }) {
   const { selectedCompanyId } = useCompany();
   const [userData, setUserData] = useState({
     full_name: "",
@@ -123,11 +123,11 @@ export default function UserEditDialog({ open, onClose, user, onSave }) {
         </div>
 
         <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>
-            Save Changes
+          <Button onClick={handleSave} disabled={isLoading}>
+            {isLoading ? "Saving..." : "Save Changes"}
           </Button>
         </div>
       </DialogContent>

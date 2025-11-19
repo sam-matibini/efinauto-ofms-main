@@ -306,6 +306,7 @@ export default function UserManagement() {
         }}
         user={selectedUser}
         onSave={(data) => updateUserMutation.mutate({ userId: selectedUser.id, data })}
+        isLoading={updateUserMutation.isPending}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
