@@ -43,8 +43,8 @@ export default function CompanySelector() {
       <SelectContent>
         {activeCompanies.map((company) => (
           <SelectItem key={company.id} value={company.id} className="cursor-pointer">
-            <div className="truncate" title={company.name}>
-              {company.name}
+            <div className="truncate" title={company.display_name || company.name}>
+              {company.display_name || company.name}
             </div>
           </SelectItem>
         ))}

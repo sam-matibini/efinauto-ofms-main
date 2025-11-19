@@ -101,6 +101,7 @@ export default function Companies() {
 
     const cleanData = {
       name: formData.name.trim(),
+      display_name: formData.display_name?.trim() || "",
       code: formData.code.trim(),
       dealer_permit_number: formData.dealer_permit_number?.trim() || "",
       address: formData.address?.trim() || "",
@@ -280,6 +281,7 @@ export default function Companies() {
 function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
   const [formData, setFormData] = useState(company || {
     name: "",
+    display_name: "",
     code: "",
     dealer_permit_number: "",
     address: "",
@@ -300,6 +302,7 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
     } else {
       setFormData({
         name: "",
+        display_name: "",
         code: "",
         dealer_permit_number: "",
         address: "",
@@ -337,6 +340,14 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
                 value={formData.name} 
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
                 placeholder="e.g., Oluspe Auto Sales and Parts Inc."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Display Name</Label>
+              <Input 
+                value={formData.display_name || ""} 
+                onChange={(e) => setFormData({...formData, display_name: e.target.value})}
+                placeholder="e.g., Oluspe Auto"
               />
             </div>
             <div className="space-y-2">
