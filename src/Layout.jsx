@@ -108,6 +108,11 @@ const navigationItems = [
     icon: LineChart,
   },
   {
+    title: "Vehicle Analytics",
+    url: createPageUrl("VehicleAnalytics"),
+    icon: BarChart3,
+  },
+  {
     title: "User Management",
     url: createPageUrl("UserManagement"),
     icon: UserCog,

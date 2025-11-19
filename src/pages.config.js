@@ -17,6 +17,7 @@ import Technicians from './pages/Technicians';
 import Analytics from './pages/Analytics';
 import TechnicianMobile from './pages/TechnicianMobile';
 import Purchases from './pages/Purchases';
+import VehicleAnalytics from './pages/VehicleAnalytics';
 import __Layout from './Layout.jsx';
 
 
@@ -40,6 +41,7 @@ export const PAGES = {
     "Analytics": Analytics,
     "TechnicianMobile": TechnicianMobile,
     "Purchases": Purchases,
+    "VehicleAnalytics": VehicleAnalytics,
 }
 
 export const pagesConfig = {
