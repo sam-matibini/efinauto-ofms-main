@@ -22,6 +22,10 @@ import RevenueOverview from "@/components/accounting/RevenueOverview";
 import TransactionsList from "@/components/accounting/TransactionsList";
 import ProfitLossStatement from "@/components/accounting/ProfitLossStatement";
 import ChartOfAccounts from "@/components/accounting/ChartOfAccounts";
+import BalanceSheet from "@/components/accounting/BalanceSheet";
+import RetainedEarningsStatement from "@/components/accounting/RetainedEarningsStatement";
+import CashFlowStatement from "@/components/accounting/CashFlowStatement";
+import FixedAssetsRegister from "@/components/accounting/FixedAssetsRegister";
 
 export default function Accounting() {
   const { selectedCompanyId } = useCompany();
@@ -303,10 +307,14 @@ export default function Accounting() {
 
         {/* Main Content */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
+          <TabsList className="grid w-full grid-cols-8 h-auto">
             <TabsTrigger value="overview">Revenue Overview</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="profit-loss">Profit & Loss</TabsTrigger>
+            <TabsTrigger value="balance-sheet">Balance Sheet</TabsTrigger>
+            <TabsTrigger value="retained-earnings">Retained Earnings</TabsTrigger>
+            <TabsTrigger value="cash-flow">Cash Flow</TabsTrigger>
+            <TabsTrigger value="fixed-assets">Fixed Assets</TabsTrigger>
             <TabsTrigger value="accounts">Chart of Accounts</TabsTrigger>
           </TabsList>
 
@@ -329,6 +337,22 @@ export default function Accounting() {
               dateRange={dateRange}
               onDateRangeChange={setDateRange}
             />
+          </TabsContent>
+
+          <TabsContent value="balance-sheet">
+            <BalanceSheet dateRange={dateRange} />
+          </TabsContent>
+
+          <TabsContent value="retained-earnings">
+            <RetainedEarningsStatement dateRange={dateRange} />
+          </TabsContent>
+
+          <TabsContent value="cash-flow">
+            <CashFlowStatement dateRange={dateRange} />
+          </TabsContent>
+
+          <TabsContent value="fixed-assets">
+            <FixedAssetsRegister />
           </TabsContent>
 
           <TabsContent value="accounts">
