@@ -1,0 +1,152 @@
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { DollarSign } from "lucide-react";
+
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+
+export default function RevenueOverview({ transactions, sales, repairs, purchases }) {
+  // Revenue by type
+  const revenueByType = [
+    {
+      name: 'Vehicle Sales',
+      value: transactions.filter(t => t.transaction_type === 'sale_revenue').reduce((sum, t) => sum + t.amount, 0)
+    },
+    {
+      name: 'Service Revenue',
+      value: transactions.filter(t => t.transaction_type === 'service_revenue').reduce((sum, t) => sum + t.amount, 0)
+    },
+    {
+      name: 'Parts Revenue',
+      value: transactions.filter(t => t.transaction_type === 'parts_revenue').reduce((sum, t) => sum + t.amount, 0)
+    },
+    {
+      name: 'Other Income',
+      value: transactions.filter(t => t.transaction_type === 'other_income').reduce((sum, t) => sum + t.amount, 0)
+    }
+  ].filter(item => item.value > 0);
+
+  // Monthly revenue trend (last 6 months)
+  const monthlyRevenue = [];
+  for (let i = 5; i >= 0; i--) {
+    const date = new Date();
+    date.setMonth(date.getMonth() - i);
+    const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+    const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    
+    const revenue = transactions
+      .filter(t => {
+        if (t.category !== 'revenue') return false;
+        const tDate = new Date(t.transaction_date);
+        return tDate >= monthStart && tDate <= monthEnd;
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const expenses = transactions
+      .filter(t => {
+        if (t.category !== 'expense') return false;
+        const tDate = new Date(t.transaction_date);
+        return tDate >= monthStart && tDate <= monthEnd;
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    monthlyRevenue.push({
+      month: date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+      revenue: revenue,
+      expenses: expenses,
+      profit: revenue - expenses
+    });
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Revenue by Type */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenue by Type</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {revenueByType.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={revenueByType}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {revenueByType.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-gray-500">
+                No revenue data available
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Revenue Breakdown */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenue Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {revenueByType.map((item, index) => (
+                <div key={item.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-4 h-4 rounded-full" 
+                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                    />
+                    <span className="font-medium">{item.name}</span>
+                  </div>
+                  <span className="text-lg font-bold text-blue-600">
+                    ${item.value.toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Monthly Trend */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Revenue & Profit Trend (6 Months)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {monthlyRevenue.length > 0 ? (
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={monthlyRevenue}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                <Legend />
+                <Bar dataKey="revenue" fill="#10b981" name="Revenue" />
+                <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />
+                <Bar dataKey="profit" fill="#3b82f6" name="Net Profit" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[400px] flex items-center justify-center text-gray-500">
+              No trend data available
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
