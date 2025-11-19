@@ -267,7 +267,8 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
     }
   }, [company, open]);
 
-  const canSave = formData.name?.trim().length > 0 && formData.code?.trim().length > 0;
+  const canSave = (formData.name && formData.name.trim().length > 0) && 
+                   (formData.code && formData.code.trim().length > 0);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
