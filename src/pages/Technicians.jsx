@@ -113,20 +113,24 @@ export default function TechniciansPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Technicians</h1>
-          <p className="text-gray-500 mt-1">Manage mechanics and track timesheets</p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Technicians</h1>
+            <p className="text-sm text-gray-300 mt-1">Manage mechanics and track timesheets</p>
+          </div>
+          <Button onClick={() => {
+            setEditingTech(null);
+            setDialogOpen(true);
+          }} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Technician
+          </Button>
         </div>
-        <Button onClick={() => {
-          setEditingTech(null);
-          setDialogOpen(true);
-        }} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Technician
-        </Button>
       </div>
+
+      <div className="p-6 space-y-6">
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
@@ -281,6 +285,7 @@ export default function TechniciansPage() {
         technician={editingTech}
         onSave={handleSave}
       />
+      </div>
     </div>
   );
 }
