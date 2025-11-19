@@ -198,32 +198,32 @@ export default function Sales() {
 
       <div className="p-6 md:p-8 max-w-7xl mx-auto">
         <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 h-auto">
-            <TabsTrigger value="sales" className="flex flex-col gap-1 py-3">
+          <TabsList className="grid w-full grid-cols-7 h-auto bg-white border-b">
+            <TabsTrigger value="sales" className="flex flex-col gap-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-gray-600 data-[state=active]:text-gray-900">
               <FileText className="w-4 h-4" />
               <span className="text-xs">Bills of Sale</span>
             </TabsTrigger>
-            <TabsTrigger value="customers" className="flex flex-col gap-1 py-3">
+            <TabsTrigger value="customers" className="flex flex-col gap-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-900">
               <Users className="w-4 h-4" />
               <span className="text-xs">Customers</span>
             </TabsTrigger>
-            <TabsTrigger value="quotes" className="flex flex-col gap-1 py-3">
+            <TabsTrigger value="quotes" className="flex flex-col gap-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-yellow-500 data-[state=active]:text-yellow-900">
               <FileCheck className="w-4 h-4" />
               <span className="text-xs">Quotes</span>
             </TabsTrigger>
-            <TabsTrigger value="invoices" className="flex flex-col gap-1 py-3">
+            <TabsTrigger value="invoices" className="flex flex-col gap-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-purple-600 data-[state=active]:text-purple-900">
               <Receipt className="w-4 h-4" />
               <span className="text-xs">Invoices</span>
             </TabsTrigger>
-            <TabsTrigger value="payments" className="flex flex-col gap-1 py-3">
+            <TabsTrigger value="payments" className="flex flex-col gap-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-green-600 data-[state=active]:text-green-900">
               <CreditCard className="w-4 h-4" />
               <span className="text-xs">Payments</span>
             </TabsTrigger>
-            <TabsTrigger value="recurring" className="flex flex-col gap-1 py-3">
+            <TabsTrigger value="recurring" className="flex flex-col gap-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-900">
               <RefreshCw className="w-4 h-4" />
               <span className="text-xs">Recurring</span>
             </TabsTrigger>
-            <TabsTrigger value="credits" className="flex flex-col gap-1 py-3">
+            <TabsTrigger value="credits" className="flex flex-col gap-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-red-600 data-[state=active]:text-red-900">
               <FileX className="w-4 h-4" />
               <span className="text-xs">Credit Notes</span>
             </TabsTrigger>
