@@ -73,11 +73,30 @@ export default function Sales() {
         await base44.entities.Vehicle.update(data.vehicle_id, { status: 'sold' });
       }
       
+      // Create accounting transaction for revenue
+      await base44.entities.Transaction.create({
+        company_id: selectedCompanyId,
+        transaction_number: sale.sale_number,
+        transaction_type: 'sale_revenue',
+        category: 'revenue',
+        amount: sale.grand_total || sale.sale_price,
+        reference_type: 'Sale',
+        reference_id: sale.id,
+        reference_number: sale.sale_number,
+        customer_name: sale.customer_name,
+        description: `Vehicle sale: ${sale.vehicle_details}`,
+        transaction_date: sale.sale_date || new Date().toISOString().split('T')[0],
+        payment_method: 'other',
+        status: sale.payment_status === 'paid' ? 'completed' : 'pending',
+        tax_amount: sale.tax_total || 0
+      });
+      
       return sale;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setDialogOpen(false);
       toast.success("Sale recorded successfully!");
     },
@@ -385,6 +404,7 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
     vehicle_details: "",
     sale_price: 0,
     province: "ON",
+    tax_status: "taxable",
     tax_gst: 0,
     tax_pst: 0,
     tax_hst: 0,
@@ -403,7 +423,7 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
   });
 
   React.useEffect(() => {
-    const taxDetails = calculateCanadianTax(formData.sale_price, formData.province);
+    const taxDetails = calculateCanadianTax(formData.sale_price, formData.province, formData.tax_status);
     setFormData(prev => ({
       ...prev,
       tax_gst: taxDetails.gst,
@@ -412,7 +432,7 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
       tax_total: taxDetails.total,
       grand_total: formData.sale_price + taxDetails.total
     }));
-  }, [formData.sale_price, formData.province]);
+  }, [formData.sale_price, formData.province, formData.tax_status]);
 
   const handleCustomerSelect = (customer) => {
     setFormData({
@@ -542,6 +562,8 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
               value={formData.province}
               onChange={(province) => setFormData({...formData, province})}
               subtotal={formData.sale_price}
+              taxStatus={formData.tax_status}
+              onTaxStatusChange={(tax_status) => setFormData({...formData, tax_status})}
             />
 
             <div className="space-y-2">

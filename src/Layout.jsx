@@ -17,7 +17,8 @@ import {
   UserCog,
   HardHat,
   LineChart,
-  FileText
+  FileText,
+  DollarSign
 } from "lucide-react";
 import {
   Sidebar,
@@ -116,6 +117,11 @@ const navigationItems = [
     title: "Vehicle Analytics",
     url: createPageUrl("VehicleAnalytics"),
     icon: BarChart3,
+  },
+  {
+    title: "Accounting & Revenue",
+    url: createPageUrl("Accounting"),
+    icon: DollarSign,
   },
   {
     title: "User Management",
