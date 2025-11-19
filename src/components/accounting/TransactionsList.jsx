@@ -4,13 +4,26 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, ArrowUpCircle, ArrowDownCircle, Download, Printer, FileText } from "lucide-react";
+import { Search, ArrowUpCircle, ArrowDownCircle, Download, Printer, FileText, Plus, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import JournalEntryDialog from "./JournalEntryDialog";
+import ImportTransactionsDialog from "./ImportTransactionsDialog";
+import TemplateDialog from "./TemplateDialog";
 
 export default function TransactionsList({ transactions, dateRange }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [journalDialogOpen, setJournalDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [createFromTemplateOpen, setCreateFromTemplateOpen] = useState(false);
 
   const filteredTransactions = transactions.filter(t => {
     // Filter by date range if provided
@@ -98,6 +111,30 @@ export default function TransactionsList({ transactions, dateRange }) {
         <div className="flex items-center justify-between">
           <CardTitle>All Transactions</CardTitle>
           <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  New
+                  <ChevronDown className="w-4 h-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => setJournalDialogOpen(true)}>
+                  New Journal
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setCreateFromTemplateOpen(true)}>
+                  Create from Template
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTemplateDialogOpen(true)}>
+                  New Template
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
+                  Manual Import (CSV/Excel)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
             <Button onClick={exportToCSV} variant="outline" size="sm">
               <Download className="w-4 h-4 mr-2" />
               CSV
@@ -236,6 +273,21 @@ export default function TransactionsList({ transactions, dateRange }) {
           </div>
         </div>
       </CardContent>
+
+      <JournalEntryDialog 
+        open={journalDialogOpen} 
+        onClose={() => setJournalDialogOpen(false)} 
+      />
+
+      <ImportTransactionsDialog 
+        open={importDialogOpen} 
+        onClose={() => setImportDialogOpen(false)} 
+      />
+
+      <TemplateDialog 
+        open={templateDialogOpen} 
+        onClose={() => setTemplateDialogOpen(false)} 
+      />
     </Card>
   );
 }
