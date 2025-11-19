@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Companies() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -135,7 +136,8 @@ export default function Companies() {
       email: formData.email?.trim() || "",
       tax_id: formData.tax_id?.trim() || "",
       logo_url: formData.logo_url?.trim() || "",
-      status: formData.status || "active"
+      status: formData.status || "active",
+      tax_rates: formData.tax_rates
     };
 
     console.log('Clean data to save:', cleanData);
@@ -305,6 +307,22 @@ export default function Companies() {
         }
 
 function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
+  const defaultTaxRates = {
+    AB: { gst: 5, pst: 0, hst: 0 },
+    BC: { gst: 5, pst: 7, hst: 0 },
+    MB: { gst: 5, pst: 7, hst: 0 },
+    NB: { gst: 0, pst: 0, hst: 15 },
+    NL: { gst: 0, pst: 0, hst: 15 },
+    NT: { gst: 5, pst: 0, hst: 0 },
+    NS: { gst: 0, pst: 0, hst: 15 },
+    NU: { gst: 5, pst: 0, hst: 0 },
+    ON: { gst: 0, pst: 0, hst: 13 },
+    PE: { gst: 0, pst: 0, hst: 15 },
+    QC: { gst: 5, pst: 9.975, hst: 0 },
+    SK: { gst: 5, pst: 6, hst: 0 },
+    YT: { gst: 5, pst: 0, hst: 0 }
+  };
+
   const [formData, setFormData] = useState(company || {
     name: "",
     display_name: "",
@@ -321,12 +339,16 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
     email: "",
     tax_id: "",
     logo_url: "",
-    status: "active"
+    status: "active",
+    tax_rates: defaultTaxRates
   });
 
   React.useEffect(() => {
     if (company) {
-      setFormData(company);
+      setFormData({
+        ...company,
+        tax_rates: company.tax_rates || defaultTaxRates
+      });
     } else {
       setFormData({
         name: "",
@@ -344,7 +366,8 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
         email: "",
         tax_id: "",
         logo_url: "",
-        status: "active"
+        status: "active",
+        tax_rates: defaultTaxRates
       });
     }
   }, [company, open]);
@@ -352,14 +375,49 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
   const canSave = (formData.name && formData.name.trim().length > 0) && 
                    (formData.code && formData.code.trim().length > 0);
 
+  const updateTaxRate = (province, field, value) => {
+    setFormData({
+      ...formData,
+      tax_rates: {
+        ...formData.tax_rates,
+        [province]: {
+          ...formData.tax_rates[province],
+          [field]: parseFloat(value) || 0
+        }
+      }
+    });
+  };
+
+  const provinceNames = {
+    AB: "Alberta",
+    BC: "British Columbia",
+    MB: "Manitoba",
+    NB: "New Brunswick",
+    NL: "Newfoundland and Labrador",
+    NT: "Northwest Territories",
+    NS: "Nova Scotia",
+    NU: "Nunavut",
+    ON: "Ontario",
+    PE: "Prince Edward Island",
+    QC: "Quebec",
+    SK: "Saskatchewan",
+    YT: "Yukon"
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{company ? 'Edit Company' : 'Add New Company'}</DialogTitle>
         </DialogHeader>
-        
-        <div className="space-y-4 py-4">
+
+        <Tabs defaultValue="basic" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="basic">Basic Information</TabsTrigger>
+            <TabsTrigger value="tax">Tax Rates Setup</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="basic" className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2 col-span-2">
               <p className="text-sm text-gray-600">Required fields are marked with *</p>
@@ -489,7 +547,73 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
               </Select>
             </div>
           </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="tax" className="space-y-4 py-4">
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Tax Rates Configuration:</strong> Set GST, PST, and HST rates for each Canadian province/territory. These rates will be used for calculating sales tax. Zero-rated (0%) and exempt sales can be handled at the transaction level.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {Object.entries(formData.tax_rates || {}).map(([provinceCode, rates]) => (
+                  <Card key={provinceCode} className="p-4">
+                    <div className="grid grid-cols-4 gap-4 items-center">
+                      <div className="font-semibold text-gray-900">
+                        {provinceNames[provinceCode]} ({provinceCode})
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">GST (%)</Label>
+                        <Input
+                          type="number"
+                          step="0.001"
+                          value={rates.gst}
+                          onChange={(e) => updateTaxRate(provinceCode, 'gst', e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">PST/QST (%)</Label>
+                        <Input
+                          type="number"
+                          step="0.001"
+                          value={rates.pst}
+                          onChange={(e) => updateTaxRate(provinceCode, 'pst', e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">HST (%)</Label>
+                        <Input
+                          type="number"
+                          step="0.001"
+                          value={rates.hst}
+                          onChange={(e) => updateTaxRate(provinceCode, 'hst', e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <p className="text-sm text-gray-700 mb-2">
+                  <strong>Quick Reference:</strong>
+                </p>
+                <ul className="text-xs text-gray-600 space-y-1">
+                  <li>• <strong>GST-only provinces:</strong> AB, NT, NU, YT (5%)</li>
+                  <li>• <strong>GST + PST provinces:</strong> BC (5% + 7%), MB (5% + 7%), QC (5% + 9.975%), SK (5% + 6%)</li>
+                  <li>• <strong>HST provinces:</strong> NB, NL, NS, PE (15%), ON (13%)</li>
+                  <li>• <strong>Zero-rated:</strong> 0% GST/HST (eligible for ITC) - set at sale level</li>
+                  <li>• <strong>Exempt:</strong> No tax charged (no ITC) - set at sale level</li>
+                </ul>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isLoading}>Cancel</Button>
