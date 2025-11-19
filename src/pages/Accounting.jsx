@@ -32,6 +32,7 @@ export default function Accounting() {
 
   const handlePeriodsChange = (periods) => {
     setComparativePeriods(periods);
+    setActivePeriods(periods);
   };
 
   const handleRunReport = () => {
