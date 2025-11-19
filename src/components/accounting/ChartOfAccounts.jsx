@@ -5,8 +5,9 @@ import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Sparkles } from "lucide-react";
+import { Plus, Edit, Trash2, Sparkles, Download, Printer } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import AccountDialog from "./AccountDialog";
 
 export default function ChartOfAccounts() {
@@ -155,11 +156,55 @@ export default function ChartOfAccounts() {
     return groups;
   }, {});
 
+  const exportToCSV = () => {
+    const headers = ['Account Code', 'Account Name', 'Type', 'Category', 'Balance', 'Description'];
+    const rows = accounts.map(acc => [
+      acc.account_code,
+      acc.account_name,
+      acc.account_type,
+      acc.account_category,
+      acc.balance || 0,
+      acc.description || ''
+    ]);
+    
+    const csvContent = [
+      ['Chart of Accounts Report'],
+      ['Generated on', format(new Date(), 'MMMM d, yyyy')],
+      [],
+      headers,
+      ...rows
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chart-of-accounts-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+  };
+
+  const handlePrint = () => {
+    const printContent = document.getElementById('coa-print-content');
+    const originalContents = document.body.innerHTML;
+    document.body.innerHTML = printContent.innerHTML;
+    window.print();
+    document.body.innerHTML = originalContents;
+    window.location.reload();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold">Chart of Accounts</h2>
         <div className="flex gap-2">
+          <Button onClick={exportToCSV} variant="outline" size="sm">
+            <Download className="w-4 h-4 mr-2" />
+            CSV
+          </Button>
+          <Button onClick={handlePrint} variant="outline" size="sm">
+            <Printer className="w-4 h-4 mr-2" />
+            Print
+          </Button>
           {accounts.length === 0 && (
             <Button 
               onClick={handleGenerateAccounts} 
@@ -232,6 +277,47 @@ export default function ChartOfAccounts() {
         onClose={() => { setDialogOpen(false); setEditingAccount(null); }}
         account={editingAccount}
       />
+
+      {/* Hidden print content */}
+      <div id="coa-print-content" className="hidden print:block">
+        <style>{`
+          @media print {
+            body * { visibility: hidden; }
+            #coa-print-content, #coa-print-content * { visibility: visible; }
+            #coa-print-content { position: absolute; left: 0; top: 0; width: 100%; }
+          }
+        `}</style>
+        <div className="p-8">
+          <h1 className="text-2xl font-bold mb-2">Chart of Accounts</h1>
+          <p className="text-sm text-gray-600 mb-6">Generated on {format(new Date(), 'MMMM d, yyyy')}</p>
+          
+          {Object.entries(groupedAccounts).map(([type, typeAccounts]) => (
+            <div key={type} className="mb-6">
+              <h2 className="text-xl font-bold capitalize mb-3 border-b-2 pb-2">{type}</h2>
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-300 p-2 text-left">Code</th>
+                    <th className="border border-gray-300 p-2 text-left">Account Name</th>
+                    <th className="border border-gray-300 p-2 text-left">Category</th>
+                    <th className="border border-gray-300 p-2 text-right">Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {typeAccounts.map(account => (
+                    <tr key={account.id}>
+                      <td className="border border-gray-300 p-2">{account.account_code}</td>
+                      <td className="border border-gray-300 p-2">{account.account_name}</td>
+                      <td className="border border-gray-300 p-2">{account.account_category}</td>
+                      <td className="border border-gray-300 p-2 text-right">${account.balance?.toLocaleString() || '0'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
