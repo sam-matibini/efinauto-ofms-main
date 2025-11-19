@@ -51,9 +51,37 @@ export default function Purchases() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Purchase.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: async (data) => {
+      const purchase = await base44.entities.Purchase.create({ ...data, company_id: selectedCompanyId });
+      
+      // Create accounting transaction for expense
+      if (purchase.total_amount > 0 && purchase.status === 'received') {
+        const transactionType = purchase.purchase_type === 'vehicle' ? 'vehicle_purchase' : 
+                               purchase.purchase_type === 'parts' ? 'parts_purchase' : 'overhead_expense';
+        
+        await base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: purchase.purchase_number || `PO-${purchase.id.slice(0, 8)}`,
+          transaction_type: transactionType,
+          category: 'expense',
+          amount: purchase.total_amount || 0,
+          reference_type: 'Purchase',
+          reference_id: purchase.id,
+          reference_number: purchase.purchase_number,
+          customer_name: purchase.supplier_name,
+          description: `Purchase: ${purchase.purchase_type} from ${purchase.supplier_name}`,
+          transaction_date: purchase.received_date || new Date().toISOString().split('T')[0],
+          payment_method: purchase.payment_method || 'other',
+          status: purchase.payment_status === 'paid' ? 'completed' : 'pending',
+          tax_amount: purchase.tax_amount || 0
+        });
+      }
+      
+      return purchase;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchases'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setDialogOpen(false);
       setEditingPurchase(null);
       toast.success("Purchase order created successfully!");

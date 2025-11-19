@@ -61,9 +61,34 @@ export default function RepairsPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.RepairOrder.create(data),
+    mutationFn: async (data) => {
+      const repairOrder = await base44.entities.RepairOrder.create(data);
+      
+      // Create accounting transaction for service revenue
+      if (repairOrder.total_cost > 0) {
+        await base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: repairOrder.order_number || `RO-${repairOrder.id.slice(0, 8)}`,
+          transaction_type: 'service_revenue',
+          category: 'revenue',
+          amount: repairOrder.total_cost || 0,
+          reference_type: 'RepairOrder',
+          reference_id: repairOrder.id,
+          reference_number: repairOrder.order_number,
+          customer_name: repairOrder.customer_name,
+          description: `Auto repair: ${repairOrder.vehicle_year} ${repairOrder.vehicle_make} ${repairOrder.vehicle_model}`,
+          transaction_date: repairOrder.completion_date || new Date().toISOString().split('T')[0],
+          payment_method: repairOrder.payment_method || 'other',
+          status: repairOrder.payment_status === 'paid' ? 'completed' : 'pending',
+          tax_amount: repairOrder.tax_amount || 0
+        });
+      }
+      
+      return repairOrder;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repairs'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       toast.success("Repair order created successfully");
       setDialogOpen(false);
       setEditingOrder(null);
