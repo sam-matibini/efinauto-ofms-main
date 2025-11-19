@@ -194,81 +194,63 @@ export default function Vehicles() {
 
         <div className="p-6 md:p-8 max-w-7xl mx-auto">
 
-      {/* AI Parts Search - Local Near Me */}
-      <AIPartsSearchLocal />
-
-      {/* AI Parts Search - Canada */}
-      <div className="mt-6">
-        <AIPartsSearchCanada />
-      </div>
-
-      {/* AI Parts Search - USA */}
-      <div className="mt-6">
-        <AIPartsSearchUSA />
-      </div>
-
-      {/* AI Parts Search - Marketplaces */}
-      <div className="mt-6">
-        <AIPartsSearchMarketplace />
-      </div>
-
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6 mb-6">
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Vehicles</p>
-              <h3 className="text-2xl font-bold text-gray-900">{stats.total}</h3>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Vehicles</p>
+                <h3 className="text-2xl font-bold text-gray-900">{stats.total}</h3>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <Car className="w-6 h-6 text-blue-600" />
+              </div>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Car className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">In Stock</p>
-              <h3 className="text-2xl font-bold text-green-600">{stats.inStock}</h3>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">In Stock</p>
+                <h3 className="text-2xl font-bold text-green-600">{stats.inStock}</h3>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-green-600" />
+              </div>
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Sold</p>
-              <h3 className="text-2xl font-bold text-orange-600">{stats.sold}</h3>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Sold</p>
+                <h3 className="text-2xl font-bold text-orange-600">{stats.sold}</h3>
+              </div>
+              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-orange-600" />
+              </div>
             </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-              <AlertTriangle className="w-6 h-6 text-orange-600" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Inventory Value</p>
-              <h3 className="text-2xl font-bold text-green-600">${stats.totalValue.toLocaleString()}</h3>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Inventory Value</p>
+                <h3 className="text-2xl font-bold text-green-600">${stats.totalValue.toLocaleString()}</h3>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-green-600" />
+              </div>
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
@@ -306,6 +288,24 @@ export default function Vehicles() {
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      {/* AI Parts Search - Local Near Me */}
+      <AIPartsSearchLocal />
+
+      {/* AI Parts Search - Canada */}
+      <div className="mt-6">
+        <AIPartsSearchCanada />
+      </div>
+
+      {/* AI Parts Search - USA */}
+      <div className="mt-6">
+        <AIPartsSearchUSA />
+      </div>
+
+      {/* AI Parts Search - Marketplaces */}
+      <div className="mt-6">
+        <AIPartsSearchMarketplace />
       </div>
 
       {isLoading ? (
