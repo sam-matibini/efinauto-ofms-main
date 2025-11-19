@@ -24,10 +24,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useCompany } from "../components/shared/CompanyContext";
-import AIPartsSearchLocal from "@/components/parts/AIPartsSearchLocal";
-import AIPartsSearchCanada from "@/components/parts/AIPartsSearchCanada";
-import AIPartsSearchUSA from "@/components/parts/AIPartsSearchUSA";
-import AIPartsSearchMarketplace from "@/components/parts/AIPartsSearchMarketplace";
+import AIVehicleSearchLocal from "../components/vehicles/AIVehicleSearchLocal";
+import AIVehicleSearchCanada from "../components/vehicles/AIVehicleSearchCanada";
+import AIVehicleSearchUSA from "../components/vehicles/AIVehicleSearchUSA";
+import AIVehicleSearchMarketplace from "../components/vehicles/AIVehicleSearchMarketplace";
 
 export default function Vehicles() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -281,22 +281,22 @@ export default function Vehicles() {
         </div>
       </div>
 
-      {/* AI Parts Search - Local Near Me */}
-      <AIPartsSearchLocal />
+      {/* AI Vehicle Search - Local Near Me */}
+      <AIVehicleSearchLocal />
 
-      {/* AI Parts Search - Canada */}
+      {/* AI Vehicle Search - Canada */}
       <div className="mt-6">
-        <AIPartsSearchCanada />
+        <AIVehicleSearchCanada />
       </div>
 
-      {/* AI Parts Search - USA */}
+      {/* AI Vehicle Search - USA */}
       <div className="mt-6">
-        <AIPartsSearchUSA />
+        <AIVehicleSearchUSA />
       </div>
 
-      {/* AI Parts Search - Marketplaces */}
+      {/* AI Vehicle Search - Marketplaces */}
       <div className="mt-6">
-        <AIPartsSearchMarketplace />
+        <AIVehicleSearchMarketplace />
       </div>
 
       {isLoading ? (
