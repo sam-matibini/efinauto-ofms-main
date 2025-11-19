@@ -119,9 +119,9 @@ export default function Layout({ children, currentPageName }) {
   return (
     <CompanyProvider>
       <SidebarProvider>
-        <div className="min-h-screen flex w-full" style={{ backgroundColor: '#FAFAF9' }}>
-          <Sidebar className="border-r border-gray-200 bg-white">
-            <SidebarHeader className="border-b border-gray-200 p-6">
+        <div className="min-h-screen flex w-full bg-gray-50">
+          <Sidebar className="border-r border-gray-800" style={{ backgroundColor: '#1e293b' }}>
+            <SidebarHeader className="border-b border-gray-700 p-6">
               <div className="flex items-center gap-3 mb-4">
                 <img 
                   src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69156af15abcfb916d821138/3ec91c15a_3Logov2.png" 
@@ -129,14 +129,14 @@ export default function Layout({ children, currentPageName }) {
                   className="w-12 h-12 rounded-lg object-cover"
                 />
                 <div>
-                  <h2 className="font-bold text-gray-900 text-lg">eFinAuto Center</h2>
-                  <p className="text-xs text-gray-500">Car Dealership & Services</p>
+                  <h2 className="font-bold text-white text-lg">eFinAuto Center</h2>
+                  <p className="text-xs text-gray-400">Car Dealership & Services</p>
                 </div>
               </div>
               <CompanySelector />
             </SidebarHeader>
             
-            <SidebarContent className="p-3">
+            <SidebarContent className="p-3" style={{ backgroundColor: '#1e293b' }}>
               <SidebarGroup>
                 <SidebarGroupLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2">
                   Main Menu
@@ -147,8 +147,8 @@ export default function Layout({ children, currentPageName }) {
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton 
                           asChild 
-                          className={`hover:bg-blue-50 hover:text-blue-700 transition-all duration-200 rounded-xl mb-1 ${
-                            location.pathname === item.url ? 'bg-blue-50 text-blue-700 shadow-sm' : ''
+                          className={`hover:bg-gray-700 transition-all duration-200 rounded-lg mb-1 ${
+                            location.pathname === item.url ? 'bg-gray-700 text-white shadow-sm' : 'text-gray-300'
                           }`}
                         >
                           <Link to={item.url} className="flex items-center gap-3 px-4 py-3">
@@ -163,20 +163,20 @@ export default function Layout({ children, currentPageName }) {
               </SidebarGroup>
             </SidebarContent>
 
-            <SidebarFooter className="border-t border-gray-200 p-4">
+            <SidebarFooter className="border-t border-gray-700 p-4" style={{ backgroundColor: '#1e293b' }}>
               <div className="flex items-center gap-3 px-2">
                 <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                   <span className="text-white font-semibold text-sm">A</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 text-sm truncate">Admin User</p>
-                  <p className="text-xs text-gray-500 truncate">Dealership Manager</p>
+                  <p className="font-semibold text-white text-sm truncate">Admin User</p>
+                  <p className="text-xs text-gray-400 truncate">Dealership Manager</p>
                 </div>
               </div>
             </SidebarFooter>
           </Sidebar>
 
-          <main className="flex-1 flex flex-col min-h-screen">
+          <main className="flex-1 flex flex-col min-h-screen bg-white">
             <header className="bg-white border-b border-gray-200 px-6 py-4 md:hidden sticky top-0 z-10">
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="hover:bg-gray-100 p-2 rounded-lg transition-colors duration-200" />

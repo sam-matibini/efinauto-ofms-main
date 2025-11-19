@@ -1,4 +1,3 @@
-
 import React from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -88,13 +87,15 @@ export default function Dashboard() {
   const recentRepairs = repairs.slice(0, 5);
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Dashboard</h1>
-        <p className="text-gray-600">Overview of your car dealership operations</p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-sm text-gray-600 mt-1">Overview of your car dealership operations</p>
       </div>
+      
+      <div className="p-6 md:p-8 max-w-7xl mx-auto">
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatsCard
           title="Vehicles in Stock"
           value={vehiclesInStock}
@@ -129,7 +130,7 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <StatsCard
           title="Pending Exports"
           value={pendingExports}
@@ -156,7 +157,7 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid lg:grid-cols-2 gap-6">
         <Card className="shadow-md border-none">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -221,6 +222,7 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );
