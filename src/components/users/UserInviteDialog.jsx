@@ -14,7 +14,9 @@ export default function UserInviteDialog({ open, onClose }) {
     email: "",
     full_name: "",
     role: "user",
-    company_id: ""
+    company_id: "",
+    department: "",
+    employee_id: ""
   });
 
   const { data: companies = [] } = useQuery({
@@ -38,7 +40,7 @@ export default function UserInviteDialog({ open, onClose }) {
     toast.info("Please use the Base44 dashboard to invite users with email invitations.");
     
     setIsInviting(false);
-    setInviteData({ email: "", full_name: "", role: "user", company_id: "" });
+    setInviteData({ email: "", full_name: "", role: "user", company_id: "", department: "", employee_id: "" });
     onClose();
   };
 
@@ -48,7 +50,7 @@ export default function UserInviteDialog({ open, onClose }) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="w-5 h-5" />
-            Invite New User
+            Send Invitation
           </DialogTitle>
         </DialogHeader>
 
@@ -97,6 +99,24 @@ export default function UserInviteDialog({ open, onClose }) {
               {inviteData.role === 'accountant' && 'Access to financial reports and transactions'}
               {inviteData.role === 'user' && 'Standard access to company data'}
             </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Department</Label>
+            <Input
+              placeholder="e.g. Sales, Service, Parts"
+              value={inviteData.department}
+              onChange={(e) => setInviteData({ ...inviteData, department: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Employee ID</Label>
+            <Input
+              placeholder="e.g. EMP-001"
+              value={inviteData.employee_id}
+              onChange={(e) => setInviteData({ ...inviteData, employee_id: e.target.value })}
+            />
           </div>
 
           <div className="space-y-2">
