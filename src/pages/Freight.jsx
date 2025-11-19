@@ -63,9 +63,32 @@ export default function Freight() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.FreightShipment.create({...data, company_id: selectedCompanyId}),
+    mutationFn: async (data) => {
+      const shipment = await base44.entities.FreightShipment.create({...data, company_id: selectedCompanyId});
+      
+      // Create accounting transaction for freight revenue
+      await base44.entities.Transaction.create({
+        company_id: selectedCompanyId,
+        transaction_number: shipment.shipment_number || `FRT-${shipment.id.slice(0, 8)}`,
+        transaction_type: 'service_revenue',
+        category: 'revenue',
+        amount: shipment.total_cost || 0,
+        reference_type: 'FreightShipment',
+        reference_id: shipment.id,
+        reference_number: shipment.shipment_number,
+        customer_name: shipment.customer_name,
+        description: `Freight service: ${shipment.origin_country} → ${shipment.destination_country}`,
+        transaction_date: new Date().toISOString().split('T')[0],
+        payment_method: 'other',
+        status: shipment.payment_status === 'paid' ? 'completed' : 'pending',
+        tax_amount: 0
+      });
+      
+      return shipment;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setDialogOpen(false);
       setEditingShipment(null);
       toast.success("Freight shipment created!");

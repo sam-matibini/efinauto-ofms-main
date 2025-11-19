@@ -61,11 +61,30 @@ export default function Exports() {
         }
       }
       
+      // Create accounting transaction for export revenue
+      await base44.entities.Transaction.create({
+        company_id: selectedCompanyId,
+        transaction_number: exportOrder.export_number || `EXP-${exportOrder.id.slice(0, 8)}`,
+        transaction_type: 'sale_revenue',
+        category: 'revenue',
+        amount: exportOrder.total_value || 0,
+        reference_type: 'Export',
+        reference_id: exportOrder.id,
+        reference_number: exportOrder.export_number,
+        customer_name: exportOrder.customer_name,
+        description: `Export order: ${exportOrder.export_type} to ${exportOrder.destination_country}`,
+        transaction_date: new Date().toISOString().split('T')[0],
+        payment_method: 'other',
+        status: exportOrder.payment_status === 'paid' ? 'completed' : 'pending',
+        tax_amount: 0
+      });
+      
       return exportOrder;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exports'] });
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setDialogOpen(false);
       setEditingExport(null);
       toast.success("Export order created and vehicle statuses updated!");
