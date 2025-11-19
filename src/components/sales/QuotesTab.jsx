@@ -1,0 +1,250 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import CustomerSelector from "../shared/CustomerSelector";
+
+export default function QuotesTab({ quotes, selectedCompanyId }) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingQuote, setEditingQuote] = useState(null);
+  const queryClient = useQueryClient();
+
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.Quote.create({ ...data, company_id: selectedCompanyId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quotes'] });
+      setDialogOpen(false);
+      setEditingQuote(null);
+      toast.success("Quote saved!");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Quote.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quotes'] });
+      toast.success("Quote deleted!");
+    },
+  });
+
+  const statusColors = {
+    draft: "bg-gray-100 text-gray-800",
+    sent: "bg-blue-100 text-blue-800",
+    accepted: "bg-green-100 text-green-800",
+    declined: "bg-red-100 text-red-800",
+    expired: "bg-orange-100 text-orange-800"
+  };
+
+  return (
+    <>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">Quotes</h2>
+        <Button onClick={() => { setEditingQuote(null); setDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="w-4 h-4 mr-2" />
+          New Quote
+        </Button>
+      </div>
+
+      <div className="space-y-4">
+        {quotes.map((quote) => (
+          <Card key={quote.id} className="hover:shadow-lg transition-all">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="font-bold text-lg">{quote.quote_number}</h3>
+                    <Badge className={statusColors[quote.status]}>{quote.status}</Badge>
+                  </div>
+                  <p className="text-gray-600"><strong>Customer:</strong> {quote.customer_name}</p>
+                  <p className="text-sm text-gray-500">Quote Date: {quote.quote_date}</p>
+                  {quote.expiry_date && <p className="text-sm text-gray-500">Expires: {quote.expiry_date}</p>}
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-blue-600">${quote.total_amount?.toLocaleString()}</p>
+                  <Button variant="outline" size="sm" className="mt-2 text-red-600" onClick={() => deleteMutation.mutate(quote.id)}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <QuoteDialog
+        open={dialogOpen}
+        onClose={() => { setDialogOpen(false); setEditingQuote(null); }}
+        onSave={(data) => createMutation.mutate(data)}
+      />
+    </>
+  );
+}
+
+function QuoteDialog({ open, onClose, onSave }) {
+  const [formData, setFormData] = useState({
+    quote_number: `QT-${Date.now()}`,
+    customer_name: "",
+    customer_email: "",
+    customer_phone: "",
+    line_items: [{ description: "", quantity: 1, unit_price: 0, total: 0 }],
+    subtotal: 0,
+    tax_amount: 0,
+    total_amount: 0,
+    quote_date: new Date().toISOString().split('T')[0],
+    expiry_date: "",
+    status: "draft",
+    notes: "",
+    terms: ""
+  });
+
+  React.useEffect(() => {
+    const subtotal = formData.line_items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+    const tax = subtotal * 0.13;
+    setFormData(prev => ({ ...prev, subtotal, tax_amount: tax, total_amount: subtotal + tax }));
+  }, [formData.line_items]);
+
+  const addLineItem = () => {
+    setFormData({
+      ...formData,
+      line_items: [...formData.line_items, { description: "", quantity: 1, unit_price: 0, total: 0 }]
+    });
+  };
+
+  const updateLineItem = (index, field, value) => {
+    const newItems = [...formData.line_items];
+    newItems[index][field] = value;
+    if (field === 'quantity' || field === 'unit_price') {
+      newItems[index].total = newItems[index].quantity * newItems[index].unit_price;
+    }
+    setFormData({ ...formData, line_items: newItems });
+  };
+
+  const removeLineItem = (index) => {
+    setFormData({ ...formData, line_items: formData.line_items.filter((_, i) => i !== index) });
+  };
+
+  const handleCustomerSelect = (customer) => {
+    setFormData({
+      ...formData,
+      customer_name: customer.full_name,
+      customer_email: customer.email || "",
+      customer_phone: customer.phone || ""
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>New Quote</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Quote Number</Label>
+              <Input value={formData.quote_number} onChange={(e) => setFormData({...formData, quote_number: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="sent">Sent</SelectItem>
+                  <SelectItem value="accepted">Accepted</SelectItem>
+                  <SelectItem value="declined">Declined</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Customer</Label>
+            <CustomerSelector value={null} onSelect={handleCustomerSelect} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Quote Date</Label>
+              <Input type="date" value={formData.quote_date} onChange={(e) => setFormData({...formData, quote_date: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Expiry Date</Label>
+              <Input type="date" value={formData.expiry_date} onChange={(e) => setFormData({...formData, expiry_date: e.target.value})} />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <Label>Line Items</Label>
+              <Button onClick={addLineItem} size="sm" variant="outline">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Item
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {formData.line_items.map((item, index) => (
+                <div key={index} className="grid grid-cols-12 gap-2">
+                  <Input
+                    placeholder="Description"
+                    className="col-span-5"
+                    value={item.description}
+                    onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Qty"
+                    className="col-span-2"
+                    value={item.quantity}
+                    onChange={(e) => updateLineItem(index, 'quantity', parseFloat(e.target.value) || 0)}
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Price"
+                    className="col-span-2"
+                    value={item.unit_price}
+                    onChange={(e) => updateLineItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                  />
+                  <Input
+                    value={`$${item.total.toFixed(2)}`}
+                    disabled
+                    className="col-span-2 bg-gray-50"
+                  />
+                  <Button variant="ghost" size="icon" className="col-span-1" onClick={() => removeLineItem(index)}>
+                    <Trash2 className="w-4 h-4 text-red-600" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+            <div className="flex justify-between"><span>Subtotal:</span><span className="font-bold">${formData.subtotal.toFixed(2)}</span></div>
+            <div className="flex justify-between"><span>Tax (13%):</span><span className="font-bold">${formData.tax_amount.toFixed(2)}</span></div>
+            <div className="flex justify-between text-lg border-t pt-2"><span>Total:</span><span className="font-bold text-blue-600">${formData.total_amount.toFixed(2)}</span></div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Notes</Label>
+            <Textarea value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={3} />
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700">Create Quote</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

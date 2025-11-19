@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, DollarSign, TrendingUp, ChevronDown, ChevronUp, FileText } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, ChevronDown, ChevronUp, FileText, Users, FileCheck, Receipt, RefreshCw, CreditCard, FileX } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -22,8 +22,15 @@ import FinancingForm from "../components/sales/FinancingForm";
 import CanadianTaxCalculator, { calculateCanadianTax } from "../components/sales/CanadianTaxCalculator";
 import BillOfSale from "../components/sales/BillOfSale";
 import { useCompany } from "../components/shared/CompanyContext";
+import CustomersTab from "../components/sales/CustomersTab";
+import QuotesTab from "../components/sales/QuotesTab";
+import InvoicesTab from "../components/sales/InvoicesTab";
+import PaymentsTab from "../components/sales/PaymentsTab";
+import RecurringInvoicesTab from "../components/sales/RecurringInvoicesTab";
+import CreditNotesTab from "../components/sales/CreditNotesTab";
 
 export default function Sales() {
+  const [activeMainTab, setActiveMainTab] = useState("sales");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const [expandedSaleId, setExpandedSaleId] = useState(null);
@@ -42,6 +49,41 @@ export default function Sales() {
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', selectedCompanyId],
     queryFn: () => base44.entities.Customer.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: quotes = [] } = useQuery({
+    queryKey: ['quotes', selectedCompanyId],
+    queryFn: () => base44.entities.Quote.filter({ company_id: selectedCompanyId }, '-created_date'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: invoices = [] } = useQuery({
+    queryKey: ['invoices', selectedCompanyId],
+    queryFn: () => base44.entities.SalesInvoice.filter({ company_id: selectedCompanyId }, '-created_date'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: payments = [] } = useQuery({
+    queryKey: ['payments', selectedCompanyId],
+    queryFn: () => base44.entities.PaymentReceived.filter({ company_id: selectedCompanyId }, '-payment_date'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: creditNotes = [] } = useQuery({
+    queryKey: ['creditNotes', selectedCompanyId],
+    queryFn: () => base44.entities.CreditNote.filter({ company_id: selectedCompanyId }, '-created_date'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: recurringInvoices = [] } = useQuery({
+    queryKey: ['recurringInvoices', selectedCompanyId],
+    queryFn: () => base44.entities.RecurringInvoice.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
@@ -133,24 +175,71 @@ export default function Sales() {
     setBillOfSaleOpen(true);
   };
 
+  if (!selectedCompanyId) {
+    return (
+      <div className="p-6">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <p className="text-yellow-800">Please select a company to view sales management.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-white">Sales Management</h1>
-            <p className="text-sm text-gray-300 mt-1">{sales.length} total sales</p>
+            <p className="text-sm text-gray-300 mt-1">Comprehensive sales operations</p>
           </div>
-        <Button onClick={() => setDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="w-4 h-4 mr-2" />
-          Bill of Sale
-        </Button>
         </div>
-        </div>
+      </div>
 
-        <div className="p-6 md:p-8 max-w-7xl mx-auto">
+      <div className="p-6 md:p-8 max-w-7xl mx-auto">
+        <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-7 h-auto">
+            <TabsTrigger value="sales" className="flex flex-col gap-1 py-3">
+              <FileText className="w-4 h-4" />
+              <span className="text-xs">Bills of Sale</span>
+            </TabsTrigger>
+            <TabsTrigger value="customers" className="flex flex-col gap-1 py-3">
+              <Users className="w-4 h-4" />
+              <span className="text-xs">Customers</span>
+            </TabsTrigger>
+            <TabsTrigger value="quotes" className="flex flex-col gap-1 py-3">
+              <FileCheck className="w-4 h-4" />
+              <span className="text-xs">Quotes</span>
+            </TabsTrigger>
+            <TabsTrigger value="invoices" className="flex flex-col gap-1 py-3">
+              <Receipt className="w-4 h-4" />
+              <span className="text-xs">Invoices</span>
+            </TabsTrigger>
+            <TabsTrigger value="payments" className="flex flex-col gap-1 py-3">
+              <CreditCard className="w-4 h-4" />
+              <span className="text-xs">Payments</span>
+            </TabsTrigger>
+            <TabsTrigger value="recurring" className="flex flex-col gap-1 py-3">
+              <RefreshCw className="w-4 h-4" />
+              <span className="text-xs">Recurring</span>
+            </TabsTrigger>
+            <TabsTrigger value="credits" className="flex flex-col gap-1 py-3">
+              <FileX className="w-4 h-4" />
+              <span className="text-xs">Credit Notes</span>
+            </TabsTrigger>
+          </TabsList>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <TabsContent value="sales" className="space-y-6">
+
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Bills of Sale</h2>
+              <Button onClick={() => setDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="w-4 h-4 mr-2" />
+                New Bill of Sale
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card className="border-none shadow-md">
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
@@ -357,7 +446,33 @@ export default function Sales() {
             </motion.div>
           );
         })}
-      </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="customers" className="space-y-6">
+            <CustomersTab customers={customers} selectedCompanyId={selectedCompanyId} />
+          </TabsContent>
+
+          <TabsContent value="quotes" className="space-y-6">
+            <QuotesTab quotes={quotes} selectedCompanyId={selectedCompanyId} />
+          </TabsContent>
+
+          <TabsContent value="invoices" className="space-y-6">
+            <InvoicesTab invoices={invoices} selectedCompanyId={selectedCompanyId} />
+          </TabsContent>
+
+          <TabsContent value="payments" className="space-y-6">
+            <PaymentsTab payments={payments} selectedCompanyId={selectedCompanyId} />
+          </TabsContent>
+
+          <TabsContent value="recurring" className="space-y-6">
+            <RecurringInvoicesTab recurringInvoices={recurringInvoices} selectedCompanyId={selectedCompanyId} />
+          </TabsContent>
+
+          <TabsContent value="credits" className="space-y-6">
+            <CreditNotesTab creditNotes={creditNotes} selectedCompanyId={selectedCompanyId} />
+          </TabsContent>
+        </Tabs>
 
       <SaleDialog
         open={dialogOpen}
