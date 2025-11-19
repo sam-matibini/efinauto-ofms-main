@@ -13,7 +13,9 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
   const [userData, setUserData] = useState({
     full_name: "",
     role: "user",
-    company_id: ""
+    company_id: "",
+    department: "",
+    employee_id: ""
   });
 
   const { data: companies = [] } = useQuery({
@@ -28,7 +30,9 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
       setUserData({
         full_name: user.full_name || "",
         role: user.role || "user",
-        company_id: user.data?.company_id || ""
+        company_id: user.data?.company_id || "",
+        department: user.department || "",
+        employee_id: user.employee_id || ""
       });
     }
   }, [user]);
@@ -41,6 +45,8 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
     const updateData = {
       full_name: userData.full_name,
       role: userData.role,
+      department: userData.department,
+      employee_id: userData.employee_id,
       data: {
         ...user?.data,
         company_id: userData.company_id || null
@@ -124,6 +130,24 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
             <p className="text-xs text-gray-500">
               Assign user to a specific company for data access
             </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Department</Label>
+            <Input
+              placeholder="User's department"
+              value={userData.department}
+              onChange={(e) => setUserData({ ...userData, department: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Employee ID</Label>
+            <Input
+              placeholder="Employee identification number"
+              value={userData.employee_id}
+              onChange={(e) => setUserData({ ...userData, employee_id: e.target.value })}
+            />
           </div>
         </div>
 
