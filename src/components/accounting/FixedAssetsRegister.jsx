@@ -8,13 +8,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Package, Plus, Edit, Trash2, Download } from "lucide-react";
+import { Package, Plus, Edit, Trash2, Download, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import AIDepreciationCalculator from "./AIDepreciationCalculator";
 
 export default function FixedAssetsRegister({ comparativePeriods = [] }) {
   const { selectedCompanyId } = useCompany();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
+  const [aiCalcOpen, setAiCalcOpen] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState(null);
+  const [aiDepreciations, setAiDepreciations] = useState({});
   const queryClient = useQueryClient();
 
   const currentPeriod = comparativePeriods.length > 0 ? comparativePeriods[0] : null;
@@ -36,15 +40,38 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
     initialData: [],
   });
 
-  // Calculate depreciation (simple straight-line for demo)
-  const calculateDepreciation = (purchasePrice, purchaseDate, usefulLife = 5) => {
-    // Use period end date if available, otherwise current date
+  // Calculate depreciation (simple straight-line for demo or use AI if available)
+  const calculateDepreciation = (asset) => {
+    const aiCalc = aiDepreciations[asset.id];
+    if (aiCalc) {
+      return {
+        accumulatedDepreciation: aiCalc.accumulated_depreciation || 0,
+        netBookValue: aiCalc.net_book_value || 0,
+        annualDepreciation: aiCalc.annual_depreciation || 0,
+        method: aiCalc.method || 'AI Calculated'
+      };
+    }
+    
+    // Fallback to simple straight-line
     const endDate = currentPeriod ? currentPeriod.to : new Date();
-    const yearsSincePurchase = (endDate - new Date(purchaseDate)) / (365 * 24 * 60 * 60 * 1000);
-    const annualDepreciation = purchasePrice / usefulLife;
-    const accumulatedDepreciation = Math.min(annualDepreciation * yearsSincePurchase, purchasePrice);
-    const netBookValue = purchasePrice - accumulatedDepreciation;
-    return { accumulatedDepreciation, netBookValue, annualDepreciation };
+    const yearsSincePurchase = (endDate - new Date(asset.purchaseDate)) / (365 * 24 * 60 * 60 * 1000);
+    const usefulLife = 5;
+    const annualDepreciation = asset.purchasePrice / usefulLife;
+    const accumulatedDepreciation = Math.min(annualDepreciation * yearsSincePurchase, asset.purchasePrice);
+    const netBookValue = asset.purchasePrice - accumulatedDepreciation;
+    return { accumulatedDepreciation, netBookValue, annualDepreciation, method: 'Straight-Line' };
+  };
+
+  const handleAICalculation = (assetData) => {
+    setSelectedAsset(assetData);
+    setAiCalcOpen(true);
+  };
+
+  const handleAICalculated = (result) => {
+    setAiDepreciations(prev => ({
+      ...prev,
+      [selectedAsset.id]: result
+    }));
   };
 
   // Filter assets by period if provided
@@ -80,7 +107,7 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
 
   const totalCost = fixedAssets.reduce((sum, asset) => sum + (asset.purchasePrice || 0), 0);
   const totalDepreciation = fixedAssets.reduce((sum, asset) => {
-    const dep = calculateDepreciation(asset.purchasePrice, asset.purchaseDate);
+    const dep = calculateDepreciation(asset);
     return sum + dep.accumulatedDepreciation;
   }, 0);
   const totalNetValue = totalCost - totalDepreciation;
@@ -88,22 +115,23 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
   const handleExport = () => {
     const csv = [
       ['Fixed Assets Register'],
-      ['Asset Type', 'Description', 'Serial Number', 'Purchase Date', 'Purchase Price', 'Accumulated Depreciation', 'Net Book Value', 'Status'],
+      ['Asset Type', 'Description', 'Serial Number', 'Purchase Date', 'Purchase Price', 'Depreciation Method', 'Accumulated Depreciation', 'Net Book Value', 'Status'],
       ...fixedAssets.map(asset => {
-        const dep = calculateDepreciation(asset.purchasePrice, asset.purchaseDate);
+        const dep = calculateDepreciation(asset);
         return [
           asset.type,
           asset.description,
           asset.serialNumber,
           new Date(asset.purchaseDate).toLocaleDateString(),
           asset.purchasePrice.toFixed(2),
+          dep.method || 'Straight-Line',
           dep.accumulatedDepreciation.toFixed(2),
           dep.netBookValue.toFixed(2),
           asset.status
         ];
       }),
       [''],
-      ['TOTALS', '', '', '', totalCost.toFixed(2), totalDepreciation.toFixed(2), totalNetValue.toFixed(2), '']
+      ['TOTALS', '', '', '', '', totalCost.toFixed(2), totalDepreciation.toFixed(2), totalNetValue.toFixed(2), '']
     ].map(row => row.join(',')).join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -168,14 +196,17 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
                 <th className="text-left p-3 text-sm font-semibold">Serial Number</th>
                 <th className="text-left p-3 text-sm font-semibold">Purchase Date</th>
                 <th className="text-right p-3 text-sm font-semibold">Cost</th>
+                <th className="text-left p-3 text-sm font-semibold">Method</th>
                 <th className="text-right p-3 text-sm font-semibold">Depreciation</th>
                 <th className="text-right p-3 text-sm font-semibold">Net Value</th>
                 <th className="text-left p-3 text-sm font-semibold">Status</th>
+                <th className="text-center p-3 text-sm font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
               {fixedAssets.map((asset) => {
-                const dep = calculateDepreciation(asset.purchasePrice, asset.purchaseDate);
+                const dep = calculateDepreciation(asset);
+                const hasAICalc = aiDepreciations[asset.id];
                 return (
                   <tr key={asset.id} className="border-b hover:bg-gray-50">
                     <td className="p-3 text-sm">
@@ -185,6 +216,12 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
                     <td className="p-3 text-sm font-mono text-xs">{asset.serialNumber}</td>
                     <td className="p-3 text-sm">{new Date(asset.purchaseDate).toLocaleDateString()}</td>
                     <td className="p-3 text-sm text-right font-mono">${asset.purchasePrice.toLocaleString()}</td>
+                    <td className="p-3 text-sm">
+                      <Badge className={hasAICalc ? "bg-purple-100 text-purple-800" : "bg-gray-100 text-gray-600"} variant="outline">
+                        {hasAICalc && <Sparkles className="w-3 h-3 mr-1 inline" />}
+                        {dep.method}
+                      </Badge>
+                    </td>
                     <td className="p-3 text-sm text-right font-mono text-red-600">
                       ${dep.accumulatedDepreciation.toLocaleString()}
                     </td>
@@ -200,6 +237,16 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
                         {asset.status}
                       </Badge>
                     </td>
+                    <td className="p-3 text-sm text-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleAICalculation(asset)}
+                        className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                      </Button>
+                    </td>
                   </tr>
                 );
               })}
@@ -208,9 +255,10 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
               <tr>
                 <td colSpan="4" className="p-3 text-sm">TOTALS</td>
                 <td className="p-3 text-sm text-right">${totalCost.toLocaleString()}</td>
+                <td></td>
                 <td className="p-3 text-sm text-right text-red-600">${totalDepreciation.toLocaleString()}</td>
                 <td className="p-3 text-sm text-right text-green-600">${totalNetValue.toLocaleString()}</td>
-                <td></td>
+                <td colSpan="2"></td>
               </tr>
             </tfoot>
           </table>
@@ -224,12 +272,27 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
         )}
 
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800">
-            <strong>Note:</strong> Depreciation is calculated using straight-line method over 5 years useful life.
-            This is a simplified calculation for demonstration purposes.
-          </p>
+          <div className="flex items-start gap-3">
+            <Sparkles className="w-5 h-5 text-purple-600 mt-0.5" />
+            <div>
+              <p className="text-sm text-blue-800 font-semibold mb-1">
+                AI-Powered Depreciation Available
+              </p>
+              <p className="text-sm text-blue-800">
+                Click the <Sparkles className="w-3 h-3 inline text-purple-600" /> icon on any asset to calculate depreciation using AI. 
+                The AI analyzes asset type, age, condition, and industry standards to recommend the optimal depreciation method and provide accurate calculations.
+              </p>
+            </div>
+          </div>
         </div>
       </CardContent>
+
+      <AIDepreciationCalculator
+        asset={selectedAsset}
+        open={aiCalcOpen}
+        onClose={() => setAiCalcOpen(false)}
+        onCalculated={handleAICalculated}
+      />
     </Card>
   );
 }
