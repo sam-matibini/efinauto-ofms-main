@@ -364,12 +364,13 @@ export default function Sales() {
             <Button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700">
               Print
             </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
+            </div>
+            </DialogContent>
+            </Dialog>
+            </div>
+            </div>
+            );
+            }
 
 function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
   const [activeTab, setActiveTab] = useState("basic");

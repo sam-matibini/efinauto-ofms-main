@@ -157,17 +157,20 @@ export default function Parts() {
           <h1 className="text-3xl font-bold text-gray-900">Parts Inventory</h1>
           <p className="text-gray-500 mt-1">Manage your parts stock and reorder points</p>
         </div>
-        <Button 
-          onClick={() => {
-            setEditingPart(null);
-            setDialogOpen(true);
-          }}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Part
-        </Button>
+          <Button 
+            onClick={() => {
+              setEditingPart(null);
+              setDialogOpen(true);
+            }}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Part
+          </Button>
+        </div>
       </div>
+      
+      <div className="p-6 md:p-8 max-w-7xl mx-auto">
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

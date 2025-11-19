@@ -124,7 +124,8 @@ export default function ReportsPage() {
         <TabsContent value="exports">
           <ExportReport exports={exports} dateRange={dateRange} />
         </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
+        </Tabs>
+        </div>
+        </div>
+        );
+        }
