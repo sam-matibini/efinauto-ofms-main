@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, Building2, Edit, Mail, Phone, MapPin } from "lucide-react";
+import { Plus, Search, Building2, Edit, Mail, Phone, MapPin, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +18,8 @@ export default function Companies() {
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -66,6 +69,20 @@ export default function Companies() {
     onError: (error) => {
       console.error('Update error:', error);
       toast.error(error?.message || "Failed to update company");
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Company.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      setDeleteDialogOpen(false);
+      setCompanyToDelete(null);
+      toast.success("Company deleted successfully!");
+    },
+    onError: (error) => {
+      console.error('Delete error:', error);
+      toast.error(error?.message || "Failed to delete company");
     }
   });
 
@@ -195,17 +212,29 @@ export default function Companies() {
                     )}
                   </div>
 
-                  <Button 
-                    onClick={() => {
-                      setEditingCompany(company);
-                      setDialogOpen(true);
-                    }}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => {
+                        setEditingCompany(company);
+                        setDialogOpen(true);
+                      }}
+                      className="flex-1"
+                      variant="outline"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        setCompanyToDelete(company);
+                        setDeleteDialogOpen(true);
+                      }}
+                      variant="outline"
+                      className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -222,7 +251,27 @@ export default function Companies() {
         company={editingCompany}
         onSave={handleSave}
         isLoading={createMutation.isPending || updateMutation.isPending}
-        />
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Company</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{companyToDelete?.name}"? This action cannot be undone and will affect all related records.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCompanyToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => companyToDelete && deleteMutation.mutate(companyToDelete.id)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
         </div>
         </div>
         );
