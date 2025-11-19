@@ -24,10 +24,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useCompany } from "../components/shared/CompanyContext";
-import AIPartsSearchLocal from "@/components/parts/AIPartsSearchLocal";
-import AIPartsSearchCanada from "@/components/parts/AIPartsSearchCanada";
-import AIPartsSearchUSA from "@/components/parts/AIPartsSearchUSA";
-import AIPartsSearchMarketplace from "@/components/parts/AIPartsSearchMarketplace";
 
 export default function Vehicles() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -281,22 +277,70 @@ export default function Vehicles() {
         </div>
       </div>
 
-      {/* AI Parts Search - Local Near Me */}
-      <AIPartsSearchLocal />
+      {/* AI Vehicle Search - Local Near Me */}
+      <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-purple-900">
+            📍 Local Near Me Vehicles Search
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-600 mb-4">
+            Find vehicles at local dealerships, auctions, and private sellers near your location
+          </p>
+          <div className="text-sm text-gray-500 italic">Vehicle search coming soon...</div>
+        </CardContent>
+      </Card>
 
-      {/* AI Parts Search - Canada */}
+      {/* AI Vehicle Search - Canada */}
       <div className="mt-6">
-        <AIPartsSearchCanada />
+        <Card className="bg-gradient-to-br from-red-50 to-white border-red-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-900">
+              🇨🇦 Canada-Wide Vehicles Search
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600 mb-4">
+              Search across Canadian vehicle marketplaces and dealerships
+            </p>
+            <div className="text-sm text-gray-500 italic">Vehicle search coming soon...</div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* AI Parts Search - USA */}
+      {/* AI Vehicle Search - USA */}
       <div className="mt-6">
-        <AIPartsSearchUSA />
+        <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-900">
+              🇺🇸 USA-Wide Vehicles Search
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600 mb-4">
+              Search across USA vehicle marketplaces and dealerships
+            </p>
+            <div className="text-sm text-gray-500 italic">Vehicle search coming soon...</div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* AI Parts Search - Marketplaces */}
+      {/* AI Vehicle Search - Marketplaces */}
       <div className="mt-6">
-        <AIPartsSearchMarketplace />
+        <Card className="bg-gradient-to-br from-orange-50 to-white border-orange-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-900">
+              🛒 Marketplace Vehicles Search
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600 mb-4">
+              Search Facebook Marketplace, Kijiji, AutoTrader, and other platforms
+            </p>
+            <div className="text-sm text-gray-500 italic">Vehicle search coming soon...</div>
+          </CardContent>
+        </Card>
       </div>
 
       {isLoading ? (
