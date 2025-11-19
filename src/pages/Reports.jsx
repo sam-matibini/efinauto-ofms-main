@@ -89,20 +89,20 @@ export default function ReportsPage() {
       <div className="p-6 space-y-6">
 
       <Tabs defaultValue="sales" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto">
-          <TabsTrigger value="sales" className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto bg-gray-100">
+          <TabsTrigger value="sales" className="flex items-center gap-2 bg-blue-50 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700">
             <TrendingUp className="w-4 h-4" />
             Sales
           </TabsTrigger>
-          <TabsTrigger value="inventory" className="flex items-center gap-2 data-[state=active]:bg-green-50 data-[state=active]:text-green-700">
+          <TabsTrigger value="inventory" className="flex items-center gap-2 bg-green-50 data-[state=active]:bg-green-100 data-[state=active]:text-green-700">
             <Package className="w-4 h-4" />
             Inventory
           </TabsTrigger>
-          <TabsTrigger value="financial" className="flex items-center gap-2 data-[state=active]:bg-purple-50 data-[state=active]:text-purple-700">
+          <TabsTrigger value="financial" className="flex items-center gap-2 bg-purple-50 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-700">
             <DollarSign className="w-4 h-4" />
             Financial
           </TabsTrigger>
-          <TabsTrigger value="exports" className="flex items-center gap-2 data-[state=active]:bg-amber-50 data-[state=active]:text-amber-700">
+          <TabsTrigger value="exports" className="flex items-center gap-2 bg-amber-50 data-[state=active]:bg-amber-100 data-[state=active]:text-amber-700">
             <Plane className="w-4 h-4" />
             Exports
           </TabsTrigger>
