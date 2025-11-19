@@ -6,18 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   DollarSign, 
   TrendingUp, 
   TrendingDown, 
   Wallet,
-  BarChart3,
-  Calendar
+  BarChart3
 } from "lucide-react";
-import { format, startOfMonth, endOfMonth, subMonths, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subQuarters, subYears } from "date-fns";
+import { format } from "date-fns";
 import RevenueOverview from "@/components/accounting/RevenueOverview";
 import TransactionsList from "@/components/accounting/TransactionsList";
 import ProfitLossStatement from "@/components/accounting/ProfitLossStatement";
@@ -26,56 +22,14 @@ import BalanceSheet from "@/components/accounting/BalanceSheet";
 import RetainedEarningsStatement from "@/components/accounting/RetainedEarningsStatement";
 import CashFlowStatement from "@/components/accounting/CashFlowStatement";
 import FixedAssetsRegister from "@/components/accounting/FixedAssetsRegister";
+import PeriodComparison from "@/components/shared/PeriodComparison";
 
 export default function Accounting() {
   const { selectedCompanyId } = useCompany();
-  const [period, setPeriod] = useState("this_month");
-  const [dateRange, setDateRange] = useState({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date())
-  });
-  const [customDateFrom, setCustomDateFrom] = useState(null);
-  const [customDateTo, setCustomDateTo] = useState(null);
+  const [comparativePeriods, setComparativePeriods] = useState([]);
 
-  const handlePeriodChange = (newPeriod) => {
-    setPeriod(newPeriod);
-    const today = new Date();
-    
-    switch (newPeriod) {
-      case "this_month":
-        setDateRange({ from: startOfMonth(today), to: endOfMonth(today) });
-        break;
-      case "last_month":
-        const lastMonth = subMonths(today, 1);
-        setDateRange({ from: startOfMonth(lastMonth), to: endOfMonth(lastMonth) });
-        break;
-      case "this_quarter":
-        setDateRange({ from: startOfQuarter(today), to: endOfQuarter(today) });
-        break;
-      case "last_quarter":
-        const lastQuarter = subQuarters(today, 1);
-        setDateRange({ from: startOfQuarter(lastQuarter), to: endOfQuarter(lastQuarter) });
-        break;
-      case "this_year":
-        setDateRange({ from: startOfYear(today), to: endOfYear(today) });
-        break;
-      case "last_year":
-        const lastYear = subYears(today, 1);
-        setDateRange({ from: startOfYear(lastYear), to: endOfYear(lastYear) });
-        break;
-      case "custom":
-        if (customDateFrom && customDateTo) {
-          setDateRange({ from: customDateFrom, to: customDateTo });
-        }
-        break;
-    }
-  };
-
-  const handleCustomDateApply = () => {
-    if (customDateFrom && customDateTo) {
-      setDateRange({ from: customDateFrom, to: customDateTo });
-      setPeriod("custom");
-    }
+  const handlePeriodsChange = (periods) => {
+    setComparativePeriods(periods);
   };
 
   const { data: transactions = [], isLoading: loadingTransactions } = useQuery({
@@ -106,39 +60,43 @@ export default function Accounting() {
     initialData: [],
   });
 
-  // Calculate key metrics for selected period
-  const periodTransactions = transactions.filter(t => {
-    const transDate = new Date(t.transaction_date);
-    return transDate >= dateRange.from && transDate <= dateRange.to;
+  // Calculate metrics for all comparative periods
+  const periodMetrics = comparativePeriods.map((period) => {
+    const periodTransactions = transactions.filter(t => {
+      const transDate = new Date(t.transaction_date);
+      return transDate >= period.from && transDate <= period.to;
+    });
+
+    const revenue = periodTransactions
+      .filter(t => t.category === 'revenue' && t.status === 'completed')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+    const expenses = periodTransactions
+      .filter(t => t.category === 'expense' && t.status === 'completed')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+    return {
+      label: period.label,
+      revenue,
+      expenses,
+      profit: revenue - expenses,
+      dateRange: period
+    };
   });
 
-  const totalRevenue = periodTransactions
-    .filter(t => t.category === 'revenue' && t.status === 'completed')
-    .reduce((sum, t) => sum + (t.amount || 0), 0);
+  // Use first period for main display
+  const currentPeriod = periodMetrics[0] || { revenue: 0, expenses: 0, profit: 0 };
+  const totalRevenue = currentPeriod.revenue;
+  const totalExpenses = currentPeriod.expenses;
+  const netProfit = currentPeriod.profit;
 
-  const totalExpenses = periodTransactions
-    .filter(t => t.category === 'expense' && t.status === 'completed')
-    .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-  const netProfit = totalRevenue - totalExpenses;
-
-  // Calculate previous period for comparison
-  const periodLength = dateRange.to - dateRange.from;
-  const previousPeriodFrom = new Date(dateRange.from.getTime() - periodLength);
-  const previousPeriodTo = new Date(dateRange.from.getTime());
-
-  const previousPeriodTransactions = transactions.filter(t => {
-    const transDate = new Date(t.transaction_date);
-    return transDate >= previousPeriodFrom && transDate < previousPeriodTo;
-  });
-
-  const previousRevenue = previousPeriodTransactions
-    .filter(t => t.category === 'revenue' && t.status === 'completed')
-    .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-  const revenueGrowth = previousRevenue > 0 
-    ? ((totalRevenue - previousRevenue) / previousRevenue * 100).toFixed(1)
+  // Calculate growth compared to previous period
+  const previousPeriod = periodMetrics[1];
+  const revenueGrowth = previousPeriod && previousPeriod.revenue > 0
+    ? ((totalRevenue - previousPeriod.revenue) / previousPeriod.revenue * 100).toFixed(1)
     : 0;
+  
+  const currentDateRange = comparativePeriods[0] || { from: new Date(), to: new Date() };
 
   if (!selectedCompanyId) {
     return (
@@ -164,83 +122,8 @@ export default function Accounting() {
       </div>
 
       <div className="p-6 space-y-6">
-        {/* Period Selector */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-              <div className="flex-1">
-                <Label className="text-sm font-medium mb-2 block">Select Period</Label>
-                <Select value={period} onValueChange={handlePeriodChange}>
-                  <SelectTrigger className="w-full md:w-64">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="this_month">This Month</SelectItem>
-                    <SelectItem value="last_month">Last Month</SelectItem>
-                    <SelectItem value="this_quarter">This Quarter</SelectItem>
-                    <SelectItem value="last_quarter">Last Quarter</SelectItem>
-                    <SelectItem value="this_year">This Year</SelectItem>
-                    <SelectItem value="last_year">Last Year</SelectItem>
-                    <SelectItem value="custom">Custom Range</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {period === "custom" && (
-                <div className="flex gap-2 items-end">
-                  <div>
-                    <Label className="text-sm font-medium mb-2 block">From Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-40">
-                          <Calendar className="w-4 h-4 mr-2" />
-                          {customDateFrom ? format(customDateFrom, 'MMM d, yyyy') : 'Select'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <CalendarComponent
-                          mode="single"
-                          selected={customDateFrom}
-                          onSelect={setCustomDateFrom}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <div>
-                    <Label className="text-sm font-medium mb-2 block">To Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-40">
-                          <Calendar className="w-4 h-4 mr-2" />
-                          {customDateTo ? format(customDateTo, 'MMM d, yyyy') : 'Select'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <CalendarComponent
-                          mode="single"
-                          selected={customDateTo}
-                          onSelect={setCustomDateTo}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <Button onClick={handleCustomDateApply} disabled={!customDateFrom || !customDateTo}>
-                    Apply
-                  </Button>
-                </div>
-              )}
-
-              <div className="flex-1 text-right">
-                <Label className="text-sm font-medium mb-2 block">Viewing Period</Label>
-                <p className="text-sm text-gray-600">
-                  {format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Period Comparison Selector */}
+        <PeriodComparison onPeriodsChange={handlePeriodsChange} maxPeriods={12} />
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -328,27 +211,26 @@ export default function Accounting() {
           </TabsContent>
 
           <TabsContent value="transactions">
-            <TransactionsList transactions={transactions} dateRange={dateRange} />
+            <TransactionsList transactions={transactions} dateRange={currentDateRange} />
           </TabsContent>
 
           <TabsContent value="profit-loss">
             <ProfitLossStatement 
               transactions={transactions}
-              dateRange={dateRange}
-              onDateRangeChange={setDateRange}
+              comparativePeriods={comparativePeriods}
             />
           </TabsContent>
 
           <TabsContent value="balance-sheet">
-            <BalanceSheet dateRange={dateRange} />
+            <BalanceSheet comparativePeriods={comparativePeriods} />
           </TabsContent>
 
           <TabsContent value="retained-earnings">
-            <RetainedEarningsStatement dateRange={dateRange} />
+            <RetainedEarningsStatement comparativePeriods={comparativePeriods} />
           </TabsContent>
 
           <TabsContent value="cash-flow">
-            <CashFlowStatement dateRange={dateRange} />
+            <CashFlowStatement comparativePeriods={comparativePeriods} />
           </TabsContent>
 
           <TabsContent value="fixed-assets">

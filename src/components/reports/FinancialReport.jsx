@@ -3,18 +3,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { DollarSign, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 
-export default function FinancialReport({ sales, repairs, exports, dateRange }) {
-  const filterByDate = (items) => {
-    if (dateRange === 'all') return items;
-    const days = parseInt(dateRange);
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    return items.filter(item => new Date(item.created_date) >= cutoff);
+export default function FinancialReport({ sales, repairs, exports, comparativePeriods = [] }) {
+  const currentPeriod = comparativePeriods[0] || { from: new Date(), to: new Date() };
+  
+  const filterByDate = (items, period) => {
+    return items.filter(item => {
+      const itemDate = new Date(item.created_date || item.sale_date);
+      return itemDate >= period.from && itemDate <= period.to;
+    });
   };
 
-  const filteredSales = filterByDate(sales);
-  const filteredRepairs = filterByDate(repairs);
-  const filteredExports = filterByDate(exports);
+  const filteredSales = filterByDate(sales, currentPeriod);
+  const filteredRepairs = filterByDate(repairs, currentPeriod);
+  const filteredExports = filterByDate(exports, currentPeriod);
 
   const salesRevenue = filteredSales.reduce((sum, s) => sum + (s.grand_total || s.sale_price || 0), 0);
   const repairsRevenue = filteredRepairs.reduce((sum, r) => sum + (r.total_cost || 0), 0);

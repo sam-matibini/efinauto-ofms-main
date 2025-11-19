@@ -5,16 +5,13 @@ import { DollarSign, TrendingUp, ShoppingCart, Users } from "lucide-react";
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-export default function SalesReport({ sales, dateRange }) {
-  const filterByDate = (items) => {
-    if (dateRange === 'all') return items;
-    const days = parseInt(dateRange);
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    return items.filter(item => new Date(item.sale_date || item.created_date) >= cutoff);
-  };
-
-  const filteredSales = filterByDate(sales);
+export default function SalesReport({ sales, comparativePeriods = [] }) {
+  const currentPeriod = comparativePeriods[0] || { from: new Date(), to: new Date() };
+  
+  const filteredSales = sales.filter(sale => {
+    const saleDate = new Date(sale.sale_date || sale.created_date);
+    return saleDate >= currentPeriod.from && saleDate <= currentPeriod.to;
+  });
 
   const totalRevenue = filteredSales.reduce((sum, sale) => sum + (sale.grand_total || sale.sale_price || 0), 0);
   const totalSales = filteredSales.length;

@@ -3,18 +3,17 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Download, FileText, TrendingUp, Package, DollarSign, Plane } from "lucide-react";
+import { TrendingUp, Package, DollarSign, Plane } from "lucide-react";
 import { useCompany } from "@/components/shared/CompanyContext";
 import SalesReport from "@/components/reports/SalesReport";
 import InventoryReport from "@/components/reports/InventoryReport";
 import FinancialReport from "@/components/reports/FinancialReport";
 import ExportReport from "@/components/reports/ExportReport";
+import PeriodComparison from "@/components/shared/PeriodComparison";
 
 export default function ReportsPage() {
   const { selectedCompanyId } = useCompany();
-  const [dateRange, setDateRange] = useState("30");
+  const [comparativePeriods, setComparativePeriods] = useState([]);
 
   const { data: sales = [] } = useQuery({
     queryKey: ['sales', selectedCompanyId],
@@ -69,24 +68,11 @@ export default function ReportsPage() {
             <h1 className="text-2xl font-bold text-white">Reports & Analytics</h1>
             <p className="text-sm text-gray-300 mt-1">Business intelligence and insights</p>
           </div>
-          <div className="flex items-center gap-3">
-            <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger className="w-40 bg-sky-500 text-white border-sky-600 hover:bg-sky-600">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7">Last 7 days</SelectItem>
-                <SelectItem value="30">Last 30 days</SelectItem>
-                <SelectItem value="90">Last 90 days</SelectItem>
-                <SelectItem value="365">Last year</SelectItem>
-                <SelectItem value="all">All time</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
       </div>
       
       <div className="p-6 space-y-6">
+        <PeriodComparison onPeriodsChange={setComparativePeriods} maxPeriods={12} />
 
       <Tabs defaultValue="sales" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4 lg:w-auto bg-gray-100">
@@ -109,11 +95,11 @@ export default function ReportsPage() {
         </TabsList>
 
         <TabsContent value="sales">
-          <SalesReport sales={sales} dateRange={dateRange} />
+          <SalesReport sales={sales} comparativePeriods={comparativePeriods} />
         </TabsContent>
 
         <TabsContent value="inventory">
-          <InventoryReport vehicles={vehicles} parts={parts} dateRange={dateRange} />
+          <InventoryReport vehicles={vehicles} parts={parts} />
         </TabsContent>
 
         <TabsContent value="financial">
@@ -121,12 +107,12 @@ export default function ReportsPage() {
             sales={sales} 
             repairs={repairs} 
             exports={exports} 
-            dateRange={dateRange} 
+            comparativePeriods={comparativePeriods}
           />
         </TabsContent>
 
         <TabsContent value="exports">
-          <ExportReport exports={exports} dateRange={dateRange} />
+          <ExportReport exports={exports} comparativePeriods={comparativePeriods} />
         </TabsContent>
       </Tabs>
       </div>
