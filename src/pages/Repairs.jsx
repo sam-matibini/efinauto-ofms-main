@@ -157,12 +157,13 @@ export default function RepairsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Auto Repair Center</h1>
-          <p className="text-gray-500 mt-1">Comprehensive repair order management</p>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Auto Repair Center</h1>
+            <p className="text-sm text-gray-300 mt-1">Comprehensive repair order management</p>
+          </div>
         <div className="flex gap-2">
           <Button onClick={() => setSchedulerDialogOpen(true)} variant="outline">
             <CalendarDays className="w-4 h-4 mr-2" />
@@ -183,10 +184,12 @@ export default function RepairsPage() {
             <Plus className="w-4 h-4 mr-2" />
             New Repair Order
           </Button>
-        </div>
-      </div>
+          </div>
+          </div>
+          </div>
 
-      {/* Stats Cards */}
+          <div className="p-6 space-y-6">
+          {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6">

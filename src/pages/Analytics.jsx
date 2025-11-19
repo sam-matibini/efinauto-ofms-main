@@ -168,16 +168,16 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Sparkles className="w-8 h-8 text-blue-600" />
-            AI-Powered Analytics
-          </h1>
-          <p className="text-gray-500 mt-1">Advanced insights and predictive analytics</p>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
+        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <Sparkles className="w-6 h-6 text-blue-400" />
+          AI-Powered Analytics
+        </h1>
+        <p className="text-sm text-gray-300 mt-1">Advanced insights and predictive analytics</p>
       </div>
+
+      <div className="p-6 space-y-6">
 
       {/* Filters Section */}
       <Card>
@@ -315,6 +315,7 @@ export default function AnalyticsPage() {
           />
         </TabsContent>
       </Tabs>
-    </div>
-  );
-}
+      </div>
+      </div>
+      );
+      }

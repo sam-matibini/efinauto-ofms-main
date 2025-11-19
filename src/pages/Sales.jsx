@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -116,17 +115,21 @@ export default function Sales() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Sales Management</h1>
-          <p className="text-gray-600">{sales.length} total sales</p>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Sales Management</h1>
+            <p className="text-sm text-gray-300 mt-1">{sales.length} total sales</p>
+          </div>
         <Button onClick={() => setDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
           <Plus className="w-4 h-4 mr-2" />
           Bill of Sale
         </Button>
-      </div>
+        </div>
+        </div>
+
+        <div className="p-6 md:p-8 max-w-7xl mx-auto">
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card className="border-none shadow-md">

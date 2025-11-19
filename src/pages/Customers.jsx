@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -173,12 +172,13 @@ export default function Customers() {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Customer Management</h1>
-          <p className="text-gray-600">{filteredCustomers.length} customers</p>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Customer Management</h1>
+            <p className="text-sm text-gray-300 mt-1">{filteredCustomers.length} customers</p>
+          </div>
         <div className="flex gap-3">
           <div className="flex bg-white rounded-lg shadow-sm border">
             <Button
@@ -210,8 +210,11 @@ export default function Customers() {
             <Plus className="w-4 h-4 mr-2" />
             Add Customer
           </Button>
-        </div>
-      </div>
+          </div>
+          </div>
+          </div>
+
+          <div className="p-6 md:p-8 max-w-7xl mx-auto">
 
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -373,9 +376,10 @@ export default function Customers() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  );
-}
+        </div>
+      </div>
+    );
+  }
 
 function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
   const [formData, setFormData] = useState({

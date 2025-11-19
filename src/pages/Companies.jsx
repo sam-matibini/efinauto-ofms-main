@@ -107,12 +107,13 @@ export default function Companies() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Company Management</h1>
-          <p className="text-gray-600">{filteredCompanies.length} companies</p>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Company Management</h1>
+            <p className="text-sm text-gray-300 mt-1">{filteredCompanies.length} companies</p>
+          </div>
         <Button 
           onClick={() => {
             setEditingCompany(null);
@@ -123,7 +124,10 @@ export default function Companies() {
           <Plus className="w-4 h-4 mr-2" />
           Add Company
         </Button>
-      </div>
+        </div>
+        </div>
+
+        <div className="p-6 md:p-8 max-w-7xl mx-auto">
 
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
         <div className="relative">
@@ -217,10 +221,11 @@ export default function Companies() {
         company={editingCompany}
         onSave={handleSave}
         isLoading={createMutation.isPending || updateMutation.isPending}
-      />
-    </div>
-  );
-}
+        />
+        </div>
+        </div>
+        );
+        }
 
 function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
   const [formData, setFormData] = useState(company || {

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -162,12 +161,13 @@ export default function Vehicles() {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Vehicles Inventory</h1>
-          <p className="text-gray-600">{filteredVehicles.length} vehicles</p>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Vehicles Inventory</h1>
+            <p className="text-sm text-gray-300 mt-1">{filteredVehicles.length} vehicles</p>
+          </div>
         <Button 
           onClick={() => {
             setEditingVehicle(null);
@@ -178,7 +178,10 @@ export default function Vehicles() {
           <Plus className="w-4 h-4 mr-2" />
           Add Vehicle
         </Button>
-      </div>
+        </div>
+        </div>
+
+        <div className="p-6 md:p-8 max-w-7xl mx-auto">
 
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -318,10 +321,11 @@ export default function Vehicles() {
         uploading={uploading}
         setUploading={setUploading}
         isSaving={createMutation.isPending || updateMutation.isPending}
-      />
-    </div>
-  );
-}
+        />
+        </div>
+        </div>
+        );
+        }
 
 function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading, isSaving }) {
   const [formData, setFormData] = useState({

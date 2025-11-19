@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -110,13 +109,13 @@ export default function Notifications() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Customer Notifications</h1>
-          <p className="text-gray-600">Manage automated notifications and preferences</p>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
+        <h1 className="text-2xl font-bold text-white">Customer Notifications</h1>
+        <p className="text-sm text-gray-300 mt-1">Manage automated notifications and preferences</p>
       </div>
+
+      <div className="p-6 md:p-8 max-w-7xl mx-auto">
 
       <Tabs defaultValue="preferences" className="space-y-6">
         <TabsList className="grid w-full max-w-md grid-cols-2">
@@ -292,9 +291,10 @@ export default function Notifications() {
           companyId={selectedCompanyId}
         />
       )}
-    </div>
-  );
-}
+        </div>
+      </div>
+    );
+  }
 
 function NotificationPreferenceDialog({ open, onClose, customer, preference, onSave, isSaving, companyId }) {
   const [formData, setFormData] = useState({
