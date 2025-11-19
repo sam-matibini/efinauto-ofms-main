@@ -38,6 +38,7 @@ import { useCompany } from "../components/shared/CompanyContext";
 import PartDialog from "@/components/parts/PartDialog";
 import StockAdjustmentDialog from "@/components/parts/StockAdjustmentDialog";
 import PartCard from "@/components/parts/PartCard";
+import AIPartsSearch from "@/components/parts/AIPartsSearch";
 
 export default function Parts() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -173,8 +174,11 @@ export default function Parts() {
       
       <div className="p-6 md:p-8 max-w-7xl mx-auto">
 
+      {/* AI Parts Search */}
+      <AIPartsSearch />
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
