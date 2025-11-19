@@ -83,17 +83,18 @@ export default function Companies() {
     }
 
     const cleanData = {
-      name: formData.name,
-      code: formData.code,
-      address: formData.address || "",
-      city: formData.city || "",
-      province: formData.province || "",
-      postal_code: formData.postal_code || "",
-      country: formData.country || "",
-      phone: formData.phone || "",
-      email: formData.email || "",
-      tax_id: formData.tax_id || "",
-      logo_url: formData.logo_url || "",
+      name: formData.name.trim(),
+      code: formData.code.trim(),
+      dealer_permit_number: formData.dealer_permit_number?.trim() || "",
+      address: formData.address?.trim() || "",
+      city: formData.city?.trim() || "",
+      province: formData.province?.trim() || "",
+      postal_code: formData.postal_code?.trim() || "",
+      country: formData.country?.trim() || "",
+      phone: formData.phone?.trim() || "",
+      email: formData.email?.trim() || "",
+      tax_id: formData.tax_id?.trim() || "",
+      logo_url: formData.logo_url?.trim() || "",
       status: formData.status || "active"
     };
 
@@ -231,6 +232,7 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
   const [formData, setFormData] = useState(company || {
     name: "",
     code: "",
+    dealer_permit_number: "",
     address: "",
     city: "",
     province: "",
@@ -250,6 +252,7 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
       setFormData({
         name: "",
         code: "",
+        dealer_permit_number: "",
         address: "",
         city: "",
         province: "",
@@ -275,6 +278,9 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
         
         <div className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2 col-span-2">
+              <p className="text-sm text-gray-600">Required fields are marked with *</p>
+            </div>
             <div className="space-y-2">
               <Label>Company Name *</Label>
               <Input 
@@ -289,6 +295,14 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
                 value={formData.code} 
                 onChange={(e) => setFormData({...formData, code: e.target.value})}
                 placeholder="e.g., 1001"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Dealer Permit Number</Label>
+              <Input 
+                value={formData.dealer_permit_number || ""} 
+                onChange={(e) => setFormData({...formData, dealer_permit_number: e.target.value})}
+                placeholder="e.g., DPN-12345"
               />
             </div>
             <div className="space-y-2">
