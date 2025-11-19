@@ -48,6 +48,8 @@ export default function AIVehicleSearchUSA() {
 4. Carvana
 ${criteria}
 
+IMPORTANT: Find at least 3 different vehicles for comparison to help identify the best price, features, and condition.
+
 For each marketplace, find relevant vehicle listings and extract:
 - Marketplace name
 - Vehicle year, make, and model

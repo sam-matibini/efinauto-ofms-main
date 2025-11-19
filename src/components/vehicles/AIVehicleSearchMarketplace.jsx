@@ -53,6 +53,8 @@ export default function AIVehicleSearchMarketplace() {
 3. Craigslist
 ${criteria}
 
+IMPORTANT: Find at least 3 different vehicles for comparison to help identify the best price, features, and condition.
+
 For each marketplace, find relevant vehicle listings and extract:
 - Platform name
 - Vehicle year, make, and model

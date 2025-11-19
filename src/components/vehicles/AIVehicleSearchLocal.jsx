@@ -50,6 +50,8 @@ export default function AIVehicleSearchLocal() {
         prompt: `Search for used vehicles for sale from LOCAL dealers, private sellers, and used car lots near "${location}".
 ${criteria}
 
+IMPORTANT: Find at least 3 different vehicles for comparison to help identify the best price, features, and condition.
+
 Find local dealerships, independent sellers, and used car lots within 50km of the specified location.
 
 For each listing found, extract:
