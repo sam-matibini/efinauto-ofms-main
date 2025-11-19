@@ -36,42 +36,60 @@ export default function Dashboard() {
 
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles', selectedCompanyId],
-    queryFn: () => base44.entities.Vehicle.filter({ company_id: selectedCompanyId }),
+    queryFn: async () => {
+      if (!selectedCompanyId) return [];
+      return await base44.entities.Vehicle.filter({ company_id: selectedCompanyId });
+    },
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: parts = [] } = useQuery({
     queryKey: ['parts', selectedCompanyId],
-    queryFn: () => base44.entities.Part.filter({ company_id: selectedCompanyId }),
+    queryFn: async () => {
+      if (!selectedCompanyId) return [];
+      return await base44.entities.Part.filter({ company_id: selectedCompanyId });
+    },
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: sales = [] } = useQuery({
     queryKey: ['sales', selectedCompanyId],
-    queryFn: () => base44.entities.Sale.filter({ company_id: selectedCompanyId }),
+    queryFn: async () => {
+      if (!selectedCompanyId) return [];
+      return await base44.entities.Sale.filter({ company_id: selectedCompanyId });
+    },
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: repairs = [] } = useQuery({
     queryKey: ['repairs', selectedCompanyId],
-    queryFn: () => base44.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
+    queryFn: async () => {
+      if (!selectedCompanyId) return [];
+      return await base44.entities.RepairOrder.filter({ company_id: selectedCompanyId });
+    },
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: exports = [] } = useQuery({
     queryKey: ['exports', selectedCompanyId],
-    queryFn: () => base44.entities.Export.filter({ company_id: selectedCompanyId }),
+    queryFn: async () => {
+      if (!selectedCompanyId) return [];
+      return await base44.entities.Export.filter({ company_id: selectedCompanyId });
+    },
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: shipments = [] } = useQuery({
     queryKey: ['shipments', selectedCompanyId],
-    queryFn: () => base44.entities.FreightShipment.filter({ company_id: selectedCompanyId }),
+    queryFn: async () => {
+      if (!selectedCompanyId) return [];
+      return await base44.entities.FreightShipment.filter({ company_id: selectedCompanyId });
+    },
     enabled: !!selectedCompanyId,
     initialData: [],
   });
