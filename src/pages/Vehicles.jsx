@@ -254,16 +254,7 @@ export default function Vehicles() {
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <Input
-              placeholder="Enter part name or number..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Select value={ownershipFilter} onValueChange={setOwnershipFilter}>
             <SelectTrigger>
               <SelectValue placeholder="All Ownership" />
