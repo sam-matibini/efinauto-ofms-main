@@ -61,7 +61,7 @@ export default function Exports() {
         }
       }
       
-      // Create accounting transaction for export revenue
+      // Create revenue transaction for export sale
       await base44.entities.Transaction.create({
         company_id: selectedCompanyId,
         transaction_number: exportOrder.export_number || `EXP-${exportOrder.id.slice(0, 8)}`,
@@ -72,12 +72,49 @@ export default function Exports() {
         reference_id: exportOrder.id,
         reference_number: exportOrder.export_number,
         customer_name: exportOrder.customer_name,
-        description: `Export order: ${exportOrder.export_type} to ${exportOrder.destination_country}`,
+        description: `Export sale revenue: ${exportOrder.export_type} to ${exportOrder.destination_country}`,
         transaction_date: new Date().toISOString().split('T')[0],
         payment_method: 'other',
         status: exportOrder.payment_status === 'paid' ? 'completed' : 'pending',
         tax_amount: 0
       });
+      
+      // Create expense transactions for export costs
+      if (exportOrder.freight_cost > 0) {
+        await base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: `${exportOrder.export_number}-FREIGHT`,
+          transaction_type: 'overhead_expense',
+          category: 'expense',
+          amount: exportOrder.freight_cost,
+          reference_type: 'Export',
+          reference_id: exportOrder.id,
+          reference_number: exportOrder.export_number,
+          customer_name: exportOrder.customer_name,
+          description: `Export freight cost to ${exportOrder.destination_country}`,
+          transaction_date: new Date().toISOString().split('T')[0],
+          payment_method: 'other',
+          status: 'completed'
+        });
+      }
+      
+      if (exportOrder.insurance_cost > 0) {
+        await base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: `${exportOrder.export_number}-INSURANCE`,
+          transaction_type: 'overhead_expense',
+          category: 'expense',
+          amount: exportOrder.insurance_cost,
+          reference_type: 'Export',
+          reference_id: exportOrder.id,
+          reference_number: exportOrder.export_number,
+          customer_name: exportOrder.customer_name,
+          description: `Export cargo insurance`,
+          transaction_date: new Date().toISOString().split('T')[0],
+          payment_method: 'other',
+          status: 'completed'
+        });
+      }
       
       return exportOrder;
     },

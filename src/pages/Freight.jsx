@@ -66,7 +66,7 @@ export default function Freight() {
     mutationFn: async (data) => {
       const shipment = await base44.entities.FreightShipment.create({...data, company_id: selectedCompanyId});
       
-      // Create accounting transaction for freight revenue
+      // Create revenue transaction for total freight service
       await base44.entities.Transaction.create({
         company_id: selectedCompanyId,
         transaction_number: shipment.shipment_number || `FRT-${shipment.id.slice(0, 8)}`,
@@ -77,12 +77,85 @@ export default function Freight() {
         reference_id: shipment.id,
         reference_number: shipment.shipment_number,
         customer_name: shipment.customer_name,
-        description: `Freight service: ${shipment.origin_country} → ${shipment.destination_country}`,
+        description: `Freight service revenue: ${shipment.origin_country} → ${shipment.destination_country}`,
         transaction_date: new Date().toISOString().split('T')[0],
         payment_method: 'other',
         status: shipment.payment_status === 'paid' ? 'completed' : 'pending',
         tax_amount: 0
       });
+      
+      // Create expense transactions for freight costs
+      if (shipment.freight_cost > 0) {
+        await base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: `${shipment.shipment_number}-FREIGHT`,
+          transaction_type: 'overhead_expense',
+          category: 'expense',
+          amount: shipment.freight_cost,
+          reference_type: 'FreightShipment',
+          reference_id: shipment.id,
+          reference_number: shipment.shipment_number,
+          customer_name: shipment.carrier_name || shipment.customer_name,
+          description: `Freight carrier cost: ${shipment.carrier_name || 'Carrier'}`,
+          transaction_date: new Date().toISOString().split('T')[0],
+          payment_method: 'other',
+          status: 'completed'
+        });
+      }
+      
+      if (shipment.insurance_cost > 0) {
+        await base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: `${shipment.shipment_number}-INSURANCE`,
+          transaction_type: 'overhead_expense',
+          category: 'expense',
+          amount: shipment.insurance_cost,
+          reference_type: 'FreightShipment',
+          reference_id: shipment.id,
+          reference_number: shipment.shipment_number,
+          customer_name: shipment.customer_name,
+          description: `Freight insurance cost`,
+          transaction_date: new Date().toISOString().split('T')[0],
+          payment_method: 'other',
+          status: 'completed'
+        });
+      }
+      
+      if (shipment.handling_fees > 0) {
+        await base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: `${shipment.shipment_number}-HANDLING`,
+          transaction_type: 'overhead_expense',
+          category: 'expense',
+          amount: shipment.handling_fees,
+          reference_type: 'FreightShipment',
+          reference_id: shipment.id,
+          reference_number: shipment.shipment_number,
+          customer_name: shipment.customer_name,
+          description: `Freight handling fees`,
+          transaction_date: new Date().toISOString().split('T')[0],
+          payment_method: 'other',
+          status: 'completed'
+        });
+      }
+      
+      if (shipment.customs_fees > 0) {
+        await base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: `${shipment.shipment_number}-CUSTOMS`,
+          transaction_type: 'overhead_expense',
+          category: 'expense',
+          amount: shipment.customs_fees,
+          reference_type: 'FreightShipment',
+          reference_id: shipment.id,
+          reference_number: shipment.shipment_number,
+          customer_name: shipment.customer_name,
+          description: `Customs clearance fees`,
+          transaction_date: new Date().toISOString().split('T')[0],
+          payment_method: 'other',
+          status: 'completed'
+        });
+      }
       
       return shipment;
     },
