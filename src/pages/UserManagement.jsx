@@ -90,7 +90,20 @@ export default function UserManagement() {
   );
 
   const adminUsers = filteredUsers.filter(u => u.role === 'admin');
-  const regularUsers = filteredUsers.filter(u => u.role === 'user');
+  const regularUsers = filteredUsers.filter(u => u.role !== 'admin');
+
+  const getRoleBadge = (role) => {
+    const roleConfig = {
+      admin: { label: 'Admin', color: 'bg-purple-100 text-purple-700' },
+      manager: { label: 'Manager', color: 'bg-blue-100 text-blue-700' },
+      sales: { label: 'Sales', color: 'bg-green-100 text-green-700' },
+      technician: { label: 'Technician', color: 'bg-orange-100 text-orange-700' },
+      inventory_manager: { label: 'Inventory', color: 'bg-cyan-100 text-cyan-700' },
+      accountant: { label: 'Accountant', color: 'bg-pink-100 text-pink-700' },
+      user: { label: 'User', color: 'bg-gray-100 text-gray-700' }
+    };
+    return roleConfig[role] || roleConfig.user;
+  };
 
   const handleEdit = (user) => {
     setSelectedUser(user);
@@ -231,12 +244,10 @@ export default function UserManagement() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h4 className="font-semibold text-gray-900">{user.full_name || 'Unnamed User'}</h4>
-                        {user.role === 'admin' && (
-                          <Badge className="bg-purple-100 text-purple-700">
-                            <Shield className="w-3 h-3 mr-1" />
-                            Admin
-                          </Badge>
-                        )}
+                        <Badge className={getRoleBadge(user.role).color}>
+                          {user.role === 'admin' && <Shield className="w-3 h-3 mr-1" />}
+                          {getRoleBadge(user.role).label}
+                        </Badge>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
                         <Mail className="w-4 h-4" />

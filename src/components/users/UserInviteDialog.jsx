@@ -79,14 +79,23 @@ export default function UserInviteDialog({ open, onClose }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="user">Regular User</SelectItem>
                 <SelectItem value="admin">Administrator</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="sales">Sales Staff</SelectItem>
+                <SelectItem value="technician">Technician</SelectItem>
+                <SelectItem value="inventory_manager">Inventory Manager</SelectItem>
+                <SelectItem value="accountant">Accountant</SelectItem>
+                <SelectItem value="user">Regular User</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-gray-500">
-              {inviteData.role === 'admin' 
-                ? 'Admins have full access to all features and can manage other users.'
-                : 'Regular users have access to company data and standard features.'}
+              {inviteData.role === 'admin' && 'Full system access and user management'}
+              {inviteData.role === 'manager' && 'Manage company operations and staff'}
+              {inviteData.role === 'sales' && 'Handle sales, customers, and vehicles'}
+              {inviteData.role === 'technician' && 'Manage repairs and service orders'}
+              {inviteData.role === 'inventory_manager' && 'Manage parts and vehicle inventory'}
+              {inviteData.role === 'accountant' && 'Access to financial reports and transactions'}
+              {inviteData.role === 'user' && 'Standard access to company data'}
             </p>
           </div>
 

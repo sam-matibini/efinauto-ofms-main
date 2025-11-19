@@ -81,10 +81,24 @@ export default function UserEditDialog({ open, onClose, user, onSave }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="user">Regular User</SelectItem>
                 <SelectItem value="admin">Administrator</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="sales">Sales Staff</SelectItem>
+                <SelectItem value="technician">Technician</SelectItem>
+                <SelectItem value="inventory_manager">Inventory Manager</SelectItem>
+                <SelectItem value="accountant">Accountant</SelectItem>
+                <SelectItem value="user">Regular User</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-gray-500">
+              {userData.role === 'admin' && 'Full system access and user management'}
+              {userData.role === 'manager' && 'Manage company operations and staff'}
+              {userData.role === 'sales' && 'Handle sales, customers, and vehicles'}
+              {userData.role === 'technician' && 'Manage repairs and service orders'}
+              {userData.role === 'inventory_manager' && 'Manage parts and vehicle inventory'}
+              {userData.role === 'accountant' && 'Access to financial reports and transactions'}
+              {userData.role === 'user' && 'Standard access to company data'}
+            </p>
           </div>
 
           <div className="space-y-2">
