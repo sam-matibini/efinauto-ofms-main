@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, Car, Edit, Loader2 } from "lucide-react";
+import { Plus, Search, Car, Edit, Loader2, TrendingUp, AlertTriangle, DollarSign } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   Dialog,
@@ -92,6 +92,13 @@ export default function Vehicles() {
     const matchesOwnership = ownershipFilter === "all" || v.ownership_type === ownershipFilter;
     return matchesSearch && matchesStatus && matchesOwnership;
   });
+
+  const stats = {
+    total: vehicles.length,
+    inStock: vehicles.filter(v => v.status === "in_stock").length,
+    sold: vehicles.filter(v => v.status === "sold").length,
+    totalValue: vehicles.reduce((sum, v) => sum + (v.selling_price || 0), 0),
+  };
 
   const handleSave = (formData) => {
     console.log("handleSave called with:", formData);
@@ -205,7 +212,66 @@ export default function Vehicles() {
         <AIPartsSearchMarketplace />
       </div>
 
-      <div className="bg-white rounded-xl shadow-md p-6 mb-8 mt-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6 mb-6">
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Total Vehicles</p>
+              <h3 className="text-2xl font-bold text-gray-900">{stats.total}</h3>
+            </div>
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <Car className="w-6 h-6 text-blue-600" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">In Stock</p>
+              <h3 className="text-2xl font-bold text-green-600">{stats.inStock}</h3>
+            </div>
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+              <TrendingUp className="w-6 h-6 text-green-600" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Sold</p>
+              <h3 className="text-2xl font-bold text-orange-600">{stats.sold}</h3>
+            </div>
+            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6 text-orange-600" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Inventory Value</p>
+              <h3 className="text-2xl font-bold text-green-600">${stats.totalValue.toLocaleString()}</h3>
+            </div>
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-green-600" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-md p-6 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
