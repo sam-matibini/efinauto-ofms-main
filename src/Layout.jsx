@@ -168,7 +168,7 @@ export default function Layout({ children, currentPageName }) {
           <Sidebar className="border-r border-gray-800" style={{ backgroundColor: '#1e293b' }}>
             <SidebarHeader className="border-b border-gray-700 p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-lg flex items-center justify-center p-2">
+                <div className="w-16 h-16 rounded-lg flex items-center justify-center p-2">
                   <img 
                     src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69156af15abcfb916d821138/d83e1689c_1.png" 
                     alt="eFinAuto Center Logo" 
