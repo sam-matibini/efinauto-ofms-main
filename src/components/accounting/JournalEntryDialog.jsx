@@ -1,0 +1,179 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { useCompany } from "@/components/shared/CompanyContext";
+
+export default function JournalEntryDialog({ open, onClose }) {
+  const { selectedCompanyId } = useCompany();
+  const queryClient = useQueryClient();
+  const [formData, setFormData] = useState({
+    transaction_date: new Date().toISOString().split('T')[0],
+    reference_number: `JE-${Date.now()}`,
+    description: "",
+    entries: [
+      { account: "", debit: 0, credit: 0 },
+      { account: "", debit: 0, credit: 0 }
+    ]
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data) => {
+      // Create transaction for each journal entry line
+      const promises = data.entries.map(entry => {
+        if (!entry.account || (entry.debit === 0 && entry.credit === 0)) return null;
+        
+        return base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: data.reference_number,
+          transaction_type: 'other_income',
+          category: entry.debit > 0 ? 'expense' : 'revenue',
+          amount: entry.debit > 0 ? entry.debit : entry.credit,
+          transaction_date: data.transaction_date,
+          description: data.description,
+          reference_number: data.reference_number,
+          status: 'completed'
+        });
+      });
+      
+      await Promise.all(promises.filter(p => p !== null));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      toast.success("Journal entry created!");
+      onClose();
+    }
+  });
+
+  const addEntry = () => {
+    setFormData({
+      ...formData,
+      entries: [...formData.entries, { account: "", debit: 0, credit: 0 }]
+    });
+  };
+
+  const removeEntry = (index) => {
+    setFormData({
+      ...formData,
+      entries: formData.entries.filter((_, i) => i !== index)
+    });
+  };
+
+  const updateEntry = (index, field, value) => {
+    const newEntries = [...formData.entries];
+    newEntries[index][field] = value;
+    setFormData({ ...formData, entries: newEntries });
+  };
+
+  const totalDebits = formData.entries.reduce((sum, e) => sum + (parseFloat(e.debit) || 0), 0);
+  const totalCredits = formData.entries.reduce((sum, e) => sum + (parseFloat(e.credit) || 0), 0);
+  const isBalanced = Math.abs(totalDebits - totalCredits) < 0.01;
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>New Journal Entry</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Date *</Label>
+              <Input type="date" value={formData.transaction_date} onChange={(e) => setFormData({...formData, transaction_date: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Reference Number</Label>
+              <Input value={formData.reference_number} onChange={(e) => setFormData({...formData, reference_number: e.target.value})} />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Description</Label>
+            <Textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} rows={2} />
+          </div>
+
+          <div className="border rounded-lg p-4">
+            <div className="flex justify-between items-center mb-3">
+              <Label className="text-base font-semibold">Journal Entries</Label>
+              <Button size="sm" variant="outline" onClick={addEntry}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Line
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <div className="grid grid-cols-12 gap-2 text-sm font-semibold text-gray-600 pb-2 border-b">
+                <div className="col-span-5">Account</div>
+                <div className="col-span-3 text-right">Debit</div>
+                <div className="col-span-3 text-right">Credit</div>
+                <div className="col-span-1"></div>
+              </div>
+
+              {formData.entries.map((entry, index) => (
+                <div key={index} className="grid grid-cols-12 gap-2 items-center">
+                  <div className="col-span-5">
+                    <Input 
+                      placeholder="Account name" 
+                      value={entry.account} 
+                      onChange={(e) => updateEntry(index, 'account', e.target.value)}
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <Input 
+                      type="number" 
+                      placeholder="0.00" 
+                      value={entry.debit} 
+                      onChange={(e) => updateEntry(index, 'debit', parseFloat(e.target.value) || 0)}
+                      className="text-right"
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <Input 
+                      type="number" 
+                      placeholder="0.00" 
+                      value={entry.credit} 
+                      onChange={(e) => updateEntry(index, 'credit', parseFloat(e.target.value) || 0)}
+                      className="text-right"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <Button size="sm" variant="ghost" onClick={() => removeEntry(index)} disabled={formData.entries.length <= 2}>
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-12 gap-2 mt-4 pt-3 border-t font-bold">
+              <div className="col-span-5 text-right">TOTALS:</div>
+              <div className="col-span-3 text-right">${totalDebits.toFixed(2)}</div>
+              <div className="col-span-3 text-right">${totalCredits.toFixed(2)}</div>
+              <div className="col-span-1"></div>
+            </div>
+
+            {!isBalanced && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-3">
+                <p className="text-sm text-red-800">⚠️ Debits and Credits must be equal. Difference: ${Math.abs(totalDebits - totalCredits).toFixed(2)}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={() => createMutation.mutate(formData)} disabled={!isBalanced || createMutation.isPending}>
+            {createMutation.isPending ? 'Creating...' : 'Create Journal Entry'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
