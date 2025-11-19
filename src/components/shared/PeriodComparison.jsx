@@ -4,18 +4,24 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Plus, X, Calendar } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subQuarters, subYears } from "date-fns";
 
 export default function PeriodComparison({ onPeriodsChange, maxPeriods = 12 }) {
   const [periods, setPeriods] = useState([
-    { id: 1, type: "this_month", label: "This Month" }
+    { id: 1, type: "this_month", label: "This Month", customFrom: null, customTo: null }
   ]);
 
-  const getPeriodDates = (periodType, offset = 0) => {
+  const getPeriodDates = (period, offset = 0) => {
     const today = new Date();
     
-    switch (periodType) {
+    if (period.type === "custom" && period.customFrom && period.customTo) {
+      return { from: period.customFrom, to: period.customTo };
+    }
+    
+    switch (period.type) {
       case "this_month":
         const targetMonth = subMonths(today, offset);
         return { from: startOfMonth(targetMonth), to: endOfMonth(targetMonth) };
@@ -43,7 +49,7 @@ export default function PeriodComparison({ onPeriodsChange, maxPeriods = 12 }) {
     setPeriods(newPeriods);
     const periodsWithDates = newPeriods.map((period, index) => ({
       ...period,
-      ...getPeriodDates(period.type, index)
+      ...getPeriodDates(period, index)
     }));
     onPeriodsChange(periodsWithDates);
   };
@@ -53,7 +59,9 @@ export default function PeriodComparison({ onPeriodsChange, maxPeriods = 12 }) {
       const newPeriods = [...periods, { 
         id: Date.now(), 
         type: "this_month", 
-        label: `Period ${periods.length + 1}` 
+        label: `Period ${periods.length + 1}`,
+        customFrom: null,
+        customTo: null
       }];
       updatePeriods(newPeriods);
     }
@@ -73,11 +81,19 @@ export default function PeriodComparison({ onPeriodsChange, maxPeriods = 12 }) {
       this_quarter: "This Quarter",
       last_quarter: "Last Quarter",
       this_year: "This Year",
-      last_year: "Last Year"
+      last_year: "Last Year",
+      custom: "Custom Range"
     };
     
     const newPeriods = periods.map(p => 
       p.id === id ? { ...p, type, label: typeLabels[type] } : p
+    );
+    updatePeriods(newPeriods);
+  };
+
+  const updateCustomDate = (id, field, date) => {
+    const newPeriods = periods.map(p => 
+      p.id === id ? { ...p, [field]: date } : p
     );
     updatePeriods(newPeriods);
   };
@@ -108,7 +124,7 @@ export default function PeriodComparison({ onPeriodsChange, maxPeriods = 12 }) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {periods.map((period, index) => {
-              const dates = getPeriodDates(period.type, index);
+              const dates = getPeriodDates(period, index);
               return (
                 <div key={period.id} className="border rounded-lg p-3 space-y-2 bg-gray-50">
                   <div className="flex items-center justify-between">
@@ -140,8 +156,47 @@ export default function PeriodComparison({ onPeriodsChange, maxPeriods = 12 }) {
                       <SelectItem value="last_quarter">Last Quarter</SelectItem>
                       <SelectItem value="this_year">This Year</SelectItem>
                       <SelectItem value="last_year">Last Year</SelectItem>
+                      <SelectItem value="custom">Custom Range</SelectItem>
                     </SelectContent>
                   </Select>
+                  
+                  {period.type === "custom" && (
+                    <div className="space-y-2 pt-2 border-t">
+                      <div className="flex gap-2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="flex-1 h-8 text-xs">
+                              <Calendar className="w-3 h-3 mr-1" />
+                              {period.customFrom ? format(period.customFrom, 'MMM d') : 'From'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <CalendarComponent
+                              mode="single"
+                              selected={period.customFrom}
+                              onSelect={(date) => updateCustomDate(period.id, 'customFrom', date)}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="flex-1 h-8 text-xs">
+                              <Calendar className="w-3 h-3 mr-1" />
+                              {period.customTo ? format(period.customTo, 'MMM d') : 'To'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <CalendarComponent
+                              mode="single"
+                              selected={period.customTo}
+                              onSelect={(date) => updateCustomDate(period.id, 'customTo', date)}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="text-xs text-gray-600">
                     {format(dates.from, 'MMM d, yyyy')} - {format(dates.to, 'MMM d, yyyy')}
                   </div>
