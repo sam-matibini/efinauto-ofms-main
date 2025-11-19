@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, Car, Edit, Loader2, TrendingUp, AlertTriangle, DollarSign } from "lucide-react";
+import { Plus, Search, Car, Edit, Loader2, TrendingUp, AlertTriangle, DollarSign, Upload } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   Dialog,
@@ -28,6 +28,7 @@ import AIVehicleSearchLocal from "../components/vehicles/AIVehicleSearchLocal";
 import AIVehicleSearchCanada from "../components/vehicles/AIVehicleSearchCanada";
 import AIVehicleSearchUSA from "../components/vehicles/AIVehicleSearchUSA";
 import AIVehicleSearchMarketplace from "../components/vehicles/AIVehicleSearchMarketplace";
+import VehicleBulkImport from "../components/vehicles/VehicleBulkImport";
 
 export default function Vehicles() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -36,6 +37,7 @@ export default function Vehicles() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const { selectedCompanyId } = useCompany();
 
   const queryClient = useQueryClient();
@@ -179,16 +181,26 @@ export default function Vehicles() {
             <h1 className="text-2xl font-bold text-white">Vehicles Inventory</h1>
             <p className="text-sm text-gray-300 mt-1">{filteredVehicles.length} vehicles</p>
           </div>
-        <Button 
-          onClick={() => {
-            setEditingVehicle(null);
-            setDialogOpen(true);
-          }}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Vehicle
-        </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setBulkImportOpen(true)}
+              variant="outline"
+              className="bg-white hover:bg-gray-100"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Bulk Import
+            </Button>
+            <Button 
+              onClick={() => {
+                setEditingVehicle(null);
+                setDialogOpen(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Vehicle
+            </Button>
+          </div>
         </div>
         </div>
 
@@ -400,7 +412,17 @@ export default function Vehicles() {
         uploading={uploading}
         setUploading={setUploading}
         isSaving={createMutation.isPending || updateMutation.isPending}
-        />
+      />
+
+      <VehicleBulkImport
+        open={bulkImportOpen}
+        onClose={() => setBulkImportOpen(false)}
+        companyId={selectedCompanyId}
+        onImportComplete={() => {
+          queryClient.invalidateQueries({ queryKey: ['vehicles', selectedCompanyId] });
+          setBulkImportOpen(false);
+        }}
+      />
         </div>
         </div>
         );
