@@ -40,6 +40,7 @@ import StockAdjustmentDialog from "@/components/parts/StockAdjustmentDialog";
 import PartCard from "@/components/parts/PartCard";
 import AIPartsSearchCanada from "@/components/parts/AIPartsSearchCanada";
 import AIPartsSearchUSA from "@/components/parts/AIPartsSearchUSA";
+import AIPartsSearchLocal from "@/components/parts/AIPartsSearchLocal";
 
 export default function Parts() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -181,6 +182,11 @@ export default function Parts() {
       {/* AI Parts Search - USA */}
       <div className="mt-6">
         <AIPartsSearchUSA />
+      </div>
+
+      {/* AI Parts Search - Local Near Me */}
+      <div className="mt-6">
+        <AIPartsSearchLocal />
       </div>
 
       {/* Stats Cards */}
