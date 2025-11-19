@@ -14,22 +14,54 @@ import { useCompany } from "./CompanyContext";
 export default function CompanySelector() {
   const { selectedCompanyId, setSelectedCompanyId } = useCompany();
 
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const { data: companies = [] } = useQuery({
     queryKey: ['companies'],
     queryFn: () => base44.entities.Company.list(),
     initialData: [],
   });
 
-  const activeCompanies = companies.filter(c => c.status === 'active');
+  const isAdmin = currentUser?.role === 'admin';
+  const userCompanyId = currentUser?.data?.company_id;
+
+  // Filter companies based on user role
+  const activeCompanies = companies.filter(c => {
+    if (c.status !== 'active') return false;
+    if (isAdmin) return true;
+    return c.id === userCompanyId;
+  });
 
   React.useEffect(() => {
+    // Auto-select user's assigned company for non-admin users
     if (!selectedCompanyId && activeCompanies.length > 0) {
-      setSelectedCompanyId(activeCompanies[0].id);
+      if (!isAdmin && userCompanyId) {
+        setSelectedCompanyId(userCompanyId);
+      } else {
+        setSelectedCompanyId(activeCompanies[0].id);
+      }
     }
-  }, [activeCompanies, selectedCompanyId, setSelectedCompanyId]);
+  }, [activeCompanies, selectedCompanyId, setSelectedCompanyId, isAdmin, userCompanyId]);
 
   if (activeCompanies.length === 0) {
     return null;
+  }
+
+  // For non-admin users with only one company, show locked company name
+  if (!isAdmin && activeCompanies.length === 1) {
+    return (
+      <div className="w-full bg-gray-100 rounded-md px-3 py-2 border border-gray-200">
+        <div className="flex items-center gap-2">
+          <Building2 className="w-4 h-4 flex-shrink-0 text-gray-600" />
+          <span className="text-sm text-gray-700 truncate">
+            {activeCompanies[0].display_name || activeCompanies[0].name}
+          </span>
+        </div>
+      </div>
+    );
   }
 
   return (
