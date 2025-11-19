@@ -131,7 +131,7 @@ export default function Layout({ children, currentPageName }) {
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 rounded-lg flex items-center justify-center p-2" style={{ backgroundColor: '#1e293b' }}>
                   <img 
-                    src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69156af15abcfb916d821138/3ec91c15a_3Logov2.png" 
+                    src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69156af15abcfb916d821138/f71c4813f_3Logov2.png" 
                     alt="eFinAuto Center Logo" 
                     className="w-full h-full object-contain"
                   />
