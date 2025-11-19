@@ -6,12 +6,22 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Mail } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
 
 export default function UserInviteDialog({ open, onClose }) {
   const [inviteData, setInviteData] = useState({
     email: "",
     full_name: "",
-    role: "user"
+    role: "user",
+    company_id: ""
+  });
+
+  const { data: companies = [] } = useQuery({
+    queryKey: ['companies'],
+    queryFn: () => base44.entities.Company.list(),
+    enabled: open,
+    initialData: [],
   });
   const [isInviting, setIsInviting] = useState(false);
 
@@ -28,7 +38,7 @@ export default function UserInviteDialog({ open, onClose }) {
     toast.info("Please use the Base44 dashboard to invite users with email invitations.");
     
     setIsInviting(false);
-    setInviteData({ email: "", full_name: "", role: "user" });
+    setInviteData({ email: "", full_name: "", role: "user", company_id: "" });
     onClose();
   };
 
@@ -77,6 +87,26 @@ export default function UserInviteDialog({ open, onClose }) {
               {inviteData.role === 'admin' 
                 ? 'Admins have full access to all features and can manage other users.'
                 : 'Regular users have access to company data and standard features.'}
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Assign to Company</Label>
+            <Select value={inviteData.company_id} onValueChange={(value) => setInviteData({ ...inviteData, company_id: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select company (optional)..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={null}>No company assigned</SelectItem>
+                {companies.map(company => (
+                  <SelectItem key={company.id} value={company.id}>
+                    {company.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500">
+              Assign user to a specific company for data access. Regular users can only see data from their assigned company.
             </p>
           </div>
 
