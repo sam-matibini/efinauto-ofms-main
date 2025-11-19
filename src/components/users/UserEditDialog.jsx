@@ -34,16 +34,21 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
   }, [user]);
 
   const handleSave = () => {
+    if (!userData.full_name.trim()) {
+      return;
+    }
+    
     const updateData = {
       full_name: userData.full_name,
       role: userData.role,
       data: {
         ...user?.data,
-        company_id: userData.company_id
+        company_id: userData.company_id || null
       }
     };
     
     onSave(updateData);
+    onClose();
   };
 
   if (!user) return null;
