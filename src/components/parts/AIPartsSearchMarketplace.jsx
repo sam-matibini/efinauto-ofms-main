@@ -282,7 +282,11 @@ Organize results by platform, showing best matches first. Include at least 3-5 l
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 className="flex-1"
               />
-              <Button onClick={handleSearch} disabled={isSearching} className="bg-orange-600 hover:bg-orange-700">
+              <Button 
+                onClick={handleSearch} 
+                disabled={isSearching || !searchQuery.trim() || !location.trim()} 
+                className="bg-orange-600 hover:bg-orange-700"
+              >
                 {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Search className="w-4 h-4 mr-2" />Search</>}
               </Button>
             </div>

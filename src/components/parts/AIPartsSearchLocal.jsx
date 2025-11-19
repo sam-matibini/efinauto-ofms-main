@@ -180,7 +180,11 @@ Prioritize stores that are most likely to have the part in stock. Include both c
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 className="flex-1"
               />
-              <Button onClick={handleSearch} disabled={isSearching} className="bg-purple-600 hover:bg-purple-700">
+              <Button 
+                onClick={handleSearch} 
+                disabled={isSearching || !searchQuery.trim() || !location.trim()} 
+                className="bg-purple-600 hover:bg-purple-700"
+              >
                 {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Search className="w-4 h-4 mr-2" />Search</>}
               </Button>
             </div>

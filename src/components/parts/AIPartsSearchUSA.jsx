@@ -171,7 +171,11 @@ Provide price comparison and recommendations. If a part is not found at a retail
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 className="flex-1"
               />
-              <Button onClick={handleSearch} disabled={isSearching} className="bg-blue-600 hover:bg-blue-700">
+              <Button 
+                onClick={handleSearch} 
+                disabled={isSearching || !searchQuery.trim()} 
+                className="bg-blue-600 hover:bg-blue-700"
+              >
                 {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Search className="w-4 h-4 mr-2" />Search</>}
               </Button>
             </div>
