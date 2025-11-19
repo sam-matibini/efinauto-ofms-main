@@ -33,6 +33,8 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 import { CompanyProvider } from "@/components/shared/CompanyContext";
 import CompanySelector from "@/components/shared/CompanySelector";
 
@@ -127,6 +129,15 @@ const navigationItems = [
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
 
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const handleLogout = () => {
+    base44.auth.logout();
+  };
+
   return (
     <CompanyProvider>
       <SidebarProvider>
@@ -179,12 +190,25 @@ export default function Layout({ children, currentPageName }) {
             <SidebarFooter className="border-t border-gray-700 p-4" style={{ backgroundColor: '#1e293b' }}>
               <div className="flex items-center gap-3 px-2">
                 <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-semibold text-sm">A</span>
+                  <span className="text-white font-semibold text-sm">
+                    {currentUser?.full_name?.charAt(0).toUpperCase() || 'U'}
+                  </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-white text-sm truncate">Admin User</p>
-                  <p className="text-xs text-gray-300 truncate">Dealership Manager</p>
+                  <p className="font-semibold text-white text-sm truncate">
+                    {currentUser?.full_name || 'User'}
+                  </p>
+                  <p className="text-xs text-gray-300 truncate">
+                    {currentUser?.role?.replace(/_/g, ' ') || 'User'}
+                  </p>
                 </div>
+                <button
+                  onClick={handleLogout}
+                  className="text-gray-300 hover:text-white transition-colors text-xs px-2 py-1 rounded hover:bg-gray-700"
+                  title="Logout"
+                >
+                  Logout
+                </button>
               </div>
             </SidebarFooter>
           </Sidebar>
