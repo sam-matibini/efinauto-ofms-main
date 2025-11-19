@@ -69,6 +69,11 @@ const navigationItems = [
     icon: Settings,
   },
   {
+    title: "Products & Services",
+    url: createPageUrl("ProductsServices"),
+    icon: Package,
+  },
+  {
     title: "Purchases",
     url: createPageUrl("Purchases"),
     icon: ShoppingCart,
