@@ -12,6 +12,10 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export default function AIPartsSearch() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [vin, setVin] = useState("");
+  const [make, setMake] = useState("");
+  const [model, setModel] = useState("");
+  const [year, setYear] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -30,18 +34,30 @@ export default function AIPartsSearch() {
     setDialogOpen(true);
 
     try {
+      const vehicleInfo = [];
+      if (vin) vehicleInfo.push(`VIN: ${vin}`);
+      if (year) vehicleInfo.push(`Year: ${year}`);
+      if (make) vehicleInfo.push(`Make: ${make}`);
+      if (model) vehicleInfo.push(`Model: ${model}`);
+      
+      const vehicleContext = vehicleInfo.length > 0 
+        ? `\n\nVehicle Information:\n${vehicleInfo.join('\n')}`
+        : '';
+
       const response = await base44.integrations.Core.InvokeLLM({
         prompt: `Search for automotive parts matching "${searchQuery}" from these Canadian auto parts retailers:
 1. Princess Auto (https://www.princessauto.com)
 2. Canadian Tire Auto Parts
 3. NAPA Auto Parts Canada
 4. PartsSource.ca
+${vehicleContext}
 
 For each retailer, find the most relevant part and extract:
 - Part name/description
 - Price (in CAD)
 - Part number (if available)
 - Availability status
+- Store location or availability region (if available)
 - Direct link to product page (if possible)
 
 Provide price comparison and recommendations. If a part is not found at a retailer, indicate "Not Available".`,
@@ -61,6 +77,7 @@ Provide price comparison and recommendations. If a part is not found at a retail
                   currency: { type: "string" },
                   part_number: { type: "string" },
                   availability: { type: "string" },
+                  store_location: { type: "string" },
                   url: { type: "string" }
                 }
               }
@@ -232,28 +249,56 @@ Notes: ${poData.notes || 'N/A'}
           <p className="text-sm text-gray-600 mb-4">
             Search across multiple Canadian retailers to find the best prices and availability
           </p>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter part name or description..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="flex-1"
-            />
-            <Button 
-              onClick={handleSearch}
-              disabled={isSearching}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              {isSearching ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <Search className="w-4 h-4 mr-2" />
-                  Search
-                </>
-              )}
-            </Button>
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+              <Input
+                placeholder="VIN (optional)"
+                value={vin}
+                onChange={(e) => setVin(e.target.value)}
+                className="text-sm"
+              />
+              <Input
+                placeholder="Year (e.g., 2018)"
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                className="text-sm"
+              />
+              <Input
+                placeholder="Make (e.g., Toyota)"
+                value={make}
+                onChange={(e) => setMake(e.target.value)}
+                className="text-sm"
+              />
+              <Input
+                placeholder="Model (e.g., Corolla)"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                className="text-sm"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter part name or number..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                className="flex-1"
+              />
+              <Button 
+                onClick={handleSearch}
+                disabled={isSearching}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                {isSearching ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Search className="w-4 h-4 mr-2" />
+                    Search
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -340,6 +385,9 @@ Notes: ${poData.notes || 'N/A'}
                           <p className="text-gray-700 mb-2">{source.part_name}</p>
                           {source.part_number && source.part_number !== "N/A" && (
                             <p className="text-sm text-gray-500">Part #: {source.part_number}</p>
+                          )}
+                          {source.store_location && source.store_location !== "N/A" && (
+                            <p className="text-sm text-gray-500">📍 {source.store_location}</p>
                           )}
                         </div>
                         <div className="text-right">
