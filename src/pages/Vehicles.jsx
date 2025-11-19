@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Search, Car, Edit, Loader2, TrendingUp, AlertTriangle, DollarSign } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -24,6 +24,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useCompany } from "../components/shared/CompanyContext";
+import AIPartsSearchLocal from "@/components/parts/AIPartsSearchLocal";
+import AIPartsSearchCanada from "@/components/parts/AIPartsSearchCanada";
+import AIPartsSearchUSA from "@/components/parts/AIPartsSearchUSA";
+import AIPartsSearchMarketplace from "@/components/parts/AIPartsSearchMarketplace";
 
 export default function Vehicles() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -277,70 +281,22 @@ export default function Vehicles() {
         </div>
       </div>
 
-      {/* AI Vehicle Search - Local Near Me */}
-      <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-purple-900">
-            📍 Local Near Me Vehicles Search
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-600 mb-4">
-            Find vehicles at local dealerships, auctions, and private sellers near your location
-          </p>
-          <div className="text-sm text-gray-500 italic">Vehicle search coming soon...</div>
-        </CardContent>
-      </Card>
+      {/* AI Parts Search - Local Near Me */}
+      <AIPartsSearchLocal />
 
-      {/* AI Vehicle Search - Canada */}
+      {/* AI Parts Search - Canada */}
       <div className="mt-6">
-        <Card className="bg-gradient-to-br from-red-50 to-white border-red-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-900">
-              🇨🇦 Canada-Wide Vehicles Search
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              Search across Canadian vehicle marketplaces and dealerships
-            </p>
-            <div className="text-sm text-gray-500 italic">Vehicle search coming soon...</div>
-          </CardContent>
-        </Card>
+        <AIPartsSearchCanada />
       </div>
 
-      {/* AI Vehicle Search - USA */}
+      {/* AI Parts Search - USA */}
       <div className="mt-6">
-        <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-900">
-              🇺🇸 USA-Wide Vehicles Search
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              Search across USA vehicle marketplaces and dealerships
-            </p>
-            <div className="text-sm text-gray-500 italic">Vehicle search coming soon...</div>
-          </CardContent>
-        </Card>
+        <AIPartsSearchUSA />
       </div>
 
-      {/* AI Vehicle Search - Marketplaces */}
+      {/* AI Parts Search - Marketplaces */}
       <div className="mt-6">
-        <Card className="bg-gradient-to-br from-orange-50 to-white border-orange-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-900">
-              🛒 Marketplace Vehicles Search
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              Search Facebook Marketplace, Kijiji, AutoTrader, and other platforms
-            </p>
-            <div className="text-sm text-gray-500 italic">Vehicle search coming soon...</div>
-          </CardContent>
-        </Card>
+        <AIPartsSearchMarketplace />
       </div>
 
       {isLoading ? (

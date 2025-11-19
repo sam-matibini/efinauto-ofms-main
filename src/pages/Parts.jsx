@@ -38,6 +38,10 @@ import { useCompany } from "../components/shared/CompanyContext";
 import PartDialog from "@/components/parts/PartDialog";
 import StockAdjustmentDialog from "@/components/parts/StockAdjustmentDialog";
 import PartCard from "@/components/parts/PartCard";
+import AIPartsSearchCanada from "@/components/parts/AIPartsSearchCanada";
+import AIPartsSearchUSA from "@/components/parts/AIPartsSearchUSA";
+import AIPartsSearchLocal from "@/components/parts/AIPartsSearchLocal";
+import AIPartsSearchMarketplace from "@/components/parts/AIPartsSearchMarketplace";
 
 export default function Parts() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -281,6 +285,26 @@ export default function Parts() {
           </div>
           </CardContent>
           </Card>
+
+          {/* AI Parts Search - Local Near Me */}
+          <div className="mt-6">
+          <AIPartsSearchLocal />
+          </div>
+
+          {/* AI Parts Search - Canada */}
+          <div className="mt-6">
+          <AIPartsSearchCanada />
+          </div>
+
+          {/* AI Parts Search - USA */}
+          <div className="mt-6">
+            <AIPartsSearchUSA />
+          </div>
+
+          {/* AI Parts Search - Marketplaces */}
+          <div className="mt-6">
+            <AIPartsSearchMarketplace />
+          </div>
 
           {/* Parts Grid */}
       {isLoading ? (
