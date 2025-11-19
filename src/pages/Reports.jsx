@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, Package, DollarSign, Plane, Receipt } from "lucide-react";
+import { TrendingUp, Package, DollarSign, Plane, Receipt, Play } from "lucide-react";
 import { useCompany } from "@/components/shared/CompanyContext";
 import SalesReport from "@/components/reports/SalesReport";
 import InventoryReport from "@/components/reports/InventoryReport";
@@ -11,10 +11,16 @@ import FinancialReport from "@/components/reports/FinancialReport";
 import ExportReport from "@/components/reports/ExportReport";
 import SalesTaxReport from "@/components/reports/SalesTaxReport";
 import PeriodComparison from "@/components/shared/PeriodComparison";
+import { Button } from "@/components/ui/button";
 
 export default function ReportsPage() {
   const { selectedCompanyId } = useCompany();
   const [comparativePeriods, setComparativePeriods] = useState([]);
+  const [activePeriods, setActivePeriods] = useState([]);
+
+  const handleRunReport = () => {
+    setActivePeriods(comparativePeriods);
+  };
 
   const { data: sales = [] } = useQuery({
     queryKey: ['sales', selectedCompanyId],
@@ -75,6 +81,18 @@ export default function ReportsPage() {
       <div className="p-6 space-y-6">
         <PeriodComparison onPeriodsChange={setComparativePeriods} maxPeriods={12} />
 
+        <div className="flex justify-end">
+          <Button 
+            onClick={handleRunReport} 
+            size="lg"
+            className="bg-blue-600 hover:bg-blue-700"
+            disabled={comparativePeriods.length === 0}
+          >
+            <Play className="w-4 h-4 mr-2" />
+            Run Report
+          </Button>
+        </div>
+
       <Tabs defaultValue="sales" className="space-y-6">
         <TabsList className="grid w-full grid-cols-5 lg:w-auto bg-gray-100">
           <TabsTrigger value="sales" className="flex items-center gap-2 bg-blue-50 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700">
@@ -100,11 +118,11 @@ export default function ReportsPage() {
         </TabsList>
 
         <TabsContent value="sales">
-          <SalesReport sales={sales} comparativePeriods={comparativePeriods} />
+          <SalesReport sales={sales} comparativePeriods={activePeriods} />
         </TabsContent>
 
         <TabsContent value="taxes">
-          <SalesTaxReport sales={sales} comparativePeriods={comparativePeriods} />
+          <SalesTaxReport sales={sales} comparativePeriods={activePeriods} />
         </TabsContent>
 
         <TabsContent value="inventory">
@@ -116,12 +134,12 @@ export default function ReportsPage() {
             sales={sales} 
             repairs={repairs} 
             exports={exports} 
-            comparativePeriods={comparativePeriods}
+            comparativePeriods={activePeriods}
           />
         </TabsContent>
 
         <TabsContent value="exports">
-          <ExportReport exports={exports} comparativePeriods={comparativePeriods} />
+          <ExportReport exports={exports} comparativePeriods={activePeriods} />
         </TabsContent>
       </Tabs>
       </div>
