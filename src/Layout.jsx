@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
@@ -131,7 +131,7 @@ const navigationItems = [
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
-  const [profileDialogOpen, setProfileDialogOpen] = React.useState(false);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: currentUser } = useQuery({
