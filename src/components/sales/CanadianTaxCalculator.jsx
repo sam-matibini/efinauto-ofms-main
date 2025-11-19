@@ -21,9 +21,20 @@ const CANADIAN_TAX_RATES = {
   YT: { name: "Yukon", gst: 5, pst: 0, hst: 0, total: 5, type: "GST" },
 };
 
-export function calculateCanadianTax(subtotal, province) {
+export function calculateCanadianTax(subtotal, province, taxStatus = "taxable") {
   if (!province || !CANADIAN_TAX_RATES[province]) {
     return { gst: 0, pst: 0, hst: 0, total: 0, breakdown: "" };
+  }
+
+  // Zero-rated and exempt sales have no tax
+  if (taxStatus === "zero_rated" || taxStatus === "exempt") {
+    return { 
+      gst: 0, 
+      pst: 0, 
+      hst: 0, 
+      total: 0, 
+      breakdown: taxStatus === "zero_rated" ? "Zero-Rated (0%)" : "Tax Exempt" 
+    };
   }
 
   const rates = CANADIAN_TAX_RATES[province];
@@ -46,16 +57,31 @@ export function calculateCanadianTax(subtotal, province) {
   return { gst, pst, hst, total, breakdown };
 }
 
-export default function CanadianTaxCalculator({ value, onChange, subtotal }) {
+export default function CanadianTaxCalculator({ value, onChange, subtotal, taxStatus, onTaxStatusChange }) {
   const selectedProvince = value || "ON";
-  const taxDetails = calculateCanadianTax(subtotal || 0, selectedProvince);
+  const selectedTaxStatus = taxStatus || "taxable";
+  const taxDetails = calculateCanadianTax(subtotal || 0, selectedProvince, selectedTaxStatus);
 
   return (
     <Card className="border-blue-100 bg-blue-50/30">
       <CardContent className="p-4 space-y-4">
         <div>
+          <Label className="text-sm font-semibold mb-2 block">Tax Status</Label>
+          <Select value={selectedTaxStatus} onValueChange={onTaxStatusChange}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="taxable">Taxable (Standard Rates)</SelectItem>
+              <SelectItem value="zero_rated">Zero-Rated (0% - ITC Eligible)</SelectItem>
+              <SelectItem value="exempt">Tax Exempt (No Tax, No ITC)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
           <Label className="text-sm font-semibold mb-2 block">Province/Territory</Label>
-          <Select value={selectedProvince} onValueChange={onChange}>
+          <Select value={selectedProvince} onValueChange={onChange} disabled={selectedTaxStatus !== "taxable"}>
             <SelectTrigger>
               <SelectValue placeholder="Select province" />
             </SelectTrigger>
@@ -76,32 +102,43 @@ export default function CanadianTaxCalculator({ value, onChange, subtotal }) {
               <span className="text-sm font-medium">${subtotal.toFixed(2)}</span>
             </div>
 
-            {taxDetails.hst > 0 && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">HST ({CANADIAN_TAX_RATES[selectedProvince].hst}%):</span>
-                <span className="text-sm font-medium">${taxDetails.hst.toFixed(2)}</span>
+            {selectedTaxStatus !== "taxable" ? (
+              <div className="flex justify-between items-center py-2">
+                <span className="text-sm text-gray-600">Tax Status:</span>
+                <Badge variant="outline" className="bg-gray-100">
+                  {taxDetails.breakdown}
+                </Badge>
               </div>
-            )}
+            ) : (
+              <>
+                {taxDetails.hst > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">HST ({CANADIAN_TAX_RATES[selectedProvince].hst}%):</span>
+                    <span className="text-sm font-medium">${taxDetails.hst.toFixed(2)}</span>
+                  </div>
+                )}
 
-            {taxDetails.gst > 0 && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">GST ({CANADIAN_TAX_RATES[selectedProvince].gst}%):</span>
-                <span className="text-sm font-medium">${taxDetails.gst.toFixed(2)}</span>
-              </div>
-            )}
+                {taxDetails.gst > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">GST ({CANADIAN_TAX_RATES[selectedProvince].gst}%):</span>
+                    <span className="text-sm font-medium">${taxDetails.gst.toFixed(2)}</span>
+                  </div>
+                )}
 
-            {taxDetails.pst > 0 && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">
-                  {selectedProvince === "QC" ? "QST" : "PST"} ({CANADIAN_TAX_RATES[selectedProvince].pst}%):
-                </span>
-                <span className="text-sm font-medium">${taxDetails.pst.toFixed(2)}</span>
-              </div>
+                {taxDetails.pst > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">
+                      {selectedProvince === "QC" ? "QST" : "PST"} ({CANADIAN_TAX_RATES[selectedProvince].pst}%):
+                    </span>
+                    <span className="text-sm font-medium">${taxDetails.pst.toFixed(2)}</span>
+                  </div>
+                )}
+              </>
             )}
 
             <div className="flex justify-between items-center pt-2 border-t">
               <span className="text-sm font-semibold">Total Tax:</span>
-              <Badge className="bg-blue-600 text-white">
+              <Badge className={selectedTaxStatus === "taxable" ? "bg-blue-600 text-white" : "bg-gray-400 text-white"}>
                 ${taxDetails.total.toFixed(2)}
               </Badge>
             </div>
