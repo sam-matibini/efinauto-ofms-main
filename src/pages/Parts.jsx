@@ -176,17 +176,17 @@ export default function Parts() {
       
       <div className="p-6 md:p-8 max-w-7xl mx-auto">
 
+      {/* AI Parts Search - Local Near Me */}
+      <AIPartsSearchLocal />
+
       {/* AI Parts Search - Canada */}
-      <AIPartsSearchCanada />
+      <div className="mt-6">
+        <AIPartsSearchCanada />
+      </div>
 
       {/* AI Parts Search - USA */}
       <div className="mt-6">
         <AIPartsSearchUSA />
-      </div>
-
-      {/* AI Parts Search - Local Near Me */}
-      <div className="mt-6">
-        <AIPartsSearchLocal />
       </div>
 
       {/* Stats Cards */}
