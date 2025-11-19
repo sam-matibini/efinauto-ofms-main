@@ -124,7 +124,7 @@ const navigationItems = [
     icon: BarChart3,
   },
   {
-    title: "Accounting & Revenue",
+    title: "Financials",
     url: createPageUrl("Accounting"),
     icon: DollarSign,
   },

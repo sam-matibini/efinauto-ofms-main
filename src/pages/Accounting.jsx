@@ -11,7 +11,8 @@ import {
   TrendingUp, 
   TrendingDown, 
   Wallet,
-  BarChart3
+  BarChart3,
+  Play
 } from "lucide-react";
 import { format } from "date-fns";
 import RevenueOverview from "@/components/accounting/RevenueOverview";
@@ -27,9 +28,14 @@ import PeriodComparison from "@/components/shared/PeriodComparison";
 export default function Accounting() {
   const { selectedCompanyId } = useCompany();
   const [comparativePeriods, setComparativePeriods] = useState([]);
+  const [activePeriods, setActivePeriods] = useState([]);
 
   const handlePeriodsChange = (periods) => {
     setComparativePeriods(periods);
+  };
+
+  const handleRunReport = () => {
+    setActivePeriods(comparativePeriods);
   };
 
   const { data: transactions = [], isLoading: loadingTransactions } = useQuery({
@@ -61,7 +67,7 @@ export default function Accounting() {
   });
 
   // Calculate metrics for all comparative periods
-  const periodMetrics = comparativePeriods.map((period) => {
+  const periodMetrics = activePeriods.map((period) => {
     const periodTransactions = transactions.filter(t => {
       const transDate = new Date(t.transaction_date);
       return transDate >= period.from && transDate <= period.to;
@@ -96,7 +102,7 @@ export default function Accounting() {
     ? ((totalRevenue - previousPeriod.revenue) / previousPeriod.revenue * 100).toFixed(1)
     : 0;
   
-  const currentDateRange = comparativePeriods[0] || { from: new Date(), to: new Date() };
+  const currentDateRange = activePeriods[0] || { from: new Date(), to: new Date() };
 
   if (!selectedCompanyId) {
     return (
@@ -115,7 +121,7 @@ export default function Accounting() {
       <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-white">Accounting & Revenue</h1>
+            <h1 className="text-2xl font-bold text-white">Financials</h1>
             <p className="text-sm text-gray-300 mt-1">Financial management and reporting</p>
           </div>
         </div>
@@ -124,6 +130,18 @@ export default function Accounting() {
       <div className="p-6 space-y-6">
         {/* Period Comparison Selector */}
         <PeriodComparison onPeriodsChange={handlePeriodsChange} maxPeriods={12} />
+
+        <div className="flex justify-end">
+          <Button 
+            onClick={handleRunReport} 
+            size="lg"
+            className="bg-blue-600 hover:bg-blue-700"
+            disabled={comparativePeriods.length === 0}
+          >
+            <Play className="w-4 h-4 mr-2" />
+            Run Report
+          </Button>
+        </div>
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -217,20 +235,20 @@ export default function Accounting() {
           <TabsContent value="profit-loss">
             <ProfitLossStatement 
               transactions={transactions}
-              comparativePeriods={comparativePeriods}
+              comparativePeriods={activePeriods}
             />
           </TabsContent>
 
           <TabsContent value="balance-sheet">
-            <BalanceSheet comparativePeriods={comparativePeriods} />
+            <BalanceSheet comparativePeriods={activePeriods} />
           </TabsContent>
 
           <TabsContent value="retained-earnings">
-            <RetainedEarningsStatement comparativePeriods={comparativePeriods} />
+            <RetainedEarningsStatement comparativePeriods={activePeriods} />
           </TabsContent>
 
           <TabsContent value="cash-flow">
-            <CashFlowStatement comparativePeriods={comparativePeriods} />
+            <CashFlowStatement comparativePeriods={activePeriods} />
           </TabsContent>
 
           <TabsContent value="fixed-assets">
