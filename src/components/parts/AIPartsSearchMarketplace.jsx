@@ -52,14 +52,16 @@ export default function AIPartsSearchMarketplace() {
 
       const response = await base44.integrations.Core.InvokeLLM({
         prompt: `Search for automotive parts matching "${searchQuery}" on Facebook Marketplace, Kijiji, and Amazon for location "${location}".
-${vehicleContext}
+      ${vehicleContext}
 
-Search these platforms:
-1. Facebook Marketplace (used/new parts)
-2. Kijiji (classifieds)
-3. Amazon (new OEM/aftermarket parts)
+      IMPORTANT: Find at least 3 different listings for comparison to help identify the best price, availability, and quality.
 
-For each listing found, extract:
+      Search these platforms:
+      1. Facebook Marketplace (used/new parts)
+      2. Kijiji (classifieds)
+      3. Amazon (new OEM/aftermarket parts)
+
+      For each listing found, extract:
 - Platform (Facebook Marketplace, Kijiji, or Amazon)
 - Part title/name
 - Price

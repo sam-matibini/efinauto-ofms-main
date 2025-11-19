@@ -46,13 +46,15 @@ export default function AIPartsSearchCanada() {
 
       const response = await base44.integrations.Core.InvokeLLM({
         prompt: `Search for automotive parts matching "${searchQuery}" from these Canadian auto parts retailers:
-1. Princess Auto (https://www.princessauto.com)
-2. Canadian Tire Auto Parts
-3. NAPA Auto Parts Canada
-4. PartsSource.ca
-${vehicleContext}
+      1. Princess Auto (https://www.princessauto.com)
+      2. Canadian Tire Auto Parts
+      3. NAPA Auto Parts Canada
+      4. PartsSource.ca
+      ${vehicleContext}
 
-For each retailer, find the most relevant part and extract:
+      IMPORTANT: Find at least 3 different retailers/sources for comparison to help identify the best price, availability, and quality.
+
+      For each retailer, find the most relevant part and extract:
 - Part name/description
 - Price (in CAD)
 - Part number (if available)

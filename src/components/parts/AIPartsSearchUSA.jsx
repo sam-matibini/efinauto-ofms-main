@@ -46,13 +46,15 @@ export default function AIPartsSearchUSA() {
 
       const response = await base44.integrations.Core.InvokeLLM({
         prompt: `Search for automotive parts matching "${searchQuery}" from these USA auto parts retailers:
-1. AutoZone (https://www.autozone.com)
-2. O'Reilly Auto Parts (https://www.oreillyauto.com)
-3. Advance Auto Parts (https://shop.advanceautoparts.com)
-4. RockAuto (https://www.rockauto.com)
-${vehicleContext}
+      1. AutoZone (https://www.autozone.com)
+      2. O'Reilly Auto Parts (https://www.oreillyauto.com)
+      3. Advance Auto Parts (https://shop.advanceautoparts.com)
+      4. RockAuto (https://www.rockauto.com)
+      ${vehicleContext}
 
-For each retailer, find the most relevant part and extract:
+      IMPORTANT: Find at least 3 different retailers/sources for comparison to help identify the best price, availability, and quality.
+
+      For each retailer, find the most relevant part and extract:
 - Part name/description
 - Price (in USD)
 - Part number (if available)

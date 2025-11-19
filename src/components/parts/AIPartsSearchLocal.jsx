@@ -52,11 +52,13 @@ export default function AIPartsSearchLocal() {
 
       const response = await base44.integrations.Core.InvokeLLM({
         prompt: `Search for automotive parts matching "${searchQuery}" from LOCAL auto parts stores near "${location}".
-${vehicleContext}
+      ${vehicleContext}
 
-Find local independent auto parts stores, junkyards, salvage yards, and local retailers within 50km of the specified location.
+      IMPORTANT: Find at least 3 different stores/sources for comparison to help identify the best price, availability, and quality.
 
-For each local store found, extract:
+      Find local independent auto parts stores, junkyards, salvage yards, and local retailers within 50km of the specified location.
+
+      For each local store found, extract:
 - Store name
 - Part name/description (if available)
 - Price (if available, otherwise indicate "Call for price")
