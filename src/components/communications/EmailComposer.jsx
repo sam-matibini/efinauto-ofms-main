@@ -89,8 +89,11 @@ export default function EmailComposer({ customer, customers, exports, shipments,
         }
       }
       
+      const companyName = company?.name || company?.display_name || "eFinAuto Center";
+      const companyInfo = company ? `\nCompany: ${companyName}` : "";
+      
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `${selectedTemplate.prompt} for eFinAuto Center car dealership.${contextInfo}\n\nProvide both a subject line and email body. Be professional, friendly, and concise.`,
+        prompt: `${selectedTemplate.prompt} for ${companyName} car dealership.${companyInfo}${contextInfo}\n\nProvide both a subject line and email body. Be professional, friendly, and concise.`,
         response_json_schema: {
           type: "object",
           properties: {
