@@ -121,8 +121,10 @@ export default function EmailComposer({ customer, customers, exports, shipments,
 
     setSending(true);
     try {
+      const fromName = company?.name || company?.display_name || "eFinAuto Center";
+      
       await base44.integrations.Core.SendEmail({
-        from_name: "eFinAuto Center",
+        from_name: fromName,
         to,
         subject,
         body
