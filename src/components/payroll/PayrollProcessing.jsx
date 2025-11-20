@@ -5,14 +5,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Play, Download, Eye, Check, Loader2, X, StopCircle, Trash2 } from "lucide-react";
+import { Play, Download, Eye, Check, Loader2, X, StopCircle, Trash2, Edit } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function PayrollProcessing({ company, employees, payrollRuns, payrollEntries, timeEntries, queryClient }) {
   const [runDialogOpen, setRunDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedRun, setSelectedRun] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
@@ -49,6 +53,19 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
     },
     onError: () => {
       toast.error("Failed to delete payroll run");
+    }
+  });
+
+  const updatePayrollRunMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.PayrollRun.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payrollRuns'] });
+      toast.success("Payroll run updated successfully");
+      setEditDialogOpen(false);
+      setSelectedRun(null);
+    },
+    onError: () => {
+      toast.error("Failed to update payroll run");
     }
   });
 
@@ -266,6 +283,44 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
     }
   }, [runDialogOpen, employees]);
 
+  const handleViewRun = (run) => {
+    setSelectedRun(run);
+    setViewDialogOpen(true);
+  };
+
+  const handleEditRun = (run) => {
+    setSelectedRun(run);
+    setPeriodStart(run.pay_period_start);
+    setPeriodEnd(run.pay_period_end);
+    setPayDate(run.pay_date);
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateRun = () => {
+    if (!periodStart || !periodEnd || !payDate) {
+      toast.error("Please fill in all dates");
+      return;
+    }
+
+    updatePayrollRunMutation.mutate({
+      id: selectedRun.id,
+      data: {
+        pay_period_start: periodStart,
+        pay_period_end: periodEnd,
+        pay_date: payDate
+      }
+    });
+  };
+
+  const getRunEntries = (runId) => {
+    return payrollEntries.filter(e => e.payroll_run_id === runId);
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString + 'T00:00:00');
+    return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'draft': return 'bg-gray-100 text-gray-800';
@@ -302,10 +357,10 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                         </Badge>
                       </div>
                       <p className="text-sm text-gray-600 mt-1">
-                        Period: {new Date(run.pay_period_start).toLocaleDateString()} - {new Date(run.pay_period_end).toLocaleDateString()}
+                        Period: {formatDate(run.pay_period_start)} - {formatDate(run.pay_period_end)}
                       </p>
                       <p className="text-sm text-gray-600">
-                        Pay Date: {new Date(run.pay_date).toLocaleDateString()} • {run.employee_count} employees
+                        Pay Date: {formatDate(run.pay_date)} • {run.employee_count} employees
                       </p>
                       <p className="text-lg font-bold mt-2">
                         Total: ${run.total_gross?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
@@ -323,10 +378,16 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                           Stop
                         </Button>
                       )}
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => handleViewRun(run)}>
                         <Eye className="w-4 h-4 mr-1" />
                         View
                       </Button>
+                      {run.status === 'draft' && (
+                        <Button variant="outline" size="sm" onClick={() => handleEditRun(run)}>
+                          <Edit className="w-4 h-4 mr-1" />
+                          Edit
+                        </Button>
+                      )}
                       <Button variant="outline" size="sm">
                         <Download className="w-4 h-4 mr-1" />
                         Export
@@ -449,6 +510,288 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
+
+      {/* View Payroll Run Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Payroll Run Details - {selectedRun?.payroll_number}</DialogTitle>
+          </DialogHeader>
+          {selectedRun && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <Label className="text-xs text-gray-500">Period Start</Label>
+                  <p className="font-semibold">{formatDate(selectedRun.pay_period_start)}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">Period End</Label>
+                  <p className="font-semibold">{formatDate(selectedRun.pay_period_end)}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">Pay Date</Label>
+                  <p className="font-semibold">{formatDate(selectedRun.pay_date)}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">Status</Label>
+                  <Badge className={getStatusColor(selectedRun.status)}>{selectedRun.status}</Badge>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg">
+                <div>
+                  <Label className="text-xs text-gray-500">Total Gross</Label>
+                  <p className="text-lg font-bold text-green-600">
+                    ${selectedRun.total_gross?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">Total Deductions</Label>
+                  <p className="text-lg font-bold text-red-600">
+                    ${selectedRun.total_deductions?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">Total Net</Label>
+                  <p className="text-lg font-bold text-blue-600">
+                    ${selectedRun.total_net?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">Employees</Label>
+                  <p className="text-lg font-bold">{selectedRun.employee_count}</p>
+                </div>
+              </div>
+
+              <Tabs defaultValue="entries">
+                <TabsList>
+                  <TabsTrigger value="entries">Payroll Entries</TabsTrigger>
+                  <TabsTrigger value="paystubs">Paystubs</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="entries" className="space-y-3 mt-4">
+                  {getRunEntries(selectedRun.id).map((entry) => (
+                    <Card key={entry.id}>
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-semibold">{entry.employee_name}</h3>
+                            <p className="text-sm text-gray-600">{entry.employee_number}</p>
+                            <div className="mt-2 text-sm">
+                              <p>Regular: {entry.regular_hours}h @ ${entry.regular_pay?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</p>
+                              {entry.overtime_hours > 0 && (
+                                <p>Overtime: {entry.overtime_hours}h @ ${entry.overtime_pay?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500">Gross Pay</p>
+                            <p className="text-lg font-bold text-green-600">
+                              ${entry.gross_pay?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">Deductions</p>
+                            <p className="text-sm text-red-600">
+                              -${entry.total_deductions?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">Net Pay</p>
+                            <p className="text-lg font-bold text-blue-600">
+                              ${entry.net_pay?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </TabsContent>
+
+                <TabsContent value="paystubs" className="space-y-3 mt-4">
+                  {getRunEntries(selectedRun.id).map((entry) => (
+                    <Card key={entry.id}>
+                      <CardContent className="p-6">
+                        <div className="space-y-4">
+                          {/* Header */}
+                          <div className="text-center border-b pb-4">
+                            <h2 className="text-2xl font-bold">{company?.name}</h2>
+                            <p className="text-sm text-gray-600">Pay Statement</p>
+                          </div>
+
+                          {/* Employee & Period Info */}
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="font-semibold">{entry.employee_name}</p>
+                              <p className="text-gray-600">{entry.employee_number}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-gray-600">Pay Period: {formatDate(selectedRun.pay_period_start)} - {formatDate(selectedRun.pay_period_end)}</p>
+                              <p className="text-gray-600">Pay Date: {formatDate(selectedRun.pay_date)}</p>
+                            </div>
+                          </div>
+
+                          {/* Earnings */}
+                          <div>
+                            <h3 className="font-semibold mb-2 pb-1 border-b">Earnings</h3>
+                            <div className="space-y-1 text-sm">
+                              <div className="flex justify-between">
+                                <span>Regular ({entry.regular_hours}h)</span>
+                                <span>${entry.regular_pay?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                              </div>
+                              {entry.overtime_hours > 0 && (
+                                <div className="flex justify-between">
+                                  <span>Overtime ({entry.overtime_hours}h)</span>
+                                  <span>${entry.overtime_pay?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                                </div>
+                              )}
+                              {entry.vacation_hours > 0 && (
+                                <div className="flex justify-between">
+                                  <span>Vacation ({entry.vacation_hours}h)</span>
+                                  <span>${entry.vacation_pay?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between font-semibold pt-1 border-t">
+                                <span>Gross Pay</span>
+                                <span>${entry.gross_pay?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Deductions */}
+                          <div>
+                            <h3 className="font-semibold mb-2 pb-1 border-b">Deductions</h3>
+                            <div className="space-y-1 text-sm">
+                              <div className="flex justify-between">
+                                <span>CPP (Employee)</span>
+                                <span>-${entry.cpp_employee?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>EI (Employee)</span>
+                                <span>-${entry.ei_employee?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Federal Tax</span>
+                                <span>-${entry.federal_tax?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Provincial Tax</span>
+                                <span>-${entry.provincial_tax?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                              </div>
+                              {entry.other_deductions > 0 && (
+                                <div className="flex justify-between">
+                                  <span>Other Deductions</span>
+                                  <span>-${entry.other_deductions?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between font-semibold pt-1 border-t">
+                                <span>Total Deductions</span>
+                                <span>-${entry.total_deductions?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Net Pay */}
+                          <div className="bg-blue-50 p-3 rounded-lg">
+                            <div className="flex justify-between items-center">
+                              <span className="text-lg font-semibold">Net Pay</span>
+                              <span className="text-2xl font-bold text-blue-600">
+                                ${entry.net_pay?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* YTD Summary */}
+                          <div>
+                            <h3 className="font-semibold mb-2 pb-1 border-b">Year-to-Date</h3>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              <div className="flex justify-between">
+                                <span>Gross:</span>
+                                <span>${entry.ytd_gross?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>CPP:</span>
+                                <span>${entry.ytd_cpp?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>EI:</span>
+                                <span>${entry.ytd_ei?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Federal Tax:</span>
+                                <span>${entry.ytd_federal_tax?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Provincial Tax:</span>
+                                <span>${entry.ytd_provincial_tax?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Print Button */}
+                          <div className="text-center pt-4 border-t">
+                            <Button variant="outline" onClick={() => window.print()}>
+                              <Download className="w-4 h-4 mr-2" />
+                              Print/Download Paystub
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Payroll Run Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Payroll Run - {selectedRun?.payroll_number}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Pay Period Start</Label>
+              <Input
+                type="date"
+                value={periodStart}
+                onChange={(e) => setPeriodStart(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Pay Period End</Label>
+              <Input
+                type="date"
+                value={periodEnd}
+                onChange={(e) => setPeriodEnd(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Pay Date</Label>
+              <Input
+                type="date"
+                value={payDate}
+                onChange={(e) => setPayDate(e.target.value)}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateRun} disabled={updatePayrollRunMutation.isPending}>
+                {updatePayrollRunMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Payroll Run'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      </div>
+      );
+      }
