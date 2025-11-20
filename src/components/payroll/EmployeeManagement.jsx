@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Edit, UserPlus, FileText } from "lucide-react";
+import { Plus, Search, Edit, UserPlus, FileText, Sparkles, Loader2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ export default function EmployeeManagement({ company, employees, queryClient }) 
   const [td1DialogOpen, setTd1DialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [td1Editing, setTd1Editing] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const [td1FormData, setTd1FormData] = useState({
     province: "",
     federal: { basic_personal_amount: 15000, additional_amount: 0 },
@@ -197,6 +198,54 @@ ${company?.name || "eFinAuto OFMS"} HR Team`
       }
     });
     setTd1Editing(false);
+  };
+
+  const fetchTaxCreditsWithAI = async () => {
+    setAiLoading(true);
+    try {
+      const currentYear = new Date().getFullYear();
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `Based on current ${currentYear} Canada Revenue Agency (CRA) guidelines, provide the exact tax credit amounts for:
+
+Province: ${td1FormData.province}
+Tax Year: ${currentYear}
+
+Please provide:
+1. Federal basic personal amount (standard ${currentYear} amount)
+2. Provincial basic personal amount for ${td1FormData.province}
+3. Brief explanation of any recent changes
+
+Respond with accurate, up-to-date CRA figures for the ${currentYear} tax year.`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            federal_basic_amount: { type: "number" },
+            provincial_basic_amount: { type: "number" },
+            federal_explanation: { type: "string" },
+            provincial_explanation: { type: "string" }
+          }
+        }
+      });
+
+      setTd1FormData(prev => ({
+        ...prev,
+        federal: {
+          ...prev.federal,
+          basic_personal_amount: response.federal_basic_amount
+        },
+        provincial: {
+          ...prev.provincial,
+          basic_personal_amount: response.provincial_basic_amount
+        }
+      }));
+
+      toast.success(`Tax credits updated for ${td1FormData.province} with current CRA guidelines`);
+    } catch (error) {
+      console.error("AI fetch error:", error);
+      toast.error("Failed to fetch tax credits. Please enter manually.");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const filteredEmployees = employees.filter(emp => 
@@ -480,33 +529,61 @@ ${company?.name || "eFinAuto OFMS"} HR Team`
           </DialogHeader>
 
           <div className="space-y-4">
-            <div>
-              <Label>Province/Territory</Label>
-              <Select 
-                value={td1FormData.province} 
-                onValueChange={(value) => setTd1FormData({...td1FormData, province: value})}
-                disabled={!td1Editing}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="AB">Alberta</SelectItem>
-                  <SelectItem value="BC">British Columbia</SelectItem>
-                  <SelectItem value="MB">Manitoba</SelectItem>
-                  <SelectItem value="NB">New Brunswick</SelectItem>
-                  <SelectItem value="NL">Newfoundland and Labrador</SelectItem>
-                  <SelectItem value="NT">Northwest Territories</SelectItem>
-                  <SelectItem value="NS">Nova Scotia</SelectItem>
-                  <SelectItem value="NU">Nunavut</SelectItem>
-                  <SelectItem value="ON">Ontario</SelectItem>
-                  <SelectItem value="PE">Prince Edward Island</SelectItem>
-                  <SelectItem value="QC">Quebec</SelectItem>
-                  <SelectItem value="SK">Saskatchewan</SelectItem>
-                  <SelectItem value="YT">Yukon</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Province/Territory</Label>
+                <Select 
+                  value={td1FormData.province} 
+                  onValueChange={(value) => setTd1FormData({...td1FormData, province: value})}
+                  disabled={!td1Editing}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="AB">Alberta</SelectItem>
+                    <SelectItem value="BC">British Columbia</SelectItem>
+                    <SelectItem value="MB">Manitoba</SelectItem>
+                    <SelectItem value="NB">New Brunswick</SelectItem>
+                    <SelectItem value="NL">Newfoundland and Labrador</SelectItem>
+                    <SelectItem value="NT">Northwest Territories</SelectItem>
+                    <SelectItem value="NS">Nova Scotia</SelectItem>
+                    <SelectItem value="NU">Nunavut</SelectItem>
+                    <SelectItem value="ON">Ontario</SelectItem>
+                    <SelectItem value="PE">Prince Edward Island</SelectItem>
+                    <SelectItem value="QC">Quebec</SelectItem>
+                    <SelectItem value="SK">Saskatchewan</SelectItem>
+                    <SelectItem value="YT">Yukon</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button 
+                  onClick={fetchTaxCreditsWithAI} 
+                  disabled={aiLoading || !td1Editing}
+                  variant="outline"
+                  className="w-full border-blue-400 hover:bg-blue-50"
+                >
+                  {aiLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Fetching CRA Guidelines...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      AI: Get Current Tax Credits
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-xs text-blue-700">
+                💡 Use AI to automatically fetch the latest {new Date().getFullYear()} CRA tax credit amounts for the selected province
+              </p>
+            </div>
+          </div>
 
             <Tabs defaultValue="federal">
               <TabsList className="grid w-full grid-cols-2">
