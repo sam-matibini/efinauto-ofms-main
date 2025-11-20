@@ -129,6 +129,26 @@ export default function EmailComposer({ customer, customers, exports, shipments,
         subject,
         body
       });
+
+      // Log communication
+      if (customer) {
+        try {
+          await base44.entities.NotificationLog.create({
+            customer_id: customer.id,
+            customer_name: customer.full_name,
+            type: "email",
+            channel: "email",
+            recipient: to,
+            subject: subject,
+            message: body,
+            status: "sent",
+            sent_at: new Date().toISOString()
+          });
+        } catch (logError) {
+          console.error("Failed to log communication:", logError);
+        }
+      }
+
       toast.success("Email sent successfully");
       setSubject("");
       setBody("");

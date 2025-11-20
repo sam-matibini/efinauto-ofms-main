@@ -3,32 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mail, MessageSquare, Phone, Clock } from "lucide-react";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
 
 export default function CommunicationHistory({ customer }) {
-  // Mock data - would come from a CommunicationLog entity
-  const communications = customer ? [
-    {
-      id: 1,
-      type: "email",
-      subject: "Welcome to eFinAuto Center",
-      date: new Date(2025, 0, 15),
-      status: "sent"
-    },
-    {
-      id: 2,
-      type: "sms",
-      subject: "Service appointment reminder",
-      date: new Date(2025, 0, 18),
-      status: "delivered"
-    },
-    {
-      id: 3,
-      type: "email",
-      subject: "Thank you for your purchase",
-      date: new Date(2025, 0, 20),
-      status: "opened"
-    }
-  ] : [];
+  const { data: communications = [] } = useQuery({
+    queryKey: ['communicationHistory', customer?.id],
+    queryFn: () => base44.entities.NotificationLog.filter({ customer_id: customer.id }, '-sent_at'),
+    enabled: !!customer,
+    initialData: [],
+  });
 
   const getIcon = (type) => {
     switch (type) {
@@ -74,10 +58,11 @@ export default function CommunicationHistory({ customer }) {
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-sm">{comm.subject}</p>
+                  <p className="text-xs text-gray-600 mt-1 line-clamp-2">{comm.message}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <Clock className="w-3 h-3 text-gray-400" />
                     <span className="text-xs text-gray-500">
-                      {format(comm.date, 'MMM d, yyyy h:mm a')}
+                      {format(new Date(comm.sent_at), 'MMM d, yyyy h:mm a')}
                     </span>
                   </div>
                 </div>

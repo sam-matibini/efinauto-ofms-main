@@ -17,6 +17,7 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
   const [selectedExport, setSelectedExport] = useState("");
   const [selectedShipment, setSelectedShipment] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [sending, setSending] = useState(false);
 
   React.useEffect(() => {
     if (draft) {
@@ -79,8 +80,37 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
     }
   };
 
-  const sendSMS = () => {
-    toast.info("SMS sending feature requires SMS provider integration");
+  const sendSMS = async () => {
+    if (!to || !message) {
+      toast.error("Please fill in phone number and message");
+      return;
+    }
+
+    setSending(true);
+    try {
+      // Log the SMS (actual SMS provider integration would go here)
+      if (customer) {
+        await base44.entities.NotificationLog.create({
+          customer_id: customer.id,
+          customer_name: customer.full_name,
+          type: "sms",
+          channel: "sms",
+          recipient: to,
+          subject: "SMS Message",
+          message: message,
+          status: "sent",
+          sent_at: new Date().toISOString()
+        });
+      }
+
+      toast.success("SMS logged successfully (SMS provider integration pending)");
+      setMessage("");
+      setTemplate("");
+    } catch (error) {
+      toast.error("Failed to log SMS");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -201,15 +231,24 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
           />
         </div>
 
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-          <p className="text-sm text-yellow-800">
-            📱 SMS provider integration required. Contact support to enable SMS messaging.
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-sm text-blue-800">
+            📱 SMS will be logged. Connect SMS provider in settings for actual delivery.
           </p>
         </div>
 
-        <Button onClick={sendSMS} disabled className="w-full bg-purple-600 hover:bg-purple-700">
-          <MessageSquare className="w-4 h-4 mr-2" />
-          Send SMS
+        <Button onClick={sendSMS} disabled={sending} className="w-full bg-purple-600 hover:bg-purple-700">
+          {sending ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Logging...
+            </>
+          ) : (
+            <>
+              <MessageSquare className="w-4 h-4 mr-2" />
+              Log SMS
+            </>
+          )}
         </Button>
       </CardContent>
     </Card>
