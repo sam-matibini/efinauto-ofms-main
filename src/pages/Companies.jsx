@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, Building2, Edit, Mail, Phone, MapPin, Trash2 } from "lucide-react";
+import { Plus, Search, Building2, Edit, Mail, Phone, MapPin, Trash2, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -135,6 +135,10 @@ export default function Companies() {
       phone: formData.phone?.trim() || "",
       email: formData.email?.trim() || "",
       tax_id: formData.tax_id?.trim() || "",
+      contact_person_name: formData.contact_person_name?.trim() || "",
+      contact_person_title: formData.contact_person_title?.trim() || "",
+      contact_person_email: formData.contact_person_email?.trim() || "",
+      contact_person_phone: formData.contact_person_phone?.trim() || "",
       logo_url: formData.logo_url?.trim() || "",
       status: formData.status || "active",
       tax_rates: formData.tax_rates
@@ -340,6 +344,10 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
     tax_id: "",
     logo_url: "",
     status: "active",
+    contact_person_name: "",
+    contact_person_title: "",
+    contact_person_email: "",
+    contact_person_phone: "",
     tax_rates: defaultTaxRates
   });
 
@@ -367,6 +375,10 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
         tax_id: "",
         logo_url: "",
         status: "active",
+        contact_person_name: "",
+        contact_person_title: "",
+        contact_person_email: "",
+        contact_person_phone: "",
         tax_rates: defaultTaxRates
       });
     }
@@ -495,6 +507,49 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
               />
               <p className="text-xs text-gray-500">Used as sender number in SMS communications</p>
             </div>
+            
+            <div className="space-y-2 col-span-2">
+              <div className="flex items-center gap-2 pt-4 pb-2 border-t">
+                <User className="w-5 h-5 text-blue-600" />
+                <h3 className="font-semibold text-gray-900">Contact Person Details</h3>
+              </div>
+              <p className="text-xs text-gray-500">Primary contact person for communications and signatures</p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Contact Person Name</Label>
+              <Input 
+                value={formData.contact_person_name || ""} 
+                onChange={(e) => setFormData({...formData, contact_person_name: e.target.value})}
+                placeholder="e.g., John Smith"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Contact Person Title</Label>
+              <Input 
+                value={formData.contact_person_title || ""} 
+                onChange={(e) => setFormData({...formData, contact_person_title: e.target.value})}
+                placeholder="e.g., Sales Manager"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Contact Person Email</Label>
+              <Input 
+                type="email"
+                value={formData.contact_person_email || ""} 
+                onChange={(e) => setFormData({...formData, contact_person_email: e.target.value})}
+                placeholder="e.g., john@oluspeautos.ca"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Contact Person Phone</Label>
+              <Input 
+                value={formData.contact_person_phone || ""} 
+                onChange={(e) => setFormData({...formData, contact_person_phone: e.target.value})}
+                placeholder="e.g., 2045551234"
+              />
+            </div>
+            
             <div className="space-y-2 col-span-2">
               <Label>Address</Label>
               <Textarea 

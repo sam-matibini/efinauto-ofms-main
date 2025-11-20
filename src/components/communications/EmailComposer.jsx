@@ -103,8 +103,31 @@ export default function EmailComposer({ customer, customers, exports, shipments,
         }
       });
 
-      // Add company signature
-      const signature = `\n\n---\n${companyName}${company?.phone ? `\nPhone: ${company.phone}` : ""}${company?.email ? `\nEmail: ${company.email}` : ""}${company?.address ? `\n${company.address}` : ""}${company?.city && company?.province ? `\n${company.city}, ${company.province}` : ""}`;
+      // Add company signature with contact person details
+      let signature = `\n\n---`;
+      if (company?.contact_person_name) {
+        signature += `\n${company.contact_person_name}`;
+        if (company?.contact_person_title) {
+          signature += `, ${company.contact_person_title}`;
+        }
+      }
+      signature += `\n${companyName}`;
+      if (company?.contact_person_phone) {
+        signature += `\nDirect: ${company.contact_person_phone}`;
+      } else if (company?.phone) {
+        signature += `\nPhone: ${company.phone}`;
+      }
+      if (company?.contact_person_email) {
+        signature += `\nEmail: ${company.contact_person_email}`;
+      } else if (company?.email) {
+        signature += `\nEmail: ${company.email}`;
+      }
+      if (company?.address) {
+        signature += `\n${company.address}`;
+      }
+      if (company?.city && company?.province) {
+        signature += `\n${company.city}, ${company.province}`;
+      }
 
       setSubject(response.subject);
       setBody(response.body + signature);
