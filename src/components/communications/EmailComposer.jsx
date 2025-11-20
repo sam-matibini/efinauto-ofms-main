@@ -9,7 +9,7 @@ import { Sparkles, Send, Loader2, Plane, Package, FileText } from "lucide-react"
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
-export default function EmailComposer({ customer, customers, exports, shipments, loadingDeclarations }) {
+export default function EmailComposer({ customer, customers, exports, shipments, loadingDeclarations, draft }) {
   const [to, setTo] = useState(customer?.email || "");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -19,6 +19,14 @@ export default function EmailComposer({ customer, customers, exports, shipments,
   const [selectedDeclaration, setSelectedDeclaration] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [sending, setSending] = useState(false);
+
+  React.useEffect(() => {
+    if (draft) {
+      setTo(draft.to || "");
+      setSubject(draft.subject || "");
+      setBody(draft.body || "");
+    }
+  }, [draft]);
 
   const templates = [
     { value: "welcome", label: "Welcome Email", prompt: "Write a warm welcome email to a new customer", category: "customer" },

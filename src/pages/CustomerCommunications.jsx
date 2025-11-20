@@ -10,11 +10,14 @@ import EmailComposer from "@/components/communications/EmailComposer";
 import SMSComposer from "@/components/communications/SMSComposer";
 import CommunicationHistory from "@/components/communications/CommunicationHistory";
 import CustomerSegments from "@/components/communications/CustomerSegments";
+import AIFollowUpSuggestions from "@/components/communications/AIFollowUpSuggestions";
 
 export default function CustomerCommunications() {
   const { selectedCompanyId } = useCompany();
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [activeChannel, setActiveChannel] = useState("email");
+  const [emailDraft, setEmailDraft] = useState(null);
+  const [smsDraft, setSmsDraft] = useState(null);
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', selectedCompanyId],
@@ -50,6 +53,23 @@ export default function CustomerCommunications() {
     enabled: !!selectedCompanyId,
     initialData: [],
   });
+
+  const { data: repairs = [] } = useQuery({
+    queryKey: ['repairs', selectedCompanyId],
+    queryFn: () => base44.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const handleEmailDraft = (draft) => {
+    setEmailDraft(draft);
+    setActiveChannel("email");
+  };
+
+  const handleSMSDraft = (draft) => {
+    setSmsDraft(draft);
+    setActiveChannel("sms");
+  };
 
   const stats = {
     totalCustomers: customers.length,
@@ -177,7 +197,7 @@ export default function CustomerCommunications() {
           {/* Communication Area */}
           <div className="col-span-9">
             <Tabs value={activeChannel} onValueChange={setActiveChannel}>
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="email" className="flex items-center gap-2">
                   <Mail className="w-4 h-4" />
                   Email
@@ -194,6 +214,10 @@ export default function CustomerCommunications() {
                   <Users className="w-4 h-4" />
                   Segments
                 </TabsTrigger>
+                <TabsTrigger value="ai-followup" className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  AI Follow-ups
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="email" className="mt-4">
@@ -203,6 +227,7 @@ export default function CustomerCommunications() {
                   exports={exports}
                   shipments={shipments}
                   loadingDeclarations={loadingDeclarations}
+                  draft={emailDraft}
                 />
               </TabsContent>
 
@@ -213,6 +238,7 @@ export default function CustomerCommunications() {
                   exports={exports}
                   shipments={shipments}
                   loadingDeclarations={loadingDeclarations}
+                  draft={smsDraft}
                 />
               </TabsContent>
 
@@ -222,6 +248,16 @@ export default function CustomerCommunications() {
 
               <TabsContent value="segments" className="mt-4">
                 <CustomerSegments customers={customers} sales={sales} />
+              </TabsContent>
+
+              <TabsContent value="ai-followup" className="mt-4">
+                <AIFollowUpSuggestions 
+                  customers={customers} 
+                  sales={sales}
+                  repairs={repairs}
+                  onSendEmail={handleEmailDraft}
+                  onSendSMS={handleSMSDraft}
+                />
               </TabsContent>
             </Tabs>
           </div>

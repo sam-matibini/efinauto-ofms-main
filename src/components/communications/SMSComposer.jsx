@@ -10,13 +10,20 @@ import { Sparkles, MessageSquare, Loader2, Plane, Package } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
-export default function SMSComposer({ customer, customers, exports, shipments, loadingDeclarations }) {
+export default function SMSComposer({ customer, customers, exports, shipments, loadingDeclarations, draft }) {
   const [to, setTo] = useState(customer?.phone || "");
   const [message, setMessage] = useState("");
   const [template, setTemplate] = useState("");
   const [selectedExport, setSelectedExport] = useState("");
   const [selectedShipment, setSelectedShipment] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (draft) {
+      setTo(draft.to || "");
+      setMessage(draft.message || "");
+    }
+  }, [draft]);
 
   const templates = [
     { value: "appointment", label: "Appointment Reminder", prompt: "Write a brief SMS reminder for a vehicle service appointment", category: "customer" },
