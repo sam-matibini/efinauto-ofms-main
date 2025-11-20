@@ -131,14 +131,14 @@ const navigationItems = [
     icon: DollarSign,
   },
   {
-    title: "AI Support Chat",
-    url: createPageUrl("CustomerSupport"),
-    icon: MessageCircle,
-  },
-  {
     title: "Communications Hub",
     url: createPageUrl("CustomerCommunications"),
     icon: Send,
+  },
+  {
+    title: "AI Support Chat",
+    url: createPageUrl("CustomerSupport"),
+    icon: MessageCircle,
   },
   {
     title: "Notifications",
