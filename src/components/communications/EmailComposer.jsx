@@ -168,6 +168,18 @@ export default function EmailComposer({ customer, customers, exports, shipments,
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {company && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-blue-800 font-medium">From:</span>
+              <span className="text-blue-900">{company.name || company.display_name}</span>
+              {company.email && (
+                <span className="text-blue-700">&lt;{company.email}&gt;</span>
+              )}
+            </div>
+          </div>
+        )}
+
         <div>
           <Label>To</Label>
           <Input

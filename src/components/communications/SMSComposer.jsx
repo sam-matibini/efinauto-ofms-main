@@ -121,6 +121,18 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {company && (
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-purple-800 font-medium">From:</span>
+              <span className="text-purple-900">{company.name || company.display_name}</span>
+              {company.phone && (
+                <span className="text-purple-700">({company.phone})</span>
+              )}
+            </div>
+          </div>
+        )}
+
         <div>
           <Label>To (Phone Number)</Label>
           <Input
