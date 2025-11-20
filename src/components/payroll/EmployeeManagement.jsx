@@ -114,6 +114,7 @@ ${company?.name || "eFinAuto OFMS"} HR Team`
       hire_date: new Date().toISOString().split('T')[0]
     });
     setSelectedEmployee(null);
+    setTd1DialogOpen(false);
   };
 
   const handleSave = () => {
