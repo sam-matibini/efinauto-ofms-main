@@ -678,8 +678,44 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                 </TabsContent>
 
                 <TabsContent value="paystubs" className="space-y-3 mt-4">
+                  <style>{`
+                    @media print {
+                      @page {
+                        size: A4;
+                        margin: 10mm;
+                      }
+                      body * {
+                        visibility: hidden;
+                      }
+                      .paystub-print, .paystub-print * {
+                        visibility: visible;
+                      }
+                      .paystub-print {
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        width: 100%;
+                        page-break-inside: avoid;
+                      }
+                      .paystub-print h2 {
+                        font-size: 18px;
+                      }
+                      .paystub-print h3 {
+                        font-size: 14px;
+                      }
+                      .paystub-print p, .paystub-print span, .paystub-print div {
+                        font-size: 11px;
+                      }
+                      .paystub-print .space-y-4 > * + * {
+                        margin-top: 8px;
+                      }
+                      .paystub-print .space-y-1 > * + * {
+                        margin-top: 2px;
+                      }
+                    }
+                  `}</style>
                   {getRunEntries(selectedRun.id).map((entry) => (
-                    <Card key={entry.id}>
+                    <Card key={entry.id} className="paystub-print">
                       <CardContent className="p-6">
                         <div className="space-y-4">
                           {/* Header */}
