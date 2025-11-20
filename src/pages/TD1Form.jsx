@@ -113,15 +113,21 @@ Respond with accurate, up-to-date CRA figures.`,
         basic_personal_amount: response.provincial_basic_amount
       }));
 
-      toast.success("Tax credits updated with current CRA guidelines");
+      toast.success(`Tax credits updated for ${selectedProvince} with current CRA guidelines`);
     } catch (error) {
-      toast.error("Failed to fetch tax credits");
+      console.error("AI fetch error:", error);
+      toast.error("Failed to fetch tax credits. Please enter manually.");
     } finally {
       setAiLoading(false);
     }
   };
 
   const handleSubmit = () => {
+    if (!federalData.basic_personal_amount || !provincialData.basic_personal_amount) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
     updateEmployeeMutation.mutate({
       td1_federal: {
         ...federalData,
@@ -133,6 +139,22 @@ Respond with accurate, up-to-date CRA figures.`,
       },
       province: selectedProvince
     });
+  };
+
+  const handleFederalAmountChange = (field, value) => {
+    const numValue = parseFloat(value) || 0;
+    setFederalData(prev => ({
+      ...prev,
+      [field]: numValue
+    }));
+  };
+
+  const handleProvincialAmountChange = (field, value) => {
+    const numValue = parseFloat(value) || 0;
+    setProvincialData(prev => ({
+      ...prev,
+      [field]: numValue
+    }));
   };
 
   if (!employeeId) {
@@ -255,8 +277,9 @@ Respond with accurate, up-to-date CRA figures.`,
                   <Label>Basic Personal Amount *</Label>
                   <Input
                     type="number"
+                    step="0.01"
                     value={federalData.basic_personal_amount}
-                    onChange={(e) => setFederalData({...federalData, basic_personal_amount: parseFloat(e.target.value) || 0})}
+                    onChange={(e) => handleFederalAmountChange('basic_personal_amount', e.target.value)}
                   />
                   <p className="text-xs text-gray-500 mt-1">Standard federal basic personal amount: $15,000</p>
                 </div>
@@ -265,8 +288,9 @@ Respond with accurate, up-to-date CRA figures.`,
                   <Label>Additional Amount (if applicable)</Label>
                   <Input
                     type="number"
+                    step="0.01"
                     value={federalData.additional_amount}
-                    onChange={(e) => setFederalData({...federalData, additional_amount: parseFloat(e.target.value) || 0})}
+                    onChange={(e) => handleFederalAmountChange('additional_amount', e.target.value)}
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Additional credits (spouse, dependants, disability, etc.)
@@ -295,8 +319,9 @@ Respond with accurate, up-to-date CRA figures.`,
                   <Label>Basic Personal Amount *</Label>
                   <Input
                     type="number"
+                    step="0.01"
                     value={provincialData.basic_personal_amount}
-                    onChange={(e) => setProvincialData({...provincialData, basic_personal_amount: parseFloat(e.target.value) || 0})}
+                    onChange={(e) => handleProvincialAmountChange('basic_personal_amount', e.target.value)}
                   />
                   <p className="text-xs text-gray-500 mt-1">{selectedProvince} basic personal amount (varies by province)</p>
                 </div>
@@ -305,8 +330,9 @@ Respond with accurate, up-to-date CRA figures.`,
                   <Label>Additional Amount (if applicable)</Label>
                   <Input
                     type="number"
+                    step="0.01"
                     value={provincialData.additional_amount}
-                    onChange={(e) => setProvincialData({...provincialData, additional_amount: parseFloat(e.target.value) || 0})}
+                    onChange={(e) => handleProvincialAmountChange('additional_amount', e.target.value)}
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Additional provincial credits (spouse, dependants, etc.)
