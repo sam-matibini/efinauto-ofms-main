@@ -141,14 +141,14 @@ const navigationItems = [
     icon: Send,
   },
   {
-    title: "User Management",
-    url: createPageUrl("UserManagement"),
-    icon: UserCog,
-  },
-  {
     title: "Notifications",
     url: createPageUrl("Notifications"),
     icon: Bell,
+  },
+  {
+    title: "User Management",
+    url: createPageUrl("UserManagement"),
+    icon: UserCog,
   },
 ];
 
