@@ -735,7 +735,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                     @media print {
                       @page {
                         size: A4;
-                        margin: 15mm;
+                        margin: 10mm;
                       }
                       body * {
                         visibility: hidden;
@@ -746,9 +746,44 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                         left: 0;
                         top: 0;
                         width: 100%;
+                        font-size: 11px;
                       }
                       .paystub-print-container * {
                         visibility: visible;
+                      }
+                      .paystub-print-container h2 {
+                        font-size: 18px;
+                        margin-bottom: 4px;
+                      }
+                      .paystub-print-container h3 {
+                        font-size: 13px;
+                        margin-bottom: 6px;
+                        padding-bottom: 3px;
+                      }
+                      .paystub-print-container p {
+                        margin: 2px 0;
+                        font-size: 11px;
+                      }
+                      .paystub-print-container .space-y-4 > * + * {
+                        margin-top: 10px !important;
+                      }
+                      .paystub-print-container .space-y-1 > * + * {
+                        margin-top: 2px !important;
+                      }
+                      .paystub-print-container .p-6 {
+                        padding: 12px !important;
+                      }
+                      .paystub-print-container .p-3 {
+                        padding: 8px !important;
+                      }
+                      .paystub-print-container .gap-4 {
+                        gap: 8px !important;
+                      }
+                      .paystub-print-container .pb-4 {
+                        padding-bottom: 8px !important;
+                      }
+                      .paystub-print-container .pt-4 {
+                        padding-top: 8px !important;
                       }
                       .paystub-print-container {
                         page-break-inside: avoid;
@@ -758,7 +793,31 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                       }
                     }
                   `}</style>
-                  {getRunEntries(selectedRun.id).map((entry) => (
+                  {getRunEntries(selectedRun.id).map((entry) => {
+                    // Calculate YTD for display if not set
+                    const currentYear = new Date(selectedRun.pay_period_end).getFullYear();
+                    const previousYTDEntries = payrollEntries.filter(e => {
+                      if (e.id === entry.id || e.employee_id !== entry.employee_id) return false;
+                      const entryRun = payrollRuns.find(r => r.id === e.payroll_run_id);
+                      if (!entryRun) return false;
+                      const entryYear = new Date(entryRun.pay_period_end).getFullYear();
+                      const entryDate = new Date(entryRun.pay_period_end);
+                      const currentDate = new Date(selectedRun.pay_period_end);
+                      return entryYear === currentYear && entryDate < currentDate;
+                    });
+
+                    const displayYTDGross = (entry.ytd_gross && entry.ytd_gross > 0) ? entry.ytd_gross : 
+                      (previousYTDEntries.reduce((sum, e) => sum + (e.gross_pay || 0), 0) + (entry.gross_pay || 0));
+                    const displayYTDCPP = (entry.ytd_cpp && entry.ytd_cpp > 0) ? entry.ytd_cpp :
+                      (previousYTDEntries.reduce((sum, e) => sum + (e.cpp_employee || 0), 0) + (entry.cpp_employee || 0));
+                    const displayYTDEI = (entry.ytd_ei && entry.ytd_ei > 0) ? entry.ytd_ei :
+                      (previousYTDEntries.reduce((sum, e) => sum + (e.ei_employee || 0), 0) + (entry.ei_employee || 0));
+                    const displayYTDFederal = (entry.ytd_federal_tax && entry.ytd_federal_tax > 0) ? entry.ytd_federal_tax :
+                      (previousYTDEntries.reduce((sum, e) => sum + (e.federal_tax || 0), 0) + (entry.federal_tax || 0));
+                    const displayYTDProvincial = (entry.ytd_provincial_tax && entry.ytd_provincial_tax > 0) ? entry.ytd_provincial_tax :
+                      (previousYTDEntries.reduce((sum, e) => sum + (e.provincial_tax || 0), 0) + (entry.provincial_tax || 0));
+
+                    return (
                     <div key={entry.id} className="paystub-print-container">
                     <Card>
                       <CardContent className="p-6">
@@ -857,23 +916,23 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                             <div className="grid grid-cols-2 gap-2 text-sm">
                               <div className="flex justify-between">
                                 <span>Gross:</span>
-                                <span>${(entry.ytd_gross || 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>${displayYTDGross.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>CPP:</span>
-                                <span>${(entry.ytd_cpp || 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>${displayYTDCPP.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>EI:</span>
-                                <span>${(entry.ytd_ei || 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>${displayYTDEI.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Federal Tax:</span>
-                                <span>${(entry.ytd_federal_tax || 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>${displayYTDFederal.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Provincial Tax:</span>
-                                <span>${(entry.ytd_provincial_tax || 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>${displayYTDProvincial.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                               </div>
                             </div>
                           </div>
@@ -889,7 +948,8 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                           </CardContent>
                           </Card>
                           </div>
-                          ))}
+                          );
+                          })}
                 </TabsContent>
               </Tabs>
             </div>
