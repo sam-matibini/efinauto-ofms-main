@@ -19,6 +19,12 @@ export default function CustomerCommunications() {
   const [emailDraft, setEmailDraft] = useState(null);
   const [smsDraft, setSmsDraft] = useState(null);
 
+  const { data: company } = useQuery({
+    queryKey: ['company', selectedCompanyId],
+    queryFn: () => base44.entities.Company.filter({ id: selectedCompanyId }).then(companies => companies[0]),
+    enabled: !!selectedCompanyId,
+  });
+
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', selectedCompanyId],
     queryFn: () => base44.entities.Customer.filter({ company_id: selectedCompanyId }),
