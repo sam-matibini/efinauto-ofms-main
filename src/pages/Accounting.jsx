@@ -23,27 +23,24 @@ import BalanceSheet from "@/components/accounting/BalanceSheet";
 import RetainedEarningsStatement from "@/components/accounting/RetainedEarningsStatement";
 import CashFlowStatement from "@/components/accounting/CashFlowStatement";
 import FixedAssetsRegister from "@/components/accounting/FixedAssetsRegister";
-import PeriodComparison from "@/components/shared/PeriodComparison";
+import DateRangeFilter from "@/components/shared/DateRangeFilter";
 
 export default function Accounting() {
   const { selectedCompanyId } = useCompany();
-  const [comparativePeriods, setComparativePeriods] = useState([]);
-  const [activePeriods, setActivePeriods] = useState([]);
+  const [dateRange, setDateRange] = useState(null);
 
-  const handlePeriodsChange = (periods) => {
-    setComparativePeriods(periods);
-  };
-
-  const handleRunReport = () => {
-    setActivePeriods(comparativePeriods);
-  };
-
-  const { data: transactions = [], isLoading: loadingTransactions } = useQuery({
+  const { data: allTransactions = [], isLoading: loadingTransactions } = useQuery({
     queryKey: ['transactions', selectedCompanyId],
     queryFn: () => base44.entities.Transaction.filter({ company_id: selectedCompanyId }, '-transaction_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
+
+  // Filter transactions by date range
+  const transactions = dateRange ? allTransactions.filter(t => {
+    const transDate = new Date(t.transaction_date);
+    return transDate >= dateRange.from && transDate <= dateRange.to;
+  }) : allTransactions;
 
   const { data: sales = [] } = useQuery({
     queryKey: ['sales', selectedCompanyId],
@@ -66,43 +63,19 @@ export default function Accounting() {
     initialData: [],
   });
 
-  // Calculate metrics for all comparative periods
-  const periodMetrics = activePeriods.map((period) => {
-    const periodTransactions = transactions.filter(t => {
-      const transDate = new Date(t.transaction_date);
-      return transDate >= period.from && transDate <= period.to;
-    });
+  // Calculate metrics
+  const totalRevenue = transactions
+    .filter(t => t.category === 'revenue' && t.status === 'completed')
+    .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-    const revenue = periodTransactions
-      .filter(t => t.category === 'revenue' && t.status === 'completed')
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+  const totalExpenses = transactions
+    .filter(t => t.category === 'expense' && t.status === 'completed')
+    .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-    const expenses = periodTransactions
-      .filter(t => t.category === 'expense' && t.status === 'completed')
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+  const netProfit = totalRevenue - totalExpenses;
 
-    return {
-      label: period.label,
-      revenue,
-      expenses,
-      profit: revenue - expenses,
-      dateRange: period
-    };
-  });
-
-  // Use first period for main display
-  const currentPeriod = periodMetrics[0] || { revenue: 0, expenses: 0, profit: 0 };
-  const totalRevenue = currentPeriod.revenue;
-  const totalExpenses = currentPeriod.expenses;
-  const netProfit = currentPeriod.profit;
-
-  // Calculate growth compared to previous period
-  const previousPeriod = periodMetrics[1];
-  const revenueGrowth = previousPeriod && previousPeriod.revenue > 0
-    ? ((totalRevenue - previousPeriod.revenue) / previousPeriod.revenue * 100).toFixed(1)
-    : 0;
-  
-  const currentDateRange = activePeriods[0] || { from: new Date(), to: new Date() };
+  // Calculate growth (placeholder - would need previous period data)
+  const revenueGrowth = 0;
 
   if (!selectedCompanyId) {
     return (
@@ -128,60 +101,15 @@ export default function Accounting() {
       </div>
 
       <div className="p-6 space-y-6">
-        {/* Period Comparison Selector */}
-        <PeriodComparison onPeriodsChange={handlePeriodsChange} maxPeriods={12} />
-
-        <div className="flex justify-end">
-          <Button 
-            onClick={handleRunReport} 
-            size="lg"
-            className="bg-blue-600 hover:bg-blue-700"
-            disabled={comparativePeriods.length === 0}
-          >
-            <Play className="w-4 h-4 mr-2" />
-            Run Report
-          </Button>
+        {/* Date Range Filter */}
+        <div className="flex items-center gap-4">
+          <DateRangeFilter onChange={setDateRange} label="Reporting Period" />
+          {dateRange && (
+            <div className="text-sm text-gray-600">
+              Showing data from <span className="font-semibold">{format(dateRange.from, "MMM d, yyyy")}</span> to <span className="font-semibold">{format(dateRange.to, "MMM d, yyyy")}</span>
+            </div>
+          )}
         </div>
-
-        {/* Comparative Periods Summary */}
-        {activePeriods.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Comparative Period Analysis</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 px-2">Period</th>
-                      <th className="text-right py-2 px-2">Revenue</th>
-                      <th className="text-right py-2 px-2">Expenses</th>
-                      <th className="text-right py-2 px-2">Net Profit</th>
-                      <th className="text-right py-2 px-2">Margin %</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {periodMetrics.map((period, idx) => {
-                      const margin = period.revenue > 0 ? ((period.profit / period.revenue) * 100).toFixed(1) : '0.0';
-                      return (
-                        <tr key={idx} className="border-b hover:bg-gray-50">
-                          <td className="py-2 px-2 font-medium">{period.label}</td>
-                          <td className="text-right py-2 px-2 text-green-600">${period.revenue.toLocaleString()}</td>
-                          <td className="text-right py-2 px-2 text-red-600">${period.expenses.toLocaleString()}</td>
-                          <td className={`text-right py-2 px-2 font-semibold ${period.profit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                            ${period.profit.toLocaleString()}
-                          </td>
-                          <td className="text-right py-2 px-2">{margin}%</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -265,39 +193,38 @@ export default function Accounting() {
               sales={sales}
               repairs={repairs}
               purchases={purchases}
-              comparativePeriods={activePeriods}
+              dateRange={dateRange}
             />
           </TabsContent>
 
           <TabsContent value="transactions">
             <TransactionsList 
               transactions={transactions} 
-              dateRange={currentDateRange} 
-              comparativePeriods={activePeriods}
+              dateRange={dateRange}
             />
           </TabsContent>
 
           <TabsContent value="profit-loss">
             <ProfitLossStatement 
               transactions={transactions}
-              comparativePeriods={activePeriods}
+              dateRange={dateRange}
             />
           </TabsContent>
 
           <TabsContent value="balance-sheet">
-            <BalanceSheet comparativePeriods={activePeriods} />
+            <BalanceSheet dateRange={dateRange} />
           </TabsContent>
 
           <TabsContent value="retained-earnings">
-            <RetainedEarningsStatement comparativePeriods={activePeriods} />
+            <RetainedEarningsStatement dateRange={dateRange} />
           </TabsContent>
 
           <TabsContent value="cash-flow">
-            <CashFlowStatement comparativePeriods={activePeriods} />
+            <CashFlowStatement dateRange={dateRange} />
           </TabsContent>
 
           <TabsContent value="fixed-assets">
-            <FixedAssetsRegister comparativePeriods={activePeriods} />
+            <FixedAssetsRegister dateRange={dateRange} />
           </TabsContent>
 
           <TabsContent value="accounts">
