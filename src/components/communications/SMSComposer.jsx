@@ -58,8 +58,10 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
         if (ship) contextInfo += `\nShipment: ${ship.shipment_number}, ETA: ${ship.estimated_arrival}`;
       }
       
+      const companyName = company?.name || company?.display_name || "eFinAuto Center";
+      
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `${selectedTemplate.prompt} for eFinAuto Center.${contextInfo}\n\nKeep it under 160 characters. Be professional and friendly.`,
+        prompt: `${selectedTemplate.prompt} for ${companyName}.${contextInfo}\n\nKeep it under 160 characters. Be professional and friendly.`,
         response_json_schema: {
           type: "object",
           properties: {
