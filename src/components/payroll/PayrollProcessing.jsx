@@ -123,6 +123,20 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
   });
 
   const calculatePayroll = async (employee, periodStart, periodEnd, payrollRunId) => {
+    // Get YTD totals for this employee
+    const currentYear = new Date(periodEnd).getFullYear();
+    const yearStart = `${currentYear}-01-01`;
+    const previousEntries = payrollEntries.filter(e => 
+      e.employee_id === employee.id && 
+      e.company_id === company.id &&
+      new Date(payrollRuns.find(r => r.id === e.payroll_run_id)?.pay_period_end || '').getFullYear() === currentYear
+    );
+
+    const ytdGross = previousEntries.reduce((sum, e) => sum + (e.gross_pay || 0), 0);
+    const ytdCPP = previousEntries.reduce((sum, e) => sum + (e.cpp_employee || 0), 0);
+    const ytdEI = previousEntries.reduce((sum, e) => sum + (e.ei_employee || 0), 0);
+    const ytdFederalTax = previousEntries.reduce((sum, e) => sum + (e.federal_tax || 0), 0);
+    const ytdProvincialTax = previousEntries.reduce((sum, e) => sum + (e.provincial_tax || 0), 0);
     let regularHours = 0;
     let overtimeHours = 0;
     let regularPay = 0;
@@ -276,9 +290,14 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       net_pay: netPay,
       cpp_employer: cppEmployer,
       ei_employer: eiEmployer,
-      vacation_accrued: vacationAccrued
+      vacation_accrued: vacationAccrued,
+      ytd_gross: ytdGross + grossPay,
+      ytd_cpp: ytdCPP + cppEmployee,
+      ytd_ei: ytdEI + eiEmployee,
+      ytd_federal_tax: ytdFederalTax + federalTax,
+      ytd_provincial_tax: ytdProvincialTax + provincialTax
     };
-  };
+    };
 
   const handleRunPayroll = async () => {
     if (!periodStart || !periodEnd || !payDate) {
