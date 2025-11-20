@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Play, Download, Eye, Check, Loader2, X } from "lucide-react";
+import { Play, Download, Eye, Check, Loader2, X, StopCircle } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
@@ -18,6 +18,19 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
   const [periodEnd, setPeriodEnd] = useState("");
   const [payDate, setPayDate] = useState("");
   const [selectedEmployees, setSelectedEmployees] = useState([]);
+
+  const stopPayrollRunMutation = useMutation({
+    mutationFn: async (runId) => {
+      return await base44.entities.PayrollRun.update(runId, { status: 'draft' });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payrollRuns'] });
+      toast.success("Payroll run stopped - you can now restart it");
+    },
+    onError: () => {
+      toast.error("Failed to stop payroll run");
+    }
+  });
 
   const createPayrollRunMutation = useMutation({
     mutationFn: async (data) => {
@@ -252,6 +265,17 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                       </p>
                     </div>
                     <div className="flex gap-2">
+                      {(run.status === 'processing' || run.status === 'draft') && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => stopPayrollRunMutation.mutate(run.id)}
+                          className="text-red-600 hover:text-red-700 hover:border-red-300"
+                        >
+                          <StopCircle className="w-4 h-4 mr-1" />
+                          Stop
+                        </Button>
+                      )}
                       <Button variant="outline" size="sm">
                         <Eye className="w-4 h-4 mr-1" />
                         View
