@@ -25,6 +25,9 @@ import PayrollProcessing from "@/components/payroll/PayrollProcessing";
 import TaxReports from "@/components/payroll/TaxReports";
 import PayrollAnalytics from "@/components/payroll/PayrollAnalytics";
 import OffboardingWorkflow from "@/components/payroll/OffboardingWorkflow";
+import VacationManagement from "@/components/payroll/VacationManagement";
+import BenefitsManagement from "@/components/payroll/BenefitsManagement";
+import DeductionsManagement from "@/components/payroll/DeductionsManagement";
 
 export default function Payroll() {
   const { selectedCompanyId } = useCompany();
@@ -165,14 +168,26 @@ export default function Payroll() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="employees">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
             <TabsTrigger value="employees" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Employees
             </TabsTrigger>
             <TabsTrigger value="payroll" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
-              Payroll Processing
+              Payroll
+            </TabsTrigger>
+            <TabsTrigger value="vacation" className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              Vacation
+            </TabsTrigger>
+            <TabsTrigger value="benefits" className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              Benefits
+            </TabsTrigger>
+            <TabsTrigger value="deductions" className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              Deductions
             </TabsTrigger>
             <TabsTrigger value="offboarding" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
@@ -204,6 +219,27 @@ export default function Payroll() {
               payrollEntries={payrollEntries}
               timeEntries={timeEntries}
               queryClient={queryClient}
+            />
+          </TabsContent>
+
+          <TabsContent value="vacation" className="mt-6">
+            <VacationManagement 
+              company={company}
+              employees={employees}
+            />
+          </TabsContent>
+
+          <TabsContent value="benefits" className="mt-6">
+            <BenefitsManagement 
+              company={company}
+              employees={employees}
+            />
+          </TabsContent>
+
+          <TabsContent value="deductions" className="mt-6">
+            <DeductionsManagement 
+              company={company}
+              employees={employees}
             />
           </TabsContent>
 
