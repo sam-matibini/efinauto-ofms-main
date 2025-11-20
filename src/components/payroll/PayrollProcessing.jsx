@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Play, Download, Eye, Check, Loader2 } from "lucide-react";
+import { Play, Download, Eye, Check, Loader2, X } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function PayrollProcessing({ company, employees, payrollRuns, payrollEntries, timeEntries, queryClient }) {
   const [runDialogOpen, setRunDialogOpen] = useState(false);
@@ -16,6 +17,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
   const [payDate, setPayDate] = useState("");
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
 
   const createPayrollRunMutation = useMutation({
     mutationFn: async (data) => {
@@ -126,9 +128,14 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       return;
     }
 
+    if (selectedEmployees.length === 0) {
+      toast.error("Please select at least one employee");
+      return;
+    }
+
     setProcessing(true);
 
-    const activeEmployees = employees.filter(e => e.employment_status === 'active');
+    const employeesToProcess = employees.filter(e => selectedEmployees.includes(e.id));
     
     const runData = {
       company_id: company.id,
@@ -137,16 +144,40 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       pay_period_end: periodEnd,
       pay_date: payDate,
       status: 'processing',
-      employee_count: activeEmployees.length
+      employee_count: employeesToProcess.length
     };
 
     createPayrollRunMutation.mutate({
       runData,
-      employees: activeEmployees,
+      employees: employeesToProcess,
       periodStart,
       periodEnd
     });
   };
+
+  const toggleEmployee = (employeeId) => {
+    setSelectedEmployees(prev => 
+      prev.includes(employeeId) 
+        ? prev.filter(id => id !== employeeId)
+        : [...prev, employeeId]
+    );
+  };
+
+  const toggleAllEmployees = () => {
+    const activeEmployees = employees.filter(e => e.employment_status === 'active');
+    if (selectedEmployees.length === activeEmployees.length) {
+      setSelectedEmployees([]);
+    } else {
+      setSelectedEmployees(activeEmployees.map(e => e.id));
+    }
+  };
+
+  React.useEffect(() => {
+    if (runDialogOpen) {
+      const activeEmployees = employees.filter(e => e.employment_status === 'active');
+      setSelectedEmployees(activeEmployees.map(e => e.id));
+    }
+  }, [runDialogOpen, employees]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -242,9 +273,48 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                 onChange={(e) => setPayDate(e.target.value)}
               />
             </div>
+            
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <Label>Select Employees</Label>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={toggleAllEmployees}
+                  type="button"
+                >
+                  {selectedEmployees.length === employees.filter(e => e.employment_status === 'active').length 
+                    ? 'Deselect All' 
+                    : 'Select All'}
+                </Button>
+              </div>
+              <div className="border rounded-lg max-h-60 overflow-y-auto">
+                {employees.filter(e => e.employment_status === 'active').map((employee) => (
+                  <div 
+                    key={employee.id}
+                    className="flex items-center gap-3 p-3 hover:bg-gray-50 border-b last:border-b-0"
+                  >
+                    <Checkbox
+                      checked={selectedEmployees.includes(employee.id)}
+                      onCheckedChange={() => toggleEmployee(employee.id)}
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium">{employee.first_name} {employee.last_name}</p>
+                      <p className="text-xs text-gray-500">{employee.position} • {employee.department}</p>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {employee.pay_type === 'hourly' 
+                        ? `$${employee.pay_rate}/hr` 
+                        : `$${employee.pay_rate?.toLocaleString()}/yr`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-sm text-blue-800">
-                This will process payroll for {employees.filter(e => e.employment_status === 'active').length} active employees.
+                This will process payroll for <strong>{selectedEmployees.length}</strong> selected employee{selectedEmployees.length !== 1 ? 's' : ''}.
               </p>
             </div>
             <div className="flex justify-end gap-2">
