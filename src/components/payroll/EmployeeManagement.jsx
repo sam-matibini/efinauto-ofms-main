@@ -205,17 +205,21 @@ ${company?.name || "eFinAuto OFMS"} HR Team`
     try {
       const currentYear = new Date().getFullYear();
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Based on current ${currentYear} Canada Revenue Agency (CRA) guidelines, provide the exact tax credit amounts for:
+        prompt: `Search the Canada Revenue Agency (CRA) official website for the EXACT tax credit amounts for tax year ${currentYear - 1} (which applies to ${currentYear} calendar year payroll):
 
 Province: ${td1FormData.province}
-Tax Year: ${currentYear}
 
-Please provide:
-1. Federal basic personal amount (standard ${currentYear} amount)
-2. Provincial basic personal amount for ${td1FormData.province}
-3. Brief explanation of any recent changes
+Find the official CRA amounts for:
+1. Federal basic personal amount for ${currentYear - 1} tax year (from CRA TD1 form)
+2. Provincial/territorial basic personal amount for ${td1FormData.province} for ${currentYear - 1} tax year (from provincial TD1 form)
 
-Respond with accurate, up-to-date CRA figures for the ${currentYear} tax year.`,
+IMPORTANT: 
+- Get the exact dollar amounts from official CRA sources only
+- Use the ${currentYear - 1} tax year amounts (these apply to ${currentYear} payroll)
+- Return precise numbers, not estimates
+
+Provide the exact amounts in Canadian dollars.`,
+        add_context_from_internet: true,
         response_json_schema: {
           type: "object",
           properties: {

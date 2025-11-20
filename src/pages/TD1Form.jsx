@@ -79,19 +79,24 @@ export default function TD1Form() {
   const fetchTaxCreditsWithAI = async () => {
     setAiLoading(true);
     try {
+      const currentYear = new Date().getFullYear();
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Based on current 2024-2025 Canada Revenue Agency (CRA) guidelines, provide the exact tax credit amounts for:
-        
-Province: ${selectedProvince}
-Employee Province: ${employee?.province || selectedProvince}
-Company Province: ${company?.province || selectedProvince}
+        prompt: `Search the Canada Revenue Agency (CRA) official website for the EXACT tax credit amounts for tax year ${currentYear - 1} (which applies to ${currentYear} calendar year payroll):
 
-Please provide:
-1. Federal basic personal amount (standard 2024 amount)
-2. Provincial basic personal amount for ${selectedProvince}
-3. Brief explanation of any recent changes
+Province/Territory: ${selectedProvince}
 
-Respond with accurate, up-to-date CRA figures.`,
+Find the official CRA amounts for:
+1. Federal basic personal amount for ${currentYear - 1} tax year (from CRA TD1 federal form)
+2. Provincial/territorial basic personal amount for ${selectedProvince} for ${currentYear - 1} tax year (from provincial TD1 form)
+
+IMPORTANT: 
+- Get the exact dollar amounts from official CRA sources only (canada.ca website)
+- Use the ${currentYear - 1} tax year amounts (these apply to ${currentYear} payroll)
+- Return precise numbers from official TD1 forms, not estimates
+- For provinces like Ontario, Quebec, BC, etc., get their specific provincial amounts
+
+Provide the exact amounts in Canadian dollars.`,
+        add_context_from_internet: true,
         response_json_schema: {
           type: "object",
           properties: {
