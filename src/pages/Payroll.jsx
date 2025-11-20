@@ -24,6 +24,7 @@ import EmployeeManagement from "@/components/payroll/EmployeeManagement";
 import PayrollProcessing from "@/components/payroll/PayrollProcessing";
 import TaxReports from "@/components/payroll/TaxReports";
 import PayrollAnalytics from "@/components/payroll/PayrollAnalytics";
+import OffboardingWorkflow from "@/components/payroll/OffboardingWorkflow";
 
 export default function Payroll() {
   const { selectedCompanyId } = useCompany();
@@ -164,7 +165,7 @@ export default function Payroll() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="employees">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="employees" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Employees
@@ -172,6 +173,10 @@ export default function Payroll() {
             <TabsTrigger value="payroll" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
               Payroll Processing
+            </TabsTrigger>
+            <TabsTrigger value="offboarding" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Offboarding
             </TabsTrigger>
             <TabsTrigger value="tax-reports" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
@@ -198,6 +203,13 @@ export default function Payroll() {
               payrollRuns={payrollRuns}
               payrollEntries={payrollEntries}
               timeEntries={timeEntries}
+              queryClient={queryClient}
+            />
+          </TabsContent>
+
+          <TabsContent value="offboarding" className="mt-6">
+            <OffboardingWorkflow 
+              company={company}
               queryClient={queryClient}
             />
           </TabsContent>
