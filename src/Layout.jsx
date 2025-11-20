@@ -21,7 +21,7 @@ import {
   DollarSign,
   MessageCircle,
   Send,
-  Settings
+  Settings as SettingsIcon
 } from "lucide-react";
 import {
   Sidebar,
@@ -154,7 +154,7 @@ const navigationItems = [
   {
     title: "Settings",
     url: createPageUrl("Settings"),
-    icon: Settings,
+    icon: SettingsIcon,
   },
 ];
 
