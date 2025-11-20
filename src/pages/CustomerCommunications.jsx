@@ -234,6 +234,7 @@ export default function CustomerCommunications() {
                   shipments={shipments}
                   loadingDeclarations={loadingDeclarations}
                   draft={emailDraft}
+                  company={company}
                 />
               </TabsContent>
 
@@ -245,6 +246,7 @@ export default function CustomerCommunications() {
                   shipments={shipments}
                   loadingDeclarations={loadingDeclarations}
                   draft={smsDraft}
+                  company={company}
                 />
               </TabsContent>
 
