@@ -34,6 +34,7 @@ import PayGroupManagement from "@/components/payroll/PayGroupManagement";
 import PayrollAdjustments from "@/components/payroll/PayrollAdjustments";
 import AutomatedTaxForms from "@/components/payroll/AutomatedTaxForms";
 import AIPayrollAssistant from "@/components/payroll/AIPayrollAssistant";
+import TimesheetManagement from "@/components/payroll/TimesheetManagement";
 
 export default function Payroll() {
   const { selectedCompanyId } = useCompany();
