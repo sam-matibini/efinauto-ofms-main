@@ -48,19 +48,21 @@ export default function TD1Form() {
   }, [company]);
 
   useEffect(() => {
-    if (federalData.basic_personal_amount || federalData.additional_amount) {
+    const total = (parseFloat(federalData.basic_personal_amount) || 0) + (parseFloat(federalData.additional_amount) || 0);
+    if (federalData.total_claim_amount !== total) {
       setFederalData(prev => ({
         ...prev,
-        total_claim_amount: (parseFloat(prev.basic_personal_amount) || 0) + (parseFloat(prev.additional_amount) || 0)
+        total_claim_amount: total
       }));
     }
   }, [federalData.basic_personal_amount, federalData.additional_amount]);
 
   useEffect(() => {
-    if (provincialData.basic_personal_amount || provincialData.additional_amount) {
+    const total = (parseFloat(provincialData.basic_personal_amount) || 0) + (parseFloat(provincialData.additional_amount) || 0);
+    if (provincialData.total_claim_amount !== total) {
       setProvincialData(prev => ({
         ...prev,
-        total_claim_amount: (parseFloat(prev.basic_personal_amount) || 0) + (parseFloat(prev.additional_amount) || 0)
+        total_claim_amount: total
       }));
     }
   }, [provincialData.basic_personal_amount, provincialData.additional_amount]);
