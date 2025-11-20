@@ -25,6 +25,7 @@ import CustomerCommunications from './pages/CustomerCommunications';
 import Settings from './pages/Settings';
 import Payroll from './pages/Payroll';
 import TD1Form from './pages/TD1Form';
+import EmployeePortal from './pages/EmployeePortal';
 import __Layout from './Layout.jsx';
 
 
@@ -56,6 +57,7 @@ export const PAGES = {
     "Settings": Settings,
     "Payroll": Payroll,
     "TD1Form": TD1Form,
+    "EmployeePortal": EmployeePortal,
 }
 
 export const pagesConfig = {

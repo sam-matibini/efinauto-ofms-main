@@ -137,6 +137,11 @@ const navigationItems = [
     icon: Users,
   },
   {
+    title: "Employee Portal",
+    url: createPageUrl("EmployeePortal"),
+    icon: UserCog,
+  },
+  {
     title: "Communications Hub",
     url: createPageUrl("CustomerCommunications"),
     icon: Send,
