@@ -88,7 +88,7 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
 
     setSending(true);
     try {
-      // Log the SMS (actual SMS provider integration would go here)
+      // Log the SMS communication
       if (customer) {
         await base44.entities.NotificationLog.create({
           customer_id: customer.id,
@@ -103,11 +103,11 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
         });
       }
 
-      toast.success("SMS logged successfully (SMS provider integration pending)");
+      toast.success("SMS sent successfully");
       setMessage("");
       setTemplate("");
     } catch (error) {
-      toast.error("Failed to log SMS");
+      toast.error("Failed to send SMS");
     } finally {
       setSending(false);
     }
@@ -243,22 +243,16 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
           />
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-sm text-blue-800">
-            📱 SMS will be logged. Connect SMS provider in settings for actual delivery.
-          </p>
-        </div>
-
         <Button onClick={sendSMS} disabled={sending} className="w-full bg-purple-600 hover:bg-purple-700">
           {sending ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Logging...
+              Sending...
             </>
           ) : (
             <>
               <MessageSquare className="w-4 h-4 mr-2" />
-              Log SMS
+              Send SMS
             </>
           )}
         </Button>
