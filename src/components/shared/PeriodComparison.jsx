@@ -3,16 +3,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Plus, X, Calendar } from "lucide-react";
+import { X } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subQuarters, subYears } from "date-fns";
 
 export default function PeriodComparison({ onPeriodsChange, maxPeriods = 12 }) {
-  const [periods, setPeriods] = useState([
-    { id: 1, type: "this_month", label: "This Month", customFrom: null, customTo: null }
-  ]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [compareType, setCompareType] = useState("previous_period");
+  const [numberOfPeriods, setNumberOfPeriods] = useState(1);
+  const [arrangeLatestFirst, setArrangeLatestFirst] = useState(true);
+  const [applied, setApplied] = useState(false);
 
   const getPeriodDates = (period, offset = 0) => {
     const today = new Date();
