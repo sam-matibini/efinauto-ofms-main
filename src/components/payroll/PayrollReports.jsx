@@ -109,11 +109,12 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
       </Card>
 
       <Tabs defaultValue="summary">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
           <TabsTrigger value="summary">Summary</TabsTrigger>
           <TabsTrigger value="register">Register</TabsTrigger>
           <TabsTrigger value="deductions">Deductions</TabsTrigger>
           <TabsTrigger value="contributions">Contributions</TabsTrigger>
+          <TabsTrigger value="earnings">Earnings</TabsTrigger>
           <TabsTrigger value="timesheet">Timesheet</TabsTrigger>
           <TabsTrigger value="vacation">Vacation</TabsTrigger>
           <TabsTrigger value="ytd">YTD</TabsTrigger>
@@ -348,6 +349,106 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
                     </table>
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Employee Earnings Report */}
+        <TabsContent value="earnings" className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Employee Earnings Report</CardTitle>
+                <Button variant="outline">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export PDF
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {employees.map(emp => {
+                  const empEntries = filteredEntries.filter(e => e.employee_id === emp.id);
+                  if (empEntries.length === 0) return null;
+                  
+                  const earnings = {
+                    regularHours: empEntries.reduce((sum, e) => sum + (e.regular_hours || 0), 0),
+                    overtimeHours: empEntries.reduce((sum, e) => sum + (e.overtime_hours || 0), 0),
+                    regularPay: empEntries.reduce((sum, e) => sum + (e.regular_pay || 0), 0),
+                    overtimePay: empEntries.reduce((sum, e) => sum + (e.overtime_pay || 0), 0),
+                    vacationPay: empEntries.reduce((sum, e) => sum + (e.vacation_pay || 0), 0),
+                    commission: empEntries.reduce((sum, e) => sum + (e.commission || 0), 0),
+                    bonus: empEntries.reduce((sum, e) => sum + (e.bonus || 0), 0),
+                    grossPay: empEntries.reduce((sum, e) => sum + (e.gross_pay || 0), 0),
+                    netPay: empEntries.reduce((sum, e) => sum + (e.net_pay || 0), 0)
+                  };
+
+                  return (
+                    <Card key={emp.id}>
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="font-semibold text-lg">{emp.first_name} {emp.last_name}</h3>
+                            <p className="text-sm text-gray-600">{emp.position} • {emp.employee_number}</p>
+                          </div>
+                          <Badge>{emp.pay_type}</Badge>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="bg-blue-50 rounded-lg p-3">
+                            <p className="text-xs text-gray-600">Regular Hours</p>
+                            <p className="text-lg font-bold">{earnings.regularHours.toFixed(2)}</p>
+                            <p className="text-xs text-gray-600 mt-1">
+                              ${earnings.regularPay.toLocaleString('en-CA')}
+                            </p>
+                          </div>
+
+                          <div className="bg-orange-50 rounded-lg p-3">
+                            <p className="text-xs text-gray-600">Overtime Hours</p>
+                            <p className="text-lg font-bold">{earnings.overtimeHours.toFixed(2)}</p>
+                            <p className="text-xs text-gray-600 mt-1">
+                              ${earnings.overtimePay.toLocaleString('en-CA')}
+                            </p>
+                          </div>
+
+                          <div className="bg-purple-50 rounded-lg p-3">
+                            <p className="text-xs text-gray-600">Bonuses/Commission</p>
+                            <p className="text-lg font-bold">
+                              ${(earnings.bonus + earnings.commission).toLocaleString('en-CA')}
+                            </p>
+                            <p className="text-xs text-gray-600 mt-1">
+                              {earnings.bonus > 0 && `Bonus: $${earnings.bonus.toLocaleString('en-CA')}`}
+                              {earnings.commission > 0 && ` Comm: $${earnings.commission.toLocaleString('en-CA')}`}
+                            </p>
+                          </div>
+
+                          <div className="bg-green-50 rounded-lg p-3">
+                            <p className="text-xs text-gray-600">Vacation Pay</p>
+                            <p className="text-lg font-bold">
+                              ${earnings.vacationPay.toLocaleString('en-CA')}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
+                          <div className="bg-indigo-50 rounded-lg p-3">
+                            <p className="text-sm text-gray-600">Total Gross Pay</p>
+                            <p className="text-2xl font-bold">
+                              ${earnings.grossPay.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+                            </p>
+                          </div>
+                          <div className="bg-green-100 rounded-lg p-3">
+                            <p className="text-sm text-gray-600">Total Net Pay</p>
+                            <p className="text-2xl font-bold text-green-700">
+                              ${earnings.netPay.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
