@@ -28,6 +28,7 @@ import RepairOrderCard from "@/components/repairs/RepairOrderCard";
 import InvoiceGenerator from "@/components/repairs/InvoiceGenerator";
 import TechnicianScheduler from "@/components/technicians/TechnicianScheduler";
 import WorkloadDashboard from "@/components/technicians/WorkloadDashboard";
+import AIAppointmentOptimizer from "@/components/repairs/AIAppointmentOptimizer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function RepairsPage() {
@@ -56,6 +57,13 @@ export default function RepairsPage() {
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', selectedCompanyId],
     queryFn: () => base44.entities.Customer.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: technicians = [] } = useQuery({
+    queryKey: ['technicians', selectedCompanyId],
+    queryFn: () => base44.entities.Technician.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
@@ -322,6 +330,7 @@ export default function RepairsPage() {
           <TabsTrigger value="kanban">Kanban Board</TabsTrigger>
           <TabsTrigger value="list">List View</TabsTrigger>
           <TabsTrigger value="workload">Workload</TabsTrigger>
+          <TabsTrigger value="ai-optimizer">AI Optimizer</TabsTrigger>
         </TabsList>
 
         <TabsContent value="kanban" className="space-y-4">
@@ -434,6 +443,13 @@ export default function RepairsPage() {
 
         <TabsContent value="workload" className="space-y-4">
           <WorkloadDashboard />
+        </TabsContent>
+
+        <TabsContent value="ai-optimizer" className="space-y-4">
+          <AIAppointmentOptimizer 
+            repairs={repairOrders} 
+            technicians={technicians}
+          />
         </TabsContent>
       </Tabs>
 
