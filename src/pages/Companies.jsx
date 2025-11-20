@@ -471,21 +471,29 @@ function CompanyDialog({ open, onClose, company, onSave, isLoading }) {
               />
             </div>
             <div className="space-y-2">
-              <Label>Email</Label>
+              <Label className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-blue-600" />
+                Email (for communications)
+              </Label>
               <Input 
                 type="email" 
                 value={formData.email} 
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 placeholder="e.g., cars@oluspeautos.ca"
               />
+              <p className="text-xs text-gray-500">Used as sender address in email communications</p>
             </div>
             <div className="space-y-2">
-              <Label>Phone</Label>
+              <Label className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-purple-600" />
+                Phone (for communications)
+              </Label>
               <Input 
                 value={formData.phone} 
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
                 placeholder="e.g., 2045908387"
               />
+              <p className="text-xs text-gray-500">Used as sender number in SMS communications</p>
             </div>
             <div className="space-y-2 col-span-2">
               <Label>Address</Label>
