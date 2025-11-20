@@ -361,6 +361,59 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
     setViewDialogOpen(true);
   };
 
+  const handleExportRun = (run) => {
+    const entries = getRunEntries(run.id);
+
+    // Create CSV content
+    const headers = [
+      'Employee Number', 'Employee Name', 'Regular Hours', 'Overtime Hours', 
+      'Regular Pay', 'Overtime Pay', 'Gross Pay', 'CPP Employee', 'EI Employee',
+      'Federal Tax', 'Provincial Tax', 'Total Deductions', 'Net Pay',
+      'CPP Employer', 'EI Employer', 'Vacation Accrued'
+    ];
+
+    const rows = entries.map(entry => [
+      entry.employee_number,
+      entry.employee_name,
+      entry.regular_hours,
+      entry.overtime_hours,
+      entry.regular_pay?.toFixed(2),
+      entry.overtime_pay?.toFixed(2),
+      entry.gross_pay?.toFixed(2),
+      entry.cpp_employee?.toFixed(2),
+      entry.ei_employee?.toFixed(2),
+      entry.federal_tax?.toFixed(2),
+      entry.provincial_tax?.toFixed(2),
+      entry.total_deductions?.toFixed(2),
+      entry.net_pay?.toFixed(2),
+      entry.cpp_employer?.toFixed(2),
+      entry.ei_employer?.toFixed(2),
+      entry.vacation_accrued?.toFixed(2)
+    ]);
+
+    const csvContent = [
+      `Payroll Run: ${run.payroll_number}`,
+      `Period: ${formatDate(run.pay_period_start)} - ${formatDate(run.pay_period_end)}`,
+      `Pay Date: ${formatDate(run.pay_date)}`,
+      '',
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `payroll_${run.payroll_number}_${run.pay_date}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    toast.success("Payroll exported successfully");
+  };
+
   const handleEditRun = (run) => {
     setSelectedRun(run);
     setPeriodStart(run.pay_period_start);
@@ -461,7 +514,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                           Edit
                         </Button>
                       )}
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => handleExportRun(run)}>
                         <Download className="w-4 h-4 mr-1" />
                         Export
                       </Button>
