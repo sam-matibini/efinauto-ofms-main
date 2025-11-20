@@ -103,8 +103,11 @@ export default function EmailComposer({ customer, customers, exports, shipments,
         }
       });
 
+      // Add company signature
+      const signature = `\n\n---\n${companyName}${company?.phone ? `\nPhone: ${company.phone}` : ""}${company?.email ? `\nEmail: ${company.email}` : ""}${company?.address ? `\n${company.address}` : ""}${company?.city && company?.province ? `\n${company.city}, ${company.province}` : ""}`;
+
       setSubject(response.subject);
-      setBody(response.body);
+      setBody(response.body + signature);
       toast.success("Email generated with AI");
     } catch (error) {
       toast.error("Failed to generate email");
