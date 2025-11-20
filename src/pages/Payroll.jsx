@@ -189,7 +189,7 @@ export default function Payroll() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="ai-assistant">
-          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-13">
+          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-14">
             <TabsTrigger value="ai-assistant" className="flex items-center gap-1">
               <Sparkles className="w-3 h-3" />
               AI Assistant
@@ -197,6 +197,7 @@ export default function Payroll() {
             <TabsTrigger value="employees">Employees</TabsTrigger>
             <TabsTrigger value="paygroups">Pay Groups</TabsTrigger>
             <TabsTrigger value="payroll">Payroll</TabsTrigger>
+            <TabsTrigger value="timesheet">Timesheet</TabsTrigger>
             <TabsTrigger value="adjustments">Adjustments</TabsTrigger>
             <TabsTrigger value="vacation">Vacation</TabsTrigger>
             <TabsTrigger value="benefits">Benefits</TabsTrigger>
@@ -239,6 +240,15 @@ export default function Payroll() {
               employees={employees}
               payrollRuns={payrollRuns}
               payrollEntries={payrollEntries}
+              timeEntries={timeEntries}
+              queryClient={queryClient}
+            />
+          </TabsContent>
+
+          <TabsContent value="timesheet" className="mt-6">
+            <TimesheetManagement
+              company={company}
+              employees={employees}
               timeEntries={timeEntries}
               queryClient={queryClient}
             />
