@@ -79,7 +79,6 @@ ${company?.name || "eFinAuto OFMS"} HR Team`
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       toast.success("Employee added successfully and TD1 form email sent");
       setDialogOpen(false);
-      setTd1DialogOpen(false);
       resetForm();
     },
     onError: () => toast.error("Failed to add employee")
@@ -90,12 +89,8 @@ ${company?.name || "eFinAuto OFMS"} HR Team`
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       toast.success("Employee updated successfully");
-      if (dialogOpen) {
-        setDialogOpen(false);
-      }
-      if (td1DialogOpen) {
-        setTd1DialogOpen(false);
-      }
+      setDialogOpen(false);
+      setTd1DialogOpen(false);
       resetForm();
     },
     onError: () => toast.error("Failed to update employee")
@@ -189,7 +184,7 @@ ${company?.name || "eFinAuto OFMS"} HR Team`
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>Employee Directory</CardTitle>
-            <Button onClick={() => { setTd1DialogOpen(false); resetForm(); setDialogOpen(true); }} className="bg-blue-600">
+            <Button onClick={() => { resetForm(); setDialogOpen(true); }} className="bg-blue-600">
               <Plus className="w-4 h-4 mr-2" />
               Add Employee
             </Button>
