@@ -32,10 +32,49 @@ export default function EmployeeManagement({ company, employees, queryClient }) 
   });
 
   const createEmployeeMutation = useMutation({
-    mutationFn: (data) => base44.entities.Employee.create(data),
+    mutationFn: async (data) => {
+      const employee = await base44.entities.Employee.create(data);
+      
+      // Send TD1 form email
+      if (employee.email) {
+        const td1FormUrl = `${window.location.origin}/TD1Form?employee_id=${employee.id}`;
+        
+        try {
+          await base44.integrations.Core.SendEmail({
+            from_name: company?.name || "eFinAuto Center",
+            to: employee.email,
+            subject: "Complete Your TD1 Tax Forms - Action Required",
+            body: `Dear ${employee.first_name} ${employee.last_name},
+
+Welcome to ${company?.name || "eFinAuto Center"}!
+
+As part of your onboarding process, please complete your TD1 Personal Tax Credits Return forms (federal and provincial). This is required to ensure accurate payroll tax deductions.
+
+Click the link below to access your personalized TD1 form:
+${td1FormUrl}
+
+The form takes approximately 5 minutes to complete. You'll need to provide:
+• Federal basic personal amount and any additional credits
+• Provincial basic personal amount and any additional credits
+
+Please complete this form at your earliest convenience.
+
+If you have any questions, please contact our HR department.
+
+Best regards,
+${company?.name || "eFinAuto Center"} HR Team`
+          });
+        } catch (emailError) {
+          console.error("Failed to send TD1 email:", emailError);
+          toast.error("Employee created but email failed to send");
+        }
+      }
+      
+      return employee;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
-      toast.success("Employee added successfully");
+      toast.success("Employee added successfully and TD1 form email sent");
       setDialogOpen(false);
       resetForm();
     },
