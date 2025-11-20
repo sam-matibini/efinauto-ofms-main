@@ -28,6 +28,7 @@ import InvoicesTab from "../components/sales/InvoicesTab";
 import PaymentsTab from "../components/sales/PaymentsTab";
 import RecurringInvoicesTab from "../components/sales/RecurringInvoicesTab";
 import CreditNotesTab from "../components/sales/CreditNotesTab";
+import AISalesInsights from "../components/sales/AISalesInsights";
 
 export default function Sales() {
   const [activeMainTab, setActiveMainTab] = useState("sales");
@@ -91,6 +92,13 @@ export default function Sales() {
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles', selectedCompanyId],
     queryFn: () => base44.entities.Vehicle.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: services = [] } = useQuery({
+    queryKey: ['services', selectedCompanyId],
+    queryFn: () => base44.entities.Service.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
@@ -198,7 +206,7 @@ export default function Sales() {
 
       <div className="p-6 md:p-8 max-w-7xl mx-auto">
         <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 h-auto bg-white border-b">
+          <TabsList className="grid w-full grid-cols-8 h-auto bg-white border-b">
             <TabsTrigger value="sales" className="flex flex-col gap-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-gray-600 data-[state=active]:text-gray-900">
               <FileText className="w-4 h-4" />
               <span className="text-xs">Bills of Sale</span>
@@ -226,6 +234,10 @@ export default function Sales() {
             <TabsTrigger value="credits" className="flex flex-col gap-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-red-600 data-[state=active]:text-red-900">
               <FileX className="w-4 h-4" />
               <span className="text-xs">Credit Notes</span>
+            </TabsTrigger>
+            <TabsTrigger value="ai-insights" className="flex flex-col gap-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-purple-600 data-[state=active]:text-purple-900">
+              <TrendingUp className="w-4 h-4" />
+              <span className="text-xs">AI Insights</span>
             </TabsTrigger>
           </TabsList>
 
@@ -471,6 +483,10 @@ export default function Sales() {
 
           <TabsContent value="credits" className="space-y-6">
             <CreditNotesTab creditNotes={creditNotes} selectedCompanyId={selectedCompanyId} />
+          </TabsContent>
+
+          <TabsContent value="ai-insights" className="space-y-6">
+            <AISalesInsights sales={sales} vehicles={vehicles} services={services} />
           </TabsContent>
         </Tabs>
 
