@@ -42,6 +42,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CompanyProvider } from "@/components/shared/CompanyContext";
 import CompanySelector from "@/components/shared/CompanySelector";
 import ProfileDialog from "@/components/users/ProfileDialog";
+import ErrorBoundary from "@/components/shared/ErrorBoundary";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -195,9 +196,10 @@ export default function Layout({ children, currentPageName }) {
   };
 
   return (
-    <CompanyProvider>
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-gray-50">
+    <ErrorBoundary>
+      <CompanyProvider>
+        <SidebarProvider>
+          <div className="min-h-screen flex w-full bg-gray-50">
           <Sidebar className="border-r border-gray-800" style={{ backgroundColor: '#1e293b' }}>
             <SidebarHeader className="border-b border-gray-700 p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -302,5 +304,6 @@ export default function Layout({ children, currentPageName }) {
             </div>
             </SidebarProvider>
             </CompanyProvider>
+            </ErrorBoundary>
             );
-}
+            }
