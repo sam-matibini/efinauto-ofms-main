@@ -160,15 +160,16 @@ export default function EmailComposer({ customer, customers, exports, shipments,
       if (customer) {
         try {
           await base44.entities.NotificationLog.create({
+            company_id: company?.id,
             customer_id: customer.id,
             customer_name: customer.full_name,
-            type: "email",
-            channel: "email",
-            recipient: to,
+            customer_email: to,
+            notification_type: "sale_status_update",
             subject: subject,
             message: body,
+            delivery_method: "email",
             status: "sent",
-            sent_at: new Date().toISOString()
+            sent_date: new Date().toISOString()
           });
         } catch (logError) {
           console.error("Failed to log communication:", logError);

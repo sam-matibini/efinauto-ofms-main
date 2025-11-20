@@ -9,16 +9,15 @@ import { base44 } from "@/api/base44Client";
 export default function CommunicationHistory({ customer }) {
   const { data: communications = [] } = useQuery({
     queryKey: ['communicationHistory', customer?.id],
-    queryFn: () => base44.entities.NotificationLog.filter({ customer_id: customer.id }, '-sent_at'),
+    queryFn: () => base44.entities.NotificationLog.filter({ customer_id: customer.id }, '-sent_date'),
     enabled: !!customer,
     initialData: [],
   });
 
-  const getIcon = (type) => {
-    switch (type) {
+  const getIcon = (deliveryMethod) => {
+    switch (deliveryMethod) {
       case "email": return <Mail className="w-4 h-4" />;
       case "sms": return <MessageSquare className="w-4 h-4" />;
-      case "call": return <Phone className="w-4 h-4" />;
       default: return <Mail className="w-4 h-4" />;
     }
   };
@@ -54,7 +53,7 @@ export default function CommunicationHistory({ customer }) {
             {communications.map((comm) => (
               <div key={comm.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
                 <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                  {getIcon(comm.type)}
+                  {getIcon(comm.delivery_method)}
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-sm">{comm.subject}</p>
@@ -62,7 +61,7 @@ export default function CommunicationHistory({ customer }) {
                   <div className="flex items-center gap-2 mt-1">
                     <Clock className="w-3 h-3 text-gray-400" />
                     <span className="text-xs text-gray-500">
-                      {format(new Date(comm.sent_at), 'MMM d, yyyy h:mm a')}
+                      {format(new Date(comm.sent_date), 'MMM d, yyyy h:mm a')}
                     </span>
                   </div>
                 </div>

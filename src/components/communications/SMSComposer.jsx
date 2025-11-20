@@ -92,15 +92,16 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
       // Log the SMS communication
       if (customer) {
         await base44.entities.NotificationLog.create({
+          company_id: company?.id,
           customer_id: customer.id,
           customer_name: customer.full_name,
-          type: "sms",
-          channel: "sms",
-          recipient: to,
+          customer_email: customer.email,
+          notification_type: "sale_status_update",
           subject: "SMS Message",
           message: message,
+          delivery_method: "sms",
           status: "sent",
-          sent_at: new Date().toISOString()
+          sent_date: new Date().toISOString()
         });
       }
 
