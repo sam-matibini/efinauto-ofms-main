@@ -741,7 +741,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                         visibility: hidden;
                       }
                       .paystub-print-container {
-                        visibility: visible;
+                        visibility: visible !important;
                         position: absolute;
                         left: 0;
                         top: 0;
@@ -749,7 +749,14 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                         font-size: 11px;
                       }
                       .paystub-print-container * {
-                        visibility: visible;
+                        visibility: visible !important;
+                      }
+                      .paystub-print-container h2,
+                      .paystub-print-container p,
+                      .paystub-print-container span,
+                      .paystub-print-container div {
+                        visibility: visible !important;
+                        color: black !important;
                       }
                       .paystub-print-container h2 {
                         font-size: 18px;
