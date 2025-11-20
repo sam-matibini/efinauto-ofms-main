@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Play, Download, Eye, Check, Loader2, X, StopCircle } from "lucide-react";
+import { Play, Download, Eye, Check, Loader2, X, StopCircle, Trash2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
@@ -29,6 +29,26 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
     },
     onError: () => {
       toast.error("Failed to stop payroll run");
+    }
+  });
+
+  const deletePayrollRunMutation = useMutation({
+    mutationFn: async (runId) => {
+      // Delete all payroll entries for this run first
+      const entries = payrollEntries.filter(e => e.payroll_run_id === runId);
+      for (const entry of entries) {
+        await base44.entities.PayrollEntry.delete(entry.id);
+      }
+      // Then delete the payroll run
+      return await base44.entities.PayrollRun.delete(runId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payrollRuns'] });
+      queryClient.invalidateQueries({ queryKey: ['payrollEntries'] });
+      toast.success("Payroll run deleted successfully");
+    },
+    onError: () => {
+      toast.error("Failed to delete payroll run");
     }
   });
 
@@ -270,7 +290,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                           variant="outline" 
                           size="sm"
                           onClick={() => stopPayrollRunMutation.mutate(run.id)}
-                          className="text-red-600 hover:text-red-700 hover:border-red-300"
+                          className="text-orange-600 hover:text-orange-700 hover:border-orange-300"
                         >
                           <StopCircle className="w-4 h-4 mr-1" />
                           Stop
@@ -283,6 +303,19 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                       <Button variant="outline" size="sm">
                         <Download className="w-4 h-4 mr-1" />
                         Export
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          if (confirm('Are you sure you want to delete this payroll run? This cannot be undone.')) {
+                            deletePayrollRunMutation.mutate(run.id);
+                          }
+                        }}
+                        className="text-red-600 hover:text-red-700 hover:border-red-300"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Delete
                       </Button>
                     </div>
                   </div>
