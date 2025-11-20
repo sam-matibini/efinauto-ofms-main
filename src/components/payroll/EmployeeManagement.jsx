@@ -583,8 +583,8 @@ Respond with accurate, up-to-date CRA figures for the ${currentYear} tax year.`,
                 💡 Use AI to automatically fetch the latest {new Date().getFullYear()} CRA tax credit amounts for the selected province
               </p>
             </div>
-
-            <Tabs defaultValue="federal">
+          
+            <Tabs defaultValue="federal" className="mt-4">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="federal">Federal TD1</TabsTrigger>
                 <TabsTrigger value="provincial">Provincial TD1</TabsTrigger>
@@ -670,6 +670,7 @@ Respond with accurate, up-to-date CRA figures for the ${currentYear} tax year.`,
                 </div>
               </TabsContent>
             </Tabs>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
