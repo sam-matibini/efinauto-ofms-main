@@ -735,40 +735,32 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                     @media print {
                       @page {
                         size: A4;
-                        margin: 10mm;
+                        margin: 15mm;
                       }
                       body * {
                         visibility: hidden;
                       }
-                      .paystub-print, .paystub-print * {
+                      .paystub-print-container {
                         visibility: visible;
-                      }
-                      .paystub-print {
                         position: absolute;
                         left: 0;
                         top: 0;
                         width: 100%;
+                      }
+                      .paystub-print-container * {
+                        visibility: visible;
+                      }
+                      .paystub-print-container {
                         page-break-inside: avoid;
                       }
-                      .paystub-print h2 {
-                        font-size: 18px;
-                      }
-                      .paystub-print h3 {
-                        font-size: 14px;
-                      }
-                      .paystub-print p, .paystub-print span, .paystub-print div {
-                        font-size: 11px;
-                      }
-                      .paystub-print .space-y-4 > * + * {
-                        margin-top: 8px;
-                      }
-                      .paystub-print .space-y-1 > * + * {
-                        margin-top: 2px;
+                      .print-button {
+                        display: none !important;
                       }
                     }
                   `}</style>
                   {getRunEntries(selectedRun.id).map((entry) => (
-                    <Card key={entry.id} className="paystub-print">
+                    <div key={entry.id} className="paystub-print-container">
+                    <Card>
                       <CardContent className="p-6">
                         <div className="space-y-4">
                           {/* Header */}
@@ -887,16 +879,17 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                           </div>
 
                           {/* Print Button */}
-                          <div className="text-center pt-4 border-t">
+                          <div className="text-center pt-4 border-t print-button">
                             <Button variant="outline" onClick={() => window.print()}>
                               <Download className="w-4 h-4 mr-2" />
                               Print/Download Paystub
                             </Button>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                          </div>
+                          </CardContent>
+                          </Card>
+                          </div>
+                          ))}
                 </TabsContent>
               </Tabs>
             </div>
