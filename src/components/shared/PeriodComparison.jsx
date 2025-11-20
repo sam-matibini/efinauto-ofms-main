@@ -74,106 +74,89 @@ export default function PeriodComparison({ onPeriodsChange, maxPeriods = 12 }) {
   };
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium">Comparative Periods</Label>
-            <Button
-              onClick={addPeriod}
-              size="sm"
-              variant="outline"
-              disabled={periods.length >= maxPeriods}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Period ({periods.length}/{maxPeriods})
-            </Button>
-          </div>
+    <div className="flex items-center gap-2">
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className="h-10">
+            Compare With: {applied ? "Applied" : "None"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80" align="start">
+          <div className="space-y-4">
+            <h4 className="font-medium text-sm">Compare With</h4>
+            
+            <div className="space-y-2">
+              <Label className="text-sm">Compare Based on Period/Year</Label>
+              <Select value={compareType} onValueChange={setCompareType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="previous_period">Previous Period(s)</SelectItem>
+                  <SelectItem value="previous_quarter">Previous Quarter(s)</SelectItem>
+                  <SelectItem value="previous_year">Previous Year(s)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {periods.map((period, index) => {
-              const dates = getPeriodDates(period, index);
-              return (
-                <div key={period.id} className="border rounded-lg p-3 space-y-2 bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <Input
-                      value={period.label}
-                      onChange={(e) => updatePeriodLabel(period.id, e.target.value)}
-                      className="h-8 text-sm font-medium"
-                      placeholder="Period label"
-                    />
-                    {periods.length > 1 && (
-                      <Button
-                        onClick={() => removePeriod(period.id)}
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0 ml-2"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                  <Select value={period.type} onValueChange={(type) => updatePeriodType(period.id, type)}>
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="this_month">This Month</SelectItem>
-                      <SelectItem value="last_month">Last Month</SelectItem>
-                      <SelectItem value="this_quarter">This Quarter</SelectItem>
-                      <SelectItem value="last_quarter">Last Quarter</SelectItem>
-                      <SelectItem value="this_year">This Year</SelectItem>
-                      <SelectItem value="last_year">Last Year</SelectItem>
-                      <SelectItem value="custom">Custom Range</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
-                  {period.type === "custom" && (
-                    <div className="space-y-2 pt-2 border-t">
-                      <div className="flex gap-2">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" size="sm" className="flex-1 h-8 text-xs">
-                              <Calendar className="w-3 h-3 mr-1" />
-                              {period.customFrom ? format(period.customFrom, 'MMM d') : 'From'}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <CalendarComponent
-                              mode="single"
-                              selected={period.customFrom}
-                              onSelect={(date) => updateCustomDate(period.id, 'customFrom', date)}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" size="sm" className="flex-1 h-8 text-xs">
-                              <Calendar className="w-3 h-3 mr-1" />
-                              {period.customTo ? format(period.customTo, 'MMM d') : 'To'}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <CalendarComponent
-                              mode="single"
-                              selected={period.customTo}
-                              onSelect={(date) => updateCustomDate(period.id, 'customTo', date)}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="text-xs text-gray-600">
-                    {format(dates.from, 'MMM d, yyyy')} - {format(dates.to, 'MMM d, yyyy')}
-                  </div>
-                </div>
-              );
-            })}
+            <div className="space-y-2">
+              <Label className="text-sm">Number of Period(s)</Label>
+              <Select value={numberOfPeriods.toString()} onValueChange={(v) => setNumberOfPeriods(parseInt(v))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: maxPeriods }, (_, i) => i + 1).map((num) => (
+                    <SelectItem key={num} value={num.toString()}>
+                      {num}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="arrange-order"
+                checked={arrangeLatestFirst}
+                onCheckedChange={setArrangeLatestFirst}
+              />
+              <label
+                htmlFor="arrange-order"
+                className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Arrange period/year from latest to oldest
+              </label>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button onClick={handleApply} size="sm" className="flex-1">
+                Apply
+              </Button>
+              <Button onClick={handleCancel} size="sm" variant="outline" className="flex-1">
+                Cancel
+              </Button>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </PopoverContent>
+      </Popover>
+
+      {applied && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={clearComparison}
+          className="h-10 px-2"
+        >
+          <X className="w-4 h-4" />
+        </Button>
+      )}
+
+      {applied && (
+        <Button variant="outline" size="sm" className="h-10">
+          Customize Report
+        </Button>
+      )}
+    </div>
   );
 }
