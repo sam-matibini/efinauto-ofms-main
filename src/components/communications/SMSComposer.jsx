@@ -6,21 +6,25 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, MessageSquare, Loader2 } from "lucide-react";
+import { Sparkles, MessageSquare, Loader2, Plane, Package } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
-export default function SMSComposer({ customer, customers }) {
+export default function SMSComposer({ customer, customers, exports, shipments, loadingDeclarations }) {
   const [to, setTo] = useState(customer?.phone || "");
   const [message, setMessage] = useState("");
   const [template, setTemplate] = useState("");
+  const [selectedExport, setSelectedExport] = useState("");
+  const [selectedShipment, setSelectedShipment] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
 
   const templates = [
-    { value: "appointment", label: "Appointment Reminder", prompt: "Write a brief SMS reminder for a vehicle service appointment" },
-    { value: "delivery", label: "Delivery Update", prompt: "Write a brief SMS about vehicle delivery status" },
-    { value: "payment", label: "Payment Reminder", prompt: "Write a brief SMS payment reminder" },
-    { value: "promo", label: "Quick Promotion", prompt: "Write a brief promotional SMS about vehicle deals" }
+    { value: "appointment", label: "Appointment Reminder", prompt: "Write a brief SMS reminder for a vehicle service appointment", category: "customer" },
+    { value: "delivery", label: "Delivery Update", prompt: "Write a brief SMS about vehicle delivery status", category: "customer" },
+    { value: "payment", label: "Payment Reminder", prompt: "Write a brief SMS payment reminder", category: "customer" },
+    { value: "promo", label: "Quick Promotion", prompt: "Write a brief promotional SMS about vehicle deals", category: "customer" },
+    { value: "export_update", label: "Export Status", prompt: "Write a brief SMS about export status", category: "export" },
+    { value: "shipment_update", label: "Shipment Update", prompt: "Write a brief SMS about shipment tracking", category: "shipment" }
   ];
 
   const charCount = message.length;
@@ -35,10 +39,20 @@ export default function SMSComposer({ customer, customers }) {
     setAiLoading(true);
     try {
       const selectedTemplate = templates.find(t => t.value === template);
-      const customerInfo = customer ? `\nCustomer Name: ${customer.full_name}` : "";
+      let contextInfo = customer ? `\nCustomer: ${customer.full_name}` : "";
+      
+      if (selectedExport) {
+        const exp = exports?.find(e => e.id === selectedExport);
+        if (exp) contextInfo += `\nExport: ${exp.export_number}, Status: ${exp.status}`;
+      }
+      
+      if (selectedShipment) {
+        const ship = shipments?.find(s => s.id === selectedShipment);
+        if (ship) contextInfo += `\nShipment: ${ship.shipment_number}, ETA: ${ship.estimated_arrival}`;
+      }
       
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `${selectedTemplate.prompt} for eFinAuto Center.${customerInfo}\n\nKeep it under 160 characters. Be professional and friendly.`,
+        prompt: `${selectedTemplate.prompt} for eFinAuto Center.${contextInfo}\n\nKeep it under 160 characters. Be professional and friendly.`,
         response_json_schema: {
           type: "object",
           properties: {
@@ -77,22 +91,40 @@ export default function SMSComposer({ customer, customers }) {
           />
         </div>
 
-        <div className="flex gap-4">
-          <div className="flex-1">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
             <Label>AI Template</Label>
             <Select value={template} onValueChange={setTemplate}>
               <SelectTrigger>
                 <SelectValue placeholder="Choose a template" />
               </SelectTrigger>
               <SelectContent>
-                {templates.map(t => (
+                <div className="px-2 py-1 text-xs font-semibold text-gray-500">Customer</div>
+                {templates.filter(t => t.category === 'customer').map(t => (
                   <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                ))}
+                <div className="px-2 py-1 text-xs font-semibold text-gray-500 mt-2">Export & Shipment</div>
+                {templates.filter(t => t.category === 'export').map(t => (
+                  <SelectItem key={t.value} value={t.value}>
+                    <div className="flex items-center gap-2">
+                      <Plane className="w-3 h-3" />
+                      {t.label}
+                    </div>
+                  </SelectItem>
+                ))}
+                {templates.filter(t => t.category === 'shipment').map(t => (
+                  <SelectItem key={t.value} value={t.value}>
+                    <div className="flex items-center gap-2">
+                      <Package className="w-3 h-3" />
+                      {t.label}
+                    </div>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="flex items-end">
-            <Button onClick={generateWithAI} disabled={aiLoading || !template} variant="outline">
+            <Button onClick={generateWithAI} disabled={aiLoading || !template} variant="outline" className="w-full">
               {aiLoading ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : (
@@ -102,6 +134,42 @@ export default function SMSComposer({ customer, customers }) {
             </Button>
           </div>
         </div>
+
+        {template && templates.find(t => t.value === template)?.category === 'export' && exports?.length > 0 && (
+          <div>
+            <Label>Select Export</Label>
+            <Select value={selectedExport} onValueChange={setSelectedExport}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose an export..." />
+              </SelectTrigger>
+              <SelectContent>
+                {exports.map(exp => (
+                  <SelectItem key={exp.id} value={exp.id}>
+                    {exp.export_number} - {exp.status}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {template && templates.find(t => t.value === template)?.category === 'shipment' && shipments?.length > 0 && (
+          <div>
+            <Label>Select Shipment</Label>
+            <Select value={selectedShipment} onValueChange={setSelectedShipment}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose a shipment..." />
+              </SelectTrigger>
+              <SelectContent>
+                {shipments.map(ship => (
+                  <SelectItem key={ship.id} value={ship.id}>
+                    {ship.shipment_number} - {ship.status}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div>
           <div className="flex justify-between items-center mb-2">

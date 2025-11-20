@@ -30,6 +30,27 @@ export default function CustomerCommunications() {
     initialData: [],
   });
 
+  const { data: exports = [] } = useQuery({
+    queryKey: ['exports', selectedCompanyId],
+    queryFn: () => base44.entities.Export.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: shipments = [] } = useQuery({
+    queryKey: ['shipments', selectedCompanyId],
+    queryFn: () => base44.entities.FreightShipment.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: loadingDeclarations = [] } = useQuery({
+    queryKey: ['loadingDeclarations', selectedCompanyId],
+    queryFn: () => base44.entities.LoadingDeclaration.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
   const stats = {
     totalCustomers: customers.length,
     activeCustomers: sales.filter(s => s.status === 'confirmed').length,
@@ -176,11 +197,23 @@ export default function CustomerCommunications() {
               </TabsList>
 
               <TabsContent value="email" className="mt-4">
-                <EmailComposer customer={selectedCustomer} customers={customers} />
+                <EmailComposer 
+                  customer={selectedCustomer} 
+                  customers={customers}
+                  exports={exports}
+                  shipments={shipments}
+                  loadingDeclarations={loadingDeclarations}
+                />
               </TabsContent>
 
               <TabsContent value="sms" className="mt-4">
-                <SMSComposer customer={selectedCustomer} customers={customers} />
+                <SMSComposer 
+                  customer={selectedCustomer} 
+                  customers={customers}
+                  exports={exports}
+                  shipments={shipments}
+                  loadingDeclarations={loadingDeclarations}
+                />
               </TabsContent>
 
               <TabsContent value="history" className="mt-4">
