@@ -203,20 +203,21 @@ ${company?.name || "eFinAuto OFMS"} HR Team`
   const fetchTaxCreditsWithAI = async () => {
     setAiLoading(true);
     try {
-      const currentYear = new Date().getFullYear();
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Search the Canada Revenue Agency (CRA) official website for the EXACT tax credit amounts for tax year ${currentYear - 1} (which applies to ${currentYear} calendar year payroll):
+        prompt: `Search the Canada Revenue Agency (CRA) official website for the EXACT tax credit amounts for tax year 2025:
 
 Province: ${td1FormData.province}
 
 Find the official CRA amounts for:
-1. Federal basic personal amount for ${currentYear - 1} tax year (from CRA TD1 form)
-2. Provincial/territorial basic personal amount for ${td1FormData.province} for ${currentYear - 1} tax year (from provincial TD1 form)
+1. Federal basic personal amount for 2025 tax year (from CRA TD1 federal form)
+2. Provincial/territorial basic personal amount for ${td1FormData.province} for 2025 tax year (from provincial TD1 form)
 
 IMPORTANT: 
-- Get the exact dollar amounts from official CRA sources only
-- Use the ${currentYear - 1} tax year amounts (these apply to ${currentYear} payroll)
-- Return precise numbers, not estimates
+- Get the exact dollar amounts from official CRA sources only (canada.ca website)
+- Use the 2025 tax year amounts
+- Return precise numbers from official TD1 forms, not estimates
+- The federal BPA for 2025 should be around $15,705
+- Provincial amounts vary by province/territory
 
 Provide the exact amounts in Canadian dollars.`,
         add_context_from_internet: true,
