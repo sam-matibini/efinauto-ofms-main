@@ -24,6 +24,8 @@ export default function EmployeeManagement({ company, employees, queryClient }) 
     date_of_birth: "",
     email: "",
     phone: "",
+    address: "",
+    address_date: "",
     position: "",
     department: "sales",
     pay_type: "hourly",
@@ -102,6 +104,8 @@ ${company?.name || "eFinAuto Center"} HR Team`
       date_of_birth: "",
       email: "",
       phone: "",
+      address: "",
+      address_date: "",
       position: "",
       department: "sales",
       pay_type: "hourly",
@@ -142,6 +146,8 @@ ${company?.name || "eFinAuto Center"} HR Team`
       date_of_birth: employee.date_of_birth || "",
       email: employee.email || "",
       phone: employee.phone || "",
+      address: employee.address || "",
+      address_date: employee.address_date || "",
       position: employee.position || "",
       department: employee.department || "sales",
       pay_type: employee.pay_type || "hourly",
@@ -298,6 +304,25 @@ ${company?.name || "eFinAuto Center"} HR Team`
                 <Input
                   value={formData.phone}
                   onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Mailing Address</Label>
+                <Input
+                  value={formData.address}
+                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  placeholder="Street address"
+                />
+              </div>
+              <div>
+                <Label>Date of Mailing Address</Label>
+                <Input
+                  type="date"
+                  value={formData.address_date}
+                  onChange={(e) => setFormData({...formData, address_date: e.target.value})}
                 />
               </div>
             </div>
