@@ -11,6 +11,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
 export default function SMSComposer({ customer, customers, exports, shipments, loadingDeclarations, draft, company }) {
+  const isSMSConfigured = company?.sms_provider && company?.sms_provider !== 'none';
   const [to, setTo] = useState(customer?.phone || "");
   const [message, setMessage] = useState("");
   const [template, setTemplate] = useState("");
@@ -242,6 +243,14 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
             maxLength={320}
           />
         </div>
+
+        {!isSMSConfigured && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p className="text-sm text-amber-800">
+              ⚠️ SMS provider not configured. Messages will be logged only. Go to Settings to configure Twilio or Vonage.
+            </p>
+          </div>
+        )}
 
         <Button onClick={sendSMS} disabled={sending} className="w-full bg-purple-600 hover:bg-purple-700">
           {sending ? (

@@ -20,7 +20,8 @@ import {
   FileText,
   DollarSign,
   MessageCircle,
-  Send
+  Send,
+  Settings
 } from "lucide-react";
 import {
   Sidebar,
@@ -149,6 +150,11 @@ const navigationItems = [
     title: "User Management",
     url: createPageUrl("UserManagement"),
     icon: UserCog,
+  },
+  {
+    title: "Settings",
+    url: createPageUrl("Settings"),
+    icon: Settings,
   },
 ];
 

@@ -22,6 +22,7 @@ import Accounting from './pages/Accounting';
 import ProductsServices from './pages/ProductsServices';
 import CustomerSupport from './pages/CustomerSupport';
 import CustomerCommunications from './pages/CustomerCommunications';
+import Settings from './pages/Settings';
 import __Layout from './Layout.jsx';
 
 
@@ -50,6 +51,7 @@ export const PAGES = {
     "ProductsServices": ProductsServices,
     "CustomerSupport": CustomerSupport,
     "CustomerCommunications": CustomerCommunications,
+    "Settings": Settings,
 }
 
 export const pagesConfig = {
