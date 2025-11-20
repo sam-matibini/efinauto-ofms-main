@@ -215,7 +215,7 @@ export default function TimesheetManagement({ company, employees, timeEntries, q
                               )}
                             </div>
                             <p className="text-sm text-gray-600">
-                              {new Date(entry.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })} • 
+                              {new Date(entry.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })} • 
                               {entry.clock_in && entry.clock_out && ` ${entry.clock_in} - ${entry.clock_out} • `}
                               Regular: {entry.regular_hours}h
                               {entry.overtime_hours > 0 && ` • Overtime: ${entry.overtime_hours}h`}
