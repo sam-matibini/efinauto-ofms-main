@@ -23,6 +23,7 @@ import ProductsServices from './pages/ProductsServices';
 import CustomerSupport from './pages/CustomerSupport';
 import CustomerCommunications from './pages/CustomerCommunications';
 import Settings from './pages/Settings';
+import Payroll from './pages/Payroll';
 import __Layout from './Layout.jsx';
 
 
@@ -52,6 +53,7 @@ export const PAGES = {
     "CustomerSupport": CustomerSupport,
     "CustomerCommunications": CustomerCommunications,
     "Settings": Settings,
+    "Payroll": Payroll,
 }
 
 export const pagesConfig = {

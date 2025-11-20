@@ -1,0 +1,393 @@
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Search, Edit, UserPlus, FileText } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
+
+export default function EmployeeManagement({ company, employees, queryClient }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [td1DialogOpen, setTd1DialogOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [formData, setFormData] = useState({
+    first_name: "",
+    last_name: "",
+    sin: "",
+    email: "",
+    phone: "",
+    position: "",
+    department: "sales",
+    pay_type: "hourly",
+    pay_rate: "",
+    pay_frequency: "bi_weekly",
+    hire_date: new Date().toISOString().split('T')[0]
+  });
+
+  const createEmployeeMutation = useMutation({
+    mutationFn: (data) => base44.entities.Employee.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast.success("Employee added successfully");
+      setDialogOpen(false);
+      resetForm();
+    },
+    onError: () => toast.error("Failed to add employee")
+  });
+
+  const updateEmployeeMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Employee.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast.success("Employee updated successfully");
+      setDialogOpen(false);
+      setTd1DialogOpen(false);
+      resetForm();
+    },
+    onError: () => toast.error("Failed to update employee")
+  });
+
+  const resetForm = () => {
+    setFormData({
+      first_name: "",
+      last_name: "",
+      sin: "",
+      email: "",
+      phone: "",
+      position: "",
+      department: "sales",
+      pay_type: "hourly",
+      pay_rate: "",
+      pay_frequency: "bi_weekly",
+      hire_date: new Date().toISOString().split('T')[0]
+    });
+    setSelectedEmployee(null);
+  };
+
+  const handleSave = () => {
+    if (!formData.first_name || !formData.last_name || !formData.sin || !formData.position || !formData.pay_rate) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    const data = {
+      ...formData,
+      company_id: company.id,
+      employee_number: `EMP-${Date.now()}`,
+      employment_status: "active",
+      pay_rate: parseFloat(formData.pay_rate)
+    };
+
+    if (selectedEmployee) {
+      updateEmployeeMutation.mutate({ id: selectedEmployee.id, data });
+    } else {
+      createEmployeeMutation.mutate(data);
+    }
+  };
+
+  const handleEdit = (employee) => {
+    setSelectedEmployee(employee);
+    setFormData({
+      first_name: employee.first_name || "",
+      last_name: employee.last_name || "",
+      sin: employee.sin || "",
+      email: employee.email || "",
+      phone: employee.phone || "",
+      position: employee.position || "",
+      department: employee.department || "sales",
+      pay_type: employee.pay_type || "hourly",
+      pay_rate: employee.pay_rate?.toString() || "",
+      pay_frequency: employee.pay_frequency || "bi_weekly",
+      hire_date: employee.hire_date || new Date().toISOString().split('T')[0]
+    });
+    setDialogOpen(true);
+  };
+
+  const handleTD1Form = (employee) => {
+    setSelectedEmployee(employee);
+    setTd1DialogOpen(true);
+  };
+
+  const filteredEmployees = employees.filter(emp => 
+    emp.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.position?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'terminated': return 'bg-red-100 text-red-800';
+      case 'on_leave': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>Employee Directory</CardTitle>
+            <Button onClick={() => { resetForm(); setDialogOpen(true); }} className="bg-blue-600">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Employee
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search employees..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4">
+            {filteredEmployees.map((employee) => (
+              <Card key={employee.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <span className="text-white font-semibold">
+                          {employee.first_name?.charAt(0)}{employee.last_name?.charAt(0)}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold">{employee.first_name} {employee.last_name}</h3>
+                          <Badge className={getStatusColor(employee.employment_status)}>
+                            {employee.employment_status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600">{employee.position} • {employee.department}</p>
+                        <p className="text-xs text-gray-500">
+                          {employee.pay_type === 'hourly' 
+                            ? `$${employee.pay_rate}/hr` 
+                            : `$${employee.pay_rate?.toLocaleString()}/year`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleTD1Form(employee)}>
+                        <FileText className="w-4 h-4 mr-1" />
+                        TD1
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(employee)}>
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Employee Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedEmployee ? 'Edit Employee' : 'Add New Employee'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>First Name *</Label>
+                <Input
+                  value={formData.first_name}
+                  onChange={(e) => setFormData({...formData, first_name: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label>Last Name *</Label>
+                <Input
+                  value={formData.last_name}
+                  onChange={(e) => setFormData({...formData, last_name: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>SIN *</Label>
+              <Input
+                value={formData.sin}
+                onChange={(e) => setFormData({...formData, sin: e.target.value})}
+                placeholder="123-456-789"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label>Phone</Label>
+                <Input
+                  value={formData.phone}
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Position *</Label>
+                <Input
+                  value={formData.position}
+                  onChange={(e) => setFormData({...formData, position: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label>Department</Label>
+                <Select value={formData.department} onValueChange={(value) => setFormData({...formData, department: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sales">Sales</SelectItem>
+                    <SelectItem value="service">Service</SelectItem>
+                    <SelectItem value="parts">Parts</SelectItem>
+                    <SelectItem value="management">Management</SelectItem>
+                    <SelectItem value="administration">Administration</SelectItem>
+                    <SelectItem value="finance">Finance</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label>Pay Type *</Label>
+                <Select value={formData.pay_type} onValueChange={(value) => setFormData({...formData, pay_type: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hourly">Hourly</SelectItem>
+                    <SelectItem value="salary">Salary</SelectItem>
+                    <SelectItem value="commission">Commission</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Pay Rate * {formData.pay_type === 'hourly' ? '($/hr)' : '($/year)'}</Label>
+                <Input
+                  type="number"
+                  value={formData.pay_rate}
+                  onChange={(e) => setFormData({...formData, pay_rate: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label>Pay Frequency</Label>
+                <Select value={formData.pay_frequency} onValueChange={(value) => setFormData({...formData, pay_frequency: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="bi_weekly">Bi-Weekly</SelectItem>
+                    <SelectItem value="semi_monthly">Semi-Monthly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label>Hire Date</Label>
+              <Input
+                type="date"
+                value={formData.hire_date}
+                onChange={(e) => setFormData({...formData, hire_date: e.target.value})}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={createEmployeeMutation.isPending || updateEmployeeMutation.isPending}>
+                {selectedEmployee ? 'Update' : 'Add'} Employee
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* TD1 Form Dialog */}
+      <Dialog open={td1DialogOpen} onOpenChange={setTd1DialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>TD1 Tax Credit Forms - {selectedEmployee?.first_name} {selectedEmployee?.last_name}</DialogTitle>
+          </DialogHeader>
+          <Tabs defaultValue="federal">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="federal">Federal TD1</TabsTrigger>
+              <TabsTrigger value="provincial">Provincial TD1</TabsTrigger>
+            </TabsList>
+            <TabsContent value="federal" className="space-y-4">
+              <div>
+                <Label>Basic Personal Amount</Label>
+                <Input
+                  type="number"
+                  defaultValue={selectedEmployee?.td1_federal?.basic_personal_amount || 15000}
+                  onChange={(e) => {
+                    if (selectedEmployee) {
+                      const newTd1 = {
+                        ...selectedEmployee.td1_federal,
+                        basic_personal_amount: parseFloat(e.target.value)
+                      };
+                      updateEmployeeMutation.mutate({
+                        id: selectedEmployee.id,
+                        data: { td1_federal: newTd1 }
+                      });
+                    }
+                  }}
+                />
+                <p className="text-xs text-gray-500 mt-1">2024 Federal: $15,000</p>
+              </div>
+              <div>
+                <Label>Additional Tax Credit Amount</Label>
+                <Input
+                  type="number"
+                  defaultValue={selectedEmployee?.td1_federal?.additional_amount || 0}
+                />
+              </div>
+            </TabsContent>
+            <TabsContent value="provincial" className="space-y-4">
+              <div>
+                <Label>Basic Personal Amount ({company?.province || 'Provincial'})</Label>
+                <Input
+                  type="number"
+                  defaultValue={selectedEmployee?.td1_provincial?.basic_personal_amount || 11809}
+                />
+                <p className="text-xs text-gray-500 mt-1">Varies by province</p>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

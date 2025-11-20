@@ -132,6 +132,11 @@ const navigationItems = [
     icon: DollarSign,
   },
   {
+    title: "Payroll & HR",
+    url: createPageUrl("Payroll"),
+    icon: Users,
+  },
+  {
     title: "Communications Hub",
     url: createPageUrl("CustomerCommunications"),
     icon: Send,
