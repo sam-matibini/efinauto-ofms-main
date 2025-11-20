@@ -15,95 +15,62 @@ export default function PeriodComparison({ onPeriodsChange, maxPeriods = 12 }) {
   const [arrangeLatestFirst, setArrangeLatestFirst] = useState(true);
   const [applied, setApplied] = useState(false);
 
-  const getPeriodDates = (period, offset = 0) => {
+  const generatePeriods = () => {
     const today = new Date();
+    const periods = [];
     
-    if (period.type === "custom" && period.customFrom && period.customTo) {
-      return { from: period.customFrom, to: period.customTo };
+    for (let i = 0; i < numberOfPeriods; i++) {
+      let from, to, label;
+      
+      switch (compareType) {
+        case "previous_period":
+          const targetMonth = subMonths(today, i + 1);
+          from = startOfMonth(targetMonth);
+          to = endOfMonth(targetMonth);
+          label = format(from, 'MMM yyyy');
+          break;
+        case "previous_quarter":
+          const targetQuarter = subQuarters(today, i + 1);
+          from = startOfQuarter(targetQuarter);
+          to = endOfQuarter(targetQuarter);
+          label = `Q${Math.floor(from.getMonth() / 3) + 1} ${from.getFullYear()}`;
+          break;
+        case "previous_year":
+          const targetYear = subYears(today, i + 1);
+          from = startOfYear(targetYear);
+          to = endOfYear(targetYear);
+          label = from.getFullYear().toString();
+          break;
+        default:
+          from = startOfMonth(subMonths(today, i + 1));
+          to = endOfMonth(subMonths(today, i + 1));
+          label = format(from, 'MMM yyyy');
+      }
+      
+      periods.push({ label, from, to });
     }
     
-    switch (period.type) {
-      case "this_month":
-        const targetMonth = subMonths(today, offset);
-        return { from: startOfMonth(targetMonth), to: endOfMonth(targetMonth) };
-      case "last_month":
-        const lastMonth = subMonths(today, 1 + offset);
-        return { from: startOfMonth(lastMonth), to: endOfMonth(lastMonth) };
-      case "this_quarter":
-        const targetQuarter = subQuarters(today, offset);
-        return { from: startOfQuarter(targetQuarter), to: endOfQuarter(targetQuarter) };
-      case "last_quarter":
-        const lastQuarter = subQuarters(today, 1 + offset);
-        return { from: startOfQuarter(lastQuarter), to: endOfQuarter(lastQuarter) };
-      case "this_year":
-        const targetYear = subYears(today, offset);
-        return { from: startOfYear(targetYear), to: endOfYear(targetYear) };
-      case "last_year":
-        const lastYear = subYears(today, 1 + offset);
-        return { from: startOfYear(lastYear), to: endOfYear(lastYear) };
-      default:
-        return { from: startOfMonth(today), to: endOfMonth(today) };
+    if (!arrangeLatestFirst) {
+      periods.reverse();
     }
-  };
-
-  const updatePeriods = (newPeriods) => {
-    setPeriods(newPeriods);
-    const periodsWithDates = newPeriods.map((period, index) => ({
-      ...period,
-      ...getPeriodDates(period, index)
-    }));
-    onPeriodsChange(periodsWithDates);
-  };
-
-  const addPeriod = () => {
-    if (periods.length < maxPeriods) {
-      const newPeriods = [...periods, { 
-        id: Date.now(), 
-        type: "this_month", 
-        label: `Period ${periods.length + 1}`,
-        customFrom: null,
-        customTo: null
-      }];
-      updatePeriods(newPeriods);
-    }
-  };
-
-  const removePeriod = (id) => {
-    if (periods.length > 1) {
-      const newPeriods = periods.filter(p => p.id !== id);
-      updatePeriods(newPeriods);
-    }
-  };
-
-  const updatePeriodType = (id, type) => {
-    const typeLabels = {
-      this_month: "This Month",
-      last_month: "Last Month",
-      this_quarter: "This Quarter",
-      last_quarter: "Last Quarter",
-      this_year: "This Year",
-      last_year: "Last Year",
-      custom: "Custom Range"
-    };
     
-    const newPeriods = periods.map(p => 
-      p.id === id ? { ...p, type, label: typeLabels[type] } : p
-    );
-    updatePeriods(newPeriods);
+    return periods;
   };
 
-  const updateCustomDate = (id, field, date) => {
-    const newPeriods = periods.map(p => 
-      p.id === id ? { ...p, [field]: date } : p
-    );
-    updatePeriods(newPeriods);
+  const handleApply = () => {
+    const periods = generatePeriods();
+    onPeriodsChange(periods);
+    setApplied(true);
+    setIsOpen(false);
   };
 
-  const updatePeriodLabel = (id, label) => {
-    const newPeriods = periods.map(p => 
-      p.id === id ? { ...p, label } : p
-    );
-    setPeriods(newPeriods);
+  const handleCancel = () => {
+    setIsOpen(false);
+  };
+
+  const clearComparison = () => {
+    setApplied(false);
+    onPeriodsChange([]);
   };
 
   return (
