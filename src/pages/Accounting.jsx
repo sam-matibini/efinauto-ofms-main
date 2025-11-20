@@ -6,15 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   DollarSign, 
   TrendingUp, 
   TrendingDown, 
   Wallet,
   BarChart3,
-  Play
+  Play,
+  Filter
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subDays, subWeeks, subMonths, subQuarters, subYears } from "date-fns";
 import RevenueOverview from "@/components/accounting/RevenueOverview";
 import TransactionsList from "@/components/accounting/TransactionsList";
 import ProfitLossStatement from "@/components/accounting/ProfitLossStatement";
@@ -29,6 +31,61 @@ export default function Accounting() {
   const { selectedCompanyId } = useCompany();
   const [comparativePeriods, setComparativePeriods] = useState([]);
   const [activePeriods, setActivePeriods] = useState([]);
+  const [dateRange, setDateRange] = useState("previous_year");
+  const [reportBasis, setReportBasis] = useState("accrual");
+
+  const getDateRangeFromPreset = (preset) => {
+    const today = new Date();
+    let from, to;
+
+    switch (preset) {
+      case "this_week":
+        from = startOfWeek(today, { weekStartsOn: 1 });
+        to = endOfWeek(today, { weekStartsOn: 1 });
+        break;
+      case "this_month":
+        from = startOfMonth(today);
+        to = endOfMonth(today);
+        break;
+      case "this_quarter":
+        from = startOfQuarter(today);
+        to = endOfQuarter(today);
+        break;
+      case "this_year":
+        from = startOfYear(today);
+        to = endOfYear(today);
+        break;
+      case "year_to_date":
+        from = startOfYear(today);
+        to = today;
+        break;
+      case "yesterday":
+        from = subDays(today, 1);
+        to = subDays(today, 1);
+        break;
+      case "previous_week":
+        from = startOfWeek(subWeeks(today, 1), { weekStartsOn: 1 });
+        to = endOfWeek(subWeeks(today, 1), { weekStartsOn: 1 });
+        break;
+      case "previous_month":
+        from = startOfMonth(subMonths(today, 1));
+        to = endOfMonth(subMonths(today, 1));
+        break;
+      case "previous_quarter":
+        from = startOfQuarter(subQuarters(today, 1));
+        to = endOfQuarter(subQuarters(today, 1));
+        break;
+      case "previous_year":
+        from = startOfYear(subYears(today, 1));
+        to = endOfYear(subYears(today, 1));
+        break;
+      default:
+        from = startOfYear(subYears(today, 1));
+        to = endOfYear(subYears(today, 1));
+    }
+
+    return { from, to };
+  };
 
   const handlePeriodsChange = (periods) => {
     setComparativePeriods(periods);
@@ -66,9 +123,16 @@ export default function Accounting() {
     initialData: [],
   });
 
+  // Apply date range filter to transactions
+  const selectedDateRange = getDateRangeFromPreset(dateRange);
+  const filteredTransactions = transactions.filter(t => {
+    const transDate = new Date(t.transaction_date);
+    return transDate >= selectedDateRange.from && transDate <= selectedDateRange.to;
+  });
+
   // Calculate metrics for all comparative periods
   const periodMetrics = activePeriods.map((period) => {
-    const periodTransactions = transactions.filter(t => {
+    const periodTransactions = filteredTransactions.filter(t => {
       const transDate = new Date(t.transaction_date);
       return transDate >= period.from && transDate <= period.to;
     });
@@ -128,6 +192,54 @@ export default function Accounting() {
       </div>
 
       <div className="p-6 space-y-6">
+        {/* Date Range and Report Filters */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <Filter className="w-5 h-5 text-gray-500" />
+              <div className="flex-1 grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs text-gray-600 mb-1 block">Date Range:</Label>
+                  <Select value={dateRange} onValueChange={setDateRange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="this_week">This Week</SelectItem>
+                      <SelectItem value="this_month">This Month</SelectItem>
+                      <SelectItem value="this_quarter">This Quarter</SelectItem>
+                      <SelectItem value="this_year">This Year</SelectItem>
+                      <SelectItem value="year_to_date">Year To Date</SelectItem>
+                      <SelectItem value="yesterday">Yesterday</SelectItem>
+                      <SelectItem value="previous_week">Previous Week</SelectItem>
+                      <SelectItem value="previous_month">Previous Month</SelectItem>
+                      <SelectItem value="previous_quarter">Previous Quarter</SelectItem>
+                      <SelectItem value="previous_year">Previous Year</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-600 mb-1 block">Report Basis:</Label>
+                  <Select value={reportBasis} onValueChange={setReportBasis}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="accrual">Accrual</SelectItem>
+                      <SelectItem value="cash">Cash</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="text-sm text-gray-600">
+                <span className="font-medium">From:</span> {format(selectedDateRange.from, 'yyyy/MM/dd')}
+                <br />
+                <span className="font-medium">To:</span> {format(selectedDateRange.to, 'yyyy/MM/dd')}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Period Comparison Selector */}
         <PeriodComparison onPeriodsChange={handlePeriodsChange} maxPeriods={12} />
 
@@ -261,7 +373,7 @@ export default function Accounting() {
 
           <TabsContent value="overview">
             <RevenueOverview 
-              transactions={transactions}
+              transactions={filteredTransactions}
               sales={sales}
               repairs={repairs}
               purchases={purchases}
@@ -271,7 +383,7 @@ export default function Accounting() {
 
           <TabsContent value="transactions">
             <TransactionsList 
-              transactions={transactions} 
+              transactions={filteredTransactions} 
               dateRange={currentDateRange} 
               comparativePeriods={activePeriods}
             />
@@ -279,7 +391,7 @@ export default function Accounting() {
 
           <TabsContent value="profit-loss">
             <ProfitLossStatement 
-              transactions={transactions}
+              transactions={filteredTransactions}
               comparativePeriods={activePeriods}
             />
           </TabsContent>
