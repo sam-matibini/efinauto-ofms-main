@@ -126,7 +126,7 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Payroll Summary Report</CardTitle>
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => window.print()}>
                   <Download className="w-4 h-4 mr-2" />
                   Export PDF
                 </Button>
@@ -193,7 +193,30 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Payroll Register</CardTitle>
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => {
+                  const csv = [
+                    ['Employee', 'Pay Rate', 'Regular Hrs', 'OT Hrs', 'Gross Pay', 'CPP', 'EI', 'Fed Tax', 'Prov Tax', 'Net Pay'],
+                    ...(selectedPayrollRun ? runEntries : filteredEntries).map(entry => [
+                      entry.employee_name,
+                      entry.gross_pay / (entry.regular_hours || 1),
+                      entry.regular_hours,
+                      entry.overtime_hours,
+                      entry.gross_pay,
+                      entry.cpp_employee,
+                      entry.ei_employee,
+                      entry.federal_tax,
+                      entry.provincial_tax,
+                      entry.net_pay
+                    ])
+                  ].map(row => row.join(',')).join('\n');
+                  
+                  const blob = new Blob([csv], { type: 'text/csv' });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `payroll_register_${new Date().toISOString().split('T')[0]}.csv`;
+                  a.click();
+                }}>
                   <Download className="w-4 h-4 mr-2" />
                   Export Excel
                 </Button>
@@ -244,7 +267,7 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Deductions Report</CardTitle>
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => window.print()}>
                   <Download className="w-4 h-4 mr-2" />
                   Export PDF
                 </Button>
@@ -299,7 +322,7 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Employer Contributions Report</CardTitle>
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => window.print()}>
                   <Download className="w-4 h-4 mr-2" />
                   Export PDF
                 </Button>
@@ -360,7 +383,7 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Employee Earnings Report</CardTitle>
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => window.print()}>
                   <Download className="w-4 h-4 mr-2" />
                   Export PDF
                 </Button>
@@ -460,7 +483,29 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Timesheet & Attendance Report</CardTitle>
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => {
+                  const csv = [
+                    ['Employee', 'Date', 'Clock In', 'Clock Out', 'Regular Hrs', 'OT Hrs', 'Break Hrs', 'Type', 'Status'],
+                    ...timeEntries.filter(te => te.date >= dateRange.start && te.date <= dateRange.end).map(entry => [
+                      entry.employee_name,
+                      new Date(entry.date).toLocaleDateString(),
+                      entry.clock_in || '-',
+                      entry.clock_out || '-',
+                      entry.regular_hours,
+                      entry.overtime_hours,
+                      entry.break_hours,
+                      entry.entry_type,
+                      entry.approved ? 'Approved' : 'Pending'
+                    ])
+                  ].map(row => row.join(',')).join('\n');
+                  
+                  const blob = new Blob([csv], { type: 'text/csv' });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `timesheet_report_${new Date().toISOString().split('T')[0]}.csv`;
+                  a.click();
+                }}>
                   <Download className="w-4 h-4 mr-2" />
                   Export Excel
                 </Button>
@@ -517,7 +562,7 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Vacation & Leave Accrual Report</CardTitle>
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => window.print()}>
                   <Download className="w-4 h-4 mr-2" />
                   Export PDF
                 </Button>
@@ -572,7 +617,38 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Year-to-Date Payroll Report</CardTitle>
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => {
+                  const csv = [
+                    ['Employee', 'YTD Gross', 'YTD CPP', 'YTD EI', 'YTD Fed Tax', 'YTD Prov Tax', 'YTD Net'],
+                    ...employees.map(emp => {
+                      const empEntries = filteredEntries.filter(e => e.employee_id === emp.id);
+                      const ytd = {
+                        gross: empEntries.reduce((sum, e) => sum + (e.gross_pay || 0), 0),
+                        cpp: empEntries.reduce((sum, e) => sum + (e.cpp_employee || 0), 0),
+                        ei: empEntries.reduce((sum, e) => sum + (e.ei_employee || 0), 0),
+                        fedTax: empEntries.reduce((sum, e) => sum + (e.federal_tax || 0), 0),
+                        provTax: empEntries.reduce((sum, e) => sum + (e.provincial_tax || 0), 0),
+                        net: empEntries.reduce((sum, e) => sum + (e.net_pay || 0), 0)
+                      };
+                      return [
+                        `${emp.first_name} ${emp.last_name}`,
+                        ytd.gross,
+                        ytd.cpp,
+                        ytd.ei,
+                        ytd.fedTax,
+                        ytd.provTax,
+                        ytd.net
+                      ];
+                    })
+                  ].map(row => row.join(',')).join('\n');
+                  
+                  const blob = new Blob([csv], { type: 'text/csv' });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `ytd_payroll_report_${new Date().toISOString().split('T')[0]}.csv`;
+                  a.click();
+                }}>
                   <Download className="w-4 h-4 mr-2" />
                   Export Excel
                 </Button>
