@@ -106,21 +106,48 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
   });
 
   const calculatePayroll = async (employee, periodStart, periodEnd, payrollRunId) => {
-    // Get time entries for the period
-    const empTimeEntries = timeEntries.filter(t => 
-      t.employee_id === employee.id &&
-      t.date >= periodStart &&
-      t.date <= periodEnd &&
-      t.approved
-    );
+    let regularHours = 0;
+    let overtimeHours = 0;
+    let regularPay = 0;
+    let overtimePay = 0;
+    let grossPay = 0;
 
-    const regularHours = empTimeEntries.reduce((sum, t) => sum + (t.regular_hours || 0), 0);
-    const overtimeHours = empTimeEntries.reduce((sum, t) => sum + (t.overtime_hours || 0), 0);
+    if (employee.pay_type === 'salary') {
+      // For salaried employees, calculate based on pay frequency
+      const payPeriodsPerYear = {
+        'weekly': 52,
+        'bi_weekly': 26,
+        'semi_monthly': 24,
+        'monthly': 12
+      };
+      const periods = payPeriodsPerYear[employee.pay_frequency] || 26;
+      grossPay = employee.pay_rate / periods;
+      regularPay = grossPay;
+      
+      // Calculate hours based on standard work week (40 hours)
+      const weeksInPeriod = employee.pay_frequency === 'weekly' ? 1 : 
+                           employee.pay_frequency === 'bi_weekly' ? 2 : 
+                           employee.pay_frequency === 'semi_monthly' ? 2.17 : 
+                           4.33;
+      regularHours = 40 * weeksInPeriod;
+    } else {
+      // For hourly employees, get time entries for the period
+      const empTimeEntries = timeEntries.filter(t => {
+        const entryDate = new Date(t.date).toISOString().split('T')[0];
+        return t.employee_id === employee.id &&
+          entryDate >= periodStart &&
+          entryDate <= periodEnd &&
+          t.approved;
+      });
 
-    // Calculate pay
-    const regularPay = regularHours * employee.pay_rate;
-    const overtimePay = overtimeHours * employee.pay_rate * 1.5;
-    const grossPay = regularPay + overtimePay;
+      regularHours = empTimeEntries.reduce((sum, t) => sum + (t.regular_hours || 0), 0);
+      overtimeHours = empTimeEntries.reduce((sum, t) => sum + (t.overtime_hours || 0), 0);
+
+      // Calculate pay
+      regularPay = regularHours * employee.pay_rate;
+      overtimePay = overtimeHours * employee.pay_rate * 1.5;
+      grossPay = regularPay + overtimePay;
+    }
 
     // Calculate CPP (simplified)
     const cppRate = 0.0595;
