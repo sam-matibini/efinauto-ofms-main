@@ -131,16 +131,6 @@ const navigationItems = [
     icon: DollarSign,
   },
   {
-    title: "User Management",
-    url: createPageUrl("UserManagement"),
-    icon: UserCog,
-  },
-  {
-    title: "Notifications",
-    url: createPageUrl("Notifications"),
-    icon: Bell,
-  },
-  {
     title: "AI Support Chat",
     url: createPageUrl("CustomerSupport"),
     icon: MessageCircle,
@@ -149,6 +139,16 @@ const navigationItems = [
     title: "Communications Hub",
     url: createPageUrl("CustomerCommunications"),
     icon: Send,
+  },
+  {
+    title: "User Management",
+    url: createPageUrl("UserManagement"),
+    icon: UserCog,
+  },
+  {
+    title: "Notifications",
+    url: createPageUrl("Notifications"),
+    icon: Bell,
   },
 ];
 
