@@ -17,6 +17,12 @@ export default function EmployeeManagement({ company, employees, queryClient }) 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [td1DialogOpen, setTd1DialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [td1Editing, setTd1Editing] = useState(false);
+  const [td1FormData, setTd1FormData] = useState({
+    province: "",
+    federal: { basic_personal_amount: 15000, additional_amount: 0 },
+    provincial: { basic_personal_amount: 11809, additional_amount: 0 }
+  });
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -161,7 +167,36 @@ ${company?.name || "eFinAuto OFMS"} HR Team`
 
   const handleTD1Form = (employee) => {
     setSelectedEmployee(employee);
+    setTd1FormData({
+      province: employee.province || company?.province || "ON",
+      federal: employee.td1_federal || { basic_personal_amount: 15000, additional_amount: 0 },
+      provincial: employee.td1_provincial || { basic_personal_amount: 11809, additional_amount: 0 }
+    });
+    setTd1Editing(false);
     setTd1DialogOpen(true);
+  };
+
+  const handleSaveTD1 = () => {
+    const federalTotal = (td1FormData.federal.basic_personal_amount || 0) + (td1FormData.federal.additional_amount || 0);
+    const provincialTotal = (td1FormData.provincial.basic_personal_amount || 0) + (td1FormData.provincial.additional_amount || 0);
+
+    updateEmployeeMutation.mutate({
+      id: selectedEmployee.id,
+      data: {
+        province: td1FormData.province,
+        td1_federal: {
+          ...td1FormData.federal,
+          total_claim_amount: federalTotal,
+          filing_date: new Date().toISOString()
+        },
+        td1_provincial: {
+          ...td1FormData.provincial,
+          total_claim_amount: provincialTotal,
+          filing_date: new Date().toISOString()
+        }
+      }
+    });
+    setTd1Editing(false);
   };
 
   const filteredEmployees = employees.filter(emp => 
@@ -414,56 +449,152 @@ ${company?.name || "eFinAuto OFMS"} HR Team`
       </Dialog>
 
       {/* TD1 Form Dialog */}
-      <Dialog open={td1DialogOpen} onOpenChange={setTd1DialogOpen}>
+      <Dialog open={td1DialogOpen} onOpenChange={(open) => { setTd1DialogOpen(open); if (!open) setTd1Editing(false); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>TD1 Tax Credit Forms - {selectedEmployee?.first_name} {selectedEmployee?.last_name}</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>TD1 Tax Credit Forms - {selectedEmployee?.first_name} {selectedEmployee?.last_name}</DialogTitle>
+              {!td1Editing ? (
+                <Button variant="outline" size="sm" onClick={() => setTd1Editing(true)}>
+                  <Edit className="w-4 h-4 mr-1" />
+                  Edit
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => {
+                    setTd1FormData({
+                      province: selectedEmployee.province || company?.province || "ON",
+                      federal: selectedEmployee.td1_federal || { basic_personal_amount: 15000, additional_amount: 0 },
+                      provincial: selectedEmployee.td1_provincial || { basic_personal_amount: 11809, additional_amount: 0 }
+                    });
+                    setTd1Editing(false);
+                  }}>
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={handleSaveTD1} disabled={updateEmployeeMutation.isPending}>
+                    Save
+                  </Button>
+                </div>
+              )}
+            </div>
           </DialogHeader>
-          <Tabs defaultValue="federal">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="federal">Federal TD1</TabsTrigger>
-              <TabsTrigger value="provincial">Provincial TD1</TabsTrigger>
-            </TabsList>
-            <TabsContent value="federal" className="space-y-4">
-              <div>
-                <Label>Basic Personal Amount</Label>
-                <Input
-                  type="number"
-                  defaultValue={selectedEmployee?.td1_federal?.basic_personal_amount || 15000}
-                  onChange={(e) => {
-                    if (selectedEmployee) {
-                      const newTd1 = {
-                        ...selectedEmployee.td1_federal,
-                        basic_personal_amount: parseFloat(e.target.value)
-                      };
-                      updateEmployeeMutation.mutate({
-                        id: selectedEmployee.id,
-                        data: { td1_federal: newTd1 }
-                      });
-                    }
-                  }}
-                />
-                <p className="text-xs text-gray-500 mt-1">2024 Federal: $15,000</p>
-              </div>
-              <div>
-                <Label>Additional Tax Credit Amount</Label>
-                <Input
-                  type="number"
-                  defaultValue={selectedEmployee?.td1_federal?.additional_amount || 0}
-                />
-              </div>
-            </TabsContent>
-            <TabsContent value="provincial" className="space-y-4">
-              <div>
-                <Label>Basic Personal Amount ({company?.province || 'Provincial'})</Label>
-                <Input
-                  type="number"
-                  defaultValue={selectedEmployee?.td1_provincial?.basic_personal_amount || 11809}
-                />
-                <p className="text-xs text-gray-500 mt-1">Varies by province</p>
-              </div>
-            </TabsContent>
-          </Tabs>
+
+          <div className="space-y-4">
+            <div>
+              <Label>Province/Territory</Label>
+              <Select 
+                value={td1FormData.province} 
+                onValueChange={(value) => setTd1FormData({...td1FormData, province: value})}
+                disabled={!td1Editing}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AB">Alberta</SelectItem>
+                  <SelectItem value="BC">British Columbia</SelectItem>
+                  <SelectItem value="MB">Manitoba</SelectItem>
+                  <SelectItem value="NB">New Brunswick</SelectItem>
+                  <SelectItem value="NL">Newfoundland and Labrador</SelectItem>
+                  <SelectItem value="NT">Northwest Territories</SelectItem>
+                  <SelectItem value="NS">Nova Scotia</SelectItem>
+                  <SelectItem value="NU">Nunavut</SelectItem>
+                  <SelectItem value="ON">Ontario</SelectItem>
+                  <SelectItem value="PE">Prince Edward Island</SelectItem>
+                  <SelectItem value="QC">Quebec</SelectItem>
+                  <SelectItem value="SK">Saskatchewan</SelectItem>
+                  <SelectItem value="YT">Yukon</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Tabs defaultValue="federal">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="federal">Federal TD1</TabsTrigger>
+                <TabsTrigger value="provincial">Provincial TD1</TabsTrigger>
+              </TabsList>
+              <TabsContent value="federal" className="space-y-4 pt-4">
+                <div>
+                  <Label>Basic Personal Amount</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={td1FormData.federal.basic_personal_amount}
+                    onChange={(e) => setTd1FormData({
+                      ...td1FormData,
+                      federal: { ...td1FormData.federal, basic_personal_amount: parseFloat(e.target.value) || 0 }
+                    })}
+                    disabled={!td1Editing}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">2024 Federal: $15,000</p>
+                </div>
+                <div>
+                  <Label>Additional Tax Credit Amount</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={td1FormData.federal.additional_amount}
+                    onChange={(e) => setTd1FormData({
+                      ...td1FormData,
+                      federal: { ...td1FormData.federal, additional_amount: parseFloat(e.target.value) || 0 }
+                    })}
+                    disabled={!td1Editing}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Additional credits (spouse, dependants, disability, etc.)
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold">Total Federal Claim:</span>
+                    <span className="text-lg font-bold text-blue-600">
+                      ${((td1FormData.federal.basic_personal_amount || 0) + (td1FormData.federal.additional_amount || 0)).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </TabsContent>
+              <TabsContent value="provincial" className="space-y-4 pt-4">
+                <div>
+                  <Label>Basic Personal Amount ({td1FormData.province})</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={td1FormData.provincial.basic_personal_amount}
+                    onChange={(e) => setTd1FormData({
+                      ...td1FormData,
+                      provincial: { ...td1FormData.provincial, basic_personal_amount: parseFloat(e.target.value) || 0 }
+                    })}
+                    disabled={!td1Editing}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Varies by province</p>
+                </div>
+                <div>
+                  <Label>Additional Tax Credit Amount</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={td1FormData.provincial.additional_amount}
+                    onChange={(e) => setTd1FormData({
+                      ...td1FormData,
+                      provincial: { ...td1FormData.provincial, additional_amount: parseFloat(e.target.value) || 0 }
+                    })}
+                    disabled={!td1Editing}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Additional provincial credits (spouse, dependants, etc.)
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold">Total Provincial Claim:</span>
+                    <span className="text-lg font-bold text-purple-600">
+                      ${((td1FormData.provincial.basic_personal_amount || 0) + (td1FormData.provincial.additional_amount || 0)).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
