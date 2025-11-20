@@ -29,6 +29,9 @@ import VacationManagement from "@/components/payroll/VacationManagement";
 import BenefitsManagement from "@/components/payroll/BenefitsManagement";
 import DeductionsManagement from "@/components/payroll/DeductionsManagement";
 import PayrollReports from "@/components/payroll/PayrollReports";
+import PayGroupManagement from "@/components/payroll/PayGroupManagement";
+import PayrollAdjustments from "@/components/payroll/PayrollAdjustments";
+import AutomatedTaxForms from "@/components/payroll/AutomatedTaxForms";
 
 export default function Payroll() {
   const { selectedCompanyId } = useCompany();
@@ -169,43 +172,19 @@ export default function Payroll() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="employees">
-          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-9">
-            <TabsTrigger value="employees" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Employees
-            </TabsTrigger>
-            <TabsTrigger value="payroll" className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />
-              Payroll
-            </TabsTrigger>
-            <TabsTrigger value="vacation" className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Vacation
-            </TabsTrigger>
-            <TabsTrigger value="benefits" className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />
-              Benefits
-            </TabsTrigger>
-            <TabsTrigger value="deductions" className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />
-              Deductions
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Reports
-            </TabsTrigger>
-            <TabsTrigger value="offboarding" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Offboarding
-            </TabsTrigger>
-            <TabsTrigger value="tax-reports" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Tax Reports
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4" />
-              AI Analytics
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12">
+            <TabsTrigger value="employees">Employees</TabsTrigger>
+            <TabsTrigger value="paygroups">Pay Groups</TabsTrigger>
+            <TabsTrigger value="payroll">Payroll</TabsTrigger>
+            <TabsTrigger value="adjustments">Adjustments</TabsTrigger>
+            <TabsTrigger value="vacation">Vacation</TabsTrigger>
+            <TabsTrigger value="benefits">Benefits</TabsTrigger>
+            <TabsTrigger value="deductions">Deductions</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger value="taxforms">AI Tax Forms</TabsTrigger>
+            <TabsTrigger value="offboarding">Offboarding</TabsTrigger>
+            <TabsTrigger value="tax-reports">Tax Reports</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
           <TabsContent value="employees" className="mt-6">
@@ -213,6 +192,12 @@ export default function Payroll() {
               company={company}
               employees={employees}
               queryClient={queryClient}
+            />
+          </TabsContent>
+
+          <TabsContent value="paygroups" className="mt-6">
+            <PayGroupManagement 
+              company={company}
             />
           </TabsContent>
 
@@ -248,6 +233,13 @@ export default function Payroll() {
             />
           </TabsContent>
 
+          <TabsContent value="adjustments" className="mt-6">
+            <PayrollAdjustments 
+              company={company}
+              employees={employees}
+            />
+          </TabsContent>
+
           <TabsContent value="reports" className="mt-6">
             <PayrollReports 
               company={company}
@@ -255,6 +247,14 @@ export default function Payroll() {
               payrollRuns={payrollRuns}
               payrollEntries={payrollEntries}
               timeEntries={timeEntries}
+            />
+          </TabsContent>
+
+          <TabsContent value="taxforms" className="mt-6">
+            <AutomatedTaxForms 
+              company={company}
+              employees={employees}
+              payrollEntries={payrollEntries}
             />
           </TabsContent>
 
