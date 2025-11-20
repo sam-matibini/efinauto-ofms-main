@@ -45,8 +45,22 @@ export default function EmployeeManagement({ company, employees, queryClient }) 
     mutationFn: async (data) => {
       const employee = await base44.entities.Employee.create(data);
       
-      // Send TD1 form email
+      // Link user account to employee if email exists
       if (employee.email) {
+        try {
+          const users = await base44.entities.User.filter({ email: employee.email });
+          if (users.length > 0) {
+            const user = users[0];
+            await base44.entities.User.update(user.id, {
+              employee_entity_id: employee.id,
+              company_id: company.id
+            });
+          }
+        } catch (linkError) {
+          console.error("Failed to link user to employee:", linkError);
+        }
+
+        // Send TD1 form email
         const td1FormUrl = `${window.location.origin}/TD1Form?employee_id=${employee.id}`;
         
         try {
