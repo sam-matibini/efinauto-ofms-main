@@ -177,25 +177,79 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
     const eiEmployee = grossPay * eiRate;
     const eiEmployer = eiEmployee * 1.4;
 
-    // Calculate federal tax (simplified progressive)
-    let federalTax = 0;
-    const federalCredit = (employee.td1_federal?.total_claim_amount || 15000) * 0.15;
-    if (grossPay > 53359) {
-      federalTax = grossPay * 0.205 - federalCredit;
-    } else {
-      federalTax = grossPay * 0.15 - federalCredit;
-    }
-    federalTax = Math.max(0, federalTax);
+    // Calculate federal tax using progressive brackets (2024)
+    const annualizedGross = grossPay * (employee.pay_frequency === 'weekly' ? 52 : 
+                                        employee.pay_frequency === 'bi_weekly' ? 26 : 
+                                        employee.pay_frequency === 'semi_monthly' ? 24 : 12);
 
-    // Provincial tax (simplified for Ontario)
-    let provincialTax = 0;
-    const provincialCredit = (employee.td1_provincial?.total_claim_amount || 11809) * 0.0505;
-    if (grossPay > 49231) {
-      provincialTax = grossPay * 0.0915 - provincialCredit;
-    } else {
-      provincialTax = grossPay * 0.0505 - provincialCredit;
+    let federalTax = 0;
+    const federalBrackets = [
+      { limit: 55867, rate: 0.15 },
+      { limit: 111733, rate: 0.205 },
+      { limit: 173205, rate: 0.26 },
+      { limit: 246752, rate: 0.29 },
+      { limit: Infinity, rate: 0.33 }
+    ];
+
+    let previousLimit = 0;
+    for (const bracket of federalBrackets) {
+      if (annualizedGross > previousLimit) {
+        const taxableInBracket = Math.min(annualizedGross, bracket.limit) - previousLimit;
+        federalTax += taxableInBracket * bracket.rate;
+        previousLimit = bracket.limit;
+      }
     }
-    provincialTax = Math.max(0, provincialTax);
+
+    // Apply federal tax credit
+    const federalCredit = (employee.td1_federal?.total_claim_amount || 15705) * 0.15;
+    federalTax = Math.max(0, (federalTax - federalCredit)) / (employee.pay_frequency === 'weekly' ? 52 : 
+                                                               employee.pay_frequency === 'bi_weekly' ? 26 : 
+                                                               employee.pay_frequency === 'semi_monthly' ? 24 : 12);
+
+    // Provincial tax using progressive brackets (Ontario 2024 as default)
+    const province = employee.province || company?.province || 'ON';
+    let provincialTax = 0;
+
+    const provincialBrackets = {
+      'ON': [
+        { limit: 51446, rate: 0.0505 },
+        { limit: 102894, rate: 0.0915 },
+        { limit: 150000, rate: 0.1116 },
+        { limit: 220000, rate: 0.1216 },
+        { limit: Infinity, rate: 0.1316 }
+      ],
+      'BC': [
+        { limit: 47937, rate: 0.0506 },
+        { limit: 95875, rate: 0.077 },
+        { limit: 110076, rate: 0.105 },
+        { limit: 133664, rate: 0.1229 },
+        { limit: 181232, rate: 0.147 },
+        { limit: Infinity, rate: 0.168 }
+      ],
+      'AB': [
+        { limit: 148269, rate: 0.10 },
+        { limit: 177922, rate: 0.12 },
+        { limit: 237230, rate: 0.13 },
+        { limit: 355845, rate: 0.14 },
+        { limit: Infinity, rate: 0.15 }
+      ]
+    };
+
+    const brackets = provincialBrackets[province] || provincialBrackets['ON'];
+    previousLimit = 0;
+    for (const bracket of brackets) {
+      if (annualizedGross > previousLimit) {
+        const taxableInBracket = Math.min(annualizedGross, bracket.limit) - previousLimit;
+        provincialTax += taxableInBracket * bracket.rate;
+        previousLimit = bracket.limit;
+      }
+    }
+
+    // Apply provincial tax credit
+    const provincialCredit = (employee.td1_provincial?.total_claim_amount || 12399) * (province === 'ON' ? 0.0505 : 0.0506);
+    provincialTax = Math.max(0, (provincialTax - provincialCredit)) / (employee.pay_frequency === 'weekly' ? 52 : 
+                                                                        employee.pay_frequency === 'bi_weekly' ? 26 : 
+                                                                        employee.pay_frequency === 'semi_monthly' ? 24 : 12);
 
     const totalDeductions = cppEmployee + eiEmployee + federalTax + provincialTax;
     const netPay = grossPay - totalDeductions;
