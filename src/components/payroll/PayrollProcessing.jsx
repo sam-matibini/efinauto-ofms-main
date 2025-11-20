@@ -857,23 +857,23 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                             <div className="grid grid-cols-2 gap-2 text-sm">
                               <div className="flex justify-between">
                                 <span>Gross:</span>
-                                <span>${entry.ytd_gross?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                                <span>${(entry.ytd_gross || 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>CPP:</span>
-                                <span>${entry.ytd_cpp?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                                <span>${(entry.ytd_cpp || 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>EI:</span>
-                                <span>${entry.ytd_ei?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                                <span>${(entry.ytd_ei || 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Federal Tax:</span>
-                                <span>${entry.ytd_federal_tax?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                                <span>${(entry.ytd_federal_tax || 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Provincial Tax:</span>
-                                <span>${entry.ytd_provincial_tax?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span>
+                                <span>${(entry.ytd_provincial_tax || 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                               </div>
                             </div>
                           </div>
