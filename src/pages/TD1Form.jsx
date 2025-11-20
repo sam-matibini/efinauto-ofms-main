@@ -6,18 +6,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CheckCircle, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 export default function TD1Form() {
   const urlParams = new URLSearchParams(window.location.search);
   const employeeId = urlParams.get('employee_id');
   const [submitted, setSubmitted] = useState(false);
+  const [selectedProvince, setSelectedProvince] = useState("ON");
+  const [aiLoading, setAiLoading] = useState(false);
 
   const { data: employee, isLoading } = useQuery({
     queryKey: ['employee', employeeId],
     queryFn: () => base44.entities.Employee.filter({ id: employeeId }).then(emps => emps[0]),
     enabled: !!employeeId,
+  });
+
+  const { data: company } = useQuery({
+    queryKey: ['company', employee?.company_id],
+    queryFn: () => base44.entities.Company.filter({ id: employee.company_id }).then(companies => companies[0]),
+    enabled: !!employee?.company_id,
   });
 
   const [federalData, setFederalData] = useState({
@@ -31,6 +40,12 @@ export default function TD1Form() {
     additional_amount: 0,
     total_claim_amount: 11809
   });
+
+  useEffect(() => {
+    if (company?.province) {
+      setSelectedProvince(company.province);
+    }
+  }, [company]);
 
   useEffect(() => {
     if (federalData.basic_personal_amount || federalData.additional_amount) {
@@ -59,6 +74,51 @@ export default function TD1Form() {
     onError: () => toast.error("Failed to submit forms")
   });
 
+  const fetchTaxCreditsWithAI = async () => {
+    setAiLoading(true);
+    try {
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `Based on current 2024-2025 Canada Revenue Agency (CRA) guidelines, provide the exact tax credit amounts for:
+        
+Province: ${selectedProvince}
+Employee Province: ${employee?.province || selectedProvince}
+Company Province: ${company?.province || selectedProvince}
+
+Please provide:
+1. Federal basic personal amount (standard 2024 amount)
+2. Provincial basic personal amount for ${selectedProvince}
+3. Brief explanation of any recent changes
+
+Respond with accurate, up-to-date CRA figures.`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            federal_basic_amount: { type: "number" },
+            provincial_basic_amount: { type: "number" },
+            federal_explanation: { type: "string" },
+            provincial_explanation: { type: "string" }
+          }
+        }
+      });
+
+      setFederalData(prev => ({
+        ...prev,
+        basic_personal_amount: response.federal_basic_amount
+      }));
+
+      setProvincialData(prev => ({
+        ...prev,
+        basic_personal_amount: response.provincial_basic_amount
+      }));
+
+      toast.success("Tax credits updated with current CRA guidelines");
+    } catch (error) {
+      toast.error("Failed to fetch tax credits");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const handleSubmit = () => {
     updateEmployeeMutation.mutate({
       td1_federal: {
@@ -68,7 +128,8 @@ export default function TD1Form() {
       td1_provincial: {
         ...provincialData,
         filing_date: new Date().toISOString()
-      }
+      },
+      province: selectedProvince
     });
   };
 
@@ -118,6 +179,59 @@ export default function TD1Form() {
             Please complete both federal and provincial TD1 forms to ensure accurate tax deductions
           </p>
         </div>
+
+        <Card className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+          <CardContent className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+              <div>
+                <Label>Select Province/Territory</Label>
+                <Select value={selectedProvince} onValueChange={setSelectedProvince}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="AB">Alberta</SelectItem>
+                    <SelectItem value="BC">British Columbia</SelectItem>
+                    <SelectItem value="MB">Manitoba</SelectItem>
+                    <SelectItem value="NB">New Brunswick</SelectItem>
+                    <SelectItem value="NL">Newfoundland and Labrador</SelectItem>
+                    <SelectItem value="NT">Northwest Territories</SelectItem>
+                    <SelectItem value="NS">Nova Scotia</SelectItem>
+                    <SelectItem value="NU">Nunavut</SelectItem>
+                    <SelectItem value="ON">Ontario</SelectItem>
+                    <SelectItem value="PE">Prince Edward Island</SelectItem>
+                    <SelectItem value="QC">Quebec</SelectItem>
+                    <SelectItem value="SK">Saskatchewan</SelectItem>
+                    <SelectItem value="YT">Yukon</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Button 
+                  onClick={fetchTaxCreditsWithAI} 
+                  disabled={aiLoading}
+                  variant="outline"
+                  className="w-full border-blue-400 hover:bg-blue-50"
+                >
+                  {aiLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Fetching CRA Guidelines...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      AI: Get Current CRA Tax Credits
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+            <p className="text-xs text-blue-700 mt-2">
+              💡 Use AI to automatically fetch the latest CRA tax credit amounts for your province
+            </p>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardContent className="p-6">
@@ -169,9 +283,9 @@ export default function TD1Form() {
 
               <TabsContent value="provincial" className="space-y-6">
                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-purple-900 mb-2">Provincial Personal Tax Credits</h3>
+                  <h3 className="font-semibold text-purple-900 mb-2">Provincial Personal Tax Credits - {selectedProvince}</h3>
                   <p className="text-sm text-purple-800">
-                    Provincial amounts vary by province. The default shown is for Ontario.
+                    Provincial amounts vary by province. Currently showing for {selectedProvince}.
                   </p>
                 </div>
 
@@ -182,7 +296,7 @@ export default function TD1Form() {
                     value={provincialData.basic_personal_amount}
                     onChange={(e) => setProvincialData({...provincialData, basic_personal_amount: parseFloat(e.target.value) || 0})}
                   />
-                  <p className="text-xs text-gray-500 mt-1">Ontario basic personal amount: $11,809</p>
+                  <p className="text-xs text-gray-500 mt-1">{selectedProvince} basic personal amount (varies by province)</p>
                 </div>
 
                 <div>
