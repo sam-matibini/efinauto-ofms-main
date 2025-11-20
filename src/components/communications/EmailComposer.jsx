@@ -9,7 +9,7 @@ import { Sparkles, Send, Loader2, Plane, Package, FileText } from "lucide-react"
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
-export default function EmailComposer({ customer, customers, exports, shipments, loadingDeclarations, draft }) {
+export default function EmailComposer({ customer, customers, exports, shipments, loadingDeclarations, draft, company }) {
   const [to, setTo] = useState(customer?.email || "");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
