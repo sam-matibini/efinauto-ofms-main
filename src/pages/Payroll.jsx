@@ -17,7 +17,8 @@ import {
   TrendingUp,
   Clock,
   Download,
-  Sparkles
+  Sparkles,
+  RefreshCw
 } from "lucide-react";
 import { toast } from "sonner";
 import EmployeeManagement from "@/components/payroll/EmployeeManagement";
@@ -32,6 +33,7 @@ import PayrollReports from "@/components/payroll/PayrollReports";
 import PayGroupManagement from "@/components/payroll/PayGroupManagement";
 import PayrollAdjustments from "@/components/payroll/PayrollAdjustments";
 import AutomatedTaxForms from "@/components/payroll/AutomatedTaxForms";
+import AIPayrollAssistant from "@/components/payroll/AIPayrollAssistant";
 
 export default function Payroll() {
   const { selectedCompanyId } = useCompany();
@@ -68,6 +70,20 @@ export default function Payroll() {
   const { data: timeEntries = [] } = useQuery({
     queryKey: ['timeEntries', selectedCompanyId],
     queryFn: () => base44.entities.TimeEntry.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: payGroups = [] } = useQuery({
+    queryKey: ['payGroups', selectedCompanyId],
+    queryFn: () => base44.entities.PayGroup.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: adjustments = [] } = useQuery({
+    queryKey: ['payrollAdjustments', selectedCompanyId],
+    queryFn: () => base44.entities.PayrollAdjustment.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
@@ -171,8 +187,12 @@ export default function Payroll() {
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="employees">
-          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12">
+        <Tabs defaultValue="ai-assistant">
+          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-13">
+            <TabsTrigger value="ai-assistant" className="flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              AI Assistant
+            </TabsTrigger>
             <TabsTrigger value="employees">Employees</TabsTrigger>
             <TabsTrigger value="paygroups">Pay Groups</TabsTrigger>
             <TabsTrigger value="payroll">Payroll</TabsTrigger>
@@ -186,6 +206,17 @@ export default function Payroll() {
             <TabsTrigger value="tax-reports">Tax Reports</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="ai-assistant" className="mt-6">
+            <AIPayrollAssistant 
+              company={company}
+              employees={employees}
+              payrollRuns={payrollRuns}
+              payrollEntries={payrollEntries}
+              payGroups={payGroups}
+              adjustments={adjustments}
+            />
+          </TabsContent>
 
           <TabsContent value="employees" className="mt-6">
             <EmployeeManagement 
