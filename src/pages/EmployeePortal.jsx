@@ -14,13 +14,24 @@ export default function EmployeePortal() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: employee } = useQuery({
-    queryKey: ['myEmployee', currentUser?.data?.employee_entity_id],
-    queryFn: () => base44.entities.Employee.filter({ id: currentUser.data.employee_entity_id }).then(emps => emps[0]),
-    enabled: !!currentUser?.data?.employee_entity_id,
+  const employeeEntityId = currentUser?.employee_entity_id || currentUser?.data?.employee_entity_id;
+
+  const { data: employee, isLoading: employeeLoading } = useQuery({
+    queryKey: ['myEmployee', employeeEntityId, currentUser?.email],
+    queryFn: async () => {
+      if (employeeEntityId) {
+        const emps = await base44.entities.Employee.filter({ id: employeeEntityId });
+        return emps[0];
+      } else if (currentUser?.email) {
+        const emps = await base44.entities.Employee.filter({ email: currentUser.email });
+        return emps[0];
+      }
+      return null;
+    },
+    enabled: !!currentUser,
   });
 
-  if (!currentUser?.data?.employee_entity_id) {
+  if (!employee && !employeeLoading) {
     return (
       <div className="p-6">
         <Card className="bg-yellow-50 border-yellow-200">
