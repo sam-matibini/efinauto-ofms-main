@@ -89,7 +89,7 @@ export default function EmailComposer({ customer, customers, exports, shipments,
         }
       }
       
-      const companyName = company?.name || company?.display_name || "eFinAuto Center";
+      const companyName = company?.name || company?.display_name || "eFinAuto OFMS";
       const companyInfo = company ? `\nCompany: ${companyName}` : "";
       
       const response = await base44.integrations.Core.InvokeLLM({
@@ -147,7 +147,7 @@ export default function EmailComposer({ customer, customers, exports, shipments,
 
     setSending(true);
     try {
-      const fromName = company?.name || company?.display_name || "eFinAuto Center";
+      const fromName = company?.name || company?.display_name || "eFinAuto OFMS";
       
       await base44.integrations.Core.SendEmail({
         from_name: fromName,

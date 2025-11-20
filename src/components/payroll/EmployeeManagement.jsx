@@ -44,12 +44,12 @@ export default function EmployeeManagement({ company, employees, queryClient }) 
         
         try {
           await base44.integrations.Core.SendEmail({
-            from_name: company?.name || "eFinAuto Center",
+            from_name: company?.name || "eFinAuto OFMS",
             to: employee.email,
             subject: "Complete Your TD1 Tax Forms - Action Required",
             body: `Dear ${employee.first_name} ${employee.last_name},
 
-Welcome to ${company?.name || "eFinAuto Center"}!
+Welcome to ${company?.name || "eFinAuto OFMS"}!
 
 As part of your onboarding process, please complete your TD1 Personal Tax Credits Return forms (federal and provincial). This is required to ensure accurate payroll tax deductions.
 
@@ -65,7 +65,7 @@ Please complete this form at your earliest convenience.
 If you have any questions, please contact our HR department.
 
 Best regards,
-${company?.name || "eFinAuto Center"} HR Team`
+${company?.name || "eFinAuto OFMS"} HR Team`
           });
         } catch (emailError) {
           console.error("Failed to send TD1 email:", emailError);
