@@ -21,13 +21,40 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
 
   const createPayrollRunMutation = useMutation({
     mutationFn: async (data) => {
-      // Create payroll run
-      const payrollRun = await base44.entities.PayrollRun.create(data.runData);
-      
-      // Process each employee
+      // Calculate all entries first to get totals
+      const entries = [];
+      let totalGross = 0;
+      let totalDeductions = 0;
+      let totalNet = 0;
+      let totalEmployerCPP = 0;
+      let totalEmployerEI = 0;
+
       for (const employee of data.employees) {
-        const entryData = await calculatePayroll(employee, data.periodStart, data.periodEnd, payrollRun.id);
-        await base44.entities.PayrollEntry.create(entryData);
+        const entryData = await calculatePayroll(employee, data.periodStart, data.periodEnd, null);
+        entries.push(entryData);
+        totalGross += entryData.gross_pay || 0;
+        totalDeductions += entryData.total_deductions || 0;
+        totalNet += entryData.net_pay || 0;
+        totalEmployerCPP += entryData.cpp_employer || 0;
+        totalEmployerEI += entryData.ei_employer || 0;
+      }
+
+      // Create payroll run with totals
+      const payrollRun = await base44.entities.PayrollRun.create({
+        ...data.runData,
+        total_gross: totalGross,
+        total_deductions: totalDeductions,
+        total_net: totalNet,
+        total_employer_cpp: totalEmployerCPP,
+        total_employer_ei: totalEmployerEI
+      });
+      
+      // Create payroll entries with the run ID
+      for (const entryData of entries) {
+        await base44.entities.PayrollEntry.create({
+          ...entryData,
+          payroll_run_id: payrollRun.id
+        });
       }
       
       return payrollRun;
