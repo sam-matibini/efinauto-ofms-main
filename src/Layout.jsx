@@ -19,7 +19,8 @@ import {
   LineChart,
   FileText,
   DollarSign,
-  MessageCircle
+  MessageCircle,
+  Send
 } from "lucide-react";
 import {
   Sidebar,
@@ -143,6 +144,11 @@ const navigationItems = [
     title: "AI Support Chat",
     url: createPageUrl("CustomerSupport"),
     icon: MessageCircle,
+  },
+  {
+    title: "Communications Hub",
+    url: createPageUrl("CustomerCommunications"),
+    icon: Send,
   },
 ];
 
