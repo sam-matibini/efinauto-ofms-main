@@ -20,6 +20,7 @@ import Purchases from './pages/Purchases';
 import VehicleAnalytics from './pages/VehicleAnalytics';
 import Accounting from './pages/Accounting';
 import ProductsServices from './pages/ProductsServices';
+import CustomerSupport from './pages/CustomerSupport';
 import __Layout from './Layout.jsx';
 
 
@@ -46,6 +47,7 @@ export const PAGES = {
     "VehicleAnalytics": VehicleAnalytics,
     "Accounting": Accounting,
     "ProductsServices": ProductsServices,
+    "CustomerSupport": CustomerSupport,
 }
 
 export const pagesConfig = {

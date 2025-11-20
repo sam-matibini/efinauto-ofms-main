@@ -18,7 +18,8 @@ import {
   HardHat,
   LineChart,
   FileText,
-  DollarSign
+  DollarSign,
+  MessageCircle
 } from "lucide-react";
 import {
   Sidebar,
@@ -137,6 +138,11 @@ const navigationItems = [
     title: "Notifications",
     url: createPageUrl("Notifications"),
     icon: Bell,
+  },
+  {
+    title: "AI Support Chat",
+    url: createPageUrl("CustomerSupport"),
+    icon: MessageCircle,
   },
 ];
 
