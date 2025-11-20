@@ -21,6 +21,7 @@ export default function EmployeeManagement({ company, employees, queryClient }) 
     first_name: "",
     last_name: "",
     sin: "",
+    date_of_birth: "",
     email: "",
     phone: "",
     position: "",
@@ -98,6 +99,7 @@ ${company?.name || "eFinAuto Center"} HR Team`
       first_name: "",
       last_name: "",
       sin: "",
+      date_of_birth: "",
       email: "",
       phone: "",
       position: "",
@@ -137,6 +139,7 @@ ${company?.name || "eFinAuto Center"} HR Team`
       first_name: employee.first_name || "",
       last_name: employee.last_name || "",
       sin: employee.sin || "",
+      date_of_birth: employee.date_of_birth || "",
       email: employee.email || "",
       phone: employee.phone || "",
       position: employee.position || "",
@@ -262,13 +265,23 @@ ${company?.name || "eFinAuto Center"} HR Team`
               </div>
             </div>
 
-            <div>
-              <Label>SIN *</Label>
-              <Input
-                value={formData.sin}
-                onChange={(e) => setFormData({...formData, sin: e.target.value})}
-                placeholder="123-456-789"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>SIN *</Label>
+                <Input
+                  value={formData.sin}
+                  onChange={(e) => setFormData({...formData, sin: e.target.value})}
+                  placeholder="123-456-789"
+                />
+              </div>
+              <div>
+                <Label>Date of Birth</Label>
+                <Input
+                  type="date"
+                  value={formData.date_of_birth}
+                  onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
