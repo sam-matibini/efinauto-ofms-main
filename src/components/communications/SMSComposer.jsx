@@ -10,7 +10,7 @@ import { Sparkles, MessageSquare, Loader2, Plane, Package } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
-export default function SMSComposer({ customer, customers, exports, shipments, loadingDeclarations, draft }) {
+export default function SMSComposer({ customer, customers, exports, shipments, loadingDeclarations, draft, company }) {
   const [to, setTo] = useState(customer?.phone || "");
   const [message, setMessage] = useState("");
   const [template, setTemplate] = useState("");
