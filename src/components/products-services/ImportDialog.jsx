@@ -5,7 +5,6 @@ import { Label } from "@/components/ui/label";
 import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import * as XLSX from 'xlsx';
 
 export default function ImportDialog({ open, onClose, type, companyId, onSuccess }) {
   const [file, setFile] = useState(null);
@@ -15,18 +14,37 @@ export default function ImportDialog({ open, onClose, type, companyId, onSuccess
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
-      const validTypes = [
-        'text/csv',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      ];
-      if (validTypes.includes(selectedFile.type) || selectedFile.name.endsWith('.csv') || selectedFile.name.endsWith('.xlsx')) {
+      if (selectedFile.name.endsWith('.csv') || selectedFile.type === 'text/csv') {
         setFile(selectedFile);
         setResults(null);
       } else {
-        toast.error("Please select a valid CSV or Excel file");
+        toast.error("Please select a valid CSV file");
       }
     }
+  };
+
+  const parseCSV = (text) => {
+    const lines = text.split('\n');
+    if (lines.length < 2) return [];
+    
+    const headers = lines[0].split(',').map(h => h.trim().replace(/['"]/g, ''));
+    const rows = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      
+      const values = line.split(',').map(v => v.trim().replace(/['"]/g, ''));
+      const row = {};
+      
+      headers.forEach((header, index) => {
+        row[header] = values[index] || '';
+      });
+      
+      rows.push(row);
+    }
+    
+    return rows;
   };
 
   const parseFile = (file) => {
@@ -35,44 +53,15 @@ export default function ImportDialog({ open, onClose, type, companyId, onSuccess
       
       reader.onload = (e) => {
         try {
-          const data = e.target.result;
-          let rows = [];
-
-          if (file.name.endsWith('.csv')) {
-            // Parse CSV
-            const text = data;
-            const lines = text.split('\n');
-            const headers = lines[0].split(',').map(h => h.trim());
-            
-            for (let i = 1; i < lines.length; i++) {
-              if (lines[i].trim()) {
-                const values = lines[i].split(',');
-                const row = {};
-                headers.forEach((header, index) => {
-                  row[header] = values[index]?.trim();
-                });
-                rows.push(row);
-              }
-            }
-          } else {
-            // Parse Excel
-            const workbook = XLSX.read(data, { type: 'binary' });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            rows = XLSX.utils.sheet_to_json(worksheet);
-          }
-
+          const text = e.target.result;
+          const rows = parseCSV(text);
           resolve(rows);
         } catch (error) {
           reject(error);
         }
       };
 
-      if (file.name.endsWith('.csv')) {
-        reader.readAsText(file);
-      } else {
-        reader.readAsBinaryString(file);
-      }
+      reader.readAsText(file);
     });
   };
 
@@ -171,7 +160,7 @@ export default function ImportDialog({ open, onClose, type, companyId, onSuccess
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Import {type === 'product' ? 'Products' : 'Services'}</DialogTitle>
+          <DialogTitle>Import {type === 'product' ? 'Products' : 'Services'} from CSV</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
@@ -199,7 +188,7 @@ export default function ImportDialog({ open, onClose, type, companyId, onSuccess
 
           {/* File Upload */}
           <div>
-            <Label htmlFor="file-upload">Upload CSV or Excel File</Label>
+            <Label htmlFor="file-upload">Upload CSV File</Label>
             <div className="mt-2">
               <label
                 htmlFor="file-upload"
@@ -210,12 +199,12 @@ export default function ImportDialog({ open, onClose, type, companyId, onSuccess
                   <p className="text-sm text-gray-600">
                     {file ? file.name : 'Click to upload or drag and drop'}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">CSV or Excel files only</p>
+                  <p className="text-xs text-gray-500 mt-1">CSV files only</p>
                 </div>
                 <input
                   id="file-upload"
                   type="file"
-                  accept=".csv,.xlsx,.xls"
+                  accept=".csv"
                   onChange={handleFileChange}
                   className="hidden"
                 />
