@@ -335,38 +335,15 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
         {step === 2 && (
           <div className="space-y-4">
             <p className="text-sm text-gray-600 mb-4">
-              {extractedData.length} accounts detected. Verify field mapping below:
+              {extractedData.length} accounts detected. Map the fields from your import file:
             </p>
 
-            {validationErrors.length > 0 && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <p className="text-sm font-semibold text-red-900 mb-2">
-                  ⚠️ {validationErrors.length} Error{validationErrors.length !== 1 ? 's' : ''} Found
-                </p>
-                <p className="text-xs text-red-800 mb-3">
-                  Please fix the errors below before proceeding:
-                </p>
-                <div className="max-h-48 overflow-y-auto space-y-2">
-                  {validationErrors.map((error, idx) => (
-                    <div key={idx} className="bg-white rounded p-2 text-xs">
-                      <p className="font-semibold text-red-900">
-                        Row {error.row}: {error.account_code} - {error.account_name}
-                      </p>
-                      <ul className="mt-1 ml-4 list-disc text-red-700">
-                        {error.errors.map((err, i) => (
-                          <li key={i}>{err}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm font-semibold text-blue-900 mb-2">Field Mapping</p>
-              <p className="text-xs text-blue-800">
-                Fields are automatically mapped based on column headers. All fields detected correctly.
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <p className="text-sm font-semibold text-yellow-900">Field Mapping</p>
+              <p className="text-xs text-yellow-800 mt-1">
+                {Object.values(fieldMapping).filter(v => v).length > 0 
+                  ? "Fields are automatically mapped based on column headers. All fields detected correctly."
+                  : "Please assign the appropriate field mappings below."}
               </p>
             </div>
 
@@ -380,38 +357,54 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td className="p-3 border-b font-medium">account_code</td>
-                    <td className="p-3 border-b">Account Code</td>
-                    <td className="p-3 border-b text-gray-600">{extractedData[0]?.account_code}</td>
-                  </tr>
-                  <tr>
-                    <td className="p-3 border-b font-medium">account_name</td>
-                    <td className="p-3 border-b">Account Name</td>
-                    <td className="p-3 border-b text-gray-600">{extractedData[0]?.account_name}</td>
-                  </tr>
-                  <tr>
-                    <td className="p-3 border-b font-medium">account_type</td>
-                    <td className="p-3 border-b">Account Type</td>
-                    <td className="p-3 border-b text-gray-600">{extractedData[0]?.account_type}</td>
-                  </tr>
-                  <tr>
-                    <td className="p-3 border-b font-medium">account_category</td>
-                    <td className="p-3 border-b">Account Category</td>
-                    <td className="p-3 border-b text-gray-600">{extractedData[0]?.account_category || 'N/A'}</td>
-                  </tr>
-                  <tr>
-                    <td className="p-3 border-b font-medium">balance</td>
-                    <td className="p-3 border-b">Balance</td>
-                    <td className="p-3 border-b text-gray-600">{extractedData[0]?.balance || '0'}</td>
-                  </tr>
-                  <tr>
-                    <td className="p-3 font-medium">description</td>
-                    <td className="p-3">Description</td>
-                    <td className="p-3 text-gray-600">{extractedData[0]?.description || 'N/A'}</td>
-                  </tr>
+                  {[
+                    { field: 'account_code', label: 'Account Code', required: true },
+                    { field: 'account_name', label: 'Account Name', required: true },
+                    { field: 'account_type', label: 'Account Type', required: true },
+                    { field: 'account_category', label: 'Account Category', required: false },
+                    { field: 'balance', label: 'Balance', required: false },
+                    { field: 'description', label: 'Description', required: false }
+                  ].map(({ field, label, required }) => (
+                    <tr key={field}>
+                      <td className="p-3 border-b">
+                        <Select 
+                          value={fieldMapping[field] || ""} 
+                          onValueChange={(value) => setFieldMapping({...fieldMapping, [field]: value})}
+                        >
+                          <SelectTrigger className="w-48">
+                            <SelectValue placeholder="Select column" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={null}>--None--</SelectItem>
+                            {fileColumns.map(col => (
+                              <SelectItem key={col} value={col}>{col}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="p-3 border-b">
+                        {label} {required && <span className="text-red-600">*</span>}
+                      </td>
+                      <td className="p-3 border-b text-gray-600">
+                        {fieldMapping[field] && extractedData[0]?.[fieldMapping[field]] || 'N/A'}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="save-mapping"
+                checked={saveMapping}
+                onChange={(e) => setSaveMapping(e.target.checked)}
+                className="rounded"
+              />
+              <label htmlFor="save-mapping" className="text-sm">
+                Save this preference for future imports
+              </label>
             </div>
           </div>
         )}
