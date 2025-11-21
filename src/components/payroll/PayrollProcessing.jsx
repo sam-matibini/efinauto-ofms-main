@@ -56,6 +56,17 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
     }
   });
 
+  const approvePayrollRunMutation = useMutation({
+    mutationFn: (runId) => base44.entities.PayrollRun.update(runId, { status: 'approved' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payrollRuns'] });
+      toast.success("Payroll run approved successfully");
+    },
+    onError: () => {
+      toast.error("Failed to approve payroll run");
+    }
+  });
+
   const updatePayrollRunMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.PayrollRun.update(id, data),
     onSuccess: () => {
@@ -97,7 +108,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
         total_net: totalNet,
         total_employer_cpp: totalEmployerCPP,
         total_employer_ei: totalEmployerEI,
-        status: 'approved'
+        status: 'draft'
       });
 
       // Create payroll entries with the run ID
@@ -494,6 +505,17 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                       </p>
                     </div>
                     <div className="flex gap-2">
+                      {run.status === 'draft' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => approvePayrollRunMutation.mutate(run.id)}
+                          className="text-green-600 hover:text-green-700 hover:border-green-300"
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                          Approve
+                        </Button>
+                      )}
                       {(run.status === 'processing' || run.status === 'draft') && (
                         <Button 
                           variant="outline" 
