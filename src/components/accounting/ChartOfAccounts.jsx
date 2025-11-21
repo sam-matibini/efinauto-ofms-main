@@ -36,7 +36,14 @@ export default function ChartOfAccounts() {
   });
 
   const handleGenerateAccounts = async () => {
+    if (!selectedCompanyId) {
+      toast.error("Please select a company first");
+      return;
+    }
+
     setIsGenerating(true);
+    toast.info("Generating chart of accounts with AI...");
+    
     try {
       const response = await base44.integrations.Core.InvokeLLM({
         prompt: `Generate a comprehensive chart of accounts for an automotive dealership and service center business. Include standard accounts for:
@@ -76,7 +83,7 @@ export default function ChartOfAccounts() {
         - Vehicle operating expenses
         - Professional fees
         
-        Return ONLY a JSON array of accounts with this structure for each account:
+        Return a JSON array of accounts with this structure for each account:
         {
           "account_code": "1000",
           "account_name": "Cash - Operating",
@@ -99,29 +106,42 @@ export default function ChartOfAccounts() {
                   account_category: { type: "string" },
                   balance: { type: "number" },
                   description: { type: "string" }
-                }
+                },
+                required: ["account_code", "account_name", "account_type", "account_category"]
               }
             }
-          }
+          },
+          required: ["accounts"]
         }
       });
 
-      if (response?.accounts) {
+      console.log("AI Response:", response);
+
+      if (response?.accounts && Array.isArray(response.accounts)) {
+        toast.info(`Creating ${response.accounts.length} accounts...`);
+        
         const accountsToCreate = response.accounts.map(acc => ({
-          ...acc,
-          company_id: selectedCompanyId
+          company_id: selectedCompanyId,
+          account_code: acc.account_code,
+          account_name: acc.account_name,
+          account_type: acc.account_type,
+          account_category: acc.account_category || 'general',
+          balance: acc.balance || 0,
+          description: acc.description || ''
         }));
 
-        await Promise.all(
-          accountsToCreate.map(account => base44.entities.Account.create(account))
-        );
+        for (const account of accountsToCreate) {
+          await base44.entities.Account.create(account);
+        }
 
         queryClient.invalidateQueries({ queryKey: ['accounts'] });
-        toast.success(`${accountsToCreate.length} accounts created successfully!`);
+        toast.success(`Successfully created ${accountsToCreate.length} accounts!`);
+      } else {
+        toast.error("Invalid response format from AI");
       }
     } catch (error) {
-      console.error(error);
-      toast.error("Failed to generate accounts");
+      console.error("Error generating accounts:", error);
+      toast.error(`Failed to generate accounts: ${error.message || 'Unknown error'}`);
     } finally {
       setIsGenerating(false);
     }
