@@ -85,13 +85,17 @@ export default function ImportAccountsDialog({ open, onClose, companyId }) {
 
         let created = 0;
         let failed = 0;
+        const errors = [];
+        
         for (const account of accounts) {
           try {
             const accountType = String(account.account_type).toLowerCase().trim();
             const validTypes = ['asset', 'liability', 'equity', 'revenue', 'expense'];
             
             if (!validTypes.includes(accountType)) {
-              console.error(`Invalid account type for ${account.account_code}: ${accountType}`);
+              const errorMsg = `${account.account_code}: Invalid type "${account.account_type}"`;
+              console.error(errorMsg);
+              errors.push(errorMsg);
               failed++;
               continue;
             }
@@ -107,17 +111,27 @@ export default function ImportAccountsDialog({ open, onClose, companyId }) {
             });
             created++;
           } catch (err) {
-            console.error(`Failed to create account ${account.account_code}:`, err);
+            const errorMsg = `${account.account_code}: ${err.message || 'Failed to create'}`;
+            console.error(errorMsg, err);
+            errors.push(errorMsg);
             failed++;
           }
         }
 
         if (created > 0) {
           toast.success(`Successfully imported ${created} accounts!${failed > 0 ? ` (${failed} failed)` : ''}`);
+          if (errors.length > 0 && errors.length <= 5) {
+            errors.forEach(err => toast.error(err, { duration: 5000 }));
+          } else if (errors.length > 5) {
+            toast.error(`${failed} accounts failed. Check console for details.`, { duration: 5000 });
+          }
           queryClient.invalidateQueries({ queryKey: ['accounts'] });
           onClose();
         } else {
           toast.error("Failed to import any accounts. Please check the file format.");
+          if (errors.length > 0) {
+            errors.slice(0, 3).forEach(err => toast.error(err, { duration: 7000 }));
+          }
         }
       } else {
         toast.error(`Failed to extract data: ${extractResponse.details || 'Unknown error'}`);
