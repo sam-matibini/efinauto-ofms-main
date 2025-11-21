@@ -13,19 +13,19 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
   const [step, setStep] = useState(1);
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [duplicateHandling, setDuplicateHandling] = useState("skip");
   const [encoding, setEncoding] = useState("utf-8");
   const [dragActive, setDragActive] = useState(false);
   const [extractedData, setExtractedData] = useState([]);
-  const [validationErrors, setValidationErrors] = useState([]);
+  const [fileColumns, setFileColumns] = useState([]);
   const [fieldMapping, setFieldMapping] = useState({
-    account_code: "account_code",
-    account_name: "account_name",
-    account_type: "account_type",
-    account_category: "account_category",
-    balance: "balance",
-    description: "description"
+    account_code: "",
+    account_name: "",
+    account_type: "",
+    account_category: "",
+    balance: "",
+    description: ""
   });
+  const [saveMapping, setSaveMapping] = useState(false);
 
   const handleDrag = (e) => {
     e.preventDefault();
