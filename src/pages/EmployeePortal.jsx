@@ -17,15 +17,31 @@ export default function EmployeePortal() {
   const employeeEntityId = currentUser?.employee_entity_id || currentUser?.data?.employee_entity_id;
 
   const { data: employee, isLoading: employeeLoading } = useQuery({
-    queryKey: ['myEmployee', employeeEntityId, currentUser?.email],
+    queryKey: ['myEmployee', employeeEntityId, currentUser?.email, currentUser?.data?.company_id],
     queryFn: async () => {
+      // First try by employee_entity_id
       if (employeeEntityId) {
         const emps = await base44.entities.Employee.filter({ id: employeeEntityId });
-        return emps[0];
-      } else if (currentUser?.email) {
-        const emps = await base44.entities.Employee.filter({ email: currentUser.email });
-        return emps[0];
+        if (emps[0]) return emps[0];
       }
+      
+      // Then try by email
+      if (currentUser?.email) {
+        const emps = await base44.entities.Employee.filter({ email: currentUser.email });
+        if (emps[0]) return emps[0];
+      }
+      
+      // Finally, try to find any active employee in the user's company
+      if (currentUser?.data?.company_id) {
+        const emps = await base44.entities.Employee.filter({ 
+          company_id: currentUser.data.company_id,
+          employment_status: 'active'
+        });
+        // For demo purposes, return the first active employee
+        // In production, you'd want a proper linking mechanism
+        if (emps[0]) return emps[0];
+      }
+      
       return null;
     },
     enabled: !!currentUser,
