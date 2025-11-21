@@ -273,10 +273,9 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
           </div>
         </div>
 
-        {/* Step 1: Configure */}
+        {/* Step 1: Upload File */}
         {step === 1 && (
           <div className="space-y-6">
-            {/* Drag and Drop Area */}
             <div
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
@@ -304,7 +303,7 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
                 <p className="text-sm text-gray-600 mt-3">Selected: {file.name}</p>
               )}
               <p className="text-sm text-gray-500 mt-3">
-                Maximum File Size: 25 MB • File Format: CSV or TSV or XLS
+                Maximum File Size: 25 MB • File Format: CSV, TSV, or XLS
               </p>
             </div>
 
@@ -313,41 +312,9 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
               <button onClick={downloadTemplate} className="text-blue-600 hover:underline">
                 sample file
               </button>{" "}
-              and compare it to your import file to ensure you have the file perfect for the import.
+              and compare it to your import file to ensure it's formatted correctly.
             </p>
 
-            {/* Duplicate Handling */}
-            <div>
-              <Label className="text-red-600 mb-3 flex items-center gap-1">
-                Duplicate Handling: <span className="text-red-600">*</span>
-              </Label>
-              <RadioGroup value={duplicateHandling} onValueChange={setDuplicateHandling}>
-                <div className="flex items-start space-x-2 mb-3">
-                  <RadioGroupItem value="skip" id="skip" />
-                  <div>
-                    <label htmlFor="skip" className="font-medium cursor-pointer">
-                      Skip Duplicates
-                    </label>
-                    <p className="text-sm text-gray-600">
-                      Retains the accounts and does not import the duplicates in the import file.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <RadioGroupItem value="overwrite" id="overwrite" />
-                  <div>
-                    <label htmlFor="overwrite" className="font-medium cursor-pointer">
-                      Overwrite accounts
-                    </label>
-                    <p className="text-sm text-gray-600">
-                      Imports the duplicates in the import file and overwrites the existing accounts.
-                    </p>
-                  </div>
-                </div>
-              </RadioGroup>
-            </div>
-
-            {/* Character Encoding */}
             <div>
               <Label className="mb-2 block">Character Encoding</Label>
               <Select value={encoding} onValueChange={setEncoding}>
