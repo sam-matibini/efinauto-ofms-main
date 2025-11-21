@@ -66,12 +66,28 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       
       // Fetch chart of accounts
       const accounts = await base44.entities.Account.filter({ company_id: company.id });
-      
-      // Find specific accounts (fallback to creating basic transactions if accounts not found)
-      const wagesExpenseAccount = accounts.find(a => a.account_code === '5200' || a.account_name.toLowerCase().includes('wage'));
-      const cppExpenseAccount = accounts.find(a => a.account_code === '5310' || a.account_name.toLowerCase().includes('cpp'));
-      const eiExpenseAccount = accounts.find(a => a.account_code === '5320' || a.account_name.toLowerCase().includes('ei'));
-      const payrollLiabilityAccount = accounts.find(a => a.account_code === '2400' || a.account_name.toLowerCase().includes('payroll') && a.account_type === 'liability');
+
+      // Find specific accounts with better matching
+      const wagesExpenseAccount = accounts.find(a => 
+        a.account_code === '5200' || 
+        a.account_code === '5210' ||
+        a.account_name.toLowerCase().includes('wage') || 
+        a.account_name.toLowerCase().includes('salaries')
+      );
+      const cppExpenseAccount = accounts.find(a => 
+        a.account_code === '5310' || 
+        a.account_name.toLowerCase().includes('cpp') ||
+        a.account_name.toLowerCase().includes('pension')
+      );
+      const eiExpenseAccount = accounts.find(a => 
+        a.account_code === '5320' || 
+        a.account_name.toLowerCase().includes('ei') ||
+        a.account_name.toLowerCase().includes('employment insurance')
+      );
+      const payrollLiabilityAccount = accounts.find(a => 
+        (a.account_code === '2400' || a.account_code === '2410') ||
+        (a.account_name.toLowerCase().includes('payroll') && a.account_type === 'liability')
+      );
       
       // Create financial transactions for payroll expenses and liabilities
       const totalGross = entries.reduce((sum, e) => sum + (e.gross_pay || 0), 0);

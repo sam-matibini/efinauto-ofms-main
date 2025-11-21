@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useCompany } from "@/components/shared/CompanyContext";
+import { AIAccountMapperButton } from "./AIAccountMapper";
 
 export default function JournalEntryDialog({ open, onClose }) {
   const { selectedCompanyId } = useCompany();
@@ -19,16 +20,23 @@ export default function JournalEntryDialog({ open, onClose }) {
     reference_number: `JE-${Date.now()}`,
     description: "",
     entries: [
-      { account: "", debit: 0, credit: 0 },
-      { account: "", debit: 0, credit: 0 }
+      { account_id: "", account_code: "", account_name: "", debit: 0, credit: 0 },
+      { account_id: "", account_code: "", account_name: "", debit: 0, credit: 0 }
     ]
+  });
+
+  const { data: accounts = [] } = useQuery({
+    queryKey: ['accounts', selectedCompanyId],
+    queryFn: () => base44.entities.Account.filter({ company_id: selectedCompanyId }, 'account_code'),
+    enabled: !!selectedCompanyId && open,
+    initialData: [],
   });
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
       // Create transaction for each journal entry line
       const promises = data.entries.map(entry => {
-        if (!entry.account || (entry.debit === 0 && entry.credit === 0)) return null;
+        if (!entry.account_id || (entry.debit === 0 && entry.credit === 0)) return null;
         
         return base44.entities.Transaction.create({
           company_id: selectedCompanyId,
@@ -36,6 +44,9 @@ export default function JournalEntryDialog({ open, onClose }) {
           transaction_type: 'other_income',
           category: entry.debit > 0 ? 'expense' : 'revenue',
           amount: entry.debit > 0 ? entry.debit : entry.credit,
+          account_id: entry.account_id,
+          account_code: entry.account_code,
+          account_name: entry.account_name,
           transaction_date: data.transaction_date,
           description: data.description,
           reference_number: data.reference_number,
@@ -55,7 +66,7 @@ export default function JournalEntryDialog({ open, onClose }) {
   const addEntry = () => {
     setFormData({
       ...formData,
-      entries: [...formData.entries, { account: "", debit: 0, credit: 0 }]
+      entries: [...formData.entries, { account_id: "", account_code: "", account_name: "", debit: 0, credit: 0 }]
     });
   };
 
@@ -117,14 +128,37 @@ export default function JournalEntryDialog({ open, onClose }) {
               </div>
 
               {formData.entries.map((entry, index) => (
-                <div key={index} className="grid grid-cols-12 gap-2 items-center">
-                  <div className="col-span-5">
-                    <Input 
-                      placeholder="Account name" 
-                      value={entry.account} 
-                      onChange={(e) => updateEntry(index, 'account', e.target.value)}
-                    />
-                  </div>
+                <div key={index} className="space-y-2">
+                  <div className="grid grid-cols-12 gap-2 items-center">
+                    <div className="col-span-5">
+                      <Select 
+                        value={entry.account_id} 
+                        onValueChange={(value) => {
+                          const account = accounts.find(a => a.id === value);
+                          if (account) {
+                            const newEntries = [...formData.entries];
+                            newEntries[index] = {
+                              ...newEntries[index],
+                              account_id: account.id,
+                              account_code: account.account_code,
+                              account_name: account.account_name
+                            };
+                            setFormData({ ...formData, entries: newEntries });
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select account" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {accounts.map(account => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.account_code} - {account.account_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   <div className="col-span-3">
                     <Input 
                       type="number" 
@@ -143,11 +177,35 @@ export default function JournalEntryDialog({ open, onClose }) {
                       className="text-right"
                     />
                   </div>
-                  <div className="col-span-1">
-                    <Button size="sm" variant="ghost" onClick={() => removeEntry(index)} disabled={formData.entries.length <= 2}>
-                      <Trash2 className="w-4 h-4 text-red-600" />
-                    </Button>
+                    <div className="col-span-1">
+                      <Button size="sm" variant="ghost" onClick={() => removeEntry(index)} disabled={formData.entries.length <= 2}>
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </Button>
+                    </div>
                   </div>
+                  {formData.description && (
+                    <div className="pl-2">
+                      <AIAccountMapperButton
+                        transactionData={{
+                          transaction_type: entry.debit > 0 ? 'expense' : 'revenue',
+                          category: entry.debit > 0 ? 'expense' : 'revenue',
+                          amount: entry.debit > 0 ? entry.debit : entry.credit,
+                          description: formData.description
+                        }}
+                        onAccountSelected={(account) => {
+                          const newEntries = [...formData.entries];
+                          newEntries[index] = {
+                            ...newEntries[index],
+                            account_id: account.id,
+                            account_code: account.account_code,
+                            account_name: account.account_name
+                          };
+                          setFormData({ ...formData, entries: newEntries });
+                        }}
+                        companyId={selectedCompanyId}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
