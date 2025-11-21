@@ -44,46 +44,70 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
       return transDate >= period.from && transDate <= period.to;
     });
 
-    // Calculate balance for each account
-    const calculateBalance = (account) => {
-      let debit = 0;
-      let credit = 0;
+    // Create account balance map
+    const accountBalanceMap = new Map();
+    
+    // Initialize all accounts
+    accounts.forEach(account => {
+      accountBalanceMap.set(account.id, {
+        code: account.account_code,
+        name: account.account_name,
+        type: account.account_type,
+        debit: 0,
+        credit: 0
+      });
+    });
 
-      // Sum up all transactions for this account
-      periodTransactions.forEach(t => {
-        if (t.account_id === account.id || t.account_code === account.account_code) {
-          // For normal balance types
-          if (account.account_type === 'asset' || account.account_type === 'expense') {
-            // Assets and Expenses have debit normal balance
-            debit += t.amount;
-          } else if (account.account_type === 'liability' || account.account_type === 'equity' || account.account_type === 'revenue') {
-            // Liabilities, Equity, Revenue have credit normal balance
-            credit += t.amount;
+    // Find or create Cash account for offsetting entries
+    let cashAccount = accounts.find(a => 
+      a.account_code === '1000' || 
+      a.account_name.toLowerCase().includes('cash') ||
+      a.account_category === 'cash'
+    );
+    if (!cashAccount && accounts.length > 0) {
+      cashAccount = accounts.find(a => a.account_type === 'asset');
+    }
+
+    // Process each transaction with double-entry logic
+    periodTransactions.forEach(t => {
+      const transactionAccount = accountBalanceMap.get(t.account_id);
+      
+      if (transactionAccount) {
+        // Debit or credit the transaction account based on type
+        if (t.account_type === 'expense' || t.account_type === 'asset') {
+          // Expenses and assets are debited when they increase
+          transactionAccount.debit += t.amount;
+          
+          // Credit the offsetting account (usually cash)
+          if (cashAccount && accountBalanceMap.has(cashAccount.id)) {
+            accountBalanceMap.get(cashAccount.id).credit += t.amount;
+          }
+        } else if (t.account_type === 'revenue' || t.account_type === 'liability' || t.account_type === 'equity') {
+          // Revenue, liabilities, and equity are credited when they increase
+          transactionAccount.credit += t.amount;
+          
+          // Debit the offsetting account (usually cash)
+          if (cashAccount && accountBalanceMap.has(cashAccount.id)) {
+            accountBalanceMap.get(cashAccount.id).debit += t.amount;
           }
         }
-      });
+      }
+    });
 
-      // Add opening balance
-      debit += account.balance > 0 ? account.balance : 0;
-      credit += account.balance < 0 ? Math.abs(account.balance) : 0;
-
-      return { debit, credit };
-    };
-
-    // Collect all accounts with balances
+    // Convert map to array and add to groups
     const accountBalances = [];
-    Object.values(accountGroups).forEach(group => {
-      group.accounts.forEach(account => {
-        const balance = calculateBalance(account);
+    accountBalanceMap.forEach((balance, accountId) => {
+      const account = accounts.find(a => a.id === accountId);
+      if (account && (balance.debit > 0 || balance.credit > 0)) {
         accountBalances.push({
           code: account.account_code,
           name: account.account_name,
           type: account.account_type,
-          group: group.title,
+          group: accountGroups[account.account_type]?.title || 'Other',
           debit: balance.debit,
           credit: balance.credit
         });
-      });
+      }
     });
 
     const totalDebits = accountBalances.reduce((sum, a) => sum + a.debit, 0);
