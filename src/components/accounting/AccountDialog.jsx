@@ -53,12 +53,13 @@ export default function AccountDialog({ open, onClose, account }) {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts', selectedCompanyId] });
       toast.success(account ? "Account updated" : "Account created");
       onClose();
     },
-    onError: () => {
-      toast.error("Failed to save account");
+    onError: (error) => {
+      console.error("Account save error:", error);
+      toast.error("Failed to save account: " + (error.message || "Unknown error"));
     }
   });
 
