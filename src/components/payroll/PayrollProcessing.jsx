@@ -96,9 +96,10 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
         total_deductions: totalDeductions,
         total_net: totalNet,
         total_employer_cpp: totalEmployerCPP,
-        total_employer_ei: totalEmployerEI
+        total_employer_ei: totalEmployerEI,
+        status: 'approved'
       });
-      
+
       // Create payroll entries with the run ID
       for (const entryData of entries) {
         await base44.entities.PayrollEntry.create({
@@ -106,13 +107,13 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
           payroll_run_id: payrollRun.id
         });
       }
-      
+
       return payrollRun;
     },
-    onSuccess: () => {
+    onSuccess: (payrollRun) => {
       queryClient.invalidateQueries({ queryKey: ['payrollRuns'] });
       queryClient.invalidateQueries({ queryKey: ['payrollEntries'] });
-      toast.success("Payroll processed successfully");
+      toast.success(`Payroll run ${payrollRun.payroll_number} completed successfully! Total: $${payrollRun.total_gross?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}`);
       setRunDialogOpen(false);
       setProcessing(false);
     },
