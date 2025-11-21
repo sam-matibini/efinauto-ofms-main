@@ -382,13 +382,12 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
 
       await queryClient.invalidateQueries({ queryKey: ['accounts', companyId] });
       
-      setTimeout(() => {
-        onClose();
-      }, 500);
+      onClose();
       
     } catch (error) {
       console.error("❌ Import failed:", error);
       toast.error(`Import failed: ${error.message}`);
+      onClose();
     } finally {
       setUploading(false);
     }
