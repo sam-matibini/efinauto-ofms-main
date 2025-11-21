@@ -164,144 +164,60 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
 
   const handleImport = async () => {
     setUploading(true);
-    console.log("🚀 Starting import process...");
-    console.log("Company ID:", companyId);
-    console.log("Total accounts to process:", extractedData.length);
-    console.log("Duplicate handling:", duplicateHandling);
     
     try {
       if (!companyId) {
         throw new Error("No company selected");
       }
 
-      console.log("📥 Fetching existing accounts...");
+      const mappedAccounts = applyFieldMapping(extractedData);
       const existingAccounts = await base44.entities.Account.filter({ company_id: companyId });
-      console.log(`Found ${existingAccounts.length} existing accounts`);
       const existingCodes = new Set(existingAccounts.map(a => a.account_code));
-      
-      // Get error rows to skip
-      const errorRows = new Set(validationErrors.map(e => e.row));
-      console.log(`Skipping ${errorRows.size} rows with validation errors`);
       
       let created = 0;
       let skipped = 0;
-      let updated = 0;
-      let failed = 0;
-      const errors = [];
+      const validTypes = ['asset', 'liability', 'equity', 'revenue', 'expense'];
 
-      const accountsToProcess = extractedData.map((account, idx) => {
-        const rowNum = idx + 1;
-        
-        // Skip accounts with validation errors
-        if (errorRows.has(rowNum)) {
-          console.log(`⏭️ Skipping row ${rowNum} (validation error)`);
-          return { status: 'skipped', rowNum };
-        }
-        
-        const accountType = String(account.account_type).toLowerCase().trim();
-        const validTypes = ['asset', 'liability', 'equity', 'revenue', 'expense'];
-        
-        if (!validTypes.includes(accountType)) {
-          console.error(`❌ Row ${rowNum}: Invalid type "${account.account_type}"`);
-          return { status: 'failed', rowNum, error: `Invalid type "${account.account_type}"` };
-        }
-
-        const accountCode = String(account.account_code).trim();
-        const isDuplicate = existingCodes.has(accountCode);
-
-        if (isDuplicate && duplicateHandling === "skip") {
-          console.log(`⏭️ Row ${rowNum}: Skipping duplicate ${accountCode}`);
-          return { status: 'skipped', rowNum };
-        }
-
-        const accountData = {
-          company_id: companyId,
-          account_code: accountCode,
-          account_name: String(account.account_name).trim(),
-          account_type: accountType,
-          account_category: account.account_category ? String(account.account_category).toLowerCase().trim() : 'other',
-          balance: parseFloat(String(account.balance || '0').replace(/[^0-9.-]/g, '')) || 0,
-          description: account.description ? String(account.description).trim() : ''
-        };
-
-        return {
-          status: isDuplicate ? 'update' : 'create',
-          rowNum,
-          accountData,
-          existingId: isDuplicate ? existingAccounts.find(a => a.account_code === accountCode)?.id : null
-        };
-      });
-
-      for (const item of accountsToProcess) {
-        if (!item || item.status === 'skipped') {
+      for (const account of mappedAccounts) {
+        if (!account.account_code || !account.account_name || !account.account_type) {
           skipped++;
           continue;
         }
         
-        if (item.status === 'failed') {
-          failed++;
-          errors.push(`Row ${item.rowNum}: ${item.error}`);
+        const accountType = String(account.account_type).toLowerCase().trim();
+        if (!validTypes.includes(accountType)) {
+          skipped++;
           continue;
         }
-        
+
+        const accountCode = String(account.account_code).trim();
+        if (existingCodes.has(accountCode)) {
+          skipped++;
+          continue;
+        }
+
         try {
-          console.log(`Processing row ${item.rowNum}:`, item.accountData);
-          
-          if (item.status === 'update' && duplicateHandling === 'overwrite') {
-            const updateData = { ...item.accountData };
-            delete updateData.company_id;
-            console.log(`🔄 Row ${item.rowNum}: Updating ${updateData.account_code}`);
-            await base44.entities.Account.update(item.existingId, updateData);
-            updated++;
-          } else if (item.status === 'create') {
-            console.log(`➕ Row ${item.rowNum}: Creating ${item.accountData.account_code}`);
-            await base44.entities.Account.create(item.accountData);
-            created++;
-          } else {
-            console.log(`⏭️ Row ${item.rowNum}: Skipping (duplicate, skip mode)`);
-            skipped++;
-          }
-          
-          // Small delay to prevent rate limiting
-          await new Promise(resolve => setTimeout(resolve, 50));
+          await base44.entities.Account.create({
+            company_id: companyId,
+            account_code: accountCode,
+            account_name: String(account.account_name).trim(),
+            account_type: accountType,
+            account_category: account.account_category ? String(account.account_category).toLowerCase().trim() : 'other',
+            balance: parseFloat(String(account.balance || '0').replace(/[^0-9.-]/g, '')) || 0,
+            description: account.description ? String(account.description).trim() : ''
+          });
+          created++;
         } catch (err) {
-          console.error(`❌ Row ${item.rowNum} failed:`, err);
-          errors.push(`Row ${item.rowNum} (${item.accountData.account_code}): ${err.message || 'Unknown error'}`);
-          failed++;
+          skipped++;
         }
       }
 
-      const summary = [];
-      if (created > 0) summary.push(`${created} created`);
-      if (updated > 0) summary.push(`${updated} updated`);
-      if (skipped > 0) summary.push(`${skipped} skipped`);
-      if (failed > 0) summary.push(`${failed} failed`);
-
-      console.log("✅ Import complete:", summary.join(', '));
-      
-      if (created === 0 && updated === 0) {
-        toast.warning(`No accounts imported: ${summary.join(', ')}`);
-      } else {
-        toast.success(`Import complete: ${summary.join(', ')}`);
-      }
-      
-      if (errors.length > 0) {
-        console.error("Import errors:", errors);
-        if (errors.length <= 5) {
-          errors.forEach(err => toast.error(err, { duration: 5000 }));
-        } else {
-          toast.error(`${errors.length} accounts failed. Check console for details.`, { duration: 5000 });
-        }
-      }
-
+      toast.success(`Import complete: ${created} created, ${skipped} skipped`);
       await queryClient.invalidateQueries({ queryKey: ['accounts', companyId] });
-      
       onClose();
       
     } catch (error) {
-      console.error("❌ Import failed:", error);
       toast.error(`Import failed: ${error.message}`);
-      onClose();
     } finally {
       setUploading(false);
     }
