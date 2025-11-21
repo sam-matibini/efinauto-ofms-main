@@ -76,24 +76,29 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
 
     // Process each transaction with double-entry logic
     periodTransactions.forEach(t => {
+      // Find the account for this transaction
+      const account = accounts.find(a => a.id === t.account_id);
       const transactionAccount = accountBalanceMap.get(t.account_id);
       
-      if (transactionAccount) {
+      if (transactionAccount && account) {
+        // Use account type from the Account entity, not from the transaction
+        const accountType = account.account_type;
+        
         // Debit or credit the transaction account based on type
-        if (t.account_type === 'expense' || t.account_type === 'asset') {
+        if (accountType === 'expense' || accountType === 'asset') {
           // Expenses and assets are debited when they increase
           transactionAccount.debit += t.amount;
           
           // Credit the offsetting account (usually cash)
-          if (cashAccount && accountBalanceMap.has(cashAccount.id)) {
+          if (cashAccount && accountBalanceMap.has(cashAccount.id) && cashAccount.id !== t.account_id) {
             accountBalanceMap.get(cashAccount.id).credit += t.amount;
           }
-        } else if (t.account_type === 'revenue' || t.account_type === 'liability' || t.account_type === 'equity') {
+        } else if (accountType === 'revenue' || accountType === 'liability' || accountType === 'equity') {
           // Revenue, liabilities, and equity are credited when they increase
           transactionAccount.credit += t.amount;
           
           // Debit the offsetting account (usually cash)
-          if (cashAccount && accountBalanceMap.has(cashAccount.id)) {
+          if (cashAccount && accountBalanceMap.has(cashAccount.id) && cashAccount.id !== t.account_id) {
             accountBalanceMap.get(cashAccount.id).debit += t.amount;
           }
         }

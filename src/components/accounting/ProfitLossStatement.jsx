@@ -59,11 +59,11 @@ export default function ProfitLossStatement({ transactions, comparativePeriods =
       })
       .reduce((sum, t) => sum + t.amount, 0);
     
-    // Payroll expenses (5200-5299)
+    // Payroll expenses (5200-5399 - wages, CPP, EI)
     const payrollExpenses = periodTransactions
       .filter(t => {
         const account = accounts.find(a => a.id === t.account_id);
-        return account?.account_code?.startsWith('52');
+        return account?.account_code?.startsWith('52') || account?.account_code?.startsWith('53');
       })
       .reduce((sum, t) => sum + t.amount, 0);
 
