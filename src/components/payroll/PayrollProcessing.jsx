@@ -56,6 +56,155 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
     }
   });
 
+  const repostPayrollMutation = useMutation({
+    mutationFn: async (runId) => {
+      const run = payrollRuns.find(r => r.id === runId);
+      if (!run || run.status !== 'approved') {
+        throw new Error('Payroll run must be approved');
+      }
+
+      // Delete existing payroll transactions for this run
+      const existingTransactions = await base44.entities.Transaction.filter({ 
+        company_id: company.id,
+        reference_type: 'PayrollRun',
+        reference_id: runId
+      });
+      
+      for (const trans of existingTransactions) {
+        await base44.entities.Transaction.delete(trans.id);
+      }
+
+      // Fetch fresh payroll entries for this run
+      const entries = await base44.entities.PayrollEntry.filter({ payroll_run_id: runId });
+      
+      // Fetch chart of accounts
+      const accounts = await base44.entities.Account.filter({ company_id: company.id });
+
+      // Find specific accounts
+      const wagesExpenseAccount = accounts.find(a => 
+        a.account_code === '5200' || 
+        a.account_code === '5210' ||
+        a.account_name.toLowerCase().includes('wage') || 
+        a.account_name.toLowerCase().includes('salaries')
+      );
+      const cppExpenseAccount = accounts.find(a => 
+        a.account_code === '5310' || 
+        a.account_name.toLowerCase().includes('cpp') ||
+        a.account_name.toLowerCase().includes('pension')
+      );
+      const eiExpenseAccount = accounts.find(a => 
+        a.account_code === '5320' || 
+        a.account_name.toLowerCase().includes('ei') ||
+        a.account_name.toLowerCase().includes('employment insurance')
+      );
+      const payrollLiabilityAccount = accounts.find(a => 
+        (a.account_code === '2400' || a.account_code === '2410') ||
+        (a.account_name.toLowerCase().includes('payroll') && a.account_type === 'liability')
+      );
+      
+      // Calculate totals
+      const totalGross = entries.reduce((sum, e) => sum + (e.gross_pay || 0), 0);
+      const totalCPPEmployer = entries.reduce((sum, e) => sum + (e.cpp_employer || 0), 0);
+      const totalEIEmployer = entries.reduce((sum, e) => sum + (e.ei_employer || 0), 0);
+      const totalCPPEmployee = entries.reduce((sum, e) => sum + (e.cpp_employee || 0), 0);
+      const totalEIEmployee = entries.reduce((sum, e) => sum + (e.ei_employee || 0), 0);
+      const totalFederalTax = entries.reduce((sum, e) => sum + (e.federal_tax || 0), 0);
+      const totalProvincialTax = entries.reduce((sum, e) => sum + (e.provincial_tax || 0), 0);
+      
+      // Create transaction for gross payroll expense
+      await base44.entities.Transaction.create({
+        company_id: company.id,
+        transaction_number: `PAYROLL-${run.payroll_number}`,
+        transaction_type: 'payroll_expense',
+        category: 'expense',
+        amount: totalGross,
+        account_id: wagesExpenseAccount?.id,
+        account_code: wagesExpenseAccount?.account_code || '5200',
+        account_name: wagesExpenseAccount?.account_name || 'Wages & Salaries',
+        account_type: 'expense',
+        description: `Payroll expense - ${run.payroll_number}`,
+        transaction_date: run.pay_date,
+        reference_type: 'PayrollRun',
+        reference_id: runId,
+        reference_number: run.payroll_number,
+        status: 'completed'
+      });
+      
+      // Create transaction for employer CPP contribution
+      if (totalCPPEmployer > 0) {
+        await base44.entities.Transaction.create({
+          company_id: company.id,
+          transaction_number: `CPP-EMP-${run.payroll_number}`,
+          transaction_type: 'payroll_expense',
+          category: 'expense',
+          amount: totalCPPEmployer,
+          account_id: cppExpenseAccount?.id,
+          account_code: cppExpenseAccount?.account_code || '5310',
+          account_name: cppExpenseAccount?.account_name || 'CPP Expense',
+          account_type: 'expense',
+          description: `Employer CPP contribution - ${run.payroll_number}`,
+          transaction_date: run.pay_date,
+          reference_type: 'PayrollRun',
+          reference_id: runId,
+          reference_number: run.payroll_number,
+          status: 'completed'
+        });
+      }
+      
+      // Create transaction for employer EI contribution
+      if (totalEIEmployer > 0) {
+        await base44.entities.Transaction.create({
+          company_id: company.id,
+          transaction_number: `EI-EMP-${run.payroll_number}`,
+          transaction_type: 'payroll_expense',
+          category: 'expense',
+          amount: totalEIEmployer,
+          account_id: eiExpenseAccount?.id,
+          account_code: eiExpenseAccount?.account_code || '5320',
+          account_name: eiExpenseAccount?.account_name || 'EI Expense',
+          account_type: 'expense',
+          description: `Employer EI contribution - ${run.payroll_number}`,
+          transaction_date: run.pay_date,
+          reference_type: 'PayrollRun',
+          reference_id: runId,
+          reference_number: run.payroll_number,
+          status: 'completed'
+        });
+      }
+      
+      // Create liability transaction for payroll deductions
+      const totalDeductions = totalCPPEmployee + totalCPPEmployer + totalEIEmployee + totalEIEmployer + totalFederalTax + totalProvincialTax;
+      if (totalDeductions > 0) {
+        await base44.entities.Transaction.create({
+          company_id: company.id,
+          transaction_number: `PAYROLL-LIB-${run.payroll_number}`,
+          transaction_type: 'payroll_liability',
+          category: 'liability',
+          amount: totalDeductions,
+          account_id: payrollLiabilityAccount?.id,
+          account_code: payrollLiabilityAccount?.account_code || '2400',
+          account_name: payrollLiabilityAccount?.account_name || 'Payroll Liabilities',
+          account_type: 'liability',
+          description: `Payroll deductions payable - ${run.payroll_number}`,
+          transaction_date: run.pay_date,
+          reference_type: 'PayrollRun',
+          reference_id: runId,
+          reference_number: run.payroll_number,
+          status: 'pending'
+        });
+      }
+      
+      return run;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      toast.success("Payroll transactions reposted to general ledger");
+    },
+    onError: (error) => {
+      toast.error("Failed to repost payroll: " + error.message);
+    }
+  });
+
   const approvePayrollRunMutation = useMutation({
     mutationFn: async (runId) => {
       // Update payroll run status
@@ -109,6 +258,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
         account_id: wagesExpenseAccount?.id,
         account_code: wagesExpenseAccount?.account_code || '5200',
         account_name: wagesExpenseAccount?.account_name || 'Wages & Salaries',
+        account_type: 'expense',
         description: `Payroll expense - ${updatedRun.payroll_number}`,
         transaction_date: updatedRun.pay_date,
         reference_type: 'PayrollRun',
@@ -128,6 +278,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
           account_id: cppExpenseAccount?.id,
           account_code: cppExpenseAccount?.account_code || '5310',
           account_name: cppExpenseAccount?.account_name || 'CPP Expense',
+          account_type: 'expense',
           description: `Employer CPP contribution - ${updatedRun.payroll_number}`,
           transaction_date: updatedRun.pay_date,
           reference_type: 'PayrollRun',
@@ -148,6 +299,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
           account_id: eiExpenseAccount?.id,
           account_code: eiExpenseAccount?.account_code || '5320',
           account_name: eiExpenseAccount?.account_name || 'EI Expense',
+          account_type: 'expense',
           description: `Employer EI contribution - ${updatedRun.payroll_number}`,
           transaction_date: updatedRun.pay_date,
           reference_type: 'PayrollRun',
@@ -169,6 +321,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
           account_id: payrollLiabilityAccount?.id,
           account_code: payrollLiabilityAccount?.account_code || '2400',
           account_name: payrollLiabilityAccount?.account_name || 'Payroll Liabilities',
+          account_type: 'liability',
           description: `Payroll deductions payable - ${updatedRun.payroll_number}`,
           transaction_date: updatedRun.pay_date,
           reference_type: 'PayrollRun',
@@ -637,6 +790,17 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                         >
                           <Check className="w-4 h-4 mr-1" />
                           Approve
+                        </Button>
+                      )}
+                      {run.status === 'approved' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => repostPayrollMutation.mutate(run.id)}
+                          className="text-blue-600 hover:text-blue-700 hover:border-blue-300"
+                        >
+                          <Download className="w-4 h-4 mr-1" />
+                          Repost to GL
                         </Button>
                       )}
                       {(run.status === 'processing' || run.status === 'draft') && (
