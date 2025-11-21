@@ -389,6 +389,7 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
     } catch (error) {
       console.error("❌ Import failed:", error);
       toast.error(`Import failed: ${error.message}`);
+    } finally {
       setUploading(false);
     }
   };
