@@ -122,7 +122,7 @@ Include these account types with standard codes:
 - REVENUE (4000-4999): Vehicle Sales, Service Revenue, Parts Sales, Export Revenue
 - EXPENSES (5000-5999): COGS, Wages, Rent, Utilities, Marketing, Depreciation
 
-Create 40-50 accounts total.`;
+Create 40-50 accounts total. Set all account balances to 0.`;
 
       console.log('[AI] Calling InvokeLLM...');
       const result = await base44.integrations.Core.InvokeLLM({
@@ -205,7 +205,7 @@ Create 40-50 accounts total.`;
               account_name: String(account.account_name).trim(),
               account_type: String(account.account_type).toLowerCase().trim(),
               account_category: account.account_category ? String(account.account_category).toLowerCase().trim() : 'other',
-              balance: parseFloat(account.balance) || 0,
+              balance: 0,
               description: account.description ? String(account.description).trim() : ''
             };
             
