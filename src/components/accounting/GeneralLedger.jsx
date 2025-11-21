@@ -5,8 +5,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Download, Printer, BookOpen } from "lucide-react";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import { useCompany } from "@/components/shared/CompanyContext";
 
 export default function GeneralLedger({ transactions, comparativePeriods = [] }) {
+  const { selectedCompanyId } = useCompany();
   const [selectedAccount, setSelectedAccount] = useState("all");
 
   const periods = comparativePeriods.length > 0 ? comparativePeriods : [{ 
@@ -15,21 +19,20 @@ export default function GeneralLedger({ transactions, comparativePeriods = [] })
     label: 'Current Period'
   }];
 
-  // Define accounts
+  const { data: chartAccounts = [] } = useQuery({
+    queryKey: ['accounts', selectedCompanyId],
+    queryFn: () => base44.entities.Account.filter({ company_id: selectedCompanyId }, 'account_code'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  // Build account options from chart of accounts
   const accounts = [
     { value: "all", label: "All Accounts" },
-    { value: "cash", label: "Cash and Bank" },
-    { value: "ar", label: "Accounts Receivable" },
-    { value: "inventory", label: "Inventory" },
-    { value: "fixed_assets", label: "Fixed Assets" },
-    { value: "ap", label: "Accounts Payable" },
-    { value: "payroll_liabilities", label: "Payroll Liabilities" },
-    { value: "sales_revenue", label: "Sales Revenue" },
-    { value: "service_revenue", label: "Service Revenue" },
-    { value: "parts_revenue", label: "Parts Revenue" },
-    { value: "cogs", label: "Cost of Goods Sold" },
-    { value: "payroll_expense", label: "Payroll Expenses" },
-    { value: "operating_expense", label: "Operating Expenses" },
+    ...chartAccounts.map(acc => ({
+      value: acc.id,
+      label: `${acc.account_code} - ${acc.account_name}`
+    }))
   ];
 
   const currentPeriod = periods[0];
@@ -42,38 +45,8 @@ export default function GeneralLedger({ transactions, comparativePeriods = [] })
     if (!inPeriod) return false;
     if (selectedAccount === "all") return true;
 
-    // Filter by account type
-    switch (selectedAccount) {
-      case "cash":
-        return true; // All transactions affect cash
-      case "ar":
-        return t.category === 'revenue' && t.status === 'pending';
-      case "inventory":
-        return t.transaction_type === 'vehicle_purchase' || t.transaction_type === 'parts_purchase';
-      case "fixed_assets":
-        return t.transaction_type === 'vehicle_purchase';
-      case "ap":
-        return t.category === 'expense' && t.status === 'pending' && t.transaction_type !== 'payroll_liability';
-      case "payroll_liabilities":
-        return t.transaction_type === 'payroll_liability';
-      case "sales_revenue":
-        return t.transaction_type === 'sale_revenue';
-      case "service_revenue":
-        return t.transaction_type === 'service_revenue';
-      case "parts_revenue":
-        return t.transaction_type === 'parts_revenue';
-      case "cogs":
-        return t.transaction_type === 'vehicle_purchase' || t.transaction_type === 'parts_purchase';
-      case "payroll_expense":
-        return t.transaction_type === 'payroll_expense';
-      case "operating_expense":
-        return t.category === 'expense' && 
-               t.transaction_type !== 'vehicle_purchase' && 
-               t.transaction_type !== 'parts_purchase' &&
-               t.transaction_type !== 'payroll_expense';
-      default:
-        return false;
-    }
+    // Filter by selected account ID
+    return t.account_id === selectedAccount;
   });
 
   // Calculate running balance
@@ -97,10 +70,11 @@ export default function GeneralLedger({ transactions, comparativePeriods = [] })
 
   const exportToCSV = () => {
     const accountLabel = accounts.find(a => a.value === selectedAccount)?.label || 'All Accounts';
-    const headers = ['Date', 'Transaction #', 'Description', 'Reference', 'Debit', 'Credit', 'Balance'];
+    const headers = ['Date', 'Transaction #', 'Account', 'Description', 'Reference', 'Debit', 'Credit', 'Balance'];
     const rows = ledgerEntries.map(t => [
       format(new Date(t.transaction_date), 'yyyy-MM-dd'),
       t.transaction_number || t.id.slice(0, 8),
+      t.account_code ? `${t.account_code} - ${t.account_name}` : 'N/A',
       t.description || '',
       t.reference_number || '',
       t.debit.toFixed(2),
@@ -180,6 +154,7 @@ export default function GeneralLedger({ transactions, comparativePeriods = [] })
               <tr className="border-b-2 border-gray-300 bg-gray-100">
                 <th className="text-left py-3 px-4 font-semibold">Date</th>
                 <th className="text-left py-3 px-4 font-semibold">Transaction #</th>
+                <th className="text-left py-3 px-4 font-semibold">Account</th>
                 <th className="text-left py-3 px-4 font-semibold">Description</th>
                 <th className="text-left py-3 px-4 font-semibold">Reference</th>
                 <th className="text-right py-3 px-4 font-semibold">Debit</th>
@@ -190,7 +165,7 @@ export default function GeneralLedger({ transactions, comparativePeriods = [] })
             <tbody>
               {ledgerEntries.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-gray-500">
+                  <td colSpan={8} className="text-center py-8 text-gray-500">
                     No transactions found for the selected account
                   </td>
                 </tr>
@@ -202,6 +177,9 @@ export default function GeneralLedger({ transactions, comparativePeriods = [] })
                     </td>
                     <td className="py-2 px-4 font-mono text-xs">
                       {entry.transaction_number || entry.id.slice(0, 8)}
+                    </td>
+                    <td className="py-2 px-4 font-mono text-xs">
+                      {entry.account_code ? `${entry.account_code} - ${entry.account_name}` : '-'}
                     </td>
                     <td className="py-2 px-4">
                       {entry.description || 'Untitled Transaction'}
@@ -225,7 +203,7 @@ export default function GeneralLedger({ transactions, comparativePeriods = [] })
             {ledgerEntries.length > 0 && (
               <tfoot>
                 <tr className="border-t-2 border-gray-300 bg-blue-50 font-bold">
-                  <td colSpan={4} className="py-3 px-4">TOTALS</td>
+                  <td colSpan={5} className="py-3 px-4">TOTALS</td>
                   <td className="text-right py-3 px-4">
                     ${ledgerEntries.reduce((sum, e) => sum + e.debit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </td>
