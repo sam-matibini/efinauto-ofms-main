@@ -26,6 +26,11 @@ export default function AIChartOfAccounts() {
   const [businessDescription, setBusinessDescription] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const { data: company } = useQuery({
     queryKey: ['company', selectedCompanyId],
     queryFn: () => base44.entities.Company.filter({ id: selectedCompanyId }),
@@ -39,6 +44,8 @@ export default function AIChartOfAccounts() {
     enabled: !!selectedCompanyId,
     initialData: [],
   });
+
+  const hasAccountPermission = currentUser?.role === 'admin' || currentUser?.role === 'accountant';
 
   const deleteAccountMutation = useMutation({
     mutationFn: (accountId) => base44.entities.Account.delete(accountId),
