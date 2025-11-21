@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2, Download, Printer, Sparkles, Loader2, Search } from "lucide-react";
+import { Plus, Edit, Trash2, Download, Printer, Sparkles, Loader2, Search, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import AccountDialog from "./AccountDialog";
+import ImportAccountsDialog from "./ImportAccountsDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -20,6 +21,7 @@ export default function AIChartOfAccounts() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [businessDescription, setBusinessDescription] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -210,6 +212,10 @@ Include 40-50 essential accounts. Use standard account codes (1000s=Assets, 2000
             <Printer className="w-4 h-4 mr-2" />
             Print
           </Button>
+          <Button onClick={() => setImportDialogOpen(true)} variant="outline">
+            <Upload className="w-4 h-4 mr-2" />
+            Import
+          </Button>
           <Button onClick={() => setAiDialogOpen(true)} variant="outline" className="bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600">
             <Sparkles className="w-4 h-4 mr-2" />
             AI Generate
@@ -355,6 +361,14 @@ Include 40-50 essential accounts. Use standard account codes (1000s=Assets, 2000
           open={dialogOpen}
           onClose={() => { setDialogOpen(false); setEditingAccount(null); }}
           account={editingAccount}
+        />
+      )}
+
+      {importDialogOpen && (
+        <ImportAccountsDialog
+          open={importDialogOpen}
+          onClose={() => setImportDialogOpen(false)}
+          companyId={selectedCompanyId}
         />
       )}
     </div>
