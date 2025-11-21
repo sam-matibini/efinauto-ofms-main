@@ -48,41 +48,56 @@ export default function ImportAccountsDialog({ open, onClose, companyId, onImpor
       const extractResponse = await base44.integrations.Core.ExtractDataFromUploadedFile({
         file_url: fileUrl,
         json_schema: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              account_code: { type: "string" },
-              account_name: { type: "string" },
-              account_type: { type: "string" },
-              account_category: { type: "string" },
-              balance: { type: "number" },
-              description: { type: "string" }
-            },
-            required: ["account_code", "account_name", "account_type"]
+          type: "object",
+          properties: {
+            accounts: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  account_code: { type: "string" },
+                  account_name: { type: "string" },
+                  account_type: { type: "string" },
+                  account_category: { type: "string" },
+                  balance: { type: "number" },
+                  description: { type: "string" }
+                },
+                required: ["account_code", "account_name", "account_type"]
+              }
+            }
           }
         }
       });
 
       if (extractResponse.status === "success" && extractResponse.output) {
-        const accounts = Array.isArray(extractResponse.output) ? extractResponse.output : [extractResponse.output];
+        const accounts = extractResponse.output.accounts || [];
+        
+        if (accounts.length === 0) {
+          toast.error("No accounts found in the file");
+          return;
+        }
         
         toast.info(`Creating ${accounts.length} accounts...`);
 
-        // Create accounts
+        let created = 0;
         for (const account of accounts) {
-          await base44.entities.Account.create({
-            company_id: companyId,
-            account_code: account.account_code,
-            account_name: account.account_name,
-            account_type: account.account_type,
-            account_category: account.account_category || 'general',
-            balance: account.balance || 0,
-            description: account.description || ''
-          });
+          try {
+            await base44.entities.Account.create({
+              company_id: companyId,
+              account_code: account.account_code,
+              account_name: account.account_name,
+              account_type: account.account_type,
+              account_category: account.account_category || 'general',
+              balance: account.balance || 0,
+              description: account.description || ''
+            });
+            created++;
+          } catch (err) {
+            console.error(`Failed to create account ${account.account_code}:`, err);
+          }
         }
 
-        toast.success(`Successfully imported ${accounts.length} accounts!`);
+        toast.success(`Successfully imported ${created} accounts!`);
         onImportSuccess();
         onClose();
       } else {
