@@ -341,29 +341,41 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
       });
 
       for (const item of accountsToProcess) {
-        if (item.status === 'skipped') {
+        if (!item || item.status === 'skipped') {
           skipped++;
-        } else if (item.status === 'failed') {
+          continue;
+        }
+        
+        if (item.status === 'failed') {
           failed++;
           errors.push(`Row ${item.rowNum}: ${item.error}`);
-        } else {
-          try {
-            console.log(`Processing row ${item.rowNum}:`, item.accountData);
-            
-            if (item.status === 'update') {
-              console.log(`🔄 Row ${item.rowNum}: Updating ${item.accountData.account_code}`);
-              await base44.entities.Account.update(item.existingId, item.accountData);
-              updated++;
-            } else {
-              console.log(`➕ Row ${item.rowNum}: Creating ${item.accountData.account_code}`);
-              await base44.entities.Account.create(item.accountData);
-              created++;
-            }
-          } catch (err) {
-            console.error(`❌ Row ${item.rowNum} failed:`, err);
-            errors.push(`Row ${item.rowNum} (${item.accountData.account_code}): ${err.message || 'Failed'}`);
-            failed++;
+          continue;
+        }
+        
+        try {
+          console.log(`Processing row ${item.rowNum}:`, item.accountData);
+          
+          if (item.status === 'update' && duplicateHandling === 'overwrite') {
+            const updateData = { ...item.accountData };
+            delete updateData.company_id;
+            console.log(`🔄 Row ${item.rowNum}: Updating ${updateData.account_code}`);
+            await base44.entities.Account.update(item.existingId, updateData);
+            updated++;
+          } else if (item.status === 'create') {
+            console.log(`➕ Row ${item.rowNum}: Creating ${item.accountData.account_code}`);
+            await base44.entities.Account.create(item.accountData);
+            created++;
+          } else {
+            console.log(`⏭️ Row ${item.rowNum}: Skipping (duplicate, skip mode)`);
+            skipped++;
           }
+          
+          // Small delay to prevent rate limiting
+          await new Promise(resolve => setTimeout(resolve, 50));
+        } catch (err) {
+          console.error(`❌ Row ${item.rowNum} failed:`, err);
+          errors.push(`Row ${item.rowNum} (${item.accountData.account_code}): ${err.message || 'Unknown error'}`);
+          failed++;
         }
       }
 
