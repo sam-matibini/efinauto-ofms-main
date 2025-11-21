@@ -237,6 +237,11 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
         (a.account_code === '2400' || a.account_code === '2410') ||
         (a.account_name.toLowerCase().includes('payroll') && a.account_type === 'liability')
       );
+      const cashAccount = accounts.find(a => 
+        a.account_code === '1000' || 
+        a.account_name.toLowerCase().includes('cash') ||
+        a.account_category === 'cash'
+      );
       
       // Create financial transactions for payroll expenses and liabilities
       const totalGross = entries.reduce((sum, e) => sum + (e.gross_pay || 0), 0);
@@ -248,17 +253,23 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       const totalProvincialTax = entries.reduce((sum, e) => sum + (e.provincial_tax || 0), 0);
       const totalNet = entries.reduce((sum, e) => sum + (e.net_pay || 0), 0);
       
-      // Create transaction for gross payroll expense
+      // DR: Wages Expense, CR: Cash/Payroll Liability
+      // Create debit for wages expense
       await base44.entities.Transaction.create({
         company_id: company.id,
         transaction_number: `PAYROLL-${updatedRun.payroll_number}`,
         transaction_type: 'payroll_expense',
         category: 'expense',
         amount: totalGross,
+        debit_amount: totalGross,
+        credit_amount: 0,
         account_id: wagesExpenseAccount?.id,
         account_code: wagesExpenseAccount?.account_code || '5200',
         account_name: wagesExpenseAccount?.account_name || 'Wages & Salaries',
         account_type: 'expense',
+        contra_account_id: cashAccount?.id,
+        contra_account_code: cashAccount?.account_code || '1000',
+        contra_account_name: cashAccount?.account_name || 'Cash',
         description: `Payroll expense - ${updatedRun.payroll_number}`,
         transaction_date: updatedRun.pay_date,
         reference_type: 'PayrollRun',
@@ -266,8 +277,32 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
         reference_number: updatedRun.payroll_number,
         status: 'completed'
       });
+
+      // Create credit for cash (offsetting entry)
+      await base44.entities.Transaction.create({
+        company_id: company.id,
+        transaction_number: `PAYROLL-CASH-${updatedRun.payroll_number}`,
+        transaction_type: 'payment_made',
+        category: 'asset',
+        amount: totalNet,
+        debit_amount: 0,
+        credit_amount: totalNet,
+        account_id: cashAccount?.id,
+        account_code: cashAccount?.account_code || '1000',
+        account_name: cashAccount?.account_name || 'Cash',
+        account_type: 'asset',
+        contra_account_id: wagesExpenseAccount?.id,
+        contra_account_code: wagesExpenseAccount?.account_code || '5200',
+        contra_account_name: wagesExpenseAccount?.account_name || 'Wages & Salaries',
+        description: `Payroll payment - ${updatedRun.payroll_number}`,
+        transaction_date: updatedRun.pay_date,
+        reference_type: 'PayrollRun',
+        reference_id: runId,
+        reference_number: updatedRun.payroll_number,
+        status: 'completed'
+      });
       
-      // Create transaction for employer CPP contribution
+      // DR: CPP Expense, CR: Payroll Liability
       if (totalCPPEmployer > 0) {
         await base44.entities.Transaction.create({
           company_id: company.id,
@@ -275,10 +310,15 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
           transaction_type: 'payroll_expense',
           category: 'expense',
           amount: totalCPPEmployer,
+          debit_amount: totalCPPEmployer,
+          credit_amount: 0,
           account_id: cppExpenseAccount?.id,
           account_code: cppExpenseAccount?.account_code || '5310',
           account_name: cppExpenseAccount?.account_name || 'CPP Expense',
           account_type: 'expense',
+          contra_account_id: payrollLiabilityAccount?.id,
+          contra_account_code: payrollLiabilityAccount?.account_code || '2400',
+          contra_account_name: payrollLiabilityAccount?.account_name || 'Payroll Liabilities',
           description: `Employer CPP contribution - ${updatedRun.payroll_number}`,
           transaction_date: updatedRun.pay_date,
           reference_type: 'PayrollRun',
@@ -288,7 +328,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
         });
       }
       
-      // Create transaction for employer EI contribution
+      // DR: EI Expense, CR: Payroll Liability
       if (totalEIEmployer > 0) {
         await base44.entities.Transaction.create({
           company_id: company.id,
@@ -296,10 +336,15 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
           transaction_type: 'payroll_expense',
           category: 'expense',
           amount: totalEIEmployer,
+          debit_amount: totalEIEmployer,
+          credit_amount: 0,
           account_id: eiExpenseAccount?.id,
           account_code: eiExpenseAccount?.account_code || '5320',
           account_name: eiExpenseAccount?.account_name || 'EI Expense',
           account_type: 'expense',
+          contra_account_id: payrollLiabilityAccount?.id,
+          contra_account_code: payrollLiabilityAccount?.account_code || '2400',
+          contra_account_name: payrollLiabilityAccount?.account_name || 'Payroll Liabilities',
           description: `Employer EI contribution - ${updatedRun.payroll_number}`,
           transaction_date: updatedRun.pay_date,
           reference_type: 'PayrollRun',
@@ -309,7 +354,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
         });
       }
       
-      // Create liability transaction for payroll deductions (CPP + EI + Tax)
+      // DR: Payroll Liability (contra to expenses), CR: Payroll Liability (for employee deductions + employer portions)
       const totalDeductions = totalCPPEmployee + totalCPPEmployer + totalEIEmployee + totalEIEmployer + totalFederalTax + totalProvincialTax;
       if (totalDeductions > 0) {
         await base44.entities.Transaction.create({
@@ -318,11 +363,13 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
           transaction_type: 'payroll_liability',
           category: 'liability',
           amount: totalDeductions,
+          debit_amount: 0,
+          credit_amount: totalDeductions,
           account_id: payrollLiabilityAccount?.id,
           account_code: payrollLiabilityAccount?.account_code || '2400',
           account_name: payrollLiabilityAccount?.account_name || 'Payroll Liabilities',
           account_type: 'liability',
-          description: `Payroll deductions payable - ${updatedRun.payroll_number}`,
+          description: `Payroll deductions and employer contributions payable - ${updatedRun.payroll_number}`,
           transaction_date: updatedRun.pay_date,
           reference_type: 'PayrollRun',
           reference_id: runId,

@@ -74,32 +74,40 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
       cashAccount = accounts.find(a => a.account_type === 'asset');
     }
 
-    // Process each transaction with double-entry logic
+    // Process each transaction with proper double-entry logic
     periodTransactions.forEach(t => {
-      // Find the account for this transaction
       const account = accounts.find(a => a.id === t.account_id);
       const transactionAccount = accountBalanceMap.get(t.account_id);
       
       if (transactionAccount && account) {
-        // Use account type from the Account entity, not from the transaction
-        const accountType = account.account_type;
-        
-        // Debit or credit the transaction account based on type
-        if (accountType === 'expense' || accountType === 'asset') {
-          // Expenses and assets are debited when they increase
-          transactionAccount.debit += t.amount;
+        // Use debit/credit amounts if provided (new double-entry format)
+        if (t.debit_amount > 0 || t.credit_amount > 0) {
+          transactionAccount.debit += t.debit_amount || 0;
+          transactionAccount.credit += t.credit_amount || 0;
           
-          // Credit the offsetting account (usually cash)
-          if (cashAccount && accountBalanceMap.has(cashAccount.id) && cashAccount.id !== t.account_id) {
-            accountBalanceMap.get(cashAccount.id).credit += t.amount;
+          // Process contra account if specified
+          if (t.contra_account_id && accountBalanceMap.has(t.contra_account_id)) {
+            const contraAccount = accountBalanceMap.get(t.contra_account_id);
+            // Mirror the entry: if main is DR, contra is CR and vice versa
+            contraAccount.debit += t.credit_amount || 0;
+            contraAccount.credit += t.debit_amount || 0;
           }
-        } else if (accountType === 'revenue' || accountType === 'liability' || accountType === 'equity') {
-          // Revenue, liabilities, and equity are credited when they increase
-          transactionAccount.credit += t.amount;
+        } else {
+          // Fallback to old format for backwards compatibility
+          const accountType = account.account_type;
           
-          // Debit the offsetting account (usually cash)
-          if (cashAccount && accountBalanceMap.has(cashAccount.id) && cashAccount.id !== t.account_id) {
-            accountBalanceMap.get(cashAccount.id).debit += t.amount;
+          if (accountType === 'expense' || accountType === 'asset') {
+            transactionAccount.debit += t.amount;
+            
+            if (cashAccount && accountBalanceMap.has(cashAccount.id) && cashAccount.id !== t.account_id) {
+              accountBalanceMap.get(cashAccount.id).credit += t.amount;
+            }
+          } else if (accountType === 'revenue' || accountType === 'liability' || accountType === 'equity') {
+            transactionAccount.credit += t.amount;
+            
+            if (cashAccount && accountBalanceMap.has(cashAccount.id) && cashAccount.id !== t.account_id) {
+              accountBalanceMap.get(cashAccount.id).debit += t.amount;
+            }
           }
         }
       }

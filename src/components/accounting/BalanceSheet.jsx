@@ -36,7 +36,7 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
       return transDate <= period.to;
     });
 
-    // Get account balances by type
+    // Get account balances by type using proper double-entry
     const getAccountBalance = (accountType, accountCategory = null) => {
       return periodTransactions
         .filter(t => {
@@ -48,13 +48,17 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
           return account.account_type === accountType;
         })
         .reduce((sum, t) => {
-          const account = accounts.find(a => a.id === t.account_id);
-          // Assets increase with debits, decrease with credits
-          if (accountType === 'asset') return sum + t.amount;
-          // Liabilities increase with credits, decrease with debits
-          if (accountType === 'liability') return sum + t.amount;
-          // Equity increases with credits
-          if (accountType === 'equity') return sum + t.amount;
+          // Use debit/credit amounts if available (new format)
+          if (t.debit_amount > 0 || t.credit_amount > 0) {
+            // Assets: debit increases, credit decreases
+            if (accountType === 'asset') return sum + (t.debit_amount || 0) - (t.credit_amount || 0);
+            // Liabilities & Equity: credit increases, debit decreases
+            if (accountType === 'liability' || accountType === 'equity') return sum + (t.credit_amount || 0) - (t.debit_amount || 0);
+          } else {
+            // Fallback to old format
+            if (accountType === 'asset') return sum + t.amount;
+            if (accountType === 'liability' || accountType === 'equity') return sum + t.amount;
+          }
           return sum;
         }, 0);
     };

@@ -30,21 +30,33 @@ export default function ProfitLossStatement({ transactions, comparativePeriods =
     });
 
     // Revenue from revenue accounts (4000-4999)
+    // Revenue accounts have normal credit balance, so credits increase revenue
     const revenue = periodTransactions
       .filter(t => {
         const account = accounts.find(a => a.id === t.account_id);
         return account?.account_type === 'revenue';
       })
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce((sum, t) => {
+        if (t.debit_amount > 0 || t.credit_amount > 0) {
+          return sum + (t.credit_amount || 0) - (t.debit_amount || 0);
+        }
+        return sum + t.amount;
+      }, 0);
 
     // COGS from expense accounts (5000-5199 typically)
+    // Expense accounts have normal debit balance, so debits increase expenses
     const cogs = periodTransactions
       .filter(t => {
         const account = accounts.find(a => a.id === t.account_id);
         return account?.account_type === 'expense' && 
                (account?.account_code?.startsWith('50') || account?.account_code?.startsWith('51'));
       })
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce((sum, t) => {
+        if (t.debit_amount > 0 || t.credit_amount > 0) {
+          return sum + (t.debit_amount || 0) - (t.credit_amount || 0);
+        }
+        return sum + t.amount;
+      }, 0);
 
     const grossProfit = revenue - cogs;
 
@@ -54,10 +66,16 @@ export default function ProfitLossStatement({ transactions, comparativePeriods =
         const account = accounts.find(a => a.id === t.account_id);
         return account?.account_type === 'expense' && 
                account?.account_code && 
-               parseInt(account.account_code) >= 5200 &&
-               !account?.account_code?.startsWith('52'); // Exclude payroll
+               parseInt(account.account_code) >= 5400 &&
+               !account?.account_code?.startsWith('52') &&
+               !account?.account_code?.startsWith('53');
       })
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce((sum, t) => {
+        if (t.debit_amount > 0 || t.credit_amount > 0) {
+          return sum + (t.debit_amount || 0) - (t.credit_amount || 0);
+        }
+        return sum + t.amount;
+      }, 0);
     
     // Payroll expenses (5200-5399 - wages, CPP, EI)
     const payrollExpenses = periodTransactions
@@ -65,7 +83,12 @@ export default function ProfitLossStatement({ transactions, comparativePeriods =
         const account = accounts.find(a => a.id === t.account_id);
         return account?.account_code?.startsWith('52') || account?.account_code?.startsWith('53');
       })
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce((sum, t) => {
+        if (t.debit_amount > 0 || t.credit_amount > 0) {
+          return sum + (t.debit_amount || 0) - (t.credit_amount || 0);
+        }
+        return sum + t.amount;
+      }, 0);
 
     const netProfit = grossProfit - operatingExpenses - payrollExpenses;
 
