@@ -241,6 +241,20 @@ Create 40-50 accounts total.`;
     );
   }
 
+  if (!hasAccountPermission) {
+    return (
+      <Card className="bg-red-50 border-red-200">
+        <CardContent className="p-6">
+          <p className="text-red-800 font-semibold">⚠️ Permission Denied</p>
+          <p className="text-sm text-red-700 mt-2">
+            Your role ({currentUser?.role}) does not have permission to manage accounts. 
+            Only admins and accountants can create, edit, or delete accounts.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
