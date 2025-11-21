@@ -151,16 +151,16 @@ export default function EmailComposer({ customer, customers, exports, shipments,
       
       await base44.integrations.Core.SendEmail({
         from_name: fromName,
-        to,
-        subject,
-        body
+        to: to,
+        subject: subject,
+        body: body
       });
 
       // Log communication
-      if (customer) {
+      if (customer && company?.id) {
         try {
           await base44.entities.NotificationLog.create({
-            company_id: company?.id,
+            company_id: company.id,
             customer_id: customer.id,
             customer_name: customer.full_name,
             customer_email: to,
@@ -176,12 +176,16 @@ export default function EmailComposer({ customer, customers, exports, shipments,
         }
       }
 
-      toast.success("Email sent successfully");
+      toast.success("Email sent successfully!");
       setSubject("");
       setBody("");
       setTemplate("");
+      setSelectedExport("");
+      setSelectedShipment("");
+      setSelectedDeclaration("");
     } catch (error) {
-      toast.error("Failed to send email");
+      console.error("Email send error:", error);
+      toast.error(`Failed to send email: ${error.message || "Unknown error"}`);
     } finally {
       setSending(false);
     }
