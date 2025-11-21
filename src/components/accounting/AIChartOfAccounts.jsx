@@ -53,80 +53,115 @@ export default function AIChartOfAccounts() {
 
   const generateAccountsMutation = useMutation({
     mutationFn: async (description) => {
-      const prompt = `Generate a comprehensive chart of accounts for this business: ${description || company?.name + ' - automotive dealership with sales, service, parts, and export operations'}.
+      const prompt = `You are an expert accountant. Generate a comprehensive chart of accounts for this business: ${description || company?.name + ' - automotive dealership with sales, service, parts, and export operations'}.
 
-Create accounts for:
-- Assets (cash, AR, inventory, vehicles, parts, equipment)
-- Liabilities (AP, loans, payroll liabilities, sales tax payable)
-- Equity (owner's equity, retained earnings)
-- Revenue (vehicle sales, service revenue, parts sales, export revenue)
-- Expenses (COGS, wages, rent, utilities, marketing, depreciation, payroll taxes)
+Create accounts suitable for:
+- Asset tracking (cash, bank accounts, accounts receivable, inventory, vehicles, parts, fixed assets, equipment)
+- Liability management (accounts payable, loans, credit cards, payroll liabilities, sales tax payable, deferred tax)
+- Equity tracking (owner's equity, retained earnings, draws)
+- Revenue streams (vehicle sales, service revenue, parts sales, export revenue, other income)
+- Expense categories (cost of goods sold, wages, payroll taxes, rent, utilities, insurance, marketing, depreciation, office supplies, repairs & maintenance)
 
-Return ONLY a JSON array with this structure:
-[
-  {
-    "account_code": "1000",
-    "account_name": "Cash",
-    "account_type": "asset",
-    "account_category": "cash",
-    "balance": 0,
-    "description": "Operating cash account"
-  }
-]
+CRITICAL: You MUST return ONLY valid JSON in this EXACT format with NO additional text:
+{
+  "accounts": [
+    {
+      "account_code": "1010",
+      "account_name": "Checking Account",
+      "account_type": "asset",
+      "account_category": "cash",
+      "balance": 0,
+      "description": "Primary business checking account"
+    }
+  ]
+}
 
-Include 40-50 essential accounts. Use standard account codes (1000s=Assets, 2000s=Liabilities, 3000s=Equity, 4000s=Revenue, 5000s=Expenses).`;
+Rules:
+- Use standard numbering: 1000s=Assets, 2000s=Liabilities, 3000s=Equity, 4000s=Revenue, 5000s=Expenses
+- Include 40-60 essential accounts
+- account_type MUST be one of: asset, liability, equity, revenue, expense (lowercase)
+- Return pure JSON only, no markdown, no explanations`;
 
       const result = await base44.integrations.Core.InvokeLLM({
         prompt,
-        add_context_from_internet: false
+        add_context_from_internet: false,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            accounts: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  account_code: { type: "string" },
+                  account_name: { type: "string" },
+                  account_type: { type: "string" },
+                  account_category: { type: "string" },
+                  balance: { type: "number" },
+                  description: { type: "string" }
+                },
+                required: ["account_code", "account_name", "account_type"]
+              }
+            }
+          }
+        }
       });
 
-      // Parse the result - it should be a JSON string or object
-      let accountsArray = [];
-      if (typeof result === 'string') {
-        const jsonMatch = result.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          accountsArray = JSON.parse(jsonMatch[0]);
-        }
-      } else if (Array.isArray(result)) {
-        accountsArray = result;
-      } else if (result.accounts) {
-        accountsArray = result.accounts;
-      }
-
-      return accountsArray;
+      return result?.accounts || [];
     },
     onSuccess: async (generatedAccounts) => {
       try {
-        // Create accounts in batches
+        if (!Array.isArray(generatedAccounts) || generatedAccounts.length === 0) {
+          toast.error("No accounts generated. Please try again.");
+          setGenerating(false);
+          return;
+        }
+
         let created = 0;
+        let failed = 0;
+        
         for (const account of generatedAccounts) {
+          if (!account.account_code || !account.account_name || !account.account_type) {
+            failed++;
+            continue;
+          }
+          
           try {
             await base44.entities.Account.create({
               company_id: selectedCompanyId,
-              account_code: account.account_code,
-              account_name: account.account_name,
-              account_type: account.account_type,
-              account_category: account.account_category || 'other',
-              balance: account.balance || 0,
-              description: account.description || ''
+              account_code: String(account.account_code).trim(),
+              account_name: String(account.account_name).trim(),
+              account_type: String(account.account_type).toLowerCase().trim(),
+              account_category: account.account_category ? String(account.account_category).toLowerCase().trim() : 'other',
+              balance: parseFloat(account.balance) || 0,
+              description: account.description ? String(account.description).trim() : ''
             });
             created++;
           } catch (err) {
             console.error('Failed to create account:', account, err);
+            failed++;
           }
         }
+        
         queryClient.invalidateQueries({ queryKey: ['accounts'] });
-        toast.success(`Generated ${created} accounts successfully`);
+        
+        if (created > 0) {
+          toast.success(`Successfully generated ${created} accounts${failed > 0 ? ` (${failed} skipped)` : ''}`);
+        } else {
+          toast.error("Failed to create accounts. Please try again.");
+        }
+        
         setAiDialogOpen(false);
         setGenerating(false);
       } catch (error) {
-        toast.error("Error creating accounts");
+        console.error("Account creation error:", error);
+        toast.error("Error creating accounts: " + error.message);
         setGenerating(false);
       }
     },
     onError: (error) => {
-      toast.error("Failed to generate accounts: " + error.message);
+      console.error("Generation error:", error);
+      toast.error("Failed to generate accounts. Please try again.");
       setGenerating(false);
     }
   });
