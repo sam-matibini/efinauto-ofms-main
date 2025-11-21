@@ -22,6 +22,13 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
     initialData: [],
   });
 
+  const { data: accounts = [] } = useQuery({
+    queryKey: ['accounts', selectedCompanyId],
+    queryFn: () => base44.entities.Account.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
   // Calculate for each period
   const periodData = periods.map(period => {
     const periodTransactions = transactions.filter(t => {
@@ -29,53 +36,82 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
       return transDate <= period.to;
     });
 
+    // Get account balances by type
+    const getAccountBalance = (accountType, accountCategory = null) => {
+      return periodTransactions
+        .filter(t => {
+          const account = accounts.find(a => a.id === t.account_id);
+          if (!account) return false;
+          if (accountCategory) {
+            return account.account_type === accountType && account.account_category === accountCategory;
+          }
+          return account.account_type === accountType;
+        })
+        .reduce((sum, t) => {
+          const account = accounts.find(a => a.id === t.account_id);
+          // Assets increase with debits, decrease with credits
+          if (accountType === 'asset') return sum + t.amount;
+          // Liabilities increase with credits, decrease with debits
+          if (accountType === 'liability') return sum + t.amount;
+          // Equity increases with credits
+          if (accountType === 'equity') return sum + t.amount;
+          return sum;
+        }, 0);
+    };
+
     // ASSETS
-    const cashAndBank = periodTransactions
-      .filter(t => t.status === 'completed')
-      .reduce((sum, t) => {
-        return t.category === 'revenue' ? sum + t.amount : sum - t.amount;
-      }, 0);
-
-    const accountsReceivable = periodTransactions
-      .filter(t => t.category === 'revenue' && t.status === 'pending')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const inventory = 50000;
-
+    const cashAndBank = getAccountBalance('asset', 'cash');
+    const accountsReceivable = getAccountBalance('asset', 'accounts_receivable');
+    const inventory = getAccountBalance('asset', 'inventory');
     const totalCurrentAssets = cashAndBank + accountsReceivable + inventory;
 
-    const fixedAssets = periodTransactions
-      .filter(t => t.transaction_type === 'vehicle_purchase' || t.transaction_type === 'equipment_purchase')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const accumulatedDepreciation = fixedAssets * 0.2;
+    const fixedAssets = getAccountBalance('asset', 'fixed_assets');
+    const accumulatedDepreciation = fixedAssets * 0.2; // Simplified, should track separately
     const netFixedAssets = fixedAssets - accumulatedDepreciation;
 
     const totalAssets = totalCurrentAssets + netFixedAssets;
 
     // LIABILITIES
     const accountsPayable = periodTransactions
-      .filter(t => t.category === 'expense' && t.status === 'pending' && t.transaction_type !== 'payroll_liability')
+      .filter(t => {
+        const account = accounts.find(a => a.id === t.account_id);
+        return account?.account_type === 'liability' && 
+               account?.account_code?.startsWith('2') && 
+               !account?.account_code?.startsWith('24') && // Exclude payroll liabilities
+               t.status === 'pending';
+      })
       .reduce((sum, t) => sum + t.amount, 0);
     
     const payrollLiabilities = periodTransactions
-      .filter(t => t.transaction_type === 'payroll_liability' && t.status === 'pending')
+      .filter(t => {
+        const account = accounts.find(a => a.id === t.account_id);
+        return account?.account_code?.startsWith('24') && t.status === 'pending';
+      })
       .reduce((sum, t) => sum + t.amount, 0);
 
-    const shortTermDebt = 20000;
-    const totalCurrentLiabilities = accountsPayable + payrollLiabilities + shortTermDebt;
+    const shortTermDebt = getAccountBalance('liability') - accountsPayable - payrollLiabilities;
+    const totalCurrentLiabilities = accountsPayable + payrollLiabilities + Math.max(0, shortTermDebt);
 
-    const longTermDebt = 50000;
+    const longTermDebt = 0; // Should track in separate account
     const totalLiabilities = totalCurrentLiabilities + longTermDebt;
 
     // EQUITY
-    const retainedEarnings = periodTransactions
-      .filter(t => t.status === 'completed')
-      .reduce((sum, t) => {
-        return t.category === 'revenue' ? sum + t.amount : sum - t.amount;
-      }, 0);
+    const revenueTotal = periodTransactions
+      .filter(t => {
+        const account = accounts.find(a => a.id === t.account_id);
+        return account?.account_type === 'revenue';
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
 
-    const ownerEquity = 100000;
+    const expenseTotal = periodTransactions
+      .filter(t => {
+        const account = accounts.find(a => a.id === t.account_id);
+        return account?.account_type === 'expense';
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const retainedEarnings = revenueTotal - expenseTotal;
+    const ownerEquity = getAccountBalance('equity') || 0;
     const totalEquity = ownerEquity + retainedEarnings;
 
     const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;

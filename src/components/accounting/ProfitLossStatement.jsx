@@ -1,15 +1,26 @@
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Printer, FileText } from "lucide-react";
 import { format } from "date-fns";
 
 export default function ProfitLossStatement({ transactions, comparativePeriods = [] }) {
+  const { selectedCompanyId } = useCompany();
   const periods = comparativePeriods.length > 0 ? comparativePeriods : [{ 
     from: new Date(new Date().getFullYear(), 0, 1), 
     to: new Date(),
     label: 'Current Period'
   }];
+
+  const { data: accounts = [] } = useQuery({
+    queryKey: ['accounts', selectedCompanyId],
+    queryFn: () => base44.entities.Account.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
 
   // Calculate metrics for each period
   const periodData = periods.map(period => {
@@ -18,22 +29,42 @@ export default function ProfitLossStatement({ transactions, comparativePeriods =
       return transDate >= period.from && transDate <= period.to;
     });
 
+    // Revenue from revenue accounts (4000-4999)
     const revenue = periodTransactions
-      .filter(t => t.category === 'revenue')
+      .filter(t => {
+        const account = accounts.find(a => a.id === t.account_id);
+        return account?.account_type === 'revenue';
+      })
       .reduce((sum, t) => sum + t.amount, 0);
 
+    // COGS from expense accounts (5000-5199 typically)
     const cogs = periodTransactions
-      .filter(t => t.transaction_type === 'vehicle_purchase' || t.transaction_type === 'parts_purchase')
+      .filter(t => {
+        const account = accounts.find(a => a.id === t.account_id);
+        return account?.account_type === 'expense' && 
+               (account?.account_code?.startsWith('50') || account?.account_code?.startsWith('51'));
+      })
       .reduce((sum, t) => sum + t.amount, 0);
 
     const grossProfit = revenue - cogs;
 
+    // Operating expenses (5200-5999)
     const operatingExpenses = periodTransactions
-      .filter(t => t.category === 'expense' && t.transaction_type !== 'vehicle_purchase' && t.transaction_type !== 'parts_purchase')
+      .filter(t => {
+        const account = accounts.find(a => a.id === t.account_id);
+        return account?.account_type === 'expense' && 
+               account?.account_code && 
+               parseInt(account.account_code) >= 5200 &&
+               !account?.account_code?.startsWith('52'); // Exclude payroll
+      })
       .reduce((sum, t) => sum + t.amount, 0);
     
+    // Payroll expenses (5200-5299)
     const payrollExpenses = periodTransactions
-      .filter(t => t.transaction_type === 'payroll_expense')
+      .filter(t => {
+        const account = accounts.find(a => a.id === t.account_id);
+        return account?.account_code?.startsWith('52');
+      })
       .reduce((sum, t) => sum + t.amount, 0);
 
     const netProfit = grossProfit - operatingExpenses - payrollExpenses;

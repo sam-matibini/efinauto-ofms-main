@@ -36,6 +36,13 @@ export default function CashFlowStatement({ comparativePeriods = [] }) {
     initialData: [],
   });
 
+  const { data: accounts = [] } = useQuery({
+    queryKey: ['accounts', selectedCompanyId],
+    queryFn: () => base44.entities.Account.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
   // Calculate for each period
   const periodData = periods.map(period => {
     const periodTransactions = transactions.filter(t => {
@@ -58,7 +65,10 @@ export default function CashFlowStatement({ comparativePeriods = [] }) {
       .reduce((sum, p) => sum + (p.amount_paid || 0), 0);
 
     const operatingExpenses = periodTransactions
-      .filter(t => t.transaction_type === 'overhead_expense' || t.transaction_type === 'labor_expense')
+      .filter(t => {
+        const account = accounts.find(a => a.id === t.account_id);
+        return account?.account_type === 'expense' && t.status === 'completed';
+      })
       .reduce((sum, t) => sum + (t.amount || 0), 0);
 
     const netCashFromOperating = cashFromSales - cashPaidToSuppliers - operatingExpenses;
