@@ -854,15 +854,16 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                         <div className="space-y-4">
                           {/* Header */}
                           <div className="text-center border-b pb-4">
-                            <h2 className="text-2xl font-bold">{company?.name || 'Company Name'}</h2>
-                            <p className="text-sm text-gray-600">Pay Statement</p>
+                            <h2 className="text-2xl font-bold text-gray-900">{company?.name}</h2>
+                            {company?.address && <p className="text-sm text-gray-600">{company.address}, {company.city}</p>}
+                            <p className="text-sm text-gray-600 font-semibold mt-2">Pay Statement</p>
                           </div>
 
                           {/* Employee & Period Info */}
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                              <p className="font-semibold">{entry.employee_name || 'Employee Name'}</p>
-                              <p className="text-gray-600">{entry.employee_number || 'EMP-000'}</p>
+                              <p className="font-semibold text-gray-900">{entry.employee_name}</p>
+                              <p className="text-gray-600">{entry.employee_number}</p>
                             </div>
                             <div className="text-right">
                               <p className="text-gray-600">Pay Period: {formatDate(selectedRun.pay_period_start)} - {formatDate(selectedRun.pay_period_end)}</p>
