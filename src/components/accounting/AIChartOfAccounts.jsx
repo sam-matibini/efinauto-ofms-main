@@ -351,53 +351,84 @@ Rules:
         </>
       )}
 
-      {/* AI Generation Dialog */}
-      <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
-        <DialogContent>
+      {/* AI Generation Dialog - Zoho Style */}
+      <Dialog open={aiDialogOpen} onOpenChange={(open) => !generating && setAiDialogOpen(open)}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-purple-500" />
-              AI Generate Chart of Accounts
+              Generate Chart of Accounts with AI
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Business Description (Optional)</Label>
-              <Input
+          
+          <div className="space-y-4 py-2">
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
+              <p className="text-sm font-medium text-purple-900 mb-2">🎯 What happens next?</p>
+              <ul className="text-xs text-purple-800 space-y-1.5">
+                <li>• AI analyzes your business type and operations</li>
+                <li>• Generates 40-60 essential accounting accounts</li>
+                <li>• Organizes them into proper categories (Assets, Liabilities, Equity, Revenue, Expenses)</li>
+                <li>• Uses standard account codes for easy tracking</li>
+                <li>• Creates accounts ready for immediate use</li>
+              </ul>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="business-desc" className="text-sm font-medium">
+                Describe Your Business <span className="text-gray-500 font-normal">(Optional)</span>
+              </Label>
+              <textarea
+                id="business-desc"
                 value={businessDescription}
                 onChange={(e) => setBusinessDescription(e.target.value)}
-                placeholder="e.g., Automotive dealership with repair shop and parts sales"
+                placeholder="Example: Automotive dealership specializing in used car sales, auto repair services, and genuine parts distribution. We also handle vehicle exports to overseas markets."
                 disabled={generating}
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Leave blank to use default: {company?.name || 'Company'} - automotive operations
+              <p className="text-xs text-gray-500">
+                Provide details about your business operations for more accurate account generation. Leave blank to use: <span className="font-medium">{company?.name || 'Your Company'} - Automotive Operations</span>
               </p>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                AI will generate 40-50 essential accounts including assets, liabilities, equity, revenue, and expense accounts tailored to your business.
-              </p>
-            </div>
+            {generating && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">AI is generating your chart of accounts...</p>
+                    <p className="text-xs text-blue-700 mt-1">This may take 10-20 seconds</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setAiDialogOpen(false)} disabled={generating}>
-                Cancel
-              </Button>
-              <Button onClick={handleGenerateAccounts} disabled={generating} className="bg-gradient-to-r from-purple-500 to-blue-500">
-                {generating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Generate Accounts
-                  </>
-                )}
-              </Button>
-            </div>
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button 
+              variant="outline" 
+              onClick={() => setAiDialogOpen(false)} 
+              disabled={generating}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleGenerateAccounts} 
+              disabled={generating}
+              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+            >
+              {generating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Generate Chart of Accounts
+                </>
+              )}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
