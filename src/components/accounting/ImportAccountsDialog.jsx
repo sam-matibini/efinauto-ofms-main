@@ -46,7 +46,7 @@ export default function ImportAccountsDialog({ open, onClose, companyId }) {
 
       toast.info("Extracting account data...");
 
-      // Extract data from the uploaded file
+      // Extract data from the uploaded file - returns array of objects
       const extractResponse = await base44.integrations.Core.ExtractDataFromUploadedFile({
         file_url: fileUrl,
         json_schema: {
@@ -56,10 +56,9 @@ export default function ImportAccountsDialog({ open, onClose, companyId }) {
             account_name: { type: "string" },
             account_type: { type: "string" },
             account_category: { type: "string" },
-            balance: { type: "number" },
+            balance: { type: "string" },
             description: { type: "string" }
-          },
-          required: ["account_code", "account_name", "account_type"]
+          }
         }
       });
 
@@ -71,34 +70,55 @@ export default function ImportAccountsDialog({ open, onClose, companyId }) {
           accounts = [accounts];
         }
         
+        // Filter out empty or invalid rows
+        accounts = accounts.filter(acc => 
+          acc && acc.account_code && acc.account_name && acc.account_type
+        );
+        
         if (accounts.length === 0) {
-          toast.error("No accounts found in the file");
+          toast.error("No valid accounts found in the file. Please check the format.");
+          setUploading(false);
           return;
         }
         
         toast.info(`Creating ${accounts.length} accounts...`);
 
         let created = 0;
+        let failed = 0;
         for (const account of accounts) {
           try {
+            const accountType = String(account.account_type).toLowerCase().trim();
+            const validTypes = ['asset', 'liability', 'equity', 'revenue', 'expense'];
+            
+            if (!validTypes.includes(accountType)) {
+              console.error(`Invalid account type for ${account.account_code}: ${accountType}`);
+              failed++;
+              continue;
+            }
+
             await base44.entities.Account.create({
               company_id: companyId,
-              account_code: String(account.account_code),
-              account_name: String(account.account_name),
-              account_type: String(account.account_type).toLowerCase(),
-              account_category: account.account_category ? String(account.account_category).toLowerCase() : 'other',
-              balance: parseFloat(account.balance) || 0,
-              description: account.description ? String(account.description) : ''
+              account_code: String(account.account_code).trim(),
+              account_name: String(account.account_name).trim(),
+              account_type: accountType,
+              account_category: account.account_category ? String(account.account_category).toLowerCase().trim() : 'other',
+              balance: parseFloat(String(account.balance).replace(/[^0-9.-]/g, '')) || 0,
+              description: account.description ? String(account.description).trim() : ''
             });
             created++;
           } catch (err) {
             console.error(`Failed to create account ${account.account_code}:`, err);
+            failed++;
           }
         }
 
-        toast.success(`Successfully imported ${created} accounts!`);
-        queryClient.invalidateQueries({ queryKey: ['accounts'] });
-        onClose();
+        if (created > 0) {
+          toast.success(`Successfully imported ${created} accounts!${failed > 0 ? ` (${failed} failed)` : ''}`);
+          queryClient.invalidateQueries({ queryKey: ['accounts'] });
+          onClose();
+        } else {
+          toast.error("Failed to import any accounts. Please check the file format.");
+        }
       } else {
         toast.error(`Failed to extract data: ${extractResponse.details || 'Unknown error'}`);
       }
