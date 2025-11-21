@@ -96,9 +96,12 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
 
     // Convert map to array and add to groups
     const accountBalances = [];
+    const seenCodes = new Set();
+    
     accountBalanceMap.forEach((balance, accountId) => {
       const account = accounts.find(a => a.id === accountId);
-      if (account && (balance.debit > 0 || balance.credit > 0)) {
+      if (account && !seenCodes.has(account.account_code) && (balance.debit > 0 || balance.credit > 0)) {
+        seenCodes.add(account.account_code);
         accountBalances.push({
           code: account.account_code,
           name: account.account_name,
