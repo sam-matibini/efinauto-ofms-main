@@ -797,10 +797,20 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                           variant="outline" 
                           size="sm"
                           onClick={() => repostPayrollMutation.mutate(run.id)}
+                          disabled={repostPayrollMutation.isPending}
                           className="text-blue-600 hover:text-blue-700 hover:border-blue-300"
                         >
-                          <Download className="w-4 h-4 mr-1" />
-                          Repost to GL
+                          {repostPayrollMutation.isPending ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                              Posting...
+                            </>
+                          ) : (
+                            <>
+                              <Download className="w-4 h-4 mr-1" />
+                              Repost to GL
+                            </>
+                          )}
                         </Button>
                       )}
                       {(run.status === 'processing' || run.status === 'draft') && (
