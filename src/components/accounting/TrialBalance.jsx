@@ -7,12 +7,6 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useCompany } from "@/components/shared/CompanyContext";
 
-const cleanAccountName = (name) => {
-  if (!name) return name;
-  // Remove replacement characters (black diamonds)
-  return name.replace(/�/g, '').replace(/\s+/g, ' ').trim();
-};
-
 export default function TrialBalance({ transactions, comparativePeriods = [] }) {
   const { selectedCompanyId } = useCompany();
 
@@ -218,7 +212,7 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
                     {group.accounts.map((account, idx) => (
                       <tr key={idx} className="border-b hover:bg-gray-50">
                         <td className="py-2 px-4 pl-8 font-mono text-sm">{account.account_code}</td>
-                        <td className="py-2 px-4">{cleanAccountName(account.account_name)}</td>
+                        <td className="py-2 px-4">{account.account_name}</td>
                         {periodData.map((pd, pdIdx) => {
                           const acc = pd.accounts.find(a => a.code === account.account_code);
                           return (

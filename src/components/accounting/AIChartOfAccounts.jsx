@@ -15,12 +15,6 @@ import ImportAccountsWizard from "./ImportAccountsWizard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const cleanAccountName = (name) => {
-  if (!name) return name;
-  // Remove replacement characters (black diamonds)
-  return name.replace(/�/g, '').replace(/\s+/g, ' ').trim();
-};
-
 export default function AIChartOfAccounts() {
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
@@ -432,9 +426,9 @@ Create 40-50 accounts total.`;
                           {account.account_code}
                         </span>
                         <div className="flex-1">
-                          <p className="font-semibold">{cleanAccountName(account.account_name)}</p>
+                          <p className="font-semibold">{account.account_name}</p>
                           {account.description && (
-                            <p className="text-sm text-gray-600">{cleanAccountName(account.description)}</p>
+                            <p className="text-sm text-gray-600">{account.description}</p>
                           )}
                         </div>
                         <Badge variant="outline">{account.account_category}</Badge>
