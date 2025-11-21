@@ -37,21 +37,23 @@ Return the account code, name, and reason for selection.`;
 
     const result = await base44.integrations.Core.InvokeLLM({
       prompt,
-      response_json_schema: {
-        type: "object",
-        properties: {
-          account_code: { type: "string" },
-          account_name: { type: "string" },
-          reason: { type: "string" }
-        }
-      }
+      add_context_from_internet: false
     });
 
+    // Parse result
+    let parsedResult = result;
+    if (typeof result === 'string') {
+      const jsonMatch = result.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsedResult = JSON.parse(jsonMatch[0]);
+      }
+    }
+
     // Find the actual account
-    const account = accounts.find(a => a.account_code === result.account_code);
+    const account = accounts.find(a => a.account_code === parsedResult.account_code);
     
     return {
-      ...result,
+      ...parsedResult,
       account_id: account?.id,
       account
     };

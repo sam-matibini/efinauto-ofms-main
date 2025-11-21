@@ -76,41 +76,52 @@ Include 40-50 essential accounts. Use standard account codes (1000s=Assets, 2000
 
       const result = await base44.integrations.Core.InvokeLLM({
         prompt,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            accounts: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  account_code: { type: "string" },
-                  account_name: { type: "string" },
-                  account_type: { type: "string" },
-                  account_category: { type: "string" },
-                  balance: { type: "number" },
-                  description: { type: "string" }
-                }
-              }
-            }
-          }
-        }
+        add_context_from_internet: false
       });
 
-      return result.accounts || [];
+      // Parse the result - it should be a JSON string or object
+      let accountsArray = [];
+      if (typeof result === 'string') {
+        const jsonMatch = result.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          accountsArray = JSON.parse(jsonMatch[0]);
+        }
+      } else if (Array.isArray(result)) {
+        accountsArray = result;
+      } else if (result.accounts) {
+        accountsArray = result.accounts;
+      }
+
+      return accountsArray;
     },
     onSuccess: async (generatedAccounts) => {
-      // Create accounts in batches
-      for (const account of generatedAccounts) {
-        await base44.entities.Account.create({
-          ...account,
-          company_id: selectedCompanyId
-        });
+      try {
+        // Create accounts in batches
+        let created = 0;
+        for (const account of generatedAccounts) {
+          try {
+            await base44.entities.Account.create({
+              company_id: selectedCompanyId,
+              account_code: account.account_code,
+              account_name: account.account_name,
+              account_type: account.account_type,
+              account_category: account.account_category || 'other',
+              balance: account.balance || 0,
+              description: account.description || ''
+            });
+            created++;
+          } catch (err) {
+            console.error('Failed to create account:', account, err);
+          }
+        }
+        queryClient.invalidateQueries({ queryKey: ['accounts'] });
+        toast.success(`Generated ${created} accounts successfully`);
+        setAiDialogOpen(false);
+        setGenerating(false);
+      } catch (error) {
+        toast.error("Error creating accounts");
+        setGenerating(false);
       }
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      toast.success(`Generated ${generatedAccounts.length} accounts successfully`);
-      setAiDialogOpen(false);
-      setGenerating(false);
     },
     onError: (error) => {
       toast.error("Failed to generate accounts: " + error.message);
