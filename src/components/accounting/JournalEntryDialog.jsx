@@ -25,9 +25,14 @@ export default function JournalEntryDialog({ open, onClose }) {
     ]
   });
 
-  const { data: accounts = [] } = useQuery({
+  const { data: accounts = [], isLoading: loadingAccounts } = useQuery({
     queryKey: ['accounts', selectedCompanyId],
-    queryFn: () => base44.entities.Account.filter({ company_id: selectedCompanyId }, 'account_code'),
+    queryFn: async () => {
+      console.log("Fetching accounts for company:", selectedCompanyId);
+      const result = await base44.entities.Account.filter({ company_id: selectedCompanyId }, 'account_code');
+      console.log("Fetched accounts:", result?.length || 0, "accounts");
+      return result || [];
+    },
     enabled: !!selectedCompanyId && open,
     initialData: [],
   });
