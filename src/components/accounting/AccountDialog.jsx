@@ -46,20 +46,35 @@ export default function AccountDialog({ open, onClose, account }) {
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
+      const accountData = {
+        account_code: String(data.account_code).trim(),
+        account_name: String(data.account_name).trim(),
+        account_type: data.account_type,
+        account_category: data.account_category || 'other',
+        balance: parseFloat(data.balance) || 0,
+        description: data.description || '',
+        company_id: selectedCompanyId
+      };
+      
       if (account) {
-        return await base44.entities.Account.update(account.id, data);
+        delete accountData.company_id; // Don't update company_id on existing accounts
+        return await base44.entities.Account.update(account.id, accountData);
       } else {
-        return await base44.entities.Account.create({ ...data, company_id: selectedCompanyId });
+        return await base44.entities.Account.create(accountData);
       }
     },
     onSuccess: () => {
+      // Invalidate all accounts queries
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      queryClient.invalidateQueries({ queryKey: ['accounts', selectedCompanyId] });
       toast.success(account ? "Account updated!" : "Account created!");
-      onClose();
+      setTimeout(() => {
+        onClose();
+      }, 500);
     },
     onError: (error) => {
-      toast.error("Failed to save account. Please try again.");
+      console.error("Save error:", error);
+      const errorMsg = error?.response?.data?.message || error?.message || "Failed to save account";
+      toast.error(errorMsg);
     }
   });
 
