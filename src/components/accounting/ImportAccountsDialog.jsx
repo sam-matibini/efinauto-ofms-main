@@ -3,11 +3,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Upload, Loader2, FileSpreadsheet } from "lucide-react";
+import { Upload, Loader2, FileSpreadsheet, Download } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
-export default function ImportAccountsDialog({ open, onClose, companyId, onImportSuccess }) {
+export default function ImportAccountsDialog({ open, onClose, companyId }) {
+  const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [file, setFile] = useState(null);
 
@@ -50,27 +52,24 @@ export default function ImportAccountsDialog({ open, onClose, companyId, onImpor
         json_schema: {
           type: "object",
           properties: {
-            accounts: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  account_code: { type: "string" },
-                  account_name: { type: "string" },
-                  account_type: { type: "string" },
-                  account_category: { type: "string" },
-                  balance: { type: "number" },
-                  description: { type: "string" }
-                },
-                required: ["account_code", "account_name", "account_type"]
-              }
-            }
-          }
+            account_code: { type: "string" },
+            account_name: { type: "string" },
+            account_type: { type: "string" },
+            account_category: { type: "string" },
+            balance: { type: "number" },
+            description: { type: "string" }
+          },
+          required: ["account_code", "account_name", "account_type"]
         }
       });
 
       if (extractResponse.status === "success" && extractResponse.output) {
-        const accounts = extractResponse.output.accounts || [];
+        let accounts = extractResponse.output;
+        
+        // Ensure accounts is an array
+        if (!Array.isArray(accounts)) {
+          accounts = [accounts];
+        }
         
         if (accounts.length === 0) {
           toast.error("No accounts found in the file");
@@ -84,12 +83,12 @@ export default function ImportAccountsDialog({ open, onClose, companyId, onImpor
           try {
             await base44.entities.Account.create({
               company_id: companyId,
-              account_code: account.account_code,
-              account_name: account.account_name,
-              account_type: account.account_type,
-              account_category: account.account_category || 'general',
-              balance: account.balance || 0,
-              description: account.description || ''
+              account_code: String(account.account_code),
+              account_name: String(account.account_name),
+              account_type: String(account.account_type).toLowerCase(),
+              account_category: account.account_category ? String(account.account_category).toLowerCase() : 'other',
+              balance: parseFloat(account.balance) || 0,
+              description: account.description ? String(account.description) : ''
             });
             created++;
           } catch (err) {
@@ -98,7 +97,7 @@ export default function ImportAccountsDialog({ open, onClose, companyId, onImpor
         }
 
         toast.success(`Successfully imported ${created} accounts!`);
-        onImportSuccess();
+        queryClient.invalidateQueries({ queryKey: ['accounts'] });
         onClose();
       } else {
         toast.error(`Failed to extract data: ${extractResponse.details || 'Unknown error'}`);
@@ -110,6 +109,26 @@ export default function ImportAccountsDialog({ open, onClose, companyId, onImpor
       setUploading(false);
       setFile(null);
     }
+  };
+
+  const downloadTemplate = () => {
+    const headers = ['account_code', 'account_name', 'account_type', 'account_category', 'balance', 'description'];
+    const sampleData = [
+      ['1000', 'Cash', 'asset', 'cash', '0', 'Operating cash account'],
+      ['1100', 'Accounts Receivable', 'asset', 'accounts_receivable', '0', 'Customer receivables'],
+      ['2000', 'Accounts Payable', 'liability', 'accounts_payable', '0', 'Supplier payables'],
+      ['4000', 'Sales Revenue', 'revenue', 'sales_revenue', '0', 'Vehicle and parts sales']
+    ];
+    
+    const csvContent = [headers, ...sampleData].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'chart_of_accounts_template.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+    toast.success('Template downloaded');
   };
 
   const handleClose = () => {
@@ -145,14 +164,21 @@ export default function ImportAccountsDialog({ open, onClose, companyId, onImpor
           </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm font-semibold text-blue-900 mb-2">File Format:</p>
-            <p className="text-xs text-blue-800">
-              Your file should have columns: account_code, account_name, account_type, account_category (optional), balance (optional), description (optional)
-            </p>
-            <p className="text-xs text-blue-800 mt-1">
-              Valid account types: asset, liability, equity, revenue, expense
-            </p>
+            <p className="text-sm font-semibold text-blue-900 mb-2">Required Columns:</p>
+            <ul className="text-xs text-blue-800 space-y-1">
+              <li>• <strong>account_code</strong> (required) - e.g., 1000, 2000</li>
+              <li>• <strong>account_name</strong> (required) - e.g., Cash, Sales Revenue</li>
+              <li>• <strong>account_type</strong> (required) - asset, liability, equity, revenue, expense</li>
+              <li>• <strong>account_category</strong> (optional) - cash, accounts_receivable, etc.</li>
+              <li>• <strong>balance</strong> (optional) - opening balance</li>
+              <li>• <strong>description</strong> (optional) - account description</li>
+            </ul>
           </div>
+
+          <Button variant="outline" onClick={downloadTemplate} className="w-full">
+            <Download className="w-4 h-4 mr-2" />
+            Download CSV Template
+          </Button>
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={handleClose} disabled={uploading}>
