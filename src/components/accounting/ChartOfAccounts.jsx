@@ -46,154 +46,114 @@ export default function ChartOfAccounts() {
     setIsGenerating(true);
     
     try {
-      toast.info("AI is generating your chart of accounts...");
+      toast.info("Creating standard chart of accounts...");
       
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Generate the following standard chart of accounts for an automotive dealership. Return exactly these accounts:
+      const standardAccounts = [
+        { code: "1000", name: "Cash - Operating", type: "asset", category: "cash", description: "Primary operating bank account" },
+        { code: "1010", name: "Cash - Payroll", type: "asset", category: "cash", description: "Payroll bank account" },
+        { code: "1020", name: "Petty Cash", type: "asset", category: "cash", description: "Cash on hand for small expenses" },
+        { code: "1100", name: "Accounts Receivable", type: "asset", category: "accounts_receivable", description: "Money owed by customers" },
+        { code: "1200", name: "Vehicle Inventory - New", type: "asset", category: "inventory", description: "New vehicle inventory" },
+        { code: "1210", name: "Vehicle Inventory - Used", type: "asset", category: "inventory", description: "Used vehicle inventory" },
+        { code: "1220", name: "Parts Inventory", type: "asset", category: "inventory", description: "Auto parts and supplies" },
+        { code: "1300", name: "Prepaid Insurance", type: "asset", category: "other", description: "Insurance paid in advance" },
+        { code: "1310", name: "Prepaid Rent", type: "asset", category: "other", description: "Rent paid in advance" },
+        { code: "1500", name: "Equipment", type: "asset", category: "fixed_assets", description: "Shop equipment and tools" },
+        { code: "1510", name: "Vehicles - Company Use", type: "asset", category: "fixed_assets", description: "Company-owned vehicles" },
+        { code: "1520", name: "Furniture & Fixtures", type: "asset", category: "fixed_assets", description: "Office furniture and fixtures" },
+        { code: "1530", name: "Buildings", type: "asset", category: "fixed_assets", description: "Real estate and structures" },
+        { code: "1540", name: "Land", type: "asset", category: "fixed_assets", description: "Land owned" },
+        { code: "1600", name: "Accumulated Depreciation - Equipment", type: "asset", category: "fixed_assets", description: "Depreciation on equipment" },
+        { code: "1610", name: "Accumulated Depreciation - Vehicles", type: "asset", category: "fixed_assets", description: "Depreciation on vehicles" },
+        { code: "1620", name: "Accumulated Depreciation - Buildings", type: "asset", category: "fixed_assets", description: "Depreciation on buildings" },
+        { code: "2000", name: "Accounts Payable", type: "liability", category: "accounts_payable", description: "Money owed to suppliers" },
+        { code: "2100", name: "Credit Card Payable", type: "liability", category: "other", description: "Credit card balances" },
+        { code: "2200", name: "Sales Tax Payable - GST", type: "liability", category: "other", description: "GST collected and owing" },
+        { code: "2210", name: "Sales Tax Payable - PST", type: "liability", category: "other", description: "PST collected and owing" },
+        { code: "2220", name: "Sales Tax Payable - HST", type: "liability", category: "other", description: "HST collected and owing" },
+        { code: "2300", name: "Wages Payable", type: "liability", category: "other", description: "Unpaid wages owed to employees" },
+        { code: "2400", name: "Payroll Liabilities", type: "liability", category: "other", description: "CPP, EI, and tax deductions payable" },
+        { code: "2500", name: "Vehicle Loans Payable", type: "liability", category: "other", description: "Loans for inventory vehicles" },
+        { code: "2510", name: "Equipment Loans Payable", type: "liability", category: "other", description: "Loans for equipment" },
+        { code: "2600", name: "Line of Credit", type: "liability", category: "other", description: "Business line of credit" },
+        { code: "2700", name: "Long-term Debt", type: "liability", category: "other", description: "Mortgage and long-term loans" },
+        { code: "3000", name: "Owner's Equity", type: "equity", category: "other", description: "Owner's investment in business" },
+        { code: "3100", name: "Owner's Drawings", type: "equity", category: "other", description: "Money withdrawn by owner" },
+        { code: "3900", name: "Retained Earnings", type: "equity", category: "other", description: "Accumulated profits" },
+        { code: "3950", name: "Current Year Earnings", type: "equity", category: "other", description: "Current year profit/loss" },
+        { code: "4000", name: "Vehicle Sales - New", type: "revenue", category: "sales_revenue", description: "Revenue from new vehicle sales" },
+        { code: "4010", name: "Vehicle Sales - Used", type: "revenue", category: "sales_revenue", description: "Revenue from used vehicle sales" },
+        { code: "4100", name: "Service Revenue - Mechanical", type: "revenue", category: "service_revenue", description: "Mechanical repair services" },
+        { code: "4110", name: "Service Revenue - Body Work", type: "revenue", category: "service_revenue", description: "Body repair and paint services" },
+        { code: "4120", name: "Service Revenue - Detailing", type: "revenue", category: "service_revenue", description: "Vehicle detailing services" },
+        { code: "4130", name: "Service Revenue - Inspections", type: "revenue", category: "service_revenue", description: "Vehicle inspection fees" },
+        { code: "4200", name: "Parts Sales", type: "revenue", category: "sales_revenue", description: "Revenue from parts sales" },
+        { code: "4300", name: "Labor Revenue", type: "revenue", category: "service_revenue", description: "Labor charges for services" },
+        { code: "4400", name: "Finance & Insurance Income", type: "revenue", category: "other", description: "Commissions from financing" },
+        { code: "4500", name: "Warranty Income", type: "revenue", category: "other", description: "Warranty work reimbursements" },
+        { code: "4600", name: "Export Revenue", type: "revenue", category: "sales_revenue", description: "Revenue from vehicle exports" },
+        { code: "4700", name: "Freight Income", type: "revenue", category: "service_revenue", description: "Shipping and freight charges" },
+        { code: "4800", name: "Other Income", type: "revenue", category: "other", description: "Miscellaneous income" },
+        { code: "5000", name: "Cost of Vehicles Sold", type: "expense", category: "cost_of_goods_sold", description: "Cost of vehicles sold" },
+        { code: "5100", name: "Cost of Parts Sold", type: "expense", category: "cost_of_goods_sold", description: "Cost of parts sold" },
+        { code: "5200", name: "Wages & Salaries", type: "expense", category: "operating_expenses", description: "Employee wages and salaries" },
+        { code: "5210", name: "Commissions - Sales", type: "expense", category: "operating_expenses", description: "Sales commissions" },
+        { code: "5300", name: "Payroll Taxes", type: "expense", category: "operating_expenses", description: "Employer payroll taxes" },
+        { code: "5310", name: "CPP Expense", type: "expense", category: "operating_expenses", description: "Employer CPP contributions" },
+        { code: "5320", name: "EI Expense", type: "expense", category: "operating_expenses", description: "Employer EI contributions" },
+        { code: "5330", name: "Workers Compensation", type: "expense", category: "operating_expenses", description: "Workers compensation insurance" },
+        { code: "5400", name: "Employee Benefits", type: "expense", category: "operating_expenses", description: "Health and other benefits" },
+        { code: "5500", name: "Rent Expense", type: "expense", category: "operating_expenses", description: "Facility rent" },
+        { code: "5510", name: "Property Taxes", type: "expense", category: "operating_expenses", description: "Real estate taxes" },
+        { code: "5600", name: "Utilities - Electricity", type: "expense", category: "operating_expenses", description: "Electricity costs" },
+        { code: "5610", name: "Utilities - Gas", type: "expense", category: "operating_expenses", description: "Natural gas costs" },
+        { code: "5620", name: "Utilities - Water", type: "expense", category: "operating_expenses", description: "Water and sewer" },
+        { code: "5630", name: "Internet & Phone", type: "expense", category: "operating_expenses", description: "Communication services" },
+        { code: "5700", name: "Insurance - General Liability", type: "expense", category: "operating_expenses", description: "General liability insurance" },
+        { code: "5710", name: "Insurance - Vehicle", type: "expense", category: "operating_expenses", description: "Vehicle insurance" },
+        { code: "5720", name: "Insurance - Property", type: "expense", category: "operating_expenses", description: "Property insurance" },
+        { code: "5800", name: "Advertising & Marketing", type: "expense", category: "operating_expenses", description: "Marketing expenses" },
+        { code: "5810", name: "Website & Online Advertising", type: "expense", category: "operating_expenses", description: "Digital marketing" },
+        { code: "5900", name: "Office Supplies", type: "expense", category: "operating_expenses", description: "Office supplies and materials" },
+        { code: "5910", name: "Shop Supplies", type: "expense", category: "operating_expenses", description: "Shop tools and supplies" },
+        { code: "6000", name: "Vehicle Maintenance", type: "expense", category: "operating_expenses", description: "Company vehicle maintenance" },
+        { code: "6010", name: "Fuel Expense", type: "expense", category: "operating_expenses", description: "Fuel for company vehicles" },
+        { code: "6100", name: "Professional Fees - Legal", type: "expense", category: "operating_expenses", description: "Legal fees" },
+        { code: "6110", name: "Professional Fees - Accounting", type: "expense", category: "operating_expenses", description: "Accounting and bookkeeping" },
+        { code: "6120", name: "Professional Fees - Consulting", type: "expense", category: "operating_expenses", description: "Consulting fees" },
+        { code: "6200", name: "Bank Fees & Charges", type: "expense", category: "operating_expenses", description: "Banking fees" },
+        { code: "6210", name: "Credit Card Processing Fees", type: "expense", category: "operating_expenses", description: "Payment processing fees" },
+        { code: "6300", name: "Interest Expense - Loans", type: "expense", category: "other", description: "Interest on loans" },
+        { code: "6310", name: "Interest Expense - Line of Credit", type: "expense", category: "other", description: "Interest on line of credit" },
+        { code: "6400", name: "Depreciation Expense", type: "expense", category: "other", description: "Asset depreciation" },
+        { code: "6500", name: "Repairs & Maintenance - Building", type: "expense", category: "operating_expenses", description: "Building repairs" },
+        { code: "6510", name: "Repairs & Maintenance - Equipment", type: "expense", category: "operating_expenses", description: "Equipment repairs" },
+        { code: "6600", name: "Licenses & Permits", type: "expense", category: "operating_expenses", description: "Business licenses" },
+        { code: "6700", name: "Training & Development", type: "expense", category: "operating_expenses", description: "Employee training" },
+        { code: "6800", name: "Travel & Entertainment", type: "expense", category: "operating_expenses", description: "Business travel expenses" },
+        { code: "6900", name: "Miscellaneous Expenses", type: "expense", category: "other", description: "Other expenses" }
+      ];
 
-ASSETS (1000-1999):
-1000 - Cash - Operating (cash)
-1010 - Cash - Payroll (cash)
-1020 - Petty Cash (cash)
-1100 - Accounts Receivable (accounts_receivable)
-1200 - Vehicle Inventory - New (inventory)
-1210 - Vehicle Inventory - Used (inventory)
-1220 - Parts Inventory (inventory)
-1300 - Prepaid Insurance (other)
-1310 - Prepaid Rent (other)
-1500 - Equipment (fixed_assets)
-1510 - Vehicles - Company Use (fixed_assets)
-1520 - Furniture & Fixtures (fixed_assets)
-1530 - Buildings (fixed_assets)
-1540 - Land (fixed_assets)
-1600 - Accumulated Depreciation - Equipment (fixed_assets)
-1610 - Accumulated Depreciation - Vehicles (fixed_assets)
-1620 - Accumulated Depreciation - Buildings (fixed_assets)
-
-LIABILITIES (2000-2999):
-2000 - Accounts Payable (accounts_payable)
-2100 - Credit Card Payable (other)
-2200 - Sales Tax Payable - GST (other)
-2210 - Sales Tax Payable - PST (other)
-2220 - Sales Tax Payable - HST (other)
-2300 - Wages Payable (other)
-2400 - Payroll Liabilities (other)
-2500 - Vehicle Loans Payable (other)
-2510 - Equipment Loans Payable (other)
-2600 - Line of Credit (other)
-2700 - Long-term Debt (other)
-
-EQUITY (3000-3999):
-3000 - Owner's Equity (other)
-3100 - Owner's Drawings (other)
-3900 - Retained Earnings (other)
-3950 - Current Year Earnings (other)
-
-REVENUE (4000-4999):
-4000 - Vehicle Sales - New (sales_revenue)
-4010 - Vehicle Sales - Used (sales_revenue)
-4100 - Service Revenue - Mechanical (service_revenue)
-4110 - Service Revenue - Body Work (service_revenue)
-4120 - Service Revenue - Detailing (service_revenue)
-4130 - Service Revenue - Inspections (service_revenue)
-4200 - Parts Sales (sales_revenue)
-4300 - Labor Revenue (service_revenue)
-4400 - Finance & Insurance Income (other)
-4500 - Warranty Income (other)
-4600 - Export Revenue (sales_revenue)
-4700 - Freight Income (service_revenue)
-4800 - Other Income (other)
-
-EXPENSES (5000-6999):
-5000 - Cost of Vehicles Sold (cost_of_goods_sold)
-5100 - Cost of Parts Sold (cost_of_goods_sold)
-5200 - Wages & Salaries (operating_expenses)
-5210 - Commissions - Sales (operating_expenses)
-5300 - Payroll Taxes (operating_expenses)
-5310 - CPP Expense (operating_expenses)
-5320 - EI Expense (operating_expenses)
-5330 - Workers Compensation (operating_expenses)
-5400 - Employee Benefits (operating_expenses)
-5500 - Rent Expense (operating_expenses)
-5510 - Property Taxes (operating_expenses)
-5600 - Utilities - Electricity (operating_expenses)
-5610 - Utilities - Gas (operating_expenses)
-5620 - Utilities - Water (operating_expenses)
-5630 - Internet & Phone (operating_expenses)
-5700 - Insurance - General Liability (operating_expenses)
-5710 - Insurance - Vehicle (operating_expenses)
-5720 - Insurance - Property (operating_expenses)
-5800 - Advertising & Marketing (operating_expenses)
-5810 - Website & Online Advertising (operating_expenses)
-5900 - Office Supplies (operating_expenses)
-5910 - Shop Supplies (operating_expenses)
-6000 - Vehicle Maintenance (operating_expenses)
-6010 - Fuel Expense (operating_expenses)
-6100 - Professional Fees - Legal (operating_expenses)
-6110 - Professional Fees - Accounting (operating_expenses)
-6120 - Professional Fees - Consulting (operating_expenses)
-6200 - Bank Fees & Charges (operating_expenses)
-6210 - Credit Card Processing Fees (operating_expenses)
-6300 - Interest Expense - Loans (other)
-6310 - Interest Expense - Line of Credit (other)
-6400 - Depreciation Expense (other)
-6500 - Repairs & Maintenance - Building (operating_expenses)
-6510 - Repairs & Maintenance - Equipment (operating_expenses)
-6600 - Licenses & Permits (operating_expenses)
-6700 - Training & Development (operating_expenses)
-6800 - Travel & Entertainment (operating_expenses)
-6900 - Miscellaneous Expenses (other)
-
-Return a JSON object with an "accounts" array. Format: {"account_code": "1000", "account_name": "Cash - Operating", "account_type": "asset", "account_category": "cash", "balance": 0, "description": "Primary operating bank account"}`,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            accounts: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  account_code: { type: "string" },
-                  account_name: { type: "string" },
-                  account_type: { type: "string" },
-                  account_category: { type: "string" },
-                  balance: { type: "number" },
-                  description: { type: "string" }
-                },
-                required: ["account_code", "account_name", "account_type"]
-              }
-            }
-          },
-          required: ["accounts"]
-        }
-      });
-
-      if (!response?.accounts || !Array.isArray(response.accounts) || response.accounts.length === 0) {
-        throw new Error("AI did not return valid accounts");
-      }
-
-      toast.info(`Creating ${response.accounts.length} accounts...`);
-      
       let created = 0;
-      for (const acc of response.accounts) {
+      for (const acc of standardAccounts) {
         try {
           await base44.entities.Account.create({
             company_id: selectedCompanyId,
-            account_code: acc.account_code,
-            account_name: acc.account_name,
-            account_type: acc.account_type,
-            account_category: acc.account_category || 'general',
-            balance: acc.balance || 0,
-            description: acc.description || ''
+            account_code: acc.code,
+            account_name: acc.name,
+            account_type: acc.type,
+            account_category: acc.category,
+            balance: 0,
+            description: acc.description
           });
           created++;
         } catch (err) {
-          console.error(`Failed to create ${acc.account_code}:`, err);
+          console.error(`Failed to create ${acc.code}:`, err);
         }
       }
 
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      toast.success(`Successfully created ${created} accounts!`);
+      toast.success(`Successfully created ${created} standard accounts!`);
     } catch (error) {
       console.error("Generation error:", error);
       toast.error(error.message || "Failed to generate accounts");
@@ -274,7 +234,7 @@ Return a JSON object with an "accounts" array. Format: {"account_code": "1000", 
             className="bg-purple-600 hover:bg-purple-700"
           >
             <Sparkles className="w-4 h-4 mr-2" />
-            {isGenerating ? "Generating..." : "AI Generate"}
+            {isGenerating ? "Creating..." : "Generate Standard Accounts"}
           </Button>
           <Button onClick={() => setImportDialogOpen(true)} variant="outline">
             <Upload className="w-4 h-4 mr-2" />
@@ -292,14 +252,14 @@ Return a JSON object with an "accounts" array. Format: {"account_code": "1000", 
           <CardContent className="py-12 text-center">
             <Sparkles className="w-16 h-16 mx-auto mb-4 text-purple-500" />
             <p className="text-xl font-semibold mb-2">No accounts yet</p>
-            <p className="text-gray-500 mb-4">Generate a complete chart of accounts with AI or import your own</p>
+            <p className="text-gray-500 mb-4">Generate a complete standard chart of accounts or import your own</p>
             <Button 
               onClick={handleGenerateAccounts} 
               disabled={isGenerating || !selectedCompanyId}
               className="bg-purple-600 hover:bg-purple-700"
             >
               <Sparkles className="w-4 h-4 mr-2" />
-              {isGenerating ? "Generating..." : "Generate with AI"}
+              {isGenerating ? "Creating..." : "Generate Standard Accounts"}
             </Button>
           </CardContent>
         </Card>
