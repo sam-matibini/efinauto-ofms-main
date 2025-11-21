@@ -166,11 +166,13 @@ export default function ChartOfAccounts() {
         </Card>
       ))}
 
-      <AccountDialog
-        open={dialogOpen}
-        onClose={() => { setDialogOpen(false); setEditingAccount(null); }}
-        account={editingAccount}
-      />
+      {dialogOpen && (
+        <AccountDialog
+          open={dialogOpen}
+          onClose={() => { setDialogOpen(false); setEditingAccount(null); }}
+          account={editingAccount}
+        />
+      )}
     </div>
   );
 }
