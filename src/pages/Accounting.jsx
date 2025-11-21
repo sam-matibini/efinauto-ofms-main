@@ -25,6 +25,8 @@ import BalanceSheet from "@/components/accounting/BalanceSheet";
 import RetainedEarningsStatement from "@/components/accounting/RetainedEarningsStatement";
 import CashFlowStatement from "@/components/accounting/CashFlowStatement";
 import FixedAssetsRegister from "@/components/accounting/FixedAssetsRegister";
+import TrialBalance from "@/components/accounting/TrialBalance";
+import GeneralLedger from "@/components/accounting/GeneralLedger";
 import PeriodComparison from "@/components/shared/PeriodComparison";
 
 export default function Accounting() {
@@ -360,11 +362,13 @@ export default function Accounting() {
 
         {/* Main Content */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-8 h-auto">
+          <TabsList className="grid w-full grid-cols-10 h-auto">
             <TabsTrigger value="overview">Revenue Overview</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="profit-loss">Profit & Loss</TabsTrigger>
             <TabsTrigger value="balance-sheet">Balance Sheet</TabsTrigger>
+            <TabsTrigger value="trial-balance">Trial Balance</TabsTrigger>
+            <TabsTrigger value="general-ledger">General Ledger</TabsTrigger>
             <TabsTrigger value="retained-earnings">Retained Earnings</TabsTrigger>
             <TabsTrigger value="cash-flow">Cash Flow</TabsTrigger>
             <TabsTrigger value="fixed-assets">Fixed Assets</TabsTrigger>
@@ -398,6 +402,20 @@ export default function Accounting() {
 
           <TabsContent value="balance-sheet">
             <BalanceSheet comparativePeriods={activePeriods} />
+          </TabsContent>
+
+          <TabsContent value="trial-balance">
+            <TrialBalance 
+              transactions={filteredTransactions}
+              comparativePeriods={activePeriods}
+            />
+          </TabsContent>
+
+          <TabsContent value="general-ledger">
+            <GeneralLedger 
+              transactions={filteredTransactions}
+              comparativePeriods={activePeriods}
+            />
           </TabsContent>
 
           <TabsContent value="retained-earnings">
