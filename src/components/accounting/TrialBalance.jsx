@@ -3,59 +3,39 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Printer } from "lucide-react";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import { useCompany } from "@/components/shared/CompanyContext";
 
 export default function TrialBalance({ transactions, comparativePeriods = [] }) {
+  const { selectedCompanyId } = useCompany();
+
+  const { data: accounts = [] } = useQuery({
+    queryKey: ['accounts', selectedCompanyId],
+    queryFn: () => base44.entities.Account.filter({ company_id: selectedCompanyId }, 'account_code'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
   const periods = comparativePeriods.length > 0 ? comparativePeriods : [{ 
     from: new Date(new Date().getFullYear(), 0, 1), 
     to: new Date(),
     label: 'Current Period'
   }];
 
-  // Define account structure
+  // Group accounts by type
   const accountGroups = {
-    assets: {
-      title: "Assets",
-      accounts: [
-        { name: "Cash and Bank", type: "asset" },
-        { name: "Accounts Receivable", type: "asset" },
-        { name: "Inventory", type: "asset" },
-        { name: "Fixed Assets", type: "asset" },
-      ]
-    },
-    liabilities: {
-      title: "Liabilities",
-      accounts: [
-        { name: "Accounts Payable", type: "liability" },
-        { name: "Payroll Liabilities", type: "liability" },
-        { name: "Short-term Debt", type: "liability" },
-        { name: "Long-term Debt", type: "liability" },
-      ]
-    },
-    equity: {
-      title: "Equity",
-      accounts: [
-        { name: "Owner's Equity", type: "equity" },
-        { name: "Retained Earnings", type: "equity" },
-      ]
-    },
-    revenue: {
-      title: "Revenue",
-      accounts: [
-        { name: "Sales Revenue", type: "revenue" },
-        { name: "Service Revenue", type: "revenue" },
-        { name: "Parts Revenue", type: "revenue" },
-      ]
-    },
-    expenses: {
-      title: "Expenses",
-      accounts: [
-        { name: "Cost of Goods Sold", type: "expense" },
-        { name: "Payroll Expenses", type: "expense" },
-        { name: "Operating Expenses", type: "expense" },
-        { name: "Overhead Expenses", type: "expense" },
-      ]
-    }
+    asset: { title: "Assets", accounts: [] },
+    liability: { title: "Liabilities", accounts: [] },
+    equity: { title: "Equity", accounts: [] },
+    revenue: { title: "Revenue", accounts: [] },
+    expense: { title: "Expenses", accounts: [] }
   };
+
+  accounts.forEach(account => {
+    if (accountGroups[account.account_type]) {
+      accountGroups[account.account_type].accounts.push(account);
+    }
+  });
 
   // Calculate balances for each period
   const periodData = periods.map(period => {
@@ -64,67 +44,28 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
       return transDate >= period.from && transDate <= period.to;
     });
 
-    // Calculate account balances
-    const calculateBalance = (accountName) => {
+    // Calculate balance for each account
+    const calculateBalance = (account) => {
       let debit = 0;
       let credit = 0;
 
+      // Sum up all transactions for this account
       periodTransactions.forEach(t => {
-        if (accountName === "Cash and Bank") {
-          if (t.category === 'revenue') credit += t.amount;
-          if (t.category === 'expense') debit += t.amount;
-        } else if (accountName === "Accounts Receivable") {
-          if (t.category === 'revenue' && t.status === 'pending') debit += t.amount;
-        } else if (accountName === "Inventory") {
-          debit = 50000; // Static for now
-        } else if (accountName === "Fixed Assets") {
-          if (t.transaction_type === 'vehicle_purchase') debit += t.amount;
-        } else if (accountName === "Accounts Payable") {
-          if (t.category === 'expense' && t.status === 'pending' && t.transaction_type !== 'payroll_liability') {
+        if (t.account_id === account.id || t.account_code === account.account_code) {
+          // For normal balance types
+          if (account.account_type === 'asset' || account.account_type === 'expense') {
+            // Assets and Expenses have debit normal balance
+            debit += t.amount;
+          } else if (account.account_type === 'liability' || account.account_type === 'equity' || account.account_type === 'revenue') {
+            // Liabilities, Equity, Revenue have credit normal balance
             credit += t.amount;
           }
-        } else if (accountName === "Payroll Liabilities") {
-          if (t.transaction_type === 'payroll_liability' && t.status === 'pending') {
-            credit += t.amount;
-          }
-        } else if (accountName === "Short-term Debt") {
-          credit = 20000; // Static
-        } else if (accountName === "Long-term Debt") {
-          credit = 50000; // Static
-        } else if (accountName === "Owner's Equity") {
-          credit = 100000; // Static
-        } else if (accountName === "Retained Earnings") {
-          const profit = periodTransactions
-            .filter(tx => tx.category === 'revenue')
-            .reduce((sum, tx) => sum + tx.amount, 0) -
-            periodTransactions
-            .filter(tx => tx.category === 'expense')
-            .reduce((sum, tx) => sum + tx.amount, 0);
-          if (profit > 0) credit += profit;
-          else debit += Math.abs(profit);
-        } else if (accountName === "Sales Revenue") {
-          if (t.transaction_type === 'sale_revenue') credit += t.amount;
-        } else if (accountName === "Service Revenue") {
-          if (t.transaction_type === 'service_revenue') credit += t.amount;
-        } else if (accountName === "Parts Revenue") {
-          if (t.transaction_type === 'parts_revenue') credit += t.amount;
-        } else if (accountName === "Cost of Goods Sold") {
-          if (t.transaction_type === 'vehicle_purchase' || t.transaction_type === 'parts_purchase') {
-            debit += t.amount;
-          }
-        } else if (accountName === "Payroll Expenses") {
-          if (t.transaction_type === 'payroll_expense') debit += t.amount;
-        } else if (accountName === "Operating Expenses") {
-          if (t.category === 'expense' && 
-              t.transaction_type !== 'vehicle_purchase' && 
-              t.transaction_type !== 'parts_purchase' &&
-              t.transaction_type !== 'payroll_expense') {
-            debit += t.amount;
-          }
-        } else if (accountName === "Overhead Expenses") {
-          if (t.transaction_type === 'overhead_expense') debit += t.amount;
         }
       });
+
+      // Add opening balance
+      debit += account.balance > 0 ? account.balance : 0;
+      credit += account.balance < 0 ? Math.abs(account.balance) : 0;
 
       return { debit, credit };
     };
@@ -133,10 +74,11 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
     const accountBalances = [];
     Object.values(accountGroups).forEach(group => {
       group.accounts.forEach(account => {
-        const balance = calculateBalance(account.name);
+        const balance = calculateBalance(account);
         accountBalances.push({
-          name: account.name,
-          type: account.type,
+          code: account.account_code,
+          name: account.account_name,
+          type: account.account_type,
           group: group.title,
           debit: balance.debit,
           credit: balance.credit
@@ -157,24 +99,26 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
   });
 
   const exportToCSV = () => {
-    const headers = ['Account', ...periods.map(p => `${p.label} - Debit`), ...periods.map(p => `${p.label} - Credit`)];
+    const headers = ['Code', 'Account', ...periods.map(p => `${p.label} - Debit`), ...periods.map(p => `${p.label} - Credit`)];
     const rows = [];
     
     Object.values(accountGroups).forEach(group => {
-      rows.push([group.title]);
-      group.accounts.forEach(account => {
-        const row = [account.name];
-        periodData.forEach(pd => {
-          const acc = pd.accounts.find(a => a.name === account.name);
-          row.push(acc.debit.toFixed(2));
+      if (group.accounts.length > 0) {
+        rows.push([group.title]);
+        group.accounts.forEach(account => {
+          const row = [account.account_code, account.account_name];
+          periodData.forEach(pd => {
+            const acc = pd.accounts.find(a => a.code === account.account_code);
+            row.push(acc ? acc.debit.toFixed(2) : '0.00');
+          });
+          periodData.forEach(pd => {
+            const acc = pd.accounts.find(a => a.code === account.account_code);
+            row.push(acc ? acc.credit.toFixed(2) : '0.00');
+          });
+          rows.push(row);
         });
-        periodData.forEach(pd => {
-          const acc = pd.accounts.find(a => a.name === account.name);
-          row.push(acc.credit.toFixed(2));
-        });
-        rows.push(row);
-      });
-      rows.push([]);
+        rows.push([]);
+      }
     });
 
     const csvContent = [
@@ -219,6 +163,7 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="border-b-2 border-gray-300">
+                <th className="text-left py-3 px-4 font-semibold w-24">Code</th>
                 <th className="text-left py-3 px-4 font-semibold">Account</th>
                 {periods.map((period, idx) => (
                   <React.Fragment key={idx}>
@@ -230,31 +175,34 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
             </thead>
             <tbody>
               {Object.entries(accountGroups).map(([key, group]) => (
-                <React.Fragment key={key}>
-                  <tr className="bg-gray-100">
-                    <td colSpan={1 + periods.length * 2} className="py-2 px-4 font-bold text-gray-900">
-                      {group.title}
-                    </td>
-                  </tr>
-                  {group.accounts.map((account, idx) => (
-                    <tr key={idx} className="border-b hover:bg-gray-50">
-                      <td className="py-2 px-4 pl-8">{account.name}</td>
-                      {periodData.map((pd, pdIdx) => {
-                        const acc = pd.accounts.find(a => a.name === account.name);
-                        return (
-                          <React.Fragment key={pdIdx}>
-                            <td className="text-right py-2 px-4">
-                              {acc.debit > 0 ? `$${acc.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
-                            </td>
-                            <td className="text-right py-2 px-4">
-                              {acc.credit > 0 ? `$${acc.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
-                            </td>
-                          </React.Fragment>
-                        );
-                      })}
+                group.accounts.length > 0 && (
+                  <React.Fragment key={key}>
+                    <tr className="bg-gray-100">
+                      <td colSpan={2 + periods.length * 2} className="py-2 px-4 font-bold text-gray-900">
+                        {group.title}
+                      </td>
                     </tr>
-                  ))}
-                </React.Fragment>
+                    {group.accounts.map((account, idx) => (
+                      <tr key={idx} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-4 pl-8 font-mono text-sm">{account.account_code}</td>
+                        <td className="py-2 px-4">{account.account_name}</td>
+                        {periodData.map((pd, pdIdx) => {
+                          const acc = pd.accounts.find(a => a.code === account.account_code);
+                          return (
+                            <React.Fragment key={pdIdx}>
+                              <td className="text-right py-2 px-4">
+                                {acc && acc.debit > 0 ? `$${acc.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
+                              </td>
+                              <td className="text-right py-2 px-4">
+                                {acc && acc.credit > 0 ? `$${acc.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
+                              </td>
+                            </React.Fragment>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                )
               ))}
             </tbody>
             <tfoot>
@@ -286,6 +234,14 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
             </tfoot>
           </table>
         </div>
+
+        {accounts.length === 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-800">
+              ℹ️ No chart of accounts found. Please create accounts first to see the trial balance.
+            </p>
+          </div>
+        )}
 
         {periodData.some(pd => Math.abs(pd.difference) >= 0.01) && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
