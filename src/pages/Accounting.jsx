@@ -363,7 +363,7 @@ export default function Accounting() {
 
         {/* Main Content */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-10 h-auto">
+          <TabsList className="grid w-full grid-cols-9 h-auto">
             <TabsTrigger value="overview">Revenue Overview</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="profit-loss">Profit & Loss</TabsTrigger>
@@ -373,7 +373,6 @@ export default function Accounting() {
             <TabsTrigger value="retained-earnings">Retained Earnings</TabsTrigger>
             <TabsTrigger value="cash-flow">Cash Flow</TabsTrigger>
             <TabsTrigger value="fixed-assets">Fixed Assets</TabsTrigger>
-            <TabsTrigger value="accounts">Chart of Accounts</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -430,22 +429,7 @@ export default function Accounting() {
           <TabsContent value="fixed-assets">
             <FixedAssetsRegister comparativePeriods={activePeriods} />
           </TabsContent>
-
-          <TabsContent value="accounts">
-            <Tabs defaultValue="my-accounts">
-              <TabsList>
-                <TabsTrigger value="my-accounts">My Accounts</TabsTrigger>
-                <TabsTrigger value="reference">Reference Guide</TabsTrigger>
-              </TabsList>
-              <TabsContent value="my-accounts" className="mt-6">
-                <ChartOfAccounts />
-              </TabsContent>
-              <TabsContent value="reference" className="mt-6">
-                <ChartOfAccountsReference />
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
-        </Tabs>
+          </Tabs>
       </div>
     </div>
   );
