@@ -3,59 +3,51 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Printer } from "lucide-react";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import { useCompany } from "@/components/shared/CompanyContext";
 
 export default function TrialBalance({ transactions, comparativePeriods = [] }) {
+  const { selectedCompanyId } = useCompany();
   const periods = comparativePeriods.length > 0 ? comparativePeriods : [{ 
     from: new Date(new Date().getFullYear(), 0, 1), 
     to: new Date(),
     label: 'Current Period'
   }];
 
-  // Define account structure
-  const accountGroups = {
-    assets: {
-      title: "Assets",
-      accounts: [
-        { name: "Cash and Bank", type: "asset" },
-        { name: "Accounts Receivable", type: "asset" },
-        { name: "Inventory", type: "asset" },
-        { name: "Fixed Assets", type: "asset" },
-      ]
-    },
-    liabilities: {
-      title: "Liabilities",
-      accounts: [
-        { name: "Accounts Payable", type: "liability" },
-        { name: "Payroll Liabilities", type: "liability" },
-        { name: "Short-term Debt", type: "liability" },
-        { name: "Long-term Debt", type: "liability" },
-      ]
-    },
-    equity: {
-      title: "Equity",
-      accounts: [
-        { name: "Owner's Equity", type: "equity" },
-        { name: "Retained Earnings", type: "equity" },
-      ]
-    },
-    revenue: {
-      title: "Revenue",
-      accounts: [
-        { name: "Sales Revenue", type: "revenue" },
-        { name: "Service Revenue", type: "revenue" },
-        { name: "Parts Revenue", type: "revenue" },
-      ]
-    },
-    expenses: {
-      title: "Expenses",
-      accounts: [
-        { name: "Cost of Goods Sold", type: "expense" },
-        { name: "Payroll Expenses", type: "expense" },
-        { name: "Operating Expenses", type: "expense" },
-        { name: "Overhead Expenses", type: "expense" },
-      ]
-    }
-  };
+  // Fetch imported accounts from chart of accounts
+  const { data: importedAccounts = [], isLoading } = useQuery({
+    queryKey: ['accounts', selectedCompanyId],
+    queryFn: () => base44.entities.Account.filter({ company_id: selectedCompanyId }, 'account_code'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  // Group imported accounts by type
+  const accountGroups = React.useMemo(() => {
+    const groups = {
+      asset: { title: "Assets", accounts: [] },
+      liability: { title: "Liabilities", accounts: [] },
+      equity: { title: "Equity", accounts: [] },
+      revenue: { title: "Revenue", accounts: [] },
+      expense: { title: "Expenses", accounts: [] }
+    };
+
+    importedAccounts.forEach(account => {
+      const type = account.account_type?.toLowerCase();
+      if (groups[type]) {
+        groups[type].accounts.push({
+          id: account.id,
+          code: account.account_code,
+          name: account.account_name,
+          type: type,
+          balance: account.balance || 0
+        });
+      }
+    });
+
+    return groups;
+  }, [importedAccounts]);
 
   // Calculate balances for each period
   const periodData = periods.map(period => {
@@ -64,65 +56,39 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
       return transDate >= period.from && transDate <= period.to;
     });
 
-    // Calculate account balances
-    const calculateBalance = (accountName) => {
+    // Calculate account balances from transactions and imported account balance
+    const calculateBalance = (account) => {
       let debit = 0;
       let credit = 0;
 
+      // Start with the account's imported balance
+      const accountBalance = account.balance || 0;
+      
+      // Determine if account normally has debit or credit balance
+      if (account.type === 'asset' || account.type === 'expense') {
+        // Debit normal balance
+        if (accountBalance >= 0) {
+          debit = accountBalance;
+        } else {
+          credit = Math.abs(accountBalance);
+        }
+      } else {
+        // Credit normal balance (liability, equity, revenue)
+        if (accountBalance >= 0) {
+          credit = accountBalance;
+        } else {
+          debit = Math.abs(accountBalance);
+        }
+      }
+
+      // Add transactions linked to this account
       periodTransactions.forEach(t => {
-        if (accountName === "Cash and Bank") {
-          if (t.category === 'revenue') credit += t.amount;
-          if (t.category === 'expense') debit += t.amount;
-        } else if (accountName === "Accounts Receivable") {
-          if (t.category === 'revenue' && t.status === 'pending') debit += t.amount;
-        } else if (accountName === "Inventory") {
-          debit = 50000; // Static for now
-        } else if (accountName === "Fixed Assets") {
-          if (t.transaction_type === 'vehicle_purchase') debit += t.amount;
-        } else if (accountName === "Accounts Payable") {
-          if (t.category === 'expense' && t.status === 'pending' && t.transaction_type !== 'payroll_liability') {
+        if (t.account_id === account.id || t.account_code === account.code) {
+          if (t.category === 'revenue' || t.transaction_type?.includes('revenue')) {
             credit += t.amount;
-          }
-        } else if (accountName === "Payroll Liabilities") {
-          if (t.transaction_type === 'payroll_liability' && t.status === 'pending') {
-            credit += t.amount;
-          }
-        } else if (accountName === "Short-term Debt") {
-          credit = 20000; // Static
-        } else if (accountName === "Long-term Debt") {
-          credit = 50000; // Static
-        } else if (accountName === "Owner's Equity") {
-          credit = 100000; // Static
-        } else if (accountName === "Retained Earnings") {
-          const profit = periodTransactions
-            .filter(tx => tx.category === 'revenue')
-            .reduce((sum, tx) => sum + tx.amount, 0) -
-            periodTransactions
-            .filter(tx => tx.category === 'expense')
-            .reduce((sum, tx) => sum + tx.amount, 0);
-          if (profit > 0) credit += profit;
-          else debit += Math.abs(profit);
-        } else if (accountName === "Sales Revenue") {
-          if (t.transaction_type === 'sale_revenue') credit += t.amount;
-        } else if (accountName === "Service Revenue") {
-          if (t.transaction_type === 'service_revenue') credit += t.amount;
-        } else if (accountName === "Parts Revenue") {
-          if (t.transaction_type === 'parts_revenue') credit += t.amount;
-        } else if (accountName === "Cost of Goods Sold") {
-          if (t.transaction_type === 'vehicle_purchase' || t.transaction_type === 'parts_purchase') {
+          } else if (t.category === 'expense' || t.transaction_type?.includes('expense')) {
             debit += t.amount;
           }
-        } else if (accountName === "Payroll Expenses") {
-          if (t.transaction_type === 'payroll_expense') debit += t.amount;
-        } else if (accountName === "Operating Expenses") {
-          if (t.category === 'expense' && 
-              t.transaction_type !== 'vehicle_purchase' && 
-              t.transaction_type !== 'parts_purchase' &&
-              t.transaction_type !== 'payroll_expense') {
-            debit += t.amount;
-          }
-        } else if (accountName === "Overhead Expenses") {
-          if (t.transaction_type === 'overhead_expense') debit += t.amount;
         }
       });
 
