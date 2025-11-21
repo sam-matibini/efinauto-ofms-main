@@ -44,73 +44,31 @@ export default function ChartOfAccounts() {
     }
 
     setIsGenerating(true);
-    toast.info("AI is generating your chart of accounts...");
     
     try {
+      toast.info("AI is generating your chart of accounts...");
+      
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Generate a comprehensive chart of accounts for an automotive dealership and service center business. Create 40-50 accounts across these categories:
+        prompt: `Generate a comprehensive chart of accounts for an automotive dealership and service center. Create 40-50 accounts covering:
 
-ASSETS (1000-1999):
-- Cash and bank accounts (1000-1099)
-- Accounts receivable (1200-1299)
-- Vehicle inventory (1300-1399)
-- Parts inventory (1400-1499)
-- Prepaid expenses (1500-1599)
-- Equipment and tools (1600-1699)
-- Property and buildings (1700-1799)
-- Accumulated depreciation (1800-1899)
+ASSETS (1000-1999): Cash, bank accounts, accounts receivable, vehicle inventory, parts inventory, equipment, buildings
+LIABILITIES (2000-2999): Accounts payable, loans, taxes payable, credit cards
+EQUITY (3000-3999): Owner's equity, retained earnings
+REVENUE (4000-4999): Vehicle sales, service revenue, parts sales, warranty income
+EXPENSES (5000-5999): Cost of vehicles, cost of parts, salaries, rent, utilities, marketing, insurance
 
-LIABILITIES (2000-2999):
-- Accounts payable (2000-2099)
-- Credit cards payable (2100-2199)
-- Loans payable (2200-2299)
-- Taxes payable (2300-2399)
-- Accrued expenses (2400-2499)
+Return a JSON object with an "accounts" array. Each account needs:
+- account_code: string (e.g. "1000")
+- account_name: string (e.g. "Cash - Operating")
+- account_type: one of "asset", "liability", "equity", "revenue", "expense"
+- account_category: string (e.g. "cash", "inventory")
+- balance: number (default 0)
+- description: string
 
-EQUITY (3000-3999):
-- Owner's equity (3000-3099)
-- Retained earnings (3100-3199)
-- Current year earnings (3200-3299)
-
-REVENUE (4000-4999):
-- Vehicle sales revenue (4000-4099)
-- Service and repair revenue (4100-4199)
-- Parts sales revenue (4200-4299)
-- Extended warranty revenue (4300-4399)
-- Finance and insurance income (4400-4499)
-- Other income (4900-4999)
-
-EXPENSES (5000-5999):
-- Cost of vehicles sold (5000-5099)
-- Cost of parts sold (5100-5199)
-- Salaries and wages (5200-5299)
-- Payroll taxes and benefits (5300-5399)
-- Rent and lease (5400-5499)
-- Utilities (5500-5599)
-- Marketing and advertising (5600-5699)
-- Insurance (5700-5799)
-- Office and supplies (5800-5899)
-- Professional fees (5900-5999)
-
-Return ONLY a valid JSON object with an "accounts" array. Each account must have:
-- account_code (string)
-- account_name (string)
-- account_type (one of: asset, liability, equity, revenue, expense)
-- account_category (string, like "cash", "inventory", "payable", etc)
-- balance (number, default 0)
-- description (string)
-
-Example format:
+Example:
 {
   "accounts": [
-    {
-      "account_code": "1000",
-      "account_name": "Cash - Operating Account",
-      "account_type": "asset",
-      "account_category": "cash",
-      "balance": 0,
-      "description": "Primary checking account for daily operations"
-    }
+    {"account_code": "1000", "account_name": "Cash - Operating", "account_type": "asset", "account_category": "cash", "balance": 0, "description": "Primary operating account"}
   ]
 }`,
         response_json_schema: {
@@ -123,12 +81,12 @@ Example format:
                 properties: {
                   account_code: { type: "string" },
                   account_name: { type: "string" },
-                  account_type: { type: "string", enum: ["asset", "liability", "equity", "revenue", "expense"] },
+                  account_type: { type: "string" },
                   account_category: { type: "string" },
                   balance: { type: "number" },
                   description: { type: "string" }
                 },
-                required: ["account_code", "account_name", "account_type", "account_category"]
+                required: ["account_code", "account_name", "account_type"]
               }
             }
           },
@@ -136,12 +94,8 @@ Example format:
         }
       });
 
-      if (!response || !response.accounts) {
-        throw new Error("Invalid response from AI - no accounts returned");
-      }
-
-      if (!Array.isArray(response.accounts) || response.accounts.length === 0) {
-        throw new Error("AI returned empty accounts array");
+      if (!response?.accounts || !Array.isArray(response.accounts) || response.accounts.length === 0) {
+        throw new Error("AI did not return valid accounts");
       }
 
       toast.info(`Creating ${response.accounts.length} accounts...`);
@@ -160,14 +114,14 @@ Example format:
           });
           created++;
         } catch (err) {
-          console.error(`Failed to create account ${acc.account_code}:`, err);
+          console.error(`Failed to create ${acc.account_code}:`, err);
         }
       }
 
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       toast.success(`Successfully created ${created} accounts!`);
     } catch (error) {
-      console.error("Error generating accounts:", error);
+      console.error("Generation error:", error);
       toast.error(error.message || "Failed to generate accounts");
     } finally {
       setIsGenerating(false);
@@ -214,14 +168,7 @@ Example format:
       acc.description || ''
     ]);
     
-    const csvContent = [
-      ['Chart of Accounts Report'],
-      ['Generated on', format(new Date(), 'MMMM d, yyyy')],
-      [],
-      headers,
-      ...rows
-    ].map(row => row.join(',')).join('\n');
-    
+    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -269,14 +216,16 @@ Example format:
       {accounts.length === 0 && !isLoading && (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-gray-500 mb-4">No accounts found. Generate a chart of accounts to get started.</p>
+            <Sparkles className="w-16 h-16 mx-auto mb-4 text-purple-500" />
+            <p className="text-xl font-semibold mb-2">No accounts yet</p>
+            <p className="text-gray-500 mb-4">Generate a complete chart of accounts with AI or import your own</p>
             <Button 
               onClick={handleGenerateAccounts} 
               disabled={isGenerating || !selectedCompanyId}
               className="bg-purple-600 hover:bg-purple-700"
             >
               <Sparkles className="w-4 h-4 mr-2" />
-              {isGenerating ? "Generating..." : "Generate Chart of Accounts"}
+              {isGenerating ? "Generating..." : "Generate with AI"}
             </Button>
           </CardContent>
         </Card>
