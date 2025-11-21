@@ -347,6 +347,16 @@ Create 40-50 accounts total.`;
           <p className="text-sm text-gray-600">AI-powered account management</p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            onClick={() => removeDuplicatesMutation.mutate()} 
+            variant="outline" 
+            size="sm"
+            disabled={removeDuplicatesMutation.isPending}
+            className="text-orange-600 border-orange-300 hover:bg-orange-50"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Remove Duplicates
+          </Button>
           <Button onClick={exportToCSV} variant="outline" size="sm">
             <Download className="w-4 h-4 mr-2" />
             CSV
