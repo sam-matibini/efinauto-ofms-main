@@ -182,7 +182,15 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
       </CardHeader>
 
       <CardContent className="space-y-6">
-        <div className="overflow-x-auto">
+        {isLoading ? (
+          <div className="text-center py-12 text-gray-500">Loading accounts...</div>
+        ) : importedAccounts.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 mb-2">No chart of accounts found</p>
+            <p className="text-sm text-gray-400">Import or create accounts to see the trial balance</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="border-b-2 border-gray-300">
