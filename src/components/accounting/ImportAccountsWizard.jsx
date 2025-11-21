@@ -278,6 +278,10 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
     console.log("Duplicate handling:", duplicateHandling);
     
     try {
+      if (!companyId) {
+        throw new Error("No company selected");
+      }
+
       console.log("📥 Fetching existing accounts...");
       const existingAccounts = await base44.entities.Account.filter({ company_id: companyId });
       console.log(`Found ${existingAccounts.length} existing accounts`);
@@ -330,9 +334,11 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
             account_name: String(account.account_name).trim(),
             account_type: accountType,
             account_category: account.account_category ? String(account.account_category).toLowerCase().trim() : 'other',
-            balance: parseFloat(String(account.balance).replace(/[^0-9.-]/g, '')) || 0,
+            balance: parseFloat(String(account.balance || '0').replace(/[^0-9.-]/g, '')) || 0,
             description: account.description ? String(account.description).trim() : ''
           };
+
+          console.log(`Processing row ${rowNum}:`, accountData);
 
           if (isDuplicate && duplicateHandling === "overwrite") {
             const existingAccount = existingAccounts.find(a => a.account_code === accountCode);
@@ -358,7 +364,12 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
       if (failed > 0) summary.push(`${failed} failed`);
 
       console.log("✅ Import complete:", summary.join(', '));
-      toast.success(`Import complete: ${summary.join(', ')}`);
+      
+      if (created === 0 && updated === 0) {
+        toast.warning(`No accounts imported: ${summary.join(', ')}`);
+      } else {
+        toast.success(`Import complete: ${summary.join(', ')}`);
+      }
       
       if (errors.length > 0) {
         console.error("Import errors:", errors);
@@ -369,12 +380,15 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
         }
       }
 
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      onClose();
+      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      
+      setTimeout(() => {
+        onClose();
+      }, 500);
+      
     } catch (error) {
       console.error("❌ Import failed:", error);
       toast.error(`Import failed: ${error.message}`);
-    } finally {
       setUploading(false);
     }
   };
