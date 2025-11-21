@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Download, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import PD7AForm from "./PD7AForm";
 
 export default function TaxReports({ company, employees, payrollRuns, payrollEntries }) {
   const [reportType, setReportType] = useState("t4");
@@ -81,6 +82,12 @@ export default function TaxReports({ company, employees, payrollRuns, payrollEnt
 
   return (
     <div className="space-y-6">
+      <PD7AForm 
+        company={company}
+        payrollRuns={payrollRuns}
+        payrollEntries={payrollEntries}
+      />
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={generateT4}>
           <CardContent className="p-6">
