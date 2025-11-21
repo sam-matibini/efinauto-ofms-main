@@ -267,17 +267,16 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
               </tr>
             </tfoot>
           </table>
-        </div>
 
-        {periodData.some(pd => Math.abs(pd.difference) >= 0.01) && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <p className="text-sm text-amber-800">
-              ⚠️ <strong>Warning:</strong> The trial balance is out of balance. Total debits should equal total credits. 
-              Please review your transactions for potential errors.
-            </p>
+          {periodData.some(pd => Math.abs(pd.difference) >= 0.01) && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <p className="text-sm text-amber-800">
+                ⚠️ <strong>Warning:</strong> The trial balance is out of balance. Total debits should equal total credits. 
+                Please review your transactions for potential errors.
+              </p>
+            </div>
+          )}
           </div>
-        )}
-        </div>
         )}
       </CardContent>
     </Card>
