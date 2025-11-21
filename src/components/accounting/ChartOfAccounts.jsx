@@ -44,56 +44,75 @@ export default function ChartOfAccounts() {
     }
 
     setIsGenerating(true);
-    toast.info("Generating chart of accounts with AI...");
+    toast.info("AI is generating your chart of accounts...");
     
     try {
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Generate a comprehensive chart of accounts for an automotive dealership and service center business. Include standard accounts for:
-        
-        ASSETS (1000-1999):
-        - Cash and bank accounts
-        - Accounts receivable
-        - Vehicle inventory
-        - Parts inventory
-        - Equipment and tools
-        - Property and buildings
-        
-        LIABILITIES (2000-2999):
-        - Accounts payable
-        - Loans and credit lines
-        - Taxes payable
-        
-        EQUITY (3000-3999):
-        - Owner's equity
-        - Retained earnings
-        
-        REVENUE (4000-4999):
-        - Vehicle sales revenue
-        - Service and repair revenue
-        - Parts sales revenue
-        - Extended warranty revenue
-        - Other income
-        
-        EXPENSES (5000-5999):
-        - Cost of vehicles sold
-        - Cost of parts sold
-        - Labor and wages
-        - Rent and utilities
-        - Marketing and advertising
-        - Insurance
-        - Office supplies
-        - Vehicle operating expenses
-        - Professional fees
-        
-        Return a JSON array of accounts with this structure for each account:
-        {
-          "account_code": "1000",
-          "account_name": "Cash - Operating",
-          "account_type": "asset",
-          "account_category": "cash",
-          "balance": 0,
-          "description": "Primary operating cash account"
-        }`,
+        prompt: `Generate a comprehensive chart of accounts for an automotive dealership and service center business. Create 40-50 accounts across these categories:
+
+ASSETS (1000-1999):
+- Cash and bank accounts (1000-1099)
+- Accounts receivable (1200-1299)
+- Vehicle inventory (1300-1399)
+- Parts inventory (1400-1499)
+- Prepaid expenses (1500-1599)
+- Equipment and tools (1600-1699)
+- Property and buildings (1700-1799)
+- Accumulated depreciation (1800-1899)
+
+LIABILITIES (2000-2999):
+- Accounts payable (2000-2099)
+- Credit cards payable (2100-2199)
+- Loans payable (2200-2299)
+- Taxes payable (2300-2399)
+- Accrued expenses (2400-2499)
+
+EQUITY (3000-3999):
+- Owner's equity (3000-3099)
+- Retained earnings (3100-3199)
+- Current year earnings (3200-3299)
+
+REVENUE (4000-4999):
+- Vehicle sales revenue (4000-4099)
+- Service and repair revenue (4100-4199)
+- Parts sales revenue (4200-4299)
+- Extended warranty revenue (4300-4399)
+- Finance and insurance income (4400-4499)
+- Other income (4900-4999)
+
+EXPENSES (5000-5999):
+- Cost of vehicles sold (5000-5099)
+- Cost of parts sold (5100-5199)
+- Salaries and wages (5200-5299)
+- Payroll taxes and benefits (5300-5399)
+- Rent and lease (5400-5499)
+- Utilities (5500-5599)
+- Marketing and advertising (5600-5699)
+- Insurance (5700-5799)
+- Office and supplies (5800-5899)
+- Professional fees (5900-5999)
+
+Return ONLY a valid JSON object with an "accounts" array. Each account must have:
+- account_code (string)
+- account_name (string)
+- account_type (one of: asset, liability, equity, revenue, expense)
+- account_category (string, like "cash", "inventory", "payable", etc)
+- balance (number, default 0)
+- description (string)
+
+Example format:
+{
+  "accounts": [
+    {
+      "account_code": "1000",
+      "account_name": "Cash - Operating Account",
+      "account_type": "asset",
+      "account_category": "cash",
+      "balance": 0,
+      "description": "Primary checking account for daily operations"
+    }
+  ]
+}`,
         response_json_schema: {
           type: "object",
           properties: {
@@ -104,7 +123,7 @@ export default function ChartOfAccounts() {
                 properties: {
                   account_code: { type: "string" },
                   account_name: { type: "string" },
-                  account_type: { type: "string" },
+                  account_type: { type: "string", enum: ["asset", "liability", "equity", "revenue", "expense"] },
                   account_category: { type: "string" },
                   balance: { type: "number" },
                   description: { type: "string" }
@@ -117,46 +136,39 @@ export default function ChartOfAccounts() {
         }
       });
 
-      console.log("AI Response:", response);
-
-      if (response?.accounts && Array.isArray(response.accounts) && response.accounts.length > 0) {
-        toast.info(`Creating ${response.accounts.length} accounts...`);
-        
-        let successCount = 0;
-        let errorCount = 0;
-
-        for (const acc of response.accounts) {
-          try {
-            await base44.entities.Account.create({
-              company_id: selectedCompanyId,
-              account_code: acc.account_code,
-              account_name: acc.account_name,
-              account_type: acc.account_type,
-              account_category: acc.account_category || 'general',
-              balance: acc.balance || 0,
-              description: acc.description || ''
-            });
-            successCount++;
-          } catch (err) {
-            console.error(`Failed to create account ${acc.account_code}:`, err);
-            errorCount++;
-          }
-        }
-
-        queryClient.invalidateQueries({ queryKey: ['accounts'] });
-        
-        if (successCount > 0) {
-          toast.success(`Successfully created ${successCount} accounts!${errorCount > 0 ? ` (${errorCount} failed)` : ''}`);
-        } else {
-          toast.error("Failed to create accounts");
-        }
-      } else {
-        console.log("Response structure:", JSON.stringify(response, null, 2));
-        toast.error(`Invalid response from AI: ${response ? 'No accounts in response' : 'Empty response'}`);
+      if (!response || !response.accounts) {
+        throw new Error("Invalid response from AI - no accounts returned");
       }
+
+      if (!Array.isArray(response.accounts) || response.accounts.length === 0) {
+        throw new Error("AI returned empty accounts array");
+      }
+
+      toast.info(`Creating ${response.accounts.length} accounts...`);
+      
+      let created = 0;
+      for (const acc of response.accounts) {
+        try {
+          await base44.entities.Account.create({
+            company_id: selectedCompanyId,
+            account_code: acc.account_code,
+            account_name: acc.account_name,
+            account_type: acc.account_type,
+            account_category: acc.account_category || 'general',
+            balance: acc.balance || 0,
+            description: acc.description || ''
+          });
+          created++;
+        } catch (err) {
+          console.error(`Failed to create account ${acc.account_code}:`, err);
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      toast.success(`Successfully created ${created} accounts!`);
     } catch (error) {
       console.error("Error generating accounts:", error);
-      toast.error(`Failed to generate accounts: ${error.message || 'Unknown error'}`);
+      toast.error(error.message || "Failed to generate accounts");
     } finally {
       setIsGenerating(false);
     }
@@ -219,12 +231,7 @@ export default function ChartOfAccounts() {
   };
 
   const handlePrint = () => {
-    const printContent = document.getElementById('coa-print-content');
-    const originalContents = document.body.innerHTML;
-    document.body.innerHTML = printContent.innerHTML;
     window.print();
-    document.body.innerHTML = originalContents;
-    window.location.reload();
   };
 
   return (
@@ -242,11 +249,11 @@ export default function ChartOfAccounts() {
           </Button>
           <Button 
             onClick={handleGenerateAccounts} 
-            disabled={isGenerating}
+            disabled={isGenerating || !selectedCompanyId}
             className="bg-purple-600 hover:bg-purple-700"
           >
             <Sparkles className="w-4 h-4 mr-2" />
-            {isGenerating ? "Generating..." : "AI Generate Accounts"}
+            {isGenerating ? "Generating..." : "AI Generate"}
           </Button>
           <Button onClick={() => setImportDialogOpen(true)} variant="outline">
             <Upload className="w-4 h-4 mr-2" />
@@ -258,6 +265,22 @@ export default function ChartOfAccounts() {
           </Button>
         </div>
       </div>
+
+      {accounts.length === 0 && !isLoading && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-gray-500 mb-4">No accounts found. Generate a chart of accounts to get started.</p>
+            <Button 
+              onClick={handleGenerateAccounts} 
+              disabled={isGenerating || !selectedCompanyId}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              {isGenerating ? "Generating..." : "Generate Chart of Accounts"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {Object.entries(groupedAccounts).map(([type, typeAccounts]) => (
         <Card key={type}>
@@ -321,47 +344,6 @@ export default function ChartOfAccounts() {
         companyId={selectedCompanyId}
         onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['accounts'] })}
       />
-
-      {/* Hidden print content */}
-      <div id="coa-print-content" className="hidden print:block">
-        <style>{`
-          @media print {
-            body * { visibility: hidden; }
-            #coa-print-content, #coa-print-content * { visibility: visible; }
-            #coa-print-content { position: absolute; left: 0; top: 0; width: 100%; }
-          }
-        `}</style>
-        <div className="p-8">
-          <h1 className="text-2xl font-bold mb-2">Chart of Accounts</h1>
-          <p className="text-sm text-gray-600 mb-6">Generated on {format(new Date(), 'MMMM d, yyyy')}</p>
-          
-          {Object.entries(groupedAccounts).map(([type, typeAccounts]) => (
-            <div key={type} className="mb-6">
-              <h2 className="text-xl font-bold capitalize mb-3 border-b-2 pb-2">{type}</h2>
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border border-gray-300 p-2 text-left">Code</th>
-                    <th className="border border-gray-300 p-2 text-left">Account Name</th>
-                    <th className="border border-gray-300 p-2 text-left">Category</th>
-                    <th className="border border-gray-300 p-2 text-right">Balance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {typeAccounts.map(account => (
-                    <tr key={account.id}>
-                      <td className="border border-gray-300 p-2">{account.account_code}</td>
-                      <td className="border border-gray-300 p-2">{account.account_name}</td>
-                      <td className="border border-gray-300 p-2">{account.account_category}</td>
-                      <td className="border border-gray-300 p-2 text-right">${account.balance?.toLocaleString() || '0'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
