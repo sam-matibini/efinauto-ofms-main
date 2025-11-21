@@ -5,10 +5,11 @@ import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Sparkles, Download, Printer } from "lucide-react";
+import { Plus, Edit, Trash2, Sparkles, Download, Printer, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import AccountDialog from "./AccountDialog";
+import ImportAccountsDialog from "./ImportAccountsDialog";
 
 export default function ChartOfAccounts() {
   const { selectedCompanyId } = useCompany();
@@ -16,6 +17,7 @@ export default function ChartOfAccounts() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ['accounts', selectedCompanyId],
@@ -233,6 +235,10 @@ export default function ChartOfAccounts() {
             <Sparkles className="w-4 h-4 mr-2" />
             {isGenerating ? "Generating..." : "AI Generate Accounts"}
           </Button>
+          <Button onClick={() => setImportDialogOpen(true)} variant="outline">
+            <Upload className="w-4 h-4 mr-2" />
+            Import
+          </Button>
           <Button onClick={() => { setEditingAccount(null); setDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="w-4 h-4 mr-2" />
             Add Account
@@ -294,6 +300,13 @@ export default function ChartOfAccounts() {
         open={dialogOpen}
         onClose={() => { setDialogOpen(false); setEditingAccount(null); }}
         account={editingAccount}
+      />
+
+      <ImportAccountsDialog
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        companyId={selectedCompanyId}
+        onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['accounts'] })}
       />
 
       {/* Hidden print content */}
