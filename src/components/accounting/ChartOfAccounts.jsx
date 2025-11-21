@@ -205,16 +205,14 @@ export default function ChartOfAccounts() {
             <Printer className="w-4 h-4 mr-2" />
             Print
           </Button>
-          {accounts.length === 0 && (
-            <Button 
-              onClick={handleGenerateAccounts} 
-              disabled={isGenerating}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              {isGenerating ? "Generating..." : "AI Generate Accounts"}
-            </Button>
-          )}
+          <Button 
+            onClick={handleGenerateAccounts} 
+            disabled={isGenerating}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            {isGenerating ? "Generating..." : "AI Generate Accounts"}
+          </Button>
           <Button onClick={() => { setEditingAccount(null); setDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="w-4 h-4 mr-2" />
             Add Account
