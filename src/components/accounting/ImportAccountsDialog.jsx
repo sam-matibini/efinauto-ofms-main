@@ -48,16 +48,19 @@ export default function ImportAccountsDialog({ open, onClose, companyId, onImpor
       const extractResponse = await base44.integrations.Core.ExtractDataFromUploadedFile({
         file_url: fileUrl,
         json_schema: {
-          type: "object",
-          properties: {
-            account_code: { type: "string" },
-            account_name: { type: "string" },
-            account_type: { type: "string" },
-            account_category: { type: "string" },
-            balance: { type: "number" },
-            description: { type: "string" }
-          },
-          required: ["account_code", "account_name", "account_type"]
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              account_code: { type: "string" },
+              account_name: { type: "string" },
+              account_type: { type: "string" },
+              account_category: { type: "string" },
+              balance: { type: "number" },
+              description: { type: "string" }
+            },
+            required: ["account_code", "account_name", "account_type"]
+          }
         }
       });
 
