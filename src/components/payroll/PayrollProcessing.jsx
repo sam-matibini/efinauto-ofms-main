@@ -789,6 +789,13 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                       .paystub-print-container .font-bold {
                         color: black !important;
                       }
+                      .paystub-print-container .text-gray-600 {
+                        color: black !important;
+                      }
+                      .paystub-print-container h2.text-2xl {
+                        color: black !important;
+                        font-weight: bold !important;
+                      }
                       .paystub-print-container h2 {
                         font-size: 18px;
                         margin-bottom: 4px;
