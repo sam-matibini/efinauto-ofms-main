@@ -61,8 +61,8 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       // Update payroll run status
       const updatedRun = await base44.entities.PayrollRun.update(runId, { status: 'approved' });
       
-      // Get payroll entries for this run
-      const entries = payrollEntries.filter(e => e.payroll_run_id === runId);
+      // Fetch fresh payroll entries for this run
+      const entries = await base44.entities.PayrollEntry.filter({ payroll_run_id: runId });
       
       // Create financial transactions for payroll expenses and liabilities
       const totalGross = entries.reduce((sum, e) => sum + (e.gross_pay || 0), 0);
