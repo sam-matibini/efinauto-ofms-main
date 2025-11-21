@@ -125,16 +125,26 @@ export default function Accounting() {
     initialData: [],
   });
 
-  // Apply date range filter to transactions
+  // Use comparative periods if active, otherwise use date range filter
   const selectedDateRange = getDateRangeFromPreset(dateRange);
+  const effectivePeriods = activePeriods.length > 0 
+    ? activePeriods 
+    : [{ from: selectedDateRange.from, to: selectedDateRange.to, label: 'Current Period' }];
+  
   const filteredTransactions = transactions.filter(t => {
     const transDate = new Date(t.transaction_date);
+    // Filter by the union of all active periods or by selected date range
+    if (activePeriods.length > 0) {
+      return activePeriods.some(period => 
+        transDate >= period.from && transDate <= period.to
+      );
+    }
     return transDate >= selectedDateRange.from && transDate <= selectedDateRange.to;
   });
 
   // Calculate metrics for all comparative periods
-  const periodMetrics = activePeriods.map((period) => {
-    const periodTransactions = filteredTransactions.filter(t => {
+  const periodMetrics = effectivePeriods.map((period) => {
+    const periodTransactions = transactions.filter(t => {
       const transDate = new Date(t.transaction_date);
       return transDate >= period.from && transDate <= period.to;
     });
@@ -381,7 +391,7 @@ export default function Accounting() {
               sales={sales}
               repairs={repairs}
               purchases={purchases}
-              comparativePeriods={activePeriods}
+              comparativePeriods={effectivePeriods}
             />
           </TabsContent>
 
@@ -389,7 +399,7 @@ export default function Accounting() {
             <TransactionsList 
               transactions={filteredTransactions} 
               dateRange={currentDateRange} 
-              comparativePeriods={activePeriods}
+              comparativePeriods={effectivePeriods}
             />
           </TabsContent>
 
@@ -399,39 +409,39 @@ export default function Accounting() {
 
           <TabsContent value="profit-loss">
             <ProfitLossStatement 
-              transactions={filteredTransactions}
-              comparativePeriods={activePeriods}
+              transactions={transactions}
+              comparativePeriods={effectivePeriods}
             />
           </TabsContent>
 
           <TabsContent value="balance-sheet">
-            <BalanceSheet comparativePeriods={activePeriods} />
+            <BalanceSheet comparativePeriods={effectivePeriods} />
           </TabsContent>
 
           <TabsContent value="trial-balance">
             <TrialBalance 
-              transactions={filteredTransactions}
-              comparativePeriods={activePeriods}
+              transactions={transactions}
+              comparativePeriods={effectivePeriods}
             />
           </TabsContent>
 
           <TabsContent value="general-ledger">
             <GeneralLedger 
-              transactions={filteredTransactions}
-              comparativePeriods={activePeriods}
+              transactions={transactions}
+              comparativePeriods={effectivePeriods}
             />
           </TabsContent>
 
           <TabsContent value="retained-earnings">
-            <RetainedEarningsStatement comparativePeriods={activePeriods} />
+            <RetainedEarningsStatement comparativePeriods={effectivePeriods} />
           </TabsContent>
 
           <TabsContent value="cash-flow">
-            <CashFlowStatement comparativePeriods={activePeriods} />
+            <CashFlowStatement comparativePeriods={effectivePeriods} />
           </TabsContent>
 
           <TabsContent value="fixed-assets">
-            <FixedAssetsRegister comparativePeriods={activePeriods} />
+            <FixedAssetsRegister comparativePeriods={effectivePeriods} />
           </TabsContent>
           </Tabs>
       </div>
