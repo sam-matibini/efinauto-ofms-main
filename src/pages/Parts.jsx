@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Settings, AlertTriangle, Edit, Loader2, Trash2, Package, TrendingDown, TrendingUp, BarChart3 } from "lucide-react";
+import { Plus, Search, Settings, AlertTriangle, Edit, Loader2, Trash2, Package, TrendingDown, TrendingUp, BarChart3, Upload } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   Dialog,
@@ -42,6 +42,7 @@ import AIPartsSearchCanada from "@/components/parts/AIPartsSearchCanada";
 import AIPartsSearchUSA from "@/components/parts/AIPartsSearchUSA";
 import AIPartsSearchLocal from "@/components/parts/AIPartsSearchLocal";
 import AIPartsSearchMarketplace from "@/components/parts/AIPartsSearchMarketplace";
+import ImportPartsDialog from "@/components/parts/ImportPartsDialog";
 
 export default function Parts() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -52,6 +53,7 @@ export default function Parts() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editingPart, setEditingPart] = useState(null);
   const [selectedPart, setSelectedPart] = useState(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const { selectedCompanyId } = useCompany();
 
   const queryClient = useQueryClient();
@@ -162,16 +164,26 @@ export default function Parts() {
             <h1 className="text-2xl font-bold text-white">Parts Inventory</h1>
             <p className="text-sm text-gray-300 mt-1">Manage your parts stock and reorder points</p>
           </div>
-          <Button 
-            onClick={() => {
-              setEditingPart(null);
-              setDialogOpen(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Part
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setImportDialogOpen(true)}
+              variant="outline"
+              className="bg-white hover:bg-gray-100"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Import CSV
+            </Button>
+            <Button 
+              onClick={() => {
+                setEditingPart(null);
+                setDialogOpen(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Part
+            </Button>
+          </div>
         </div>
       </div>
       
@@ -381,6 +393,16 @@ export default function Parts() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ImportPartsDialog
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        companyId={selectedCompanyId}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['parts'] });
+          setImportDialogOpen(false);
+        }}
+      />
       </div>
     </div>
   );
