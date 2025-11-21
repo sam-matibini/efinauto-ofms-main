@@ -66,7 +66,13 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
     const totalCurrentAssets = cashAndBank + accountsReceivable + inventory;
 
     const fixedAssets = getAccountBalance('asset', 'fixed_assets');
-    const accumulatedDepreciation = fixedAssets * 0.2; // Simplified, should track separately
+    const accumulatedDepreciation = periodTransactions
+      .filter(t => {
+        const account = accounts.find(a => a.id === t.account_id);
+        return account?.account_name?.toLowerCase().includes('depreciation') || 
+               account?.account_name?.toLowerCase().includes('accumulated');
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
     const netFixedAssets = fixedAssets - accumulatedDepreciation;
 
     const totalAssets = totalCurrentAssets + netFixedAssets;
@@ -89,10 +95,22 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
       })
       .reduce((sum, t) => sum + t.amount, 0);
 
-    const shortTermDebt = getAccountBalance('liability') - accountsPayable - payrollLiabilities;
-    const totalCurrentLiabilities = accountsPayable + payrollLiabilities + Math.max(0, shortTermDebt);
+    const shortTermDebt = periodTransactions
+      .filter(t => {
+        const account = accounts.find(a => a.id === t.account_id);
+        return account?.account_type === 'liability' && 
+               (account?.account_code?.startsWith('21') || account?.account_code?.startsWith('22'));
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
+    const totalCurrentLiabilities = accountsPayable + payrollLiabilities + shortTermDebt;
 
-    const longTermDebt = 0; // Should track in separate account
+    const longTermDebt = periodTransactions
+      .filter(t => {
+        const account = accounts.find(a => a.id === t.account_id);
+        return account?.account_type === 'liability' && 
+               (account?.account_code?.startsWith('25') || account?.account_code?.startsWith('26'));
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
     const totalLiabilities = totalCurrentLiabilities + longTermDebt;
 
     // EQUITY
@@ -111,7 +129,13 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
       .reduce((sum, t) => sum + t.amount, 0);
 
     const retainedEarnings = revenueTotal - expenseTotal;
-    const ownerEquity = getAccountBalance('equity') || 0;
+    const ownerEquity = periodTransactions
+      .filter(t => {
+        const account = accounts.find(a => a.id === t.account_id);
+        return account?.account_type === 'equity' && 
+               !account?.account_name?.toLowerCase().includes('retained');
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
     const totalEquity = ownerEquity + retainedEarnings;
 
     const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
