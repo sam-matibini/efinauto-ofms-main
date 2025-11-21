@@ -175,8 +175,14 @@ export default function AccountDialog({ open, onClose, account }) {
         </div>
 
         <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave} disabled={saveMutation.isPending}>
+          <Button variant="outline" onClick={onClose} disabled={saveMutation.isPending}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSave} 
+            disabled={saveMutation.isPending || !formData.account_code || !formData.account_name || !formData.account_type}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
             {saveMutation.isPending ? "Saving..." : "Save Account"}
           </Button>
         </div>
