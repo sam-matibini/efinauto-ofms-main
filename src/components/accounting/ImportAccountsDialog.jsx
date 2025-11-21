@@ -11,13 +11,6 @@ export default function ImportAccountsDialog({ open, onClose, companyId, onImpor
   const [uploading, setUploading] = useState(false);
   const [file, setFile] = useState(null);
 
-  // Reset file state when dialog opens
-  React.useEffect(() => {
-    if (!open) {
-      setFile(null);
-    }
-  }, [open]);
-
   const handleFileChange = (e) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -147,11 +140,7 @@ export default function ImportAccountsDialog({ open, onClose, companyId, onImpor
             <Button variant="outline" onClick={handleClose} disabled={uploading}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleImport} 
-              disabled={!file || uploading || !companyId} 
-              className="bg-blue-600 hover:bg-blue-700"
-            >
+            <Button onClick={handleImport} disabled={!file || uploading} className="bg-blue-600">
               {uploading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
