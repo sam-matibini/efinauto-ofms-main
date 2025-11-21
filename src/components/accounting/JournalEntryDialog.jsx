@@ -98,6 +98,27 @@ export default function JournalEntryDialog({ open, onClose }) {
         <DialogHeader>
           <DialogTitle>New Journal Entry</DialogTitle>
         </DialogHeader>
+        
+        {!loadingAccounts && accounts.length === 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 my-4">
+            <h4 className="font-semibold text-yellow-900 mb-2">Chart of Accounts Required</h4>
+            <p className="text-sm text-yellow-800 mb-3">
+              You need to create your chart of accounts before creating journal entries. 
+            </p>
+            <p className="text-sm text-yellow-800 mb-3">
+              Go to the <strong>Chart of Accounts</strong> tab and either:
+            </p>
+            <ul className="list-disc list-inside text-sm text-yellow-800 space-y-1 mb-3">
+              <li>Click <strong>AI Generate</strong> to automatically create accounts</li>
+              <li>Click <strong>Add Account</strong> to create accounts manually</li>
+              <li>Click <strong>Import</strong> to upload accounts from a file</li>
+            </ul>
+            <Button onClick={onClose} variant="outline" size="sm">
+              Close and Setup Accounts
+            </Button>
+          </div>
+        )}
+        
         <div className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
