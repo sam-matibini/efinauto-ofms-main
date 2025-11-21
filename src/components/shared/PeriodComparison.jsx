@@ -24,26 +24,26 @@ export default function PeriodComparison({ onPeriodsChange, maxPeriods = 12 }) {
       
       switch (compareType) {
         case "previous_period":
-          const targetMonth = subMonths(today, i + 1);
+          const targetMonth = subMonths(today, i);
           from = startOfMonth(targetMonth);
-          to = endOfMonth(targetMonth);
+          to = i === 0 ? today : endOfMonth(targetMonth);
           label = format(from, 'MMM yyyy');
           break;
         case "previous_quarter":
-          const targetQuarter = subQuarters(today, i + 1);
+          const targetQuarter = subQuarters(today, i);
           from = startOfQuarter(targetQuarter);
-          to = endOfQuarter(targetQuarter);
+          to = i === 0 ? today : endOfQuarter(targetQuarter);
           label = `Q${Math.floor(from.getMonth() / 3) + 1} ${from.getFullYear()}`;
           break;
         case "previous_year":
-          const targetYear = subYears(today, i + 1);
+          const targetYear = subYears(today, i);
           from = startOfYear(targetYear);
-          to = endOfYear(targetYear);
+          to = i === 0 ? today : endOfYear(targetYear);
           label = from.getFullYear().toString();
           break;
         default:
-          from = startOfMonth(subMonths(today, i + 1));
-          to = endOfMonth(subMonths(today, i + 1));
+          from = startOfMonth(subMonths(today, i));
+          to = i === 0 ? today : endOfMonth(subMonths(today, i));
           label = format(from, 'MMM yyyy');
       }
       
