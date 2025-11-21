@@ -412,56 +412,43 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
         {/* Step 3: Preview */}
         {step === 3 && (
           <div className="space-y-4">
-            {validationErrors.length === 0 ? (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                <p className="text-sm font-semibold text-green-900">✓ Ready to Import</p>
-                <p className="text-sm text-green-800 mt-1">
-                  {extractedData.length} accounts validated successfully. Review the preview below:
-                </p>
-              </div>
-            ) : (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                <p className="text-sm font-semibold text-yellow-900">⚠️ Import with Warnings</p>
-                <p className="text-sm text-yellow-800 mt-1">
-                  {extractedData.length - validationErrors.length} valid accounts will be imported. 
-                  {validationErrors.length} accounts with errors will be skipped.
-                </p>
-              </div>
-            )}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm font-semibold text-blue-900 mb-1">Preview</p>
+              <p className="text-xs text-blue-800">
+                {applyFieldMapping(extractedData).filter(a => a.account_code && a.account_name && a.account_type).length} records ready to be imported
+              </p>
+              <p className="text-xs text-blue-800 mt-1">
+                {extractedData.length - applyFieldMapping(extractedData).filter(a => a.account_code && a.account_name && a.account_type).length} records skipped (missing required fields or unmapped)
+              </p>
+            </div>
 
             <div className="border rounded-lg overflow-hidden max-h-96 overflow-y-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr>
-                    <th className="text-left p-3 border-b">Status</th>
                     <th className="text-left p-3 border-b">Code</th>
                     <th className="text-left p-3 border-b">Name</th>
                     <th className="text-left p-3 border-b">Type</th>
+                    <th className="text-left p-3 border-b">Category</th>
                     <th className="text-right p-3 border-b">Balance</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {extractedData.map((account, idx) => {
-                    const hasError = validationErrors.find(e => e.row === idx + 1);
-                    return (
-                      <tr key={idx} className={hasError ? "bg-red-50" : "hover:bg-gray-50"}>
-                        <td className="p-3 border-b">
-                          {hasError ? (
-                            <span className="text-red-600 text-xs">❌ Error</span>
-                          ) : (
-                            <span className="text-green-600 text-xs">✓ Valid</span>
-                          )}
-                        </td>
-                        <td className="p-3 border-b font-mono text-xs">{account.account_code}</td>
-                        <td className="p-3 border-b">{account.account_name}</td>
-                        <td className="p-3 border-b capitalize">{account.account_type}</td>
-                        <td className="p-3 border-b text-right">{account.balance || '0'}</td>
-                      </tr>
-                    );
-                  })}
+                  {applyFieldMapping(extractedData).slice(0, 50).map((account, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="p-3 border-b font-mono text-xs">{account.account_code || '-'}</td>
+                      <td className="p-3 border-b">{account.account_name || '-'}</td>
+                      <td className="p-3 border-b capitalize">{account.account_type || '-'}</td>
+                      <td className="p-3 border-b">{account.account_category || 'other'}</td>
+                      <td className="p-3 border-b text-right">{account.balance || '0'}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
+            {applyFieldMapping(extractedData).length > 50 && (
+              <p className="text-xs text-gray-600 text-center">Showing first 50 of {applyFieldMapping(extractedData).length} records</p>
+            )}
           </div>
         )}
 
