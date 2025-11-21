@@ -60,6 +60,10 @@ export default function AIChartOfAccounts() {
 
   const generateAccountsMutation = useMutation({
     mutationFn: async (description) => {
+      console.log('[AI] Starting account generation...');
+      console.log('[AI] Company ID:', selectedCompanyId);
+      console.log('[AI] User role:', currentUser?.role);
+      
       const businessDesc = description || `${company?.name || 'Company'} - automotive dealership with sales, service, parts, and export operations`;
       
       const prompt = `Generate a chart of accounts for: ${businessDesc}
@@ -73,6 +77,7 @@ Include these account types with standard codes:
 
 Create 40-50 accounts total.`;
 
+      console.log('[AI] Calling InvokeLLM...');
       const result = await base44.integrations.Core.InvokeLLM({
         prompt,
         add_context_from_internet: false,
@@ -102,10 +107,14 @@ Create 40-50 accounts total.`;
         }
       });
 
+      console.log('[AI] LLM Response:', result);
+
       if (!result || !result.accounts || !Array.isArray(result.accounts)) {
+        console.error('[AI] Invalid response structure:', result);
         throw new Error("Invalid response from AI");
       }
 
+      console.log('[AI] Generated accounts count:', result.accounts.length);
       return result.accounts;
     },
     onSuccess: async (generatedAccounts) => {
