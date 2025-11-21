@@ -380,7 +380,7 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
         }
       }
 
-      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      await queryClient.invalidateQueries({ queryKey: ['accounts', companyId] });
       
       setTimeout(() => {
         onClose();
