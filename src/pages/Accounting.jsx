@@ -47,7 +47,7 @@ export default function Accounting() {
         break;
       case "this_month":
         from = startOfMonth(today);
-        to = endOfMonth(today);
+        to = today;
         break;
       case "this_quarter":
         from = startOfQuarter(today);
