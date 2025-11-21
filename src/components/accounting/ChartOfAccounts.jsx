@@ -119,27 +119,40 @@ export default function ChartOfAccounts() {
 
       console.log("AI Response:", response);
 
-      if (response?.accounts && Array.isArray(response.accounts)) {
+      if (response?.accounts && Array.isArray(response.accounts) && response.accounts.length > 0) {
         toast.info(`Creating ${response.accounts.length} accounts...`);
         
-        const accountsToCreate = response.accounts.map(acc => ({
-          company_id: selectedCompanyId,
-          account_code: acc.account_code,
-          account_name: acc.account_name,
-          account_type: acc.account_type,
-          account_category: acc.account_category || 'general',
-          balance: acc.balance || 0,
-          description: acc.description || ''
-        }));
+        let successCount = 0;
+        let errorCount = 0;
 
-        for (const account of accountsToCreate) {
-          await base44.entities.Account.create(account);
+        for (const acc of response.accounts) {
+          try {
+            await base44.entities.Account.create({
+              company_id: selectedCompanyId,
+              account_code: acc.account_code,
+              account_name: acc.account_name,
+              account_type: acc.account_type,
+              account_category: acc.account_category || 'general',
+              balance: acc.balance || 0,
+              description: acc.description || ''
+            });
+            successCount++;
+          } catch (err) {
+            console.error(`Failed to create account ${acc.account_code}:`, err);
+            errorCount++;
+          }
         }
 
         queryClient.invalidateQueries({ queryKey: ['accounts'] });
-        toast.success(`Successfully created ${accountsToCreate.length} accounts!`);
+        
+        if (successCount > 0) {
+          toast.success(`Successfully created ${successCount} accounts!${errorCount > 0 ? ` (${errorCount} failed)` : ''}`);
+        } else {
+          toast.error("Failed to create accounts");
+        }
       } else {
-        toast.error("Invalid response format from AI");
+        console.log("Response structure:", JSON.stringify(response, null, 2));
+        toast.error(`Invalid response from AI: ${response ? 'No accounts in response' : 'Empty response'}`);
       }
     } catch (error) {
       console.error("Error generating accounts:", error);
