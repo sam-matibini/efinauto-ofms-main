@@ -464,7 +464,7 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
           </Button>
           <Button 
             onClick={handleNext} 
-            disabled={uploading || (step === 2 && validationErrors.length === extractedData.length)} 
+            disabled={uploading} 
             className="bg-blue-600"
           >
             {uploading ? (
