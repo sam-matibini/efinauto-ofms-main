@@ -47,65 +47,17 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
     }
   };
 
-  const validateAccounts = (accounts) => {
-    console.log("🔍 Validating", accounts.length, "accounts...");
-    const errors = [];
-    const seenCodes = new Set();
-    const validTypes = ['asset', 'liability', 'equity', 'revenue', 'expense'];
-
-    accounts.forEach((account, index) => {
-      const rowErrors = [];
-      const rowNum = index + 1;
-
-      // Check for missing required fields
-      if (!account.account_code || String(account.account_code).trim() === '') {
-        rowErrors.push('Missing account code');
-      }
-      if (!account.account_name || String(account.account_name).trim() === '') {
-        rowErrors.push('Missing account name');
-      }
-      if (!account.account_type || String(account.account_type).trim() === '') {
-        rowErrors.push('Missing account type');
-      }
-
-      // Check for invalid account type
-      if (account.account_type) {
-        const type = String(account.account_type).toLowerCase().trim();
-        if (!validTypes.includes(type)) {
-          rowErrors.push(`Invalid account type: "${account.account_type}". Must be: asset, liability, equity, revenue, or expense`);
+  const applyFieldMapping = (rawData) => {
+    return rawData.map(row => {
+      const mapped = {};
+      Object.keys(fieldMapping).forEach(targetField => {
+        const sourceColumn = fieldMapping[targetField];
+        if (sourceColumn && row[sourceColumn] !== undefined) {
+          mapped[targetField] = row[sourceColumn];
         }
-      }
-
-      // Check for duplicate codes within file
-      if (account.account_code) {
-        const code = String(account.account_code).trim();
-        if (seenCodes.has(code)) {
-          rowErrors.push(`Duplicate account code: ${code}`);
-        }
-        seenCodes.add(code);
-      }
-
-      // Check balance format
-      if (account.balance && account.balance !== '0') {
-        const balanceStr = String(account.balance).replace(/[^0-9.-]/g, '');
-        if (isNaN(parseFloat(balanceStr))) {
-          rowErrors.push(`Invalid balance format: "${account.balance}"`);
-        }
-      }
-
-      if (rowErrors.length > 0) {
-        console.log(`⚠️ Row ${rowNum} validation errors:`, rowErrors);
-        errors.push({
-          row: rowNum,
-          account_code: account.account_code,
-          account_name: account.account_name,
-          errors: rowErrors
-        });
-      }
+      });
+      return mapped;
     });
-
-    console.log(`Validation complete: ${errors.length} errors found out of ${accounts.length} accounts`);
-    setValidationErrors(errors);
   };
 
   const handleFileSelection = (selectedFile) => {
