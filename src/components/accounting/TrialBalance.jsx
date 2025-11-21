@@ -3,8 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Printer } from "lucide-react";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import { useCompany } from "@/components/shared/CompanyContext";
 
 export default function TrialBalance({ transactions, comparativePeriods = [] }) {
+  const { selectedCompanyId } = useCompany();
   const periods = comparativePeriods.length > 0 ? comparativePeriods : [{ 
     from: new Date(new Date().getFullYear(), 0, 1), 
     to: new Date(),
