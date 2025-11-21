@@ -46,6 +46,18 @@ export default function AccountDialog({ open, onClose, account }) {
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
+      // Check for duplicate account code if creating new account
+      if (!account) {
+        const existingAccounts = await base44.entities.Account.filter({ 
+          company_id: selectedCompanyId,
+          account_code: String(data.account_code).trim()
+        });
+        
+        if (existingAccounts && existingAccounts.length > 0) {
+          throw new Error(`Account code "${data.account_code}" already exists`);
+        }
+      }
+
       const accountData = {
         account_code: String(data.account_code).trim(),
         account_name: String(data.account_name).trim(),

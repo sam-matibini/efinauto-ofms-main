@@ -127,21 +127,34 @@ Create 40-50 accounts total.`;
           return;
         }
 
+        // Fetch existing accounts to check for duplicates
+        const existingAccounts = await base44.entities.Account.filter({ company_id: selectedCompanyId });
+        const existingCodes = new Set(existingAccounts.map(a => a.account_code?.toLowerCase()));
+
         let created = 0;
-        let failed = 0;
+        let skipped = 0;
         const errors = [];
         
         for (const account of generatedAccounts) {
           if (!account.account_code || !account.account_name || !account.account_type) {
             console.warn('[Create] Missing required fields:', account);
-            failed++;
+            skipped++;
+            continue;
+          }
+
+          const accountCode = String(account.account_code).trim();
+          
+          // Skip if duplicate
+          if (existingCodes.has(accountCode.toLowerCase())) {
+            console.log('[Create] Skipping duplicate:', accountCode);
+            skipped++;
             continue;
           }
           
           try {
             const accountData = {
               company_id: selectedCompanyId,
-              account_code: String(account.account_code).trim(),
+              account_code: accountCode,
               account_name: String(account.account_name).trim(),
               account_type: String(account.account_type).toLowerCase().trim(),
               account_category: account.account_category ? String(account.account_category).toLowerCase().trim() : 'other',
@@ -152,15 +165,16 @@ Create 40-50 accounts total.`;
             console.log('[Create] Creating account:', accountData.account_code, accountData.account_name);
             const result = await base44.entities.Account.create(accountData);
             console.log('[Create] Created successfully:', result.id);
+            existingCodes.add(accountCode.toLowerCase());
             created++;
           } catch (err) {
             console.error('[Create] Failed to create account:', account.account_code, err);
             errors.push({ code: account.account_code, error: err.message });
-            failed++;
+            skipped++;
           }
         }
         
-        console.log('[Create] Summary - Created:', created, 'Failed:', failed);
+        console.log('[Create] Summary - Created:', created, 'Skipped:', skipped);
         if (errors.length > 0) {
           console.error('[Create] Errors:', errors);
         }
@@ -168,9 +182,9 @@ Create 40-50 accounts total.`;
         await queryClient.invalidateQueries({ queryKey: ['accounts'] });
         
         if (created > 0) {
-          toast.success(`Successfully generated ${created} accounts${failed > 0 ? ` (${failed} failed due to permissions or duplicates)` : ''}`);
+          toast.success(`Successfully generated ${created} accounts${skipped > 0 ? ` (${skipped} skipped - duplicates or errors)` : ''}`);
         } else {
-          toast.error(`Failed to create accounts. Check console for details. Most common issue: user role (${currentUser?.role}) lacks permission.`);
+          toast.error(`No accounts created. All were duplicates or had errors.`);
         }
         
         setAiDialogOpen(false);
