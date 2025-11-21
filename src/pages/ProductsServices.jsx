@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Package, Wrench, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Package, Wrench, Edit, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import ProductDialog from "@/components/products-services/ProductDialog";
 import ServiceDialog from "@/components/products-services/ServiceDialog";
+import ImportDialog from "@/components/products-services/ImportDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +31,7 @@ export default function ProductsServicesPage() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [editingService, setEditingService] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, type: null, id: null });
+  const [importDialog, setImportDialog] = useState({ open: false, type: null });
 
   const { data: products = [], isLoading: loadingProducts } = useQuery({
     queryKey: ['products', selectedCompanyId],
@@ -232,10 +234,16 @@ export default function ProductsServicesPage() {
           <TabsContent value="products" className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold">Products Catalog</h2>
-              <Button onClick={() => { setEditingProduct(null); setProductDialogOpen(true); }}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Product
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setImportDialog({ open: true, type: 'product' })}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import
+                </Button>
+                <Button onClick={() => { setEditingProduct(null); setProductDialogOpen(true); }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Product
+                </Button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -295,10 +303,16 @@ export default function ProductsServicesPage() {
           <TabsContent value="services" className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold">Services Catalog</h2>
-              <Button onClick={() => { setEditingService(null); setServiceDialogOpen(true); }}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Service
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setImportDialog({ open: true, type: 'service' })}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import
+                </Button>
+                <Button onClick={() => { setEditingService(null); setServiceDialogOpen(true); }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Service
+                </Button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -390,6 +404,18 @@ export default function ProductsServicesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ImportDialog
+        open={importDialog.open}
+        onClose={() => setImportDialog({ open: false, type: null })}
+        type={importDialog.type}
+        companyId={selectedCompanyId}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['products'] });
+          queryClient.invalidateQueries({ queryKey: ['services'] });
+          setImportDialog({ open: false, type: null });
+        }}
+      />
     </div>
   );
 }
