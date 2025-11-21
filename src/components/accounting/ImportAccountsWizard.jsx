@@ -49,6 +49,7 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
   };
 
   const validateAccounts = (accounts) => {
+    console.log("🔍 Validating", accounts.length, "accounts...");
     const errors = [];
     const seenCodes = new Set();
     const validTypes = ['asset', 'liability', 'equity', 'revenue', 'expense'];
@@ -94,6 +95,7 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
       }
 
       if (rowErrors.length > 0) {
+        console.log(`⚠️ Row ${rowNum} validation errors:`, rowErrors);
         errors.push({
           row: rowNum,
           account_code: account.account_code,
@@ -103,6 +105,7 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
       }
     });
 
+    console.log(`Validation complete: ${errors.length} errors found out of ${accounts.length} accounts`);
     setValidationErrors(errors);
   };
 
@@ -156,8 +159,11 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
       
       setUploading(true);
       try {
+        console.log("📁 Uploading file:", file.name);
         const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        console.log("✅ File uploaded:", file_url);
         
+        console.log("🔍 Extracting data from file...");
         const extractResponse = await base44.integrations.Core.ExtractDataFromUploadedFile({
           file_url,
           json_schema: {
@@ -173,18 +179,25 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
           }
         });
 
+        console.log("📊 Extract response:", extractResponse);
+
         if (extractResponse.status === "success" && extractResponse.output) {
           let accounts = extractResponse.output;
+          console.log("Raw accounts data:", accounts);
+          
           if (!Array.isArray(accounts)) {
             accounts = [accounts];
           }
           
+          const beforeFilter = accounts.length;
           accounts = accounts.filter(acc => 
             acc && acc.account_code && acc.account_name && acc.account_type
           );
+          console.log(`Filtered ${beforeFilter} -> ${accounts.length} accounts`);
           
           if (accounts.length === 0) {
-            toast.error("No valid accounts found in file");
+            toast.error("No valid accounts found in file. Check that your file has account_code, account_name, and account_type columns.");
+            console.error("❌ No accounts after filtering");
             setUploading(false);
             return;
           }
@@ -193,14 +206,18 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
           validateAccounts(accounts);
           setStep(2);
         } else {
-          toast.error(`Failed to extract data: ${extractResponse.details || 'Unknown error'}`);
+          const errorMsg = `Failed to extract data: ${extractResponse.details || extractResponse.status || 'Unknown error'}`;
+          console.error("❌ Extraction failed:", extractResponse);
+          toast.error(errorMsg);
         }
       } catch (error) {
+        console.error("❌ Upload/extraction error:", error);
         toast.error(`Upload failed: ${error.message}`);
       } finally {
         setUploading(false);
       }
     } else if (step === 2) {
+      console.log(`✅ Moving to step 3. Valid accounts: ${extractedData.length - validationErrors.length}/${extractedData.length}`);
       setStep(3);
     } else if (step === 3) {
       await handleImport();
@@ -209,12 +226,20 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
 
   const handleImport = async () => {
     setUploading(true);
+    console.log("🚀 Starting import process...");
+    console.log("Company ID:", companyId);
+    console.log("Total accounts to process:", extractedData.length);
+    console.log("Duplicate handling:", duplicateHandling);
+    
     try {
+      console.log("📥 Fetching existing accounts...");
       const existingAccounts = await base44.entities.Account.filter({ company_id: companyId });
+      console.log(`Found ${existingAccounts.length} existing accounts`);
       const existingCodes = new Set(existingAccounts.map(a => a.account_code));
       
       // Get error rows to skip
       const errorRows = new Set(validationErrors.map(e => e.row));
+      console.log(`Skipping ${errorRows.size} rows with validation errors`);
       
       let created = 0;
       let skipped = 0;
@@ -224,18 +249,22 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
 
       for (let idx = 0; idx < extractedData.length; idx++) {
         const account = extractedData[idx];
+        const rowNum = idx + 1;
         
         // Skip accounts with validation errors
-        if (errorRows.has(idx + 1)) {
+        if (errorRows.has(rowNum)) {
+          console.log(`⏭️ Skipping row ${rowNum} (validation error)`);
           skipped++;
           continue;
         }
+        
         try {
           const accountType = String(account.account_type).toLowerCase().trim();
           const validTypes = ['asset', 'liability', 'equity', 'revenue', 'expense'];
           
           if (!validTypes.includes(accountType)) {
-            errors.push(`${account.account_code}: Invalid type "${account.account_type}"`);
+            console.error(`❌ Row ${rowNum}: Invalid type "${account.account_type}"`);
+            errors.push(`Row ${rowNum} (${account.account_code}): Invalid type "${account.account_type}"`);
             failed++;
             continue;
           }
@@ -244,6 +273,7 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
           const isDuplicate = existingCodes.has(accountCode);
 
           if (isDuplicate && duplicateHandling === "skip") {
+            console.log(`⏭️ Row ${rowNum}: Skipping duplicate ${accountCode}`);
             skipped++;
             continue;
           }
@@ -260,14 +290,17 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
 
           if (isDuplicate && duplicateHandling === "overwrite") {
             const existingAccount = existingAccounts.find(a => a.account_code === accountCode);
+            console.log(`🔄 Row ${rowNum}: Updating ${accountCode}`);
             await base44.entities.Account.update(existingAccount.id, accountData);
             updated++;
           } else {
+            console.log(`➕ Row ${rowNum}: Creating ${accountCode}`);
             await base44.entities.Account.create(accountData);
             created++;
           }
         } catch (err) {
-          errors.push(`${account.account_code}: ${err.message || 'Failed'}`);
+          console.error(`❌ Row ${rowNum} failed:`, err);
+          errors.push(`Row ${rowNum} (${account.account_code}): ${err.message || 'Failed'}`);
           failed++;
         }
       }
@@ -278,15 +311,22 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
       if (skipped > 0) summary.push(`${skipped} skipped`);
       if (failed > 0) summary.push(`${failed} failed`);
 
+      console.log("✅ Import complete:", summary.join(', '));
       toast.success(`Import complete: ${summary.join(', ')}`);
       
-      if (errors.length > 0 && errors.length <= 3) {
-        errors.forEach(err => toast.error(err, { duration: 5000 }));
+      if (errors.length > 0) {
+        console.error("Import errors:", errors);
+        if (errors.length <= 5) {
+          errors.forEach(err => toast.error(err, { duration: 5000 }));
+        } else {
+          toast.error(`${errors.length} accounts failed. Check console for details.`, { duration: 5000 });
+        }
       }
 
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       onClose();
     } catch (error) {
+      console.error("❌ Import failed:", error);
       toast.error(`Import failed: ${error.message}`);
     } finally {
       setUploading(false);
