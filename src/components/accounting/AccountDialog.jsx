@@ -64,10 +64,15 @@ export default function AccountDialog({ open, onClose, account }) {
   });
 
   const handleSave = () => {
+    if (!selectedCompanyId) {
+      toast.error("Please select a company first");
+      return;
+    }
     if (!formData.account_code || !formData.account_name) {
       toast.error("Please fill in required fields");
       return;
     }
+    console.log("Saving account with data:", { ...formData, company_id: selectedCompanyId });
     saveMutation.mutate(formData);
   };
 
