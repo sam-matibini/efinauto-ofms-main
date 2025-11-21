@@ -46,20 +46,37 @@ export default function AccountDialog({ open, onClose, account }) {
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
-      if (account) {
-        return await base44.entities.Account.update(account.id, data);
-      } else {
-        return await base44.entities.Account.create({ ...data, company_id: selectedCompanyId });
+      try {
+        console.log("Starting mutation with data:", data);
+        console.log("Company ID:", selectedCompanyId);
+        console.log("Is update?", !!account);
+        
+        let result;
+        if (account) {
+          console.log("Updating account ID:", account.id);
+          result = await base44.entities.Account.update(account.id, data);
+        } else {
+          const createData = { ...data, company_id: selectedCompanyId };
+          console.log("Creating account with data:", createData);
+          result = await base44.entities.Account.create(createData);
+        }
+        
+        console.log("Mutation result:", result);
+        return result;
+      } catch (err) {
+        console.error("Mutation error details:", err);
+        throw err;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Save successful, invalidating queries...");
       queryClient.invalidateQueries({ queryKey: ['accounts', selectedCompanyId] });
-      toast.success(account ? "Account updated" : "Account created");
+      toast.success(account ? "Account updated!" : "Account created!");
       onClose();
     },
     onError: (error) => {
-      console.error("Account save error:", error);
-      toast.error("Failed to save account: " + (error.message || "Unknown error"));
+      console.error("Save mutation failed:", error);
+      toast.error("Failed to save: " + (error.message || JSON.stringify(error)));
     }
   });
 
