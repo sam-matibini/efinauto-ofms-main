@@ -775,18 +775,11 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                         visibility: visible !important;
                       }
                       .paystub-print-container h2,
-                      .paystub-print-container h3,
                       .paystub-print-container p,
                       .paystub-print-container span,
                       .paystub-print-container div {
                         visibility: visible !important;
                         color: black !important;
-                        display: block !important;
-                      }
-                      .paystub-print-container .text-center,
-                      .paystub-print-container .border-b {
-                        visibility: visible !important;
-                        display: block !important;
                       }
                       .paystub-print-container h2 {
                         font-size: 18px;
