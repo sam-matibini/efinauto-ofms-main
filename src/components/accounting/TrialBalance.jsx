@@ -3,51 +3,59 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Printer } from "lucide-react";
 import { format } from "date-fns";
-import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
-import { useCompany } from "@/components/shared/CompanyContext";
 
 export default function TrialBalance({ transactions, comparativePeriods = [] }) {
-  const { selectedCompanyId } = useCompany();
   const periods = comparativePeriods.length > 0 ? comparativePeriods : [{ 
     from: new Date(new Date().getFullYear(), 0, 1), 
     to: new Date(),
     label: 'Current Period'
   }];
 
-  // Fetch imported accounts from chart of accounts
-  const { data: importedAccounts = [], isLoading } = useQuery({
-    queryKey: ['accounts', selectedCompanyId],
-    queryFn: () => base44.entities.Account.filter({ company_id: selectedCompanyId }, 'account_code'),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  // Group imported accounts by type
-  const accountGroups = React.useMemo(() => {
-    const groups = {
-      asset: { title: "Assets", accounts: [] },
-      liability: { title: "Liabilities", accounts: [] },
-      equity: { title: "Equity", accounts: [] },
-      revenue: { title: "Revenue", accounts: [] },
-      expense: { title: "Expenses", accounts: [] }
-    };
-
-    importedAccounts.forEach(account => {
-      const type = account.account_type?.toLowerCase();
-      if (groups[type]) {
-        groups[type].accounts.push({
-          id: account.id,
-          code: account.account_code,
-          name: account.account_name,
-          type: type,
-          balance: account.balance || 0
-        });
-      }
-    });
-
-    return groups;
-  }, [importedAccounts]);
+  // Define account structure
+  const accountGroups = {
+    assets: {
+      title: "Assets",
+      accounts: [
+        { name: "Cash and Bank", type: "asset" },
+        { name: "Accounts Receivable", type: "asset" },
+        { name: "Inventory", type: "asset" },
+        { name: "Fixed Assets", type: "asset" },
+      ]
+    },
+    liabilities: {
+      title: "Liabilities",
+      accounts: [
+        { name: "Accounts Payable", type: "liability" },
+        { name: "Payroll Liabilities", type: "liability" },
+        { name: "Short-term Debt", type: "liability" },
+        { name: "Long-term Debt", type: "liability" },
+      ]
+    },
+    equity: {
+      title: "Equity",
+      accounts: [
+        { name: "Owner's Equity", type: "equity" },
+        { name: "Retained Earnings", type: "equity" },
+      ]
+    },
+    revenue: {
+      title: "Revenue",
+      accounts: [
+        { name: "Sales Revenue", type: "revenue" },
+        { name: "Service Revenue", type: "revenue" },
+        { name: "Parts Revenue", type: "revenue" },
+      ]
+    },
+    expenses: {
+      title: "Expenses",
+      accounts: [
+        { name: "Cost of Goods Sold", type: "expense" },
+        { name: "Payroll Expenses", type: "expense" },
+        { name: "Operating Expenses", type: "expense" },
+        { name: "Overhead Expenses", type: "expense" },
+      ]
+    }
+  };
 
   // Calculate balances for each period
   const periodData = periods.map(period => {
