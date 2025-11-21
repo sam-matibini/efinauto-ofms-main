@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, FileText, Calendar, DollarSign } from "lucide-react";
@@ -9,6 +10,8 @@ import MyPaystubs from "@/components/employee-portal/MyPaystubs";
 import MyTimeOff from "@/components/employee-portal/MyTimeOff";
 
 export default function EmployeePortal() {
+  const { selectedCompanyId } = useCompany();
+  
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
@@ -17,44 +20,57 @@ export default function EmployeePortal() {
   const employeeEntityId = currentUser?.employee_entity_id || currentUser?.data?.employee_entity_id;
 
   const { data: employee, isLoading: employeeLoading } = useQuery({
-    queryKey: ['myEmployee', employeeEntityId, currentUser?.email, currentUser?.data?.company_id],
+    queryKey: ['myEmployee', employeeEntityId, currentUser?.email, selectedCompanyId],
     queryFn: async () => {
-      // First try by employee_entity_id
-      if (employeeEntityId) {
-        const emps = await base44.entities.Employee.filter({ id: employeeEntityId });
-        if (emps[0]) return emps[0];
-      }
-      
-      // Then try by email
-      if (currentUser?.email) {
-        const emps = await base44.entities.Employee.filter({ email: currentUser.email });
-        if (emps[0]) return emps[0];
-      }
-      
-      // Finally, try to find any employee in the user's company (not just active)
-      if (currentUser?.data?.company_id) {
+      // First try by employee_entity_id in the selected company
+      if (employeeEntityId && selectedCompanyId) {
         const emps = await base44.entities.Employee.filter({ 
-          company_id: currentUser.data.company_id
+          id: employeeEntityId,
+          company_id: selectedCompanyId 
         });
-        // Return the first employee
         if (emps[0]) return emps[0];
       }
       
-      // If no company_id set, try to get any employee
-      const allEmps = await base44.entities.Employee.list();
-      if (allEmps[0]) return allEmps[0];
+      // Then try by email in the selected company
+      if (currentUser?.email && selectedCompanyId) {
+        const emps = await base44.entities.Employee.filter({ 
+          email: currentUser.email,
+          company_id: selectedCompanyId
+        });
+        if (emps[0]) return emps[0];
+      }
+      
+      // Try to find any employee in the selected company
+      if (selectedCompanyId) {
+        const emps = await base44.entities.Employee.filter({ 
+          company_id: selectedCompanyId
+        });
+        if (emps[0]) return emps[0];
+      }
       
       return null;
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser && !!selectedCompanyId,
   });
+
+  if (!selectedCompanyId) {
+    return (
+      <div className="p-6">
+        <Card className="bg-yellow-50 border-yellow-200">
+          <CardContent className="p-6">
+            <p className="text-yellow-800">Please select a company to access the employee portal.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!employee && !employeeLoading) {
     return (
       <div className="p-6">
         <Card className="bg-yellow-50 border-yellow-200">
           <CardContent className="p-6">
-            <p className="text-yellow-800">Your account is not linked to an employee record. Please contact HR.</p>
+            <p className="text-yellow-800">Your account is not linked to an employee record in this company. Please contact HR.</p>
           </CardContent>
         </Card>
       </div>
