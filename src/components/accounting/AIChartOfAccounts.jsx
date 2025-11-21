@@ -58,6 +58,53 @@ export default function AIChartOfAccounts() {
     }
   });
 
+  const removeDuplicatesMutation = useMutation({
+    mutationFn: async () => {
+      const allAccounts = await base44.entities.Account.filter({ company_id: selectedCompanyId });
+      const accountsByCode = {};
+      const toDelete = [];
+      
+      // Group accounts by code
+      allAccounts.forEach(account => {
+        const code = account.account_code?.toLowerCase();
+        if (!code) return;
+        
+        if (!accountsByCode[code]) {
+          accountsByCode[code] = [];
+        }
+        accountsByCode[code].push(account);
+      });
+      
+      // For each code with duplicates, keep the oldest one, delete the rest
+      Object.values(accountsByCode).forEach(accounts => {
+        if (accounts.length > 1) {
+          // Sort by created_date ascending (oldest first)
+          accounts.sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+          // Delete all except the first (oldest)
+          toDelete.push(...accounts.slice(1));
+        }
+      });
+      
+      // Delete duplicates
+      for (const account of toDelete) {
+        await base44.entities.Account.delete(account.id);
+      }
+      
+      return toDelete.length;
+    },
+    onSuccess: (deletedCount) => {
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      if (deletedCount > 0) {
+        toast.success(`Removed ${deletedCount} duplicate account${deletedCount > 1 ? 's' : ''}`);
+      } else {
+        toast.info("No duplicate accounts found");
+      }
+    },
+    onError: () => {
+      toast.error("Failed to remove duplicates");
+    }
+  });
+
   const generateAccountsMutation = useMutation({
     mutationFn: async (description) => {
       console.log('[AI] Starting account generation...');
