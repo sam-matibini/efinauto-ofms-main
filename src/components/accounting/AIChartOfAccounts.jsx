@@ -45,7 +45,7 @@ export default function AIChartOfAccounts() {
     initialData: [],
   });
 
-  const hasAccountPermission = currentUser?.role === 'admin' || currentUser?.role === 'accountant';
+  const hasAccountPermission = currentUser?.role === 'admin' || currentUser?.role === 'user';
 
   const deleteAccountMutation = useMutation({
     mutationFn: (accountId) => base44.entities.Account.delete(accountId),
@@ -271,7 +271,7 @@ Create 40-50 accounts total.`;
           <p className="text-red-800 font-semibold">⚠️ Permission Denied</p>
           <p className="text-sm text-red-700 mt-2">
             Your role ({currentUser?.role}) does not have permission to manage accounts. 
-            Only admins and accountants can create, edit, or delete accounts.
+            Only admins and users can create, edit, or delete accounts.
           </p>
         </CardContent>
       </Card>
