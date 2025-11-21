@@ -21,6 +21,7 @@ import RevenueOverview from "@/components/accounting/RevenueOverview";
 import TransactionsList from "@/components/accounting/TransactionsList";
 import ProfitLossStatement from "@/components/accounting/ProfitLossStatement";
 import ChartOfAccounts from "@/components/accounting/ChartOfAccounts";
+import ChartOfAccountsReference from "@/components/accounting/ChartOfAccountsReference";
 import BalanceSheet from "@/components/accounting/BalanceSheet";
 import RetainedEarningsStatement from "@/components/accounting/RetainedEarningsStatement";
 import CashFlowStatement from "@/components/accounting/CashFlowStatement";
@@ -431,7 +432,18 @@ export default function Accounting() {
           </TabsContent>
 
           <TabsContent value="accounts">
-            <ChartOfAccounts />
+            <Tabs defaultValue="my-accounts">
+              <TabsList>
+                <TabsTrigger value="my-accounts">My Accounts</TabsTrigger>
+                <TabsTrigger value="reference">Reference Guide</TabsTrigger>
+              </TabsList>
+              <TabsContent value="my-accounts" className="mt-6">
+                <ChartOfAccounts />
+              </TabsContent>
+              <TabsContent value="reference" className="mt-6">
+                <ChartOfAccountsReference />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         </Tabs>
       </div>
