@@ -18,6 +18,7 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
   const [encoding, setEncoding] = useState("utf-8");
   const [dragActive, setDragActive] = useState(false);
   const [extractedData, setExtractedData] = useState([]);
+  const [validationErrors, setValidationErrors] = useState([]);
   const [fieldMapping, setFieldMapping] = useState({
     account_code: "account_code",
     account_name: "account_name",
@@ -45,6 +46,64 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFileSelection(e.dataTransfer.files[0]);
     }
+  };
+
+  const validateAccounts = (accounts) => {
+    const errors = [];
+    const seenCodes = new Set();
+    const validTypes = ['asset', 'liability', 'equity', 'revenue', 'expense'];
+
+    accounts.forEach((account, index) => {
+      const rowErrors = [];
+      const rowNum = index + 1;
+
+      // Check for missing required fields
+      if (!account.account_code || String(account.account_code).trim() === '') {
+        rowErrors.push('Missing account code');
+      }
+      if (!account.account_name || String(account.account_name).trim() === '') {
+        rowErrors.push('Missing account name');
+      }
+      if (!account.account_type || String(account.account_type).trim() === '') {
+        rowErrors.push('Missing account type');
+      }
+
+      // Check for invalid account type
+      if (account.account_type) {
+        const type = String(account.account_type).toLowerCase().trim();
+        if (!validTypes.includes(type)) {
+          rowErrors.push(`Invalid account type: "${account.account_type}". Must be: asset, liability, equity, revenue, or expense`);
+        }
+      }
+
+      // Check for duplicate codes within file
+      if (account.account_code) {
+        const code = String(account.account_code).trim();
+        if (seenCodes.has(code)) {
+          rowErrors.push(`Duplicate account code: ${code}`);
+        }
+        seenCodes.add(code);
+      }
+
+      // Check balance format
+      if (account.balance && account.balance !== '0') {
+        const balanceStr = String(account.balance).replace(/[^0-9.-]/g, '');
+        if (isNaN(parseFloat(balanceStr))) {
+          rowErrors.push(`Invalid balance format: "${account.balance}"`);
+        }
+      }
+
+      if (rowErrors.length > 0) {
+        errors.push({
+          row: rowNum,
+          account_code: account.account_code,
+          account_name: account.account_name,
+          errors: rowErrors
+        });
+      }
+    });
+
+    setValidationErrors(errors);
   };
 
   const handleFileSelection = (selectedFile) => {
@@ -131,6 +190,7 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
           }
           
           setExtractedData(accounts);
+          validateAccounts(accounts);
           setStep(2);
         } else {
           toast.error(`Failed to extract data: ${extractResponse.details || 'Unknown error'}`);
@@ -153,13 +213,23 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
       const existingAccounts = await base44.entities.Account.filter({ company_id: companyId });
       const existingCodes = new Set(existingAccounts.map(a => a.account_code));
       
+      // Get error rows to skip
+      const errorRows = new Set(validationErrors.map(e => e.row));
+      
       let created = 0;
       let skipped = 0;
       let updated = 0;
       let failed = 0;
       const errors = [];
 
-      for (const account of extractedData) {
+      for (let idx = 0; idx < extractedData.length; idx++) {
+        const account = extractedData[idx];
+        
+        // Skip accounts with validation errors
+        if (errorRows.has(idx + 1)) {
+          skipped++;
+          continue;
+        }
         try {
           const accountType = String(account.account_type).toLowerCase().trim();
           const validTypes = ['asset', 'liability', 'equity', 'revenue', 'expense'];
@@ -370,6 +440,31 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
             <p className="text-sm text-gray-600 mb-4">
               {extractedData.length} accounts detected. Verify field mapping below:
             </p>
+
+            {validationErrors.length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <p className="text-sm font-semibold text-red-900 mb-2">
+                  ⚠️ {validationErrors.length} Error{validationErrors.length !== 1 ? 's' : ''} Found
+                </p>
+                <p className="text-xs text-red-800 mb-3">
+                  Please fix the errors below before proceeding:
+                </p>
+                <div className="max-h-48 overflow-y-auto space-y-2">
+                  {validationErrors.map((error, idx) => (
+                    <div key={idx} className="bg-white rounded p-2 text-xs">
+                      <p className="font-semibold text-red-900">
+                        Row {error.row}: {error.account_code} - {error.account_name}
+                      </p>
+                      <ul className="mt-1 ml-4 list-disc text-red-700">
+                        {error.errors.map((err, i) => (
+                          <li key={i}>{err}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm font-semibold text-blue-900 mb-2">Field Mapping</p>
@@ -427,17 +522,28 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
         {/* Step 3: Preview */}
         {step === 3 && (
           <div className="space-y-4">
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-              <p className="text-sm font-semibold text-green-900">Ready to Import</p>
-              <p className="text-sm text-green-800 mt-1">
-                {extractedData.length} accounts will be imported. Review the preview below:
-              </p>
-            </div>
+            {validationErrors.length === 0 ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <p className="text-sm font-semibold text-green-900">✓ Ready to Import</p>
+                <p className="text-sm text-green-800 mt-1">
+                  {extractedData.length} accounts validated successfully. Review the preview below:
+                </p>
+              </div>
+            ) : (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <p className="text-sm font-semibold text-yellow-900">⚠️ Import with Warnings</p>
+                <p className="text-sm text-yellow-800 mt-1">
+                  {extractedData.length - validationErrors.length} valid accounts will be imported. 
+                  {validationErrors.length} accounts with errors will be skipped.
+                </p>
+              </div>
+            )}
 
             <div className="border rounded-lg overflow-hidden max-h-96 overflow-y-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr>
+                    <th className="text-left p-3 border-b">Status</th>
                     <th className="text-left p-3 border-b">Code</th>
                     <th className="text-left p-3 border-b">Name</th>
                     <th className="text-left p-3 border-b">Type</th>
@@ -445,14 +551,24 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {extractedData.map((account, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50">
-                      <td className="p-3 border-b font-mono text-xs">{account.account_code}</td>
-                      <td className="p-3 border-b">{account.account_name}</td>
-                      <td className="p-3 border-b capitalize">{account.account_type}</td>
-                      <td className="p-3 border-b text-right">{account.balance || '0'}</td>
-                    </tr>
-                  ))}
+                  {extractedData.map((account, idx) => {
+                    const hasError = validationErrors.find(e => e.row === idx + 1);
+                    return (
+                      <tr key={idx} className={hasError ? "bg-red-50" : "hover:bg-gray-50"}>
+                        <td className="p-3 border-b">
+                          {hasError ? (
+                            <span className="text-red-600 text-xs">❌ Error</span>
+                          ) : (
+                            <span className="text-green-600 text-xs">✓ Valid</span>
+                          )}
+                        </td>
+                        <td className="p-3 border-b font-mono text-xs">{account.account_code}</td>
+                        <td className="p-3 border-b">{account.account_name}</td>
+                        <td className="p-3 border-b capitalize">{account.account_type}</td>
+                        <td className="p-3 border-b text-right">{account.balance || '0'}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -469,7 +585,11 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
           <Button variant="outline" onClick={handleClose} disabled={uploading}>
             Cancel
           </Button>
-          <Button onClick={handleNext} disabled={uploading} className="bg-blue-600">
+          <Button 
+            onClick={handleNext} 
+            disabled={uploading || (step === 2 && validationErrors.length === extractedData.length)} 
+            className="bg-blue-600"
+          >
             {uploading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
