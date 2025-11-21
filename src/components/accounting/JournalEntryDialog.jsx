@@ -160,11 +160,17 @@ export default function JournalEntryDialog({ open, onClose }) {
                          </SelectValue>
                        </SelectTrigger>
                        <SelectContent>
-                         {accounts.map(account => (
-                           <SelectItem key={account.id} value={account.id}>
-                             {account.account_code} - {account.account_name}
-                           </SelectItem>
-                         ))}
+                         {loadingAccounts ? (
+                           <div className="p-2 text-sm text-gray-500">Loading accounts...</div>
+                         ) : accounts.length === 0 ? (
+                           <div className="p-2 text-sm text-red-600">No accounts found. Please create accounts first.</div>
+                         ) : (
+                           accounts.map(account => (
+                             <SelectItem key={account.id} value={account.id}>
+                               {account.account_code} - {account.account_name}
+                             </SelectItem>
+                           ))
+                         )}
                        </SelectContent>
                      </Select>
                     </div>
