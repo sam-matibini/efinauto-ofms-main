@@ -64,6 +64,15 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       // Fetch fresh payroll entries for this run
       const entries = await base44.entities.PayrollEntry.filter({ payroll_run_id: runId });
       
+      // Fetch chart of accounts
+      const accounts = await base44.entities.Account.filter({ company_id: company.id });
+      
+      // Find specific accounts (fallback to creating basic transactions if accounts not found)
+      const wagesExpenseAccount = accounts.find(a => a.account_code === '5200' || a.account_name.toLowerCase().includes('wage'));
+      const cppExpenseAccount = accounts.find(a => a.account_code === '5310' || a.account_name.toLowerCase().includes('cpp'));
+      const eiExpenseAccount = accounts.find(a => a.account_code === '5320' || a.account_name.toLowerCase().includes('ei'));
+      const payrollLiabilityAccount = accounts.find(a => a.account_code === '2400' || a.account_name.toLowerCase().includes('payroll') && a.account_type === 'liability');
+      
       // Create financial transactions for payroll expenses and liabilities
       const totalGross = entries.reduce((sum, e) => sum + (e.gross_pay || 0), 0);
       const totalCPPEmployee = entries.reduce((sum, e) => sum + (e.cpp_employee || 0), 0);
@@ -81,6 +90,9 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
         transaction_type: 'payroll_expense',
         category: 'expense',
         amount: totalGross,
+        account_id: wagesExpenseAccount?.id,
+        account_code: wagesExpenseAccount?.account_code || '5200',
+        account_name: wagesExpenseAccount?.account_name || 'Wages & Salaries',
         description: `Payroll expense - ${updatedRun.payroll_number}`,
         transaction_date: updatedRun.pay_date,
         reference_type: 'PayrollRun',
@@ -97,6 +109,9 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
           transaction_type: 'payroll_expense',
           category: 'expense',
           amount: totalCPPEmployer,
+          account_id: cppExpenseAccount?.id,
+          account_code: cppExpenseAccount?.account_code || '5310',
+          account_name: cppExpenseAccount?.account_name || 'CPP Expense',
           description: `Employer CPP contribution - ${updatedRun.payroll_number}`,
           transaction_date: updatedRun.pay_date,
           reference_type: 'PayrollRun',
@@ -114,6 +129,9 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
           transaction_type: 'payroll_expense',
           category: 'expense',
           amount: totalEIEmployer,
+          account_id: eiExpenseAccount?.id,
+          account_code: eiExpenseAccount?.account_code || '5320',
+          account_name: eiExpenseAccount?.account_name || 'EI Expense',
           description: `Employer EI contribution - ${updatedRun.payroll_number}`,
           transaction_date: updatedRun.pay_date,
           reference_type: 'PayrollRun',
@@ -132,6 +150,9 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
           transaction_type: 'payroll_liability',
           category: 'liability',
           amount: totalDeductions,
+          account_id: payrollLiabilityAccount?.id,
+          account_code: payrollLiabilityAccount?.account_code || '2400',
+          account_name: payrollLiabilityAccount?.account_name || 'Payroll Liabilities',
           description: `Payroll deductions payable - ${updatedRun.payroll_number}`,
           transaction_date: updatedRun.pay_date,
           reference_type: 'PayrollRun',
