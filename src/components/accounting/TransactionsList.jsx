@@ -199,6 +199,8 @@ export default function TransactionsList({ transactions, dateRange, comparativeP
                 <SelectItem value="parts_purchase">Parts Purchase</SelectItem>
                 <SelectItem value="labor_expense">Labor Expense</SelectItem>
                 <SelectItem value="overhead_expense">Overhead</SelectItem>
+                <SelectItem value="payroll_expense">Payroll Expense</SelectItem>
+                <SelectItem value="payroll_liability">Payroll Liability</SelectItem>
               </SelectContent>
             </Select>
           </div>

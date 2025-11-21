@@ -57,10 +57,96 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
   });
 
   const approvePayrollRunMutation = useMutation({
-    mutationFn: (runId) => base44.entities.PayrollRun.update(runId, { status: 'approved' }),
+    mutationFn: async (runId) => {
+      // Update payroll run status
+      const updatedRun = await base44.entities.PayrollRun.update(runId, { status: 'approved' });
+      
+      // Get payroll entries for this run
+      const entries = payrollEntries.filter(e => e.payroll_run_id === runId);
+      
+      // Create financial transactions for payroll expenses and liabilities
+      const totalGross = entries.reduce((sum, e) => sum + (e.gross_pay || 0), 0);
+      const totalCPPEmployee = entries.reduce((sum, e) => sum + (e.cpp_employee || 0), 0);
+      const totalCPPEmployer = entries.reduce((sum, e) => sum + (e.cpp_employer || 0), 0);
+      const totalEIEmployee = entries.reduce((sum, e) => sum + (e.ei_employee || 0), 0);
+      const totalEIEmployer = entries.reduce((sum, e) => sum + (e.ei_employer || 0), 0);
+      const totalFederalTax = entries.reduce((sum, e) => sum + (e.federal_tax || 0), 0);
+      const totalProvincialTax = entries.reduce((sum, e) => sum + (e.provincial_tax || 0), 0);
+      const totalNet = entries.reduce((sum, e) => sum + (e.net_pay || 0), 0);
+      
+      // Create transaction for gross payroll expense
+      await base44.entities.Transaction.create({
+        company_id: company.id,
+        transaction_number: `PAYROLL-${updatedRun.payroll_number}`,
+        transaction_type: 'payroll_expense',
+        category: 'expense',
+        amount: totalGross,
+        description: `Payroll expense - ${updatedRun.payroll_number}`,
+        transaction_date: updatedRun.pay_date,
+        reference_type: 'PayrollRun',
+        reference_id: runId,
+        reference_number: updatedRun.payroll_number,
+        status: 'completed'
+      });
+      
+      // Create transaction for employer CPP contribution
+      if (totalCPPEmployer > 0) {
+        await base44.entities.Transaction.create({
+          company_id: company.id,
+          transaction_number: `CPP-EMP-${updatedRun.payroll_number}`,
+          transaction_type: 'payroll_expense',
+          category: 'expense',
+          amount: totalCPPEmployer,
+          description: `Employer CPP contribution - ${updatedRun.payroll_number}`,
+          transaction_date: updatedRun.pay_date,
+          reference_type: 'PayrollRun',
+          reference_id: runId,
+          reference_number: updatedRun.payroll_number,
+          status: 'completed'
+        });
+      }
+      
+      // Create transaction for employer EI contribution
+      if (totalEIEmployer > 0) {
+        await base44.entities.Transaction.create({
+          company_id: company.id,
+          transaction_number: `EI-EMP-${updatedRun.payroll_number}`,
+          transaction_type: 'payroll_expense',
+          category: 'expense',
+          amount: totalEIEmployer,
+          description: `Employer EI contribution - ${updatedRun.payroll_number}`,
+          transaction_date: updatedRun.pay_date,
+          reference_type: 'PayrollRun',
+          reference_id: runId,
+          reference_number: updatedRun.payroll_number,
+          status: 'completed'
+        });
+      }
+      
+      // Create liability transaction for payroll deductions (CPP + EI + Tax)
+      const totalDeductions = totalCPPEmployee + totalCPPEmployer + totalEIEmployee + totalEIEmployer + totalFederalTax + totalProvincialTax;
+      if (totalDeductions > 0) {
+        await base44.entities.Transaction.create({
+          company_id: company.id,
+          transaction_number: `PAYROLL-LIB-${updatedRun.payroll_number}`,
+          transaction_type: 'payroll_liability',
+          category: 'liability',
+          amount: totalDeductions,
+          description: `Payroll deductions payable - ${updatedRun.payroll_number}`,
+          transaction_date: updatedRun.pay_date,
+          reference_type: 'PayrollRun',
+          reference_id: runId,
+          reference_number: updatedRun.payroll_number,
+          status: 'pending'
+        });
+      }
+      
+      return updatedRun;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payrollRuns'] });
-      toast.success("Payroll run approved successfully");
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      toast.success("Payroll run approved and posted to financial statements");
     },
     onError: () => {
       toast.error("Failed to approve payroll run");

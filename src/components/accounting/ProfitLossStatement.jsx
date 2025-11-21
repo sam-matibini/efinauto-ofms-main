@@ -31,10 +31,14 @@ export default function ProfitLossStatement({ transactions, comparativePeriods =
     const operatingExpenses = periodTransactions
       .filter(t => t.category === 'expense' && t.transaction_type !== 'vehicle_purchase' && t.transaction_type !== 'parts_purchase')
       .reduce((sum, t) => sum + t.amount, 0);
+    
+    const payrollExpenses = periodTransactions
+      .filter(t => t.transaction_type === 'payroll_expense')
+      .reduce((sum, t) => sum + t.amount, 0);
 
-    const netProfit = grossProfit - operatingExpenses;
+    const netProfit = grossProfit - operatingExpenses - payrollExpenses;
 
-    return { period, revenue, cogs, grossProfit, operatingExpenses, netProfit };
+    return { period, revenue, cogs, grossProfit, operatingExpenses, payrollExpenses, netProfit };
   });
 
   const renderLine = (label, values, isSubtotal = false, isTotal = false, indent = 0) => (
@@ -145,7 +149,9 @@ export default function ProfitLossStatement({ transactions, comparativePeriods =
         {/* Operating Expenses */}
         <div>
           <h3 className="font-bold text-base mb-2 text-gray-900 px-4">Operating Expenses</h3>
-          {renderLine('Total Operating Expenses', periodData.map(d => d.operatingExpenses), true)}
+          {renderLine('General Operating Expenses', periodData.map(d => d.operatingExpenses), false, false, 1)}
+          {renderLine('Payroll Expenses', periodData.map(d => d.payrollExpenses), false, false, 1)}
+          {renderLine('Total Operating Expenses', periodData.map(d => d.operatingExpenses + d.payrollExpenses), true)}
         </div>
 
         {/* Net Profit */}

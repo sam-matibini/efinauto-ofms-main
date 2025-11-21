@@ -55,11 +55,15 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
 
     // LIABILITIES
     const accountsPayable = periodTransactions
-      .filter(t => t.category === 'expense' && t.status === 'pending')
+      .filter(t => t.category === 'expense' && t.status === 'pending' && t.transaction_type !== 'payroll_liability')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const payrollLiabilities = periodTransactions
+      .filter(t => t.transaction_type === 'payroll_liability' && t.status === 'pending')
       .reduce((sum, t) => sum + t.amount, 0);
 
     const shortTermDebt = 20000;
-    const totalCurrentLiabilities = accountsPayable + shortTermDebt;
+    const totalCurrentLiabilities = accountsPayable + payrollLiabilities + shortTermDebt;
 
     const longTermDebt = 50000;
     const totalLiabilities = totalCurrentLiabilities + longTermDebt;
@@ -87,6 +91,7 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
       netFixedAssets,
       totalAssets,
       accountsPayable,
+      payrollLiabilities,
       shortTermDebt,
       totalCurrentLiabilities,
       longTermDebt,
@@ -190,6 +195,7 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
           <div className="mb-4">
             <h4 className="font-semibold text-sm mb-2 px-4 text-gray-700">Current Liabilities</h4>
             {renderLine('Accounts Payable', periodData.map(d => d.accountsPayable), false, false, 1)}
+            {renderLine('Payroll Liabilities', periodData.map(d => d.payrollLiabilities), false, false, 1)}
             {renderLine('Short-term Debt', periodData.map(d => d.shortTermDebt), false, false, 1)}
             {renderLine('Total Current Liabilities', periodData.map(d => d.totalCurrentLiabilities), true, false, 1)}
           </div>
