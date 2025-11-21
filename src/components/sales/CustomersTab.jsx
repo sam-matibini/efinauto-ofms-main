@@ -6,14 +6,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Mail, Phone, MapPin, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Mail, Phone, MapPin, Edit, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import ImportCustomersDialog from "./ImportCustomersDialog";
 
 export default function CustomersTab({ customers, selectedCompanyId }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
@@ -62,10 +64,16 @@ export default function CustomersTab({ customers, selectedCompanyId }) {
     <>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Customers</h2>
-        <Button onClick={() => { setEditingCustomer(null); setDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Customer
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+            <Upload className="w-4 h-4 mr-2" />
+            Import CSV
+          </Button>
+          <Button onClick={() => { setEditingCustomer(null); setDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Customer
+          </Button>
+        </div>
       </div>
 
       <Card className="mb-6">
@@ -129,6 +137,16 @@ export default function CustomersTab({ customers, selectedCompanyId }) {
         onClose={() => { setDialogOpen(false); setEditingCustomer(null); }}
         customer={editingCustomer}
         onSave={handleSave}
+      />
+
+      <ImportCustomersDialog
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        companyId={selectedCompanyId}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['customers'] });
+          setImportDialogOpen(false);
+        }}
       />
     </>
   );
