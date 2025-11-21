@@ -780,6 +780,14 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                       .paystub-print-container div {
                         visibility: visible !important;
                         color: black !important;
+                        opacity: 1 !important;
+                      }
+                      .paystub-print-container h2 {
+                        color: black !important;
+                      }
+                      .paystub-print-container .font-semibold,
+                      .paystub-print-container .font-bold {
+                        color: black !important;
                       }
                       .paystub-print-container h2 {
                         font-size: 18px;
