@@ -11,7 +11,7 @@ import { Plus, Edit, Trash2, Download, Printer, Sparkles, Loader2, Search, Uploa
 import { toast } from "sonner";
 import { format } from "date-fns";
 import AccountDialog from "./AccountDialog";
-import ImportAccountsDialog from "./ImportAccountsDialog";
+import ImportAccountsWizard from "./ImportAccountsWizard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -365,7 +365,7 @@ Include 40-50 essential accounts. Use standard account codes (1000s=Assets, 2000
       )}
 
       {importDialogOpen && (
-        <ImportAccountsDialog
+        <ImportAccountsWizard
           open={importDialogOpen}
           onClose={() => setImportDialogOpen(false)}
           companyId={selectedCompanyId}
