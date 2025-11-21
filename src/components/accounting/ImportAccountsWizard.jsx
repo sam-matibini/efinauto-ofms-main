@@ -297,63 +297,73 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
       let failed = 0;
       const errors = [];
 
-      for (let idx = 0; idx < extractedData.length; idx++) {
-        const account = extractedData[idx];
+      const accountsToProcess = extractedData.map((account, idx) => {
         const rowNum = idx + 1;
         
         // Skip accounts with validation errors
         if (errorRows.has(rowNum)) {
           console.log(`⏭️ Skipping row ${rowNum} (validation error)`);
-          skipped++;
-          continue;
+          return { status: 'skipped', rowNum };
         }
         
-        try {
-          const accountType = String(account.account_type).toLowerCase().trim();
-          const validTypes = ['asset', 'liability', 'equity', 'revenue', 'expense'];
-          
-          if (!validTypes.includes(accountType)) {
-            console.error(`❌ Row ${rowNum}: Invalid type "${account.account_type}"`);
-            errors.push(`Row ${rowNum} (${account.account_code}): Invalid type "${account.account_type}"`);
-            failed++;
-            continue;
-          }
+        const accountType = String(account.account_type).toLowerCase().trim();
+        const validTypes = ['asset', 'liability', 'equity', 'revenue', 'expense'];
+        
+        if (!validTypes.includes(accountType)) {
+          console.error(`❌ Row ${rowNum}: Invalid type "${account.account_type}"`);
+          return { status: 'failed', rowNum, error: `Invalid type "${account.account_type}"` };
+        }
 
-          const accountCode = String(account.account_code).trim();
-          const isDuplicate = existingCodes.has(accountCode);
+        const accountCode = String(account.account_code).trim();
+        const isDuplicate = existingCodes.has(accountCode);
 
-          if (isDuplicate && duplicateHandling === "skip") {
-            console.log(`⏭️ Row ${rowNum}: Skipping duplicate ${accountCode}`);
-            skipped++;
-            continue;
-          }
+        if (isDuplicate && duplicateHandling === "skip") {
+          console.log(`⏭️ Row ${rowNum}: Skipping duplicate ${accountCode}`);
+          return { status: 'skipped', rowNum };
+        }
 
-          const accountData = {
-            company_id: companyId,
-            account_code: accountCode,
-            account_name: String(account.account_name).trim(),
-            account_type: accountType,
-            account_category: account.account_category ? String(account.account_category).toLowerCase().trim() : 'other',
-            balance: parseFloat(String(account.balance || '0').replace(/[^0-9.-]/g, '')) || 0,
-            description: account.description ? String(account.description).trim() : ''
-          };
+        const accountData = {
+          company_id: companyId,
+          account_code: accountCode,
+          account_name: String(account.account_name).trim(),
+          account_type: accountType,
+          account_category: account.account_category ? String(account.account_category).toLowerCase().trim() : 'other',
+          balance: parseFloat(String(account.balance || '0').replace(/[^0-9.-]/g, '')) || 0,
+          description: account.description ? String(account.description).trim() : ''
+        };
 
-          console.log(`Processing row ${rowNum}:`, accountData);
+        return {
+          status: isDuplicate ? 'update' : 'create',
+          rowNum,
+          accountData,
+          existingId: isDuplicate ? existingAccounts.find(a => a.account_code === accountCode)?.id : null
+        };
+      });
 
-          if (isDuplicate && duplicateHandling === "overwrite") {
-            const existingAccount = existingAccounts.find(a => a.account_code === accountCode);
-            console.log(`🔄 Row ${rowNum}: Updating ${accountCode}`);
-            await base44.entities.Account.update(existingAccount.id, accountData);
-            updated++;
-          } else {
-            console.log(`➕ Row ${rowNum}: Creating ${accountCode}`);
-            await base44.entities.Account.create(accountData);
-            created++;
-          }
-        } catch (err) {
-          console.error(`❌ Row ${rowNum} failed:`, err);
-          errors.push(`Row ${rowNum} (${account.account_code}): ${err.message || 'Failed'}`);
+      for (const item of accountsToProcess) {
+        if (item.status === 'skipped') {
+          skipped++;
+        } else if (item.status === 'failed') {
           failed++;
+          errors.push(`Row ${item.rowNum}: ${item.error}`);
+        } else {
+          try {
+            console.log(`Processing row ${item.rowNum}:`, item.accountData);
+            
+            if (item.status === 'update') {
+              console.log(`🔄 Row ${item.rowNum}: Updating ${item.accountData.account_code}`);
+              await base44.entities.Account.update(item.existingId, item.accountData);
+              updated++;
+            } else {
+              console.log(`➕ Row ${item.rowNum}: Creating ${item.accountData.account_code}`);
+              await base44.entities.Account.create(item.accountData);
+              created++;
+            }
+          } catch (err) {
+            console.error(`❌ Row ${item.rowNum} failed:`, err);
+            errors.push(`Row ${item.rowNum} (${item.accountData.account_code}): ${err.message || 'Failed'}`);
+            failed++;
+          }
         }
       }
 
