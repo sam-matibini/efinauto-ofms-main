@@ -196,6 +196,17 @@ Include 40-50 essential accounts. Use standard account codes (1000s=Assets, 2000
     window.print();
   };
 
+  if (!selectedCompanyId) {
+    return (
+      <Card className="bg-yellow-50 border-yellow-200">
+        <CardContent className="p-6">
+          <p className="text-yellow-800 font-semibold">⚠️ Please select a company first</p>
+          <p className="text-sm text-yellow-700 mt-2">You need to select a company from the dropdown at the top before creating accounts.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
