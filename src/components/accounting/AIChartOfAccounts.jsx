@@ -118,8 +118,10 @@ Create 40-50 accounts total.`;
       return result.accounts;
     },
     onSuccess: async (generatedAccounts) => {
+      console.log('[Create] Starting account creation...');
       try {
         if (!Array.isArray(generatedAccounts) || generatedAccounts.length === 0) {
+          console.error('[Create] No accounts in array');
           toast.error("No accounts generated. Please try again.");
           setGenerating(false);
           return;
@@ -127,15 +129,17 @@ Create 40-50 accounts total.`;
 
         let created = 0;
         let failed = 0;
+        const errors = [];
         
         for (const account of generatedAccounts) {
           if (!account.account_code || !account.account_name || !account.account_type) {
+            console.warn('[Create] Missing required fields:', account);
             failed++;
             continue;
           }
           
           try {
-            await base44.entities.Account.create({
+            const accountData = {
               company_id: selectedCompanyId,
               account_code: String(account.account_code).trim(),
               account_name: String(account.account_name).trim(),
@@ -143,26 +147,36 @@ Create 40-50 accounts total.`;
               account_category: account.account_category ? String(account.account_category).toLowerCase().trim() : 'other',
               balance: parseFloat(account.balance) || 0,
               description: account.description ? String(account.description).trim() : ''
-            });
+            };
+            
+            console.log('[Create] Creating account:', accountData.account_code, accountData.account_name);
+            const result = await base44.entities.Account.create(accountData);
+            console.log('[Create] Created successfully:', result.id);
             created++;
           } catch (err) {
-            console.error('Failed to create account:', account, err);
+            console.error('[Create] Failed to create account:', account.account_code, err);
+            errors.push({ code: account.account_code, error: err.message });
             failed++;
           }
         }
         
-        queryClient.invalidateQueries({ queryKey: ['accounts'] });
+        console.log('[Create] Summary - Created:', created, 'Failed:', failed);
+        if (errors.length > 0) {
+          console.error('[Create] Errors:', errors);
+        }
+        
+        await queryClient.invalidateQueries({ queryKey: ['accounts'] });
         
         if (created > 0) {
-          toast.success(`Successfully generated ${created} accounts${failed > 0 ? ` (${failed} skipped)` : ''}`);
+          toast.success(`Successfully generated ${created} accounts${failed > 0 ? ` (${failed} failed due to permissions or duplicates)` : ''}`);
         } else {
-          toast.error("Failed to create accounts. Please try again.");
+          toast.error(`Failed to create accounts. Check console for details. Most common issue: user role (${currentUser?.role}) lacks permission.`);
         }
         
         setAiDialogOpen(false);
         setGenerating(false);
       } catch (error) {
-        console.error("Account creation error:", error);
+        console.error("[Create] Fatal error:", error);
         toast.error("Error creating accounts: " + error.message);
         setGenerating(false);
       }
