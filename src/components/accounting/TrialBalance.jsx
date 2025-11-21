@@ -198,29 +198,36 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
             <tbody>
               {Object.entries(accountGroups).map(([key, group]) => (
                 <React.Fragment key={key}>
-                  <tr className="bg-gray-100">
-                    <td colSpan={1 + periods.length * 2} className="py-2 px-4 font-bold text-gray-900">
-                      {group.title}
-                    </td>
-                  </tr>
-                  {group.accounts.map((account, idx) => (
-                    <tr key={idx} className="border-b hover:bg-gray-50">
-                      <td className="py-2 px-4 pl-8">{account.name}</td>
-                      {periodData.map((pd, pdIdx) => {
-                        const acc = pd.accounts.find(a => a.name === account.name);
-                        return (
-                          <React.Fragment key={pdIdx}>
-                            <td className="text-right py-2 px-4">
-                              {acc.debit > 0 ? `$${acc.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
-                            </td>
-                            <td className="text-right py-2 px-4">
-                              {acc.credit > 0 ? `$${acc.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
-                            </td>
-                          </React.Fragment>
-                        );
-                      })}
+                {group.accounts.length > 0 && (
+                  <>
+                    <tr className="bg-gray-100">
+                      <td colSpan={1 + periods.length * 2} className="py-2 px-4 font-bold text-gray-900">
+                        {group.title}
+                      </td>
                     </tr>
-                  ))}
+                    {group.accounts.map((account, idx) => (
+                      <tr key={idx} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-4 pl-8">
+                          <span className="font-mono text-xs text-gray-500 mr-2">{account.code}</span>
+                          {account.name}
+                        </td>
+                        {periodData.map((pd, pdIdx) => {
+                          const acc = pd.accounts.find(a => a.code === account.code);
+                          return (
+                            <React.Fragment key={pdIdx}>
+                              <td className="text-right py-2 px-4">
+                                {acc?.debit > 0 ? `$${acc.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
+                              </td>
+                              <td className="text-right py-2 px-4">
+                                {acc?.credit > 0 ? `$${acc.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
+                              </td>
+                            </React.Fragment>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </>
+                )}
                 </React.Fragment>
               ))}
             </tbody>
