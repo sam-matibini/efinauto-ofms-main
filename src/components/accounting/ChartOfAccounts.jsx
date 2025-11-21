@@ -49,28 +49,102 @@ export default function ChartOfAccounts() {
       toast.info("AI is generating your chart of accounts...");
       
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Generate a comprehensive chart of accounts for an automotive dealership and service center. Create 40-50 accounts covering:
+        prompt: `Generate the following standard chart of accounts for an automotive dealership. Return exactly these accounts:
 
-ASSETS (1000-1999): Cash, bank accounts, accounts receivable, vehicle inventory, parts inventory, equipment, buildings
-LIABILITIES (2000-2999): Accounts payable, loans, taxes payable, credit cards
-EQUITY (3000-3999): Owner's equity, retained earnings
-REVENUE (4000-4999): Vehicle sales, service revenue, parts sales, warranty income
-EXPENSES (5000-5999): Cost of vehicles, cost of parts, salaries, rent, utilities, marketing, insurance
+ASSETS (1000-1999):
+1000 - Cash - Operating (cash)
+1010 - Cash - Payroll (cash)
+1020 - Petty Cash (cash)
+1100 - Accounts Receivable (accounts_receivable)
+1200 - Vehicle Inventory - New (inventory)
+1210 - Vehicle Inventory - Used (inventory)
+1220 - Parts Inventory (inventory)
+1300 - Prepaid Insurance (other)
+1310 - Prepaid Rent (other)
+1500 - Equipment (fixed_assets)
+1510 - Vehicles - Company Use (fixed_assets)
+1520 - Furniture & Fixtures (fixed_assets)
+1530 - Buildings (fixed_assets)
+1540 - Land (fixed_assets)
+1600 - Accumulated Depreciation - Equipment (fixed_assets)
+1610 - Accumulated Depreciation - Vehicles (fixed_assets)
+1620 - Accumulated Depreciation - Buildings (fixed_assets)
 
-Return a JSON object with an "accounts" array. Each account needs:
-- account_code: string (e.g. "1000")
-- account_name: string (e.g. "Cash - Operating")
-- account_type: one of "asset", "liability", "equity", "revenue", "expense"
-- account_category: string (e.g. "cash", "inventory")
-- balance: number (default 0)
-- description: string
+LIABILITIES (2000-2999):
+2000 - Accounts Payable (accounts_payable)
+2100 - Credit Card Payable (other)
+2200 - Sales Tax Payable - GST (other)
+2210 - Sales Tax Payable - PST (other)
+2220 - Sales Tax Payable - HST (other)
+2300 - Wages Payable (other)
+2400 - Payroll Liabilities (other)
+2500 - Vehicle Loans Payable (other)
+2510 - Equipment Loans Payable (other)
+2600 - Line of Credit (other)
+2700 - Long-term Debt (other)
 
-Example:
-{
-  "accounts": [
-    {"account_code": "1000", "account_name": "Cash - Operating", "account_type": "asset", "account_category": "cash", "balance": 0, "description": "Primary operating account"}
-  ]
-}`,
+EQUITY (3000-3999):
+3000 - Owner's Equity (other)
+3100 - Owner's Drawings (other)
+3900 - Retained Earnings (other)
+3950 - Current Year Earnings (other)
+
+REVENUE (4000-4999):
+4000 - Vehicle Sales - New (sales_revenue)
+4010 - Vehicle Sales - Used (sales_revenue)
+4100 - Service Revenue - Mechanical (service_revenue)
+4110 - Service Revenue - Body Work (service_revenue)
+4120 - Service Revenue - Detailing (service_revenue)
+4130 - Service Revenue - Inspections (service_revenue)
+4200 - Parts Sales (sales_revenue)
+4300 - Labor Revenue (service_revenue)
+4400 - Finance & Insurance Income (other)
+4500 - Warranty Income (other)
+4600 - Export Revenue (sales_revenue)
+4700 - Freight Income (service_revenue)
+4800 - Other Income (other)
+
+EXPENSES (5000-6999):
+5000 - Cost of Vehicles Sold (cost_of_goods_sold)
+5100 - Cost of Parts Sold (cost_of_goods_sold)
+5200 - Wages & Salaries (operating_expenses)
+5210 - Commissions - Sales (operating_expenses)
+5300 - Payroll Taxes (operating_expenses)
+5310 - CPP Expense (operating_expenses)
+5320 - EI Expense (operating_expenses)
+5330 - Workers Compensation (operating_expenses)
+5400 - Employee Benefits (operating_expenses)
+5500 - Rent Expense (operating_expenses)
+5510 - Property Taxes (operating_expenses)
+5600 - Utilities - Electricity (operating_expenses)
+5610 - Utilities - Gas (operating_expenses)
+5620 - Utilities - Water (operating_expenses)
+5630 - Internet & Phone (operating_expenses)
+5700 - Insurance - General Liability (operating_expenses)
+5710 - Insurance - Vehicle (operating_expenses)
+5720 - Insurance - Property (operating_expenses)
+5800 - Advertising & Marketing (operating_expenses)
+5810 - Website & Online Advertising (operating_expenses)
+5900 - Office Supplies (operating_expenses)
+5910 - Shop Supplies (operating_expenses)
+6000 - Vehicle Maintenance (operating_expenses)
+6010 - Fuel Expense (operating_expenses)
+6100 - Professional Fees - Legal (operating_expenses)
+6110 - Professional Fees - Accounting (operating_expenses)
+6120 - Professional Fees - Consulting (operating_expenses)
+6200 - Bank Fees & Charges (operating_expenses)
+6210 - Credit Card Processing Fees (operating_expenses)
+6300 - Interest Expense - Loans (other)
+6310 - Interest Expense - Line of Credit (other)
+6400 - Depreciation Expense (other)
+6500 - Repairs & Maintenance - Building (operating_expenses)
+6510 - Repairs & Maintenance - Equipment (operating_expenses)
+6600 - Licenses & Permits (operating_expenses)
+6700 - Training & Development (operating_expenses)
+6800 - Travel & Entertainment (operating_expenses)
+6900 - Miscellaneous Expenses (other)
+
+Return a JSON object with an "accounts" array. Format: {"account_code": "1000", "account_name": "Cash - Operating", "account_type": "asset", "account_category": "cash", "balance": 0, "description": "Primary operating bank account"}`,
         response_json_schema: {
           type: "object",
           properties: {
