@@ -167,14 +167,17 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
         const extractResponse = await base44.integrations.Core.ExtractDataFromUploadedFile({
           file_url,
           json_schema: {
-            type: "object",
-            properties: {
-              account_code: { type: "string" },
-              account_name: { type: "string" },
-              account_type: { type: "string" },
-              account_category: { type: "string" },
-              balance: { type: "string" },
-              description: { type: "string" }
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                account_code: { type: "string" },
+                account_name: { type: "string" },
+                account_type: { type: "string" },
+                account_category: { type: "string" },
+                balance: { type: "string" },
+                description: { type: "string" }
+              }
             }
           }
         });
