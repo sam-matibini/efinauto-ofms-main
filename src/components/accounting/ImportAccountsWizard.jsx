@@ -380,12 +380,11 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
         }
       }
 
-      await queryClient.invalidateQueries({ queryKey: ['accounts', companyId] });
-      await queryClient.refetchQueries({ queryKey: ['accounts', companyId] });
+      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
       
       setTimeout(() => {
         onClose();
-      }, 1000);
+      }, 500);
       
     } catch (error) {
       console.error("❌ Import failed:", error);
