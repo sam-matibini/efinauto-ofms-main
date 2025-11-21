@@ -31,16 +31,18 @@ export default function EmployeePortal() {
         if (emps[0]) return emps[0];
       }
       
-      // Finally, try to find any active employee in the user's company
+      // Finally, try to find any employee in the user's company (not just active)
       if (currentUser?.data?.company_id) {
         const emps = await base44.entities.Employee.filter({ 
-          company_id: currentUser.data.company_id,
-          employment_status: 'active'
+          company_id: currentUser.data.company_id
         });
-        // For demo purposes, return the first active employee
-        // In production, you'd want a proper linking mechanism
+        // Return the first employee
         if (emps[0]) return emps[0];
       }
+      
+      // If no company_id set, try to get any employee
+      const allEmps = await base44.entities.Employee.list();
+      if (allEmps[0]) return allEmps[0];
       
       return null;
     },
