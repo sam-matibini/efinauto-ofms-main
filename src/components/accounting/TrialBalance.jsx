@@ -99,8 +99,9 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
     const accountBalances = [];
     Object.values(accountGroups).forEach(group => {
       group.accounts.forEach(account => {
-        const balance = calculateBalance(account.name);
+        const balance = calculateBalance(account);
         accountBalances.push({
+          code: account.code,
           name: account.name,
           type: account.type,
           group: group.title,
