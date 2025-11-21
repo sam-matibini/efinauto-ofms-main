@@ -131,33 +131,37 @@ export default function JournalEntryDialog({ open, onClose }) {
                 <div key={index} className="space-y-2">
                   <div className="grid grid-cols-12 gap-2 items-center">
                     <div className="col-span-5">
-                      <Select 
-                        value={entry.account_id} 
-                        onValueChange={(value) => {
-                          const account = accounts.find(a => a.id === value);
-                          if (account) {
-                            const newEntries = [...formData.entries];
-                            newEntries[index] = {
-                              ...newEntries[index],
-                              account_id: account.id,
-                              account_code: account.account_code,
-                              account_name: account.account_name
-                            };
-                            setFormData({ ...formData, entries: newEntries });
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select account" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {accounts.map(account => (
-                            <SelectItem key={account.id} value={account.id}>
-                              {account.account_code} - {account.account_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                     <Select 
+                       value={entry.account_id || ""} 
+                       onValueChange={(value) => {
+                         const account = accounts.find(a => a.id === value);
+                         if (account) {
+                           const newEntries = [...formData.entries];
+                           newEntries[index] = {
+                             ...newEntries[index],
+                             account_id: account.id,
+                             account_code: account.account_code,
+                             account_name: account.account_name
+                           };
+                           setFormData({ ...formData, entries: newEntries });
+                         }
+                       }}
+                     >
+                       <SelectTrigger>
+                         <SelectValue placeholder="Select account">
+                           {entry.account_id && entry.account_code && entry.account_name 
+                             ? `${entry.account_code} - ${entry.account_name}`
+                             : "Select account"}
+                         </SelectValue>
+                       </SelectTrigger>
+                       <SelectContent>
+                         {accounts.map(account => (
+                           <SelectItem key={account.id} value={account.id}>
+                             {account.account_code} - {account.account_name}
+                           </SelectItem>
+                         ))}
+                       </SelectContent>
+                     </Select>
                     </div>
                   <div className="col-span-3">
                     <Input 
