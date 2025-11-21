@@ -110,111 +110,52 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
       
       setUploading(true);
       try {
-        console.log("📁 Uploading file:", file.name);
         const { file_url } = await base44.integrations.Core.UploadFile({ file });
-        console.log("✅ File uploaded:", file_url);
         
-        console.log("🔍 Extracting data from file...");
+        // Parse CSV to extract headers and data
+        const response = await fetch(file_url);
+        const text = await response.text();
+        const lines = text.split('\n').filter(line => line.trim());
         
-        let accounts = [];
-        let extractSuccess = false;
+        if (lines.length < 2) {
+          throw new Error("File is empty or invalid");
+        }
 
-        // Try AI extraction first
-        try {
-          const extractResponse = await base44.integrations.Core.ExtractDataFromUploadedFile({
-            file_url,
-            json_schema: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  account_code: { type: "string" },
-                  account_name: { type: "string" },
-                  account_type: { type: "string" },
-                  account_category: { type: "string" },
-                  balance: { type: "string" },
-                  description: { type: "string" }
-                }
-              }
-            }
+        const headers = lines[0].split(',').map(h => h.trim().replace(/['"]/g, ''));
+        setFileColumns(headers);
+        
+        const rawData = lines.slice(1).map(line => {
+          const values = line.split(',').map(v => v.trim().replace(/['"]/g, ''));
+          const row = {};
+          headers.forEach((header, i) => {
+            row[header] = values[i] || '';
           });
-
-          console.log("📊 Extract response:", extractResponse);
-
-          if (extractResponse.status === "success" && extractResponse.output) {
-            accounts = extractResponse.output;
-            extractSuccess = true;
-          }
-        } catch (extractError) {
-          console.warn("⚠️ AI extraction failed, trying direct CSV parse:", extractError);
-        }
-
-        // Fallback: Direct CSV parsing
-        if (!extractSuccess) {
-          console.log("📄 Attempting direct CSV parsing...");
-          try {
-            const response = await fetch(file_url);
-            const text = await response.text();
-            const lines = text.split('\n').filter(line => line.trim());
-            
-            if (lines.length < 2) {
-              throw new Error("File appears to be empty or invalid");
-            }
-
-            // Parse headers
-            const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
-            console.log("CSV headers:", headers);
-
-            // Parse rows
-            accounts = lines.slice(1).map(line => {
-              const values = line.split(',').map(v => v.trim().replace(/['"]/g, ''));
-              const row = {};
-              headers.forEach((header, i) => {
-                row[header] = values[i] || '';
-              });
-              return row;
-            });
-            
-            console.log(`✅ Parsed ${accounts.length} rows from CSV`);
-          } catch (parseError) {
-            console.error("❌ CSV parsing failed:", parseError);
-            toast.error("Failed to parse file. Please ensure it's a valid CSV with headers.");
-            setUploading(false);
-            return;
-          }
-        }
-
-        // Process accounts
-        console.log("Raw accounts data:", accounts);
+          return row;
+        });
         
-        if (!Array.isArray(accounts)) {
-          accounts = [accounts];
-        }
+        setExtractedData(rawData);
         
-        const beforeFilter = accounts.length;
-        accounts = accounts.filter(acc => 
-          acc && acc.account_code && acc.account_name && acc.account_type
-        );
-        console.log(`Filtered ${beforeFilter} -> ${accounts.length} accounts`);
+        // Auto-map fields if column names match
+        const autoMapping = {};
+        const fieldNames = ['account_code', 'account_name', 'account_type', 'account_category', 'balance', 'description'];
+        fieldNames.forEach(field => {
+          const match = headers.find(h => h.toLowerCase().replace(/_/g, '') === field.replace(/_/g, ''));
+          if (match) autoMapping[field] = match;
+        });
+        setFieldMapping(autoMapping);
         
-        if (accounts.length === 0) {
-          toast.error("No valid accounts found in file. Check that your file has account_code, account_name, and account_type columns.");
-          console.error("❌ No accounts after filtering");
-          setUploading(false);
-          return;
-        }
-        
-        setExtractedData(accounts);
-        validateAccounts(accounts);
         setStep(2);
       } catch (error) {
-        console.error("❌ Upload/extraction error:", error);
         toast.error(`Upload failed: ${error.message}`);
       } finally {
         setUploading(false);
       }
     } else if (step === 2) {
-      console.log(`✅ Moving to step 3. Valid accounts: ${extractedData.length - validationErrors.length}/${extractedData.length}`);
+      // Validate mapping
+      if (!fieldMapping.account_code || !fieldMapping.account_name || !fieldMapping.account_type) {
+        toast.error("Please map Account Code, Account Name, and Account Type");
+        return;
+      }
       setStep(3);
     } else if (step === 3) {
       await handleImport();
