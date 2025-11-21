@@ -265,6 +265,12 @@ Create 40-50 accounts total.`;
     }
   };
 
+  const cleanAccountName = (name) => {
+    if (!name) return '';
+    // Replace black diamonds and other special characters with spaces
+    return name.replace(/[�♦◆▶]/g, ' ').replace(/\s+/g, ' ').trim();
+  };
+
   const getTypeBadge = (type) => {
     const colors = {
       asset: 'bg-blue-100 text-blue-700',
@@ -426,9 +432,9 @@ Create 40-50 accounts total.`;
                           {account.account_code}
                         </span>
                         <div className="flex-1">
-                          <p className="font-semibold">{account.account_name}</p>
+                          <p className="font-semibold">{cleanAccountName(account.account_name)}</p>
                           {account.description && (
-                            <p className="text-sm text-gray-600">{account.description}</p>
+                            <p className="text-sm text-gray-600">{cleanAccountName(account.description)}</p>
                           )}
                         </div>
                         <Badge variant="outline">{account.account_category}</Badge>

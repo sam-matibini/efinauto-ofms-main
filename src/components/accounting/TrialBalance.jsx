@@ -10,6 +10,12 @@ import { useCompany } from "@/components/shared/CompanyContext";
 export default function TrialBalance({ transactions, comparativePeriods = [] }) {
   const { selectedCompanyId } = useCompany();
 
+  const cleanAccountName = (name) => {
+    if (!name) return '';
+    // Replace black diamonds and other special characters with spaces
+    return name.replace(/[�♦◆▶]/g, ' ').replace(/\s+/g, ' ').trim();
+  };
+
   const { data: accounts = [] } = useQuery({
     queryKey: ['accounts', selectedCompanyId],
     queryFn: () => base44.entities.Account.filter({ company_id: selectedCompanyId }, 'account_code'),
@@ -212,7 +218,7 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
                     {group.accounts.map((account, idx) => (
                       <tr key={idx} className="border-b hover:bg-gray-50">
                         <td className="py-2 px-4 pl-8 font-mono text-sm">{account.account_code}</td>
-                        <td className="py-2 px-4">{account.account_name}</td>
+                        <td className="py-2 px-4">{cleanAccountName(account.account_name)}</td>
                         {periodData.map((pd, pdIdx) => {
                           const acc = pd.accounts.find(a => a.code === account.account_code);
                           return (
