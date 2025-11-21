@@ -277,6 +277,8 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
             </p>
           </div>
         )}
+        </div>
+        )}
       </CardContent>
     </Card>
   );
