@@ -53,34 +53,18 @@ export default function AIChartOfAccounts() {
 
   const generateAccountsMutation = useMutation({
     mutationFn: async (description) => {
-      const prompt = `You are an expert accountant. Generate a comprehensive chart of accounts for this business: ${description || company?.name + ' - automotive dealership with sales, service, parts, and export operations'}.
+      const businessDesc = description || `${company?.name || 'Company'} - automotive dealership with sales, service, parts, and export operations`;
+      
+      const prompt = `Generate a chart of accounts for: ${businessDesc}
 
-Create accounts suitable for:
-- Asset tracking (cash, bank accounts, accounts receivable, inventory, vehicles, parts, fixed assets, equipment)
-- Liability management (accounts payable, loans, credit cards, payroll liabilities, sales tax payable, deferred tax)
-- Equity tracking (owner's equity, retained earnings, draws)
-- Revenue streams (vehicle sales, service revenue, parts sales, export revenue, other income)
-- Expense categories (cost of goods sold, wages, payroll taxes, rent, utilities, insurance, marketing, depreciation, office supplies, repairs & maintenance)
+Include these account types with standard codes:
+- ASSETS (1000-1999): Cash, Bank, Accounts Receivable, Inventory, Vehicles, Parts, Equipment
+- LIABILITIES (2000-2999): Accounts Payable, Loans, Credit Cards, Payroll Liabilities, Sales Tax
+- EQUITY (3000-3999): Owner's Equity, Retained Earnings
+- REVENUE (4000-4999): Vehicle Sales, Service Revenue, Parts Sales, Export Revenue
+- EXPENSES (5000-5999): COGS, Wages, Rent, Utilities, Marketing, Depreciation
 
-CRITICAL: You MUST return ONLY valid JSON in this EXACT format with NO additional text:
-{
-  "accounts": [
-    {
-      "account_code": "1010",
-      "account_name": "Checking Account",
-      "account_type": "asset",
-      "account_category": "cash",
-      "balance": 0,
-      "description": "Primary business checking account"
-    }
-  ]
-}
-
-Rules:
-- Use standard numbering: 1000s=Assets, 2000s=Liabilities, 3000s=Equity, 4000s=Revenue, 5000s=Expenses
-- Include 40-60 essential accounts
-- account_type MUST be one of: asset, liability, equity, revenue, expense (lowercase)
-- Return pure JSON only, no markdown, no explanations`;
+Create 40-50 accounts total.`;
 
       const result = await base44.integrations.Core.InvokeLLM({
         prompt,
@@ -95,7 +79,10 @@ Rules:
                 properties: {
                   account_code: { type: "string" },
                   account_name: { type: "string" },
-                  account_type: { type: "string" },
+                  account_type: { 
+                    type: "string",
+                    enum: ["asset", "liability", "equity", "revenue", "expense"]
+                  },
                   account_category: { type: "string" },
                   balance: { type: "number" },
                   description: { type: "string" }
@@ -103,11 +90,16 @@ Rules:
                 required: ["account_code", "account_name", "account_type"]
               }
             }
-          }
+          },
+          required: ["accounts"]
         }
       });
 
-      return result?.accounts || [];
+      if (!result || !result.accounts || !Array.isArray(result.accounts)) {
+        throw new Error("Invalid response from AI");
+      }
+
+      return result.accounts;
     },
     onSuccess: async (generatedAccounts) => {
       try {
