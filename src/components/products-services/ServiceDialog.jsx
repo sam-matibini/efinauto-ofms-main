@@ -15,6 +15,7 @@ export default function ServiceDialog({ open, onClose, service, onSave, isLoadin
     category: "maintenance",
     price: 0,
     cost: 0,
+    margin_percentage: 0,
     duration_minutes: 60,
     taxable: true,
     active: true,
@@ -31,6 +32,7 @@ export default function ServiceDialog({ open, onClose, service, onSave, isLoadin
         category: "maintenance",
         price: 0,
         cost: 0,
+        margin_percentage: 0,
         duration_minutes: 60,
         taxable: true,
         active: true,
@@ -98,7 +100,37 @@ export default function ServiceDialog({ open, onClose, service, onSave, isLoadin
             </Select>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label>Cost ($)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={formData.cost}
+                onChange={(e) => {
+                  const cost = parseFloat(e.target.value) || 0;
+                  const margin = formData.margin_percentage || 0;
+                  const price = cost * (1 + margin / 100);
+                  setFormData({ ...formData, cost: cost, price: price });
+                }}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Margin (%)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={formData.margin_percentage}
+                onChange={(e) => {
+                  const margin = parseFloat(e.target.value) || 0;
+                  const cost = formData.cost || 0;
+                  const price = cost * (1 + margin / 100);
+                  setFormData({ ...formData, margin_percentage: margin, price: price });
+                }}
+              />
+            </div>
+
             <div className="space-y-2">
               <Label>Price ($) *</Label>
               <Input
@@ -106,22 +138,17 @@ export default function ServiceDialog({ open, onClose, service, onSave, isLoadin
                 step="0.01"
                 required
                 value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => {
+                  const price = parseFloat(e.target.value) || 0;
+                  const cost = formData.cost || 0;
+                  const margin = cost > 0 ? ((price - cost) / cost) * 100 : 0;
+                  setFormData({ ...formData, price: price, margin_percentage: margin });
+                }}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Cost ($)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={formData.cost}
-                onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Duration (minutes)</Label>
+              <Label>Duration (min)</Label>
               <Input
                 type="number"
                 value={formData.duration_minutes}
@@ -129,6 +156,15 @@ export default function ServiceDialog({ open, onClose, service, onSave, isLoadin
               />
             </div>
           </div>
+          
+          {formData.cost > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-800">
+                <span className="font-semibold">Profit:</span> ${((formData.price || 0) - (formData.cost || 0)).toFixed(2)} 
+                {formData.margin_percentage > 0 && ` (${formData.margin_percentage.toFixed(2)}% margin)`}
+              </p>
+            </div>
+          )}
 
           <div className="flex items-center justify-between border rounded-lg p-4">
             <div>

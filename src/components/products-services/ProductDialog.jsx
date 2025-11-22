@@ -16,6 +16,7 @@ export default function ProductDialog({ open, onClose, product, onSave, isLoadin
     reorder_level: 10,
     unit_price: 0,
     cost_price: 0,
+    margin_percentage: 0,
     supplier: "",
     location: "",
   });
@@ -33,6 +34,7 @@ export default function ProductDialog({ open, onClose, product, onSave, isLoadin
         reorder_level: 10,
         unit_price: 0,
         cost_price: 0,
+        margin_percentage: 0,
         supplier: "",
         location: "",
       });
@@ -142,27 +144,61 @@ export default function ProductDialog({ open, onClose, product, onSave, isLoadin
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Unit Price ($)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={formData.unit_price}
-                onChange={(e) => setFormData({ ...formData, unit_price: parseFloat(e.target.value) || 0 })}
-              />
-            </div>
-
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Cost Price ($)</Label>
               <Input
                 type="number"
                 step="0.01"
                 value={formData.cost_price}
-                onChange={(e) => setFormData({ ...formData, cost_price: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => {
+                  const cost = parseFloat(e.target.value) || 0;
+                  const margin = formData.margin_percentage || 0;
+                  const price = cost * (1 + margin / 100);
+                  setFormData({ ...formData, cost_price: cost, unit_price: price });
+                }}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Margin (%)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={formData.margin_percentage}
+                onChange={(e) => {
+                  const margin = parseFloat(e.target.value) || 0;
+                  const cost = formData.cost_price || 0;
+                  const price = cost * (1 + margin / 100);
+                  setFormData({ ...formData, margin_percentage: margin, unit_price: price });
+                }}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Selling Price ($)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={formData.unit_price}
+                onChange={(e) => {
+                  const price = parseFloat(e.target.value) || 0;
+                  const cost = formData.cost_price || 0;
+                  const margin = cost > 0 ? ((price - cost) / cost) * 100 : 0;
+                  setFormData({ ...formData, unit_price: price, margin_percentage: margin });
+                }}
               />
             </div>
           </div>
+          
+          {formData.cost_price > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-800">
+                <span className="font-semibold">Profit:</span> ${((formData.unit_price || 0) - (formData.cost_price || 0)).toFixed(2)} 
+                {formData.margin_percentage > 0 && ` (${formData.margin_percentage.toFixed(2)}% margin)`}
+              </p>
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
