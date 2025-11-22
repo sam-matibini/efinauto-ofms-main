@@ -15,6 +15,8 @@ import { useCompany } from "@/components/shared/CompanyContext";
 import CustomerSelector from "@/components/shared/CustomerSelector";
 import PartsSelector from "@/components/repairs/PartsSelector";
 import TimeTrackingTab from "@/components/repairs/TimeTrackingTab";
+import AIVINScanner from "@/components/vehicles/AIVINScanner";
+import AIMileageScanner from "@/components/vehicles/AIMileageScanner";
 
 export default function RepairOrderDialog({ open, onClose, order, selectedPackage, onSave, customers }) {
   const { selectedCompanyId } = useCompany();
@@ -220,6 +222,7 @@ export default function RepairOrderDialog({ open, onClose, order, selectedPackag
                   value={formData.vehicle_vin}
                   onChange={(e) => setFormData({ ...formData, vehicle_vin: e.target.value })}
                 />
+                <AIVINScanner onVINDetected={(vin) => setFormData({ ...formData, vehicle_vin: vin })} />
               </div>
               <div className="space-y-2">
                 <Label>License Plate</Label>
@@ -237,6 +240,7 @@ export default function RepairOrderDialog({ open, onClose, order, selectedPackag
                 value={formData.mileage}
                 onChange={(e) => setFormData({ ...formData, mileage: parseInt(e.target.value) || 0 })}
               />
+              <AIMileageScanner onMileageDetected={(mileage) => setFormData({ ...formData, mileage })} />
             </div>
           </TabsContent>
 
