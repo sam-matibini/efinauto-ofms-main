@@ -43,6 +43,7 @@ export default function UserManagement() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const [viewMode, setViewMode] = useState("all"); // "all" or "users_only"
+  const [roleFilter, setRoleFilter] = useState("all"); // "all", "admin", "regular"
 
   const queryClient = useQueryClient();
 
@@ -87,13 +88,20 @@ export default function UserManagement() {
     }
   });
 
-  const filteredUsers = users.filter(user => 
+  let filteredUsers = users.filter(user => 
     user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const adminUsers = filteredUsers.filter(u => u.role === 'admin');
-  const regularUsers = filteredUsers.filter(u => u.role !== 'admin');
+  // Apply role filter
+  if (roleFilter === 'admin') {
+    filteredUsers = filteredUsers.filter(u => u.role === 'admin');
+  } else if (roleFilter === 'regular') {
+    filteredUsers = filteredUsers.filter(u => u.role !== 'admin');
+  }
+
+  const adminUsers = users.filter(u => u.role === 'admin');
+  const regularUsers = users.filter(u => u.role !== 'admin');
 
   const getRoleBadge = (role) => {
     const roleConfig = {
@@ -163,43 +171,52 @@ export default function UserManagement() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
+        <Card 
+          className={`cursor-pointer transition-all ${roleFilter === 'all' ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:shadow-md'}`}
+          onClick={() => setRoleFilter('all')}
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Users</p>
                 <h3 className="text-2xl font-bold text-gray-900">{users.length}</h3>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600" />
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${roleFilter === 'all' ? 'bg-blue-600' : 'bg-blue-100'}`}>
+                <Users className={`w-6 h-6 ${roleFilter === 'all' ? 'text-white' : 'text-blue-600'}`} />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className={`cursor-pointer transition-all ${roleFilter === 'admin' ? 'ring-2 ring-purple-500 shadow-lg' : 'hover:shadow-md'}`}
+          onClick={() => setRoleFilter('admin')}
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Administrators</p>
                 <h3 className="text-2xl font-bold text-gray-900">{adminUsers.length}</h3>
               </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                <Shield className="w-6 h-6 text-purple-600" />
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${roleFilter === 'admin' ? 'bg-purple-600' : 'bg-purple-100'}`}>
+                <Shield className={`w-6 h-6 ${roleFilter === 'admin' ? 'text-white' : 'text-purple-600'}`} />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className={`cursor-pointer transition-all ${roleFilter === 'regular' ? 'ring-2 ring-green-500 shadow-lg' : 'hover:shadow-md'}`}
+          onClick={() => setRoleFilter('regular')}
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Regular Users</p>
                 <h3 className="text-2xl font-bold text-gray-900">{regularUsers.length}</h3>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <Users className="w-6 h-6 text-green-600" />
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${roleFilter === 'regular' ? 'bg-green-600' : 'bg-green-100'}`}>
+                <Users className={`w-6 h-6 ${roleFilter === 'regular' ? 'text-white' : 'text-green-600'}`} />
               </div>
             </div>
           </CardContent>
