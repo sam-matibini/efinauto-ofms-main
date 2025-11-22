@@ -200,6 +200,21 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
             <p className="text-xs text-gray-500 mb-3">
               Select which modules this user can access (leave empty for full access based on role)
             </p>
+            <label className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:bg-gray-50 p-2 rounded mb-2 border-b">
+              <input
+                type="checkbox"
+                checked={userData.accessible_modules?.length === 24}
+                onChange={(e) => {
+                  const allModules = ['Dashboard', 'Companies', 'Customers', 'Vehicles', 'Parts', 'ProductsServices', 'Purchases', 'Sales', 'Repairs', 'Technicians', 'Salvage', 'Exports', 'Freight', 'Reports', 'Analytics', 'VehicleAnalytics', 'Accounting', 'Payroll', 'EmployeePortal', 'CustomerCommunications', 'CustomerSupport', 'Notifications', 'UserManagement', 'Settings'];
+                  setUserData({
+                    ...userData,
+                    accessible_modules: e.target.checked ? allModules : []
+                  });
+                }}
+                className="rounded"
+              />
+              <span>Select All Modules</span>
+            </label>
             <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto border rounded-lg p-3">
               {[
                 { id: 'Dashboard', label: 'Dashboard' },
