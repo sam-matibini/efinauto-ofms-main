@@ -15,7 +15,8 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
     role: "user",
     company_id: "",
     department: "",
-    employee_id: ""
+    employee_id: "",
+    accessible_modules: []
   });
 
   const { data: companies = [] } = useQuery({
@@ -32,7 +33,8 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
         role: user.role || "user",
         company_id: user.data?.company_id || "",
         department: user.department || "",
-        employee_id: user.employee_id || ""
+        employee_id: user.employee_id || "",
+        accessible_modules: user.data?.accessible_modules || []
       });
     }
   }, [user]);
@@ -49,7 +51,8 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
       employee_id: userData.employee_id,
       data: {
         ...user?.data,
-        company_id: userData.company_id || null
+        company_id: userData.company_id || null,
+        accessible_modules: userData.accessible_modules || []
       }
     };
     
@@ -190,6 +193,64 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
               value={userData.employee_id}
               onChange={(e) => setUserData({ ...userData, employee_id: e.target.value })}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Module Access</Label>
+            <p className="text-xs text-gray-500 mb-3">
+              Select which modules this user can access (leave empty for full access based on role)
+            </p>
+            <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto border rounded-lg p-3">
+              {[
+                { id: 'Dashboard', label: 'Dashboard' },
+                { id: 'Companies', label: 'Companies' },
+                { id: 'Customers', label: 'Customers' },
+                { id: 'Vehicles', label: 'Vehicles' },
+                { id: 'Parts', label: 'Parts Inventory' },
+                { id: 'ProductsServices', label: 'Products & Services' },
+                { id: 'Purchases', label: 'Purchases' },
+                { id: 'Sales', label: 'Sales' },
+                { id: 'Repairs', label: 'Auto Repair' },
+                { id: 'Technicians', label: 'Technicians' },
+                { id: 'Salvage', label: 'Salvage & Dismantling' },
+                { id: 'Exports', label: 'Exports' },
+                { id: 'Freight', label: 'Freight & Cargo' },
+                { id: 'Reports', label: 'Reports' },
+                { id: 'Analytics', label: 'Analytics' },
+                { id: 'VehicleAnalytics', label: 'Vehicle Analytics' },
+                { id: 'Accounting', label: 'Financials' },
+                { id: 'Payroll', label: 'Payroll & HR' },
+                { id: 'EmployeePortal', label: 'Employee Portal' },
+                { id: 'CustomerCommunications', label: 'Communications Hub' },
+                { id: 'CustomerSupport', label: 'AI Support Chat' },
+                { id: 'Notifications', label: 'Notifications' },
+                { id: 'UserManagement', label: 'User Management' },
+                { id: 'Settings', label: 'Settings' }
+              ].map(module => (
+                <label key={module.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded">
+                  <input
+                    type="checkbox"
+                    checked={userData.accessible_modules?.includes(module.id) || false}
+                    onChange={(e) => {
+                      const modules = userData.accessible_modules || [];
+                      if (e.target.checked) {
+                        setUserData({
+                          ...userData,
+                          accessible_modules: [...modules, module.id]
+                        });
+                      } else {
+                        setUserData({
+                          ...userData,
+                          accessible_modules: modules.filter(m => m !== module.id)
+                        });
+                      }
+                    }}
+                    className="rounded"
+                  />
+                  <span>{module.label}</span>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
 
