@@ -191,12 +191,7 @@ const allNavigationItems = [
     icon: SettingsIcon,
     pageId: "Settings"
   },
-  ];
-
-  // Filter navigation items based on user's accessible modules
-  const navigationItems = currentUser?.data?.accessible_modules?.length > 0
-  ? allNavigationItems.filter(item => currentUser.data.accessible_modules.includes(item.pageId))
-  : allNavigationItems;
+];
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -207,6 +202,11 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
   });
+
+  // Filter navigation items based on user's accessible modules
+  const navigationItems = currentUser?.data?.accessible_modules?.length > 0
+    ? allNavigationItems.filter(item => currentUser.data.accessible_modules.includes(item.pageId))
+    : allNavigationItems;
 
   const updateProfileMutation = useMutation({
     mutationFn: (data) => base44.auth.updateMe(data),
