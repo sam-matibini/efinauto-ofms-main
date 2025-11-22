@@ -46,128 +46,157 @@ import ErrorBoundary from "@/components/shared/ErrorBoundary";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-const navigationItems = [
+const allNavigationItems = [
   {
     title: "Dashboard",
     url: createPageUrl("Dashboard"),
     icon: LayoutDashboard,
+    pageId: "Dashboard"
   },
   {
     title: "Companies",
     url: createPageUrl("Companies"),
     icon: Building2,
+    pageId: "Companies"
   },
   {
     title: "Customers",
     url: createPageUrl("Customers"),
     icon: Users,
+    pageId: "Customers"
   },
   {
     title: "Vehicles",
     url: createPageUrl("Vehicles"),
     icon: Car,
+    pageId: "Vehicles"
   },
   {
     title: "Parts Inventory",
     url: createPageUrl("Parts"),
     icon: Settings,
+    pageId: "Parts"
   },
   {
     title: "Products & Services",
     url: createPageUrl("ProductsServices"),
     icon: Package,
+    pageId: "ProductsServices"
   },
   {
     title: "Purchases",
     url: createPageUrl("Purchases"),
     icon: ShoppingCart,
+    pageId: "Purchases"
   },
   {
     title: "Sales",
     url: createPageUrl("Sales"),
     icon: ShoppingCart,
+    pageId: "Sales"
   },
   {
     title: "Auto Repair",
     url: createPageUrl("Repairs"),
     icon: Wrench,
+    pageId: "Repairs"
   },
   {
     title: "Technicians",
     url: createPageUrl("Technicians"),
     icon: HardHat,
+    pageId: "Technicians"
   },
   {
     title: "Salvage & Dismantling",
     url: createPageUrl("Salvage"),
     icon: Trash2,
+    pageId: "Salvage"
   },
   {
     title: "Exports",
     url: createPageUrl("Exports"),
     icon: Plane,
+    pageId: "Exports"
   },
   {
     title: "Freight & Cargo",
     url: createPageUrl("Freight"),
     icon: Package,
+    pageId: "Freight"
   },
   {
     title: "Reports",
     url: createPageUrl("Reports"),
     icon: BarChart3,
+    pageId: "Reports"
   },
   {
     title: "Analytics",
     url: createPageUrl("Analytics"),
     icon: LineChart,
+    pageId: "Analytics"
   },
   {
     title: "Vehicle Analytics",
     url: createPageUrl("VehicleAnalytics"),
     icon: BarChart3,
+    pageId: "VehicleAnalytics"
   },
   {
     title: "Financials",
     url: createPageUrl("Accounting"),
     icon: DollarSign,
+    pageId: "Accounting"
   },
   {
     title: "Payroll & HR",
     url: createPageUrl("Payroll"),
     icon: Users,
+    pageId: "Payroll"
   },
   {
     title: "Employee Portal",
     url: createPageUrl("EmployeePortal"),
     icon: UserCog,
+    pageId: "EmployeePortal"
   },
   {
     title: "Communications Hub",
     url: createPageUrl("CustomerCommunications"),
     icon: Send,
+    pageId: "CustomerCommunications"
   },
   {
     title: "AI Support Chat",
     url: createPageUrl("CustomerSupport"),
     icon: MessageCircle,
+    pageId: "CustomerSupport"
   },
   {
     title: "Notifications",
     url: createPageUrl("Notifications"),
     icon: Bell,
+    pageId: "Notifications"
   },
   {
     title: "User Management",
     url: createPageUrl("UserManagement"),
     icon: UserCog,
+    pageId: "UserManagement"
   },
   {
     title: "Settings",
     url: createPageUrl("Settings"),
     icon: SettingsIcon,
+    pageId: "Settings"
   },
-];
+  ];
+
+  // Filter navigation items based on user's accessible modules
+  const navigationItems = currentUser?.data?.accessible_modules?.length > 0
+  ? allNavigationItems.filter(item => currentUser.data.accessible_modules.includes(item.pageId))
+  : allNavigationItems;
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
