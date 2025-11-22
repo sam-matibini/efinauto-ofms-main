@@ -29,6 +29,8 @@ import AIVehicleSearchCanada from "../components/vehicles/AIVehicleSearchCanada"
 import AIVehicleSearchUSA from "../components/vehicles/AIVehicleSearchUSA";
 import AIVehicleSearchMarketplace from "../components/vehicles/AIVehicleSearchMarketplace";
 import VehicleBulkImport from "../components/vehicles/VehicleBulkImport";
+import AIVINScanner from "../components/vehicles/AIVINScanner";
+import AIMileageScanner from "../components/vehicles/AIMileageScanner";
 
 export default function Vehicles() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -530,6 +532,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
                 onChange={(e) => setFormData({...formData, vin: e.target.value})} 
                 placeholder="Enter VIN" 
               />
+              <AIVINScanner onVINDetected={(vin) => setFormData({...formData, vin})} />
             </div>
             <div className="space-y-2">
               <Label>Make *</Label>
@@ -572,6 +575,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
                 onChange={(e) => setFormData({...formData, mileage: parseInt(e.target.value) || 0})} 
                 placeholder="0" 
               />
+              <AIMileageScanner onMileageDetected={(mileage) => setFormData({...formData, mileage})} />
             </div>
             <div className="space-y-2">
               <Label>Weight (kg)</Label>
