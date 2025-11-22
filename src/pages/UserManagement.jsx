@@ -264,13 +264,23 @@ export default function UserManagement() {
                         <Mail className="w-4 h-4" />
                         {user.email}
                       </div>
-                      <div className="flex items-center gap-3 mt-1">
+                      <div className="flex items-center gap-3 mt-1 flex-wrap">
                         <p className="text-xs text-gray-400">
                           Joined {new Date(user.created_date).toLocaleDateString()}
                         </p>
                         {user.data?.company_id && (
                           <Badge variant="outline" className="text-xs">
                             Company Assigned
+                          </Badge>
+                        )}
+                        {user.department && (
+                          <Badge variant="outline" className="text-xs">
+                            {user.department}
+                          </Badge>
+                        )}
+                        {user.employee_id && (
+                          <Badge variant="outline" className="text-xs">
+                            ID: {user.employee_id}
                           </Badge>
                         )}
                       </div>

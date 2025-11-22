@@ -101,15 +101,57 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
                 <SelectItem value="user">Regular User</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-gray-500">
-              {userData.role === 'admin' && 'Full system access and user management'}
-              {userData.role === 'manager' && 'Manage company operations and staff'}
-              {userData.role === 'sales' && 'Handle sales, customers, and vehicles'}
-              {userData.role === 'technician' && 'Manage repairs and service orders'}
-              {userData.role === 'inventory_manager' && 'Manage parts and vehicle inventory'}
-              {userData.role === 'accountant' && 'Access to financial reports and transactions'}
-              {userData.role === 'user' && 'Standard access to company data'}
-            </p>
+            <div className="text-xs text-gray-500 space-y-1 mt-2">
+              {userData.role === 'admin' && (
+                <>
+                  <p className="font-medium">Permissions:</p>
+                  <p>✓ Full system access • User management • All data access</p>
+                  <p>✓ Create, view, update, delete across all modules</p>
+                </>
+              )}
+              {userData.role === 'manager' && (
+                <>
+                  <p className="font-medium">Permissions:</p>
+                  <p>✓ Company operations • Staff management • Reports</p>
+                  <p>✓ Create, view, update, delete within assigned company</p>
+                </>
+              )}
+              {userData.role === 'sales' && (
+                <>
+                  <p className="font-medium">Permissions:</p>
+                  <p>✓ Sales • Customers • Vehicles • Invoices</p>
+                  <p>✓ Create, view, update sales records</p>
+                </>
+              )}
+              {userData.role === 'technician' && (
+                <>
+                  <p className="font-medium">Permissions:</p>
+                  <p>✓ Repairs • Service orders • Parts usage • Timesheets</p>
+                  <p>✓ Create, view, update repair orders</p>
+                </>
+              )}
+              {userData.role === 'inventory_manager' && (
+                <>
+                  <p className="font-medium">Permissions:</p>
+                  <p>✓ Parts • Vehicles • Inventory • Stock adjustments</p>
+                  <p>✓ Create, view, update, delete inventory items</p>
+                </>
+              )}
+              {userData.role === 'accountant' && (
+                <>
+                  <p className="font-medium">Permissions:</p>
+                  <p>✓ Financial reports • Transactions • Accounting</p>
+                  <p>✓ View all financial data • Create entries</p>
+                </>
+              )}
+              {userData.role === 'user' && (
+                <>
+                  <p className="font-medium">Permissions:</p>
+                  <p>✓ View company data • Standard access</p>
+                  <p>✓ Limited create/update abilities</p>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
