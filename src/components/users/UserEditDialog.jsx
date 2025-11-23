@@ -143,8 +143,8 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
               {userData.role === 'accountant' && (
                 <>
                   <p className="font-medium">Permissions:</p>
-                  <p>✓ Financial reports • Transactions • Accounting</p>
-                  <p>✓ View all financial data • Create entries</p>
+                  <p>✓ Financial reports • Transactions • Accounting • Banking</p>
+                  <p>✓ View all financial data • Create entries • Manage bank transactions</p>
                 </>
               )}
               {userData.role === 'user' && (
@@ -203,9 +203,9 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
             <label className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:bg-gray-50 p-2 rounded mb-2 border-b">
               <input
                 type="checkbox"
-                checked={userData.accessible_modules?.length === 24}
+                checked={userData.accessible_modules?.length === 25}
                 onChange={(e) => {
-                  const allModules = ['Dashboard', 'Companies', 'Customers', 'Vehicles', 'Parts', 'ProductsServices', 'Purchases', 'Sales', 'Repairs', 'Technicians', 'Salvage', 'Exports', 'Freight', 'Reports', 'Analytics', 'VehicleAnalytics', 'Accounting', 'Payroll', 'EmployeePortal', 'CustomerCommunications', 'CustomerSupport', 'Notifications', 'UserManagement', 'Settings'];
+                  const allModules = ['Dashboard', 'Companies', 'Customers', 'Vehicles', 'Parts', 'ProductsServices', 'Purchases', 'Sales', 'Repairs', 'Technicians', 'Salvage', 'Exports', 'Freight', 'Reports', 'Analytics', 'VehicleAnalytics', 'Accounting', 'Banking', 'Payroll', 'EmployeePortal', 'CustomerCommunications', 'CustomerSupport', 'Notifications', 'UserManagement', 'Settings'];
                   setUserData({
                     ...userData,
                     accessible_modules: e.target.checked ? allModules : []
@@ -234,6 +234,7 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
                 { id: 'Analytics', label: 'Analytics' },
                 { id: 'VehicleAnalytics', label: 'Vehicle Analytics' },
                 { id: 'Accounting', label: 'Financials' },
+                { id: 'Banking', label: 'Banking' },
                 { id: 'Payroll', label: 'Payroll & HR' },
                 { id: 'EmployeePortal', label: 'Employee Portal' },
                 { id: 'CustomerCommunications', label: 'Communications Hub' },
