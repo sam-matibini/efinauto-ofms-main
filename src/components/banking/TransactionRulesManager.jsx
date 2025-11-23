@@ -101,39 +101,26 @@ export default function TransactionRulesManager({ rules, glAccounts, companyId }
                         </div>
                         <p className="text-sm text-gray-600 mb-2">{rule.description}</p>
                         <div className="flex flex-wrap gap-2 text-xs">
-                          {rule.conditions?.description_contains?.length > 0 && (
-                            <Badge variant="outline">
-                              Contains: {rule.conditions.description_contains.join(', ')}
+                          <Badge variant="outline" className="capitalize">
+                            {rule.apply_to === 'both' ? 'All Transactions' : 
+                             rule.apply_to === 'credit' ? 'Deposits' : 'Withdrawals'}
+                          </Badge>
+                          <Badge variant="outline">
+                            Match: {rule.match_type === 'all' ? 'All criteria' : 'Any criteria'}
+                          </Badge>
+                          {rule.criteria?.map((c, i) => (
+                            <Badge key={i} variant="outline">
+                              {c.field} {c.operator} "{c.value}"
                             </Badge>
-                          )}
-                          {rule.conditions?.payee_contains?.length > 0 && (
-                            <Badge variant="outline">
-                              Payee: {rule.conditions.payee_contains.join(', ')}
-                            </Badge>
-                          )}
-                          {rule.conditions?.transaction_type && rule.conditions.transaction_type !== 'both' && (
-                            <Badge variant="outline">
-                              Type: {rule.conditions.transaction_type}
-                            </Badge>
-                          )}
-                          {rule.conditions?.amount_equals && (
-                            <Badge variant="outline">
-                              Amount = ${rule.conditions.amount_equals}
-                            </Badge>
-                          )}
-                          {rule.conditions?.amount_greater_than && (
-                            <Badge variant="outline">
-                              Amount {'>'} ${rule.conditions.amount_greater_than}
-                            </Badge>
-                          )}
-                          {rule.conditions?.amount_less_than && (
-                            <Badge variant="outline">
-                              Amount {'<'} ${rule.conditions.amount_less_than}
-                            </Badge>
-                          )}
+                          ))}
                           {rule.actions?.gl_account_name && (
                             <Badge className="bg-blue-100 text-blue-800">
                               → {rule.actions.gl_account_name}
+                            </Badge>
+                          )}
+                          {rule.actions?.auto_post && (
+                            <Badge className="bg-green-100 text-green-800">
+                              Auto-Post
                             </Badge>
                           )}
                         </div>
@@ -193,14 +180,11 @@ function RuleDialog({ open, onClose, rule, onSave, glAccounts, isLoading }) {
   const [formData, setFormData] = useState({
     rule_name: "",
     description: "",
-    conditions: {
-      description_contains: [],
-      payee_contains: [],
-      amount_equals: null,
-      amount_greater_than: null,
-      amount_less_than: null,
-      transaction_type: "both"
-    },
+    apply_to: "both",
+    match_type: "any",
+    criteria: [
+      { field: "description", operator: "contains", value: "" }
+    ],
     actions: {
       category: "",
       gl_account_id: "",
@@ -210,9 +194,6 @@ function RuleDialog({ open, onClose, rule, onSave, glAccounts, isLoading }) {
     enabled: true
   });
 
-  const [descKeyword, setDescKeyword] = useState("");
-  const [payeeKeyword, setPayeeKeyword] = useState("");
-
   React.useEffect(() => {
     if (rule) {
       setFormData(rule);
@@ -220,14 +201,11 @@ function RuleDialog({ open, onClose, rule, onSave, glAccounts, isLoading }) {
       setFormData({
         rule_name: "",
         description: "",
-        conditions: {
-          description_contains: [],
-          payee_contains: [],
-          amount_equals: null,
-          amount_greater_than: null,
-          amount_less_than: null,
-          transaction_type: "both"
-        },
+        apply_to: "both",
+        match_type: "any",
+        criteria: [
+          { field: "description", operator: "contains", value: "" }
+        ],
         actions: {
           category: "",
           gl_account_id: "",
@@ -238,6 +216,28 @@ function RuleDialog({ open, onClose, rule, onSave, glAccounts, isLoading }) {
       });
     }
   }, [rule, open]);
+
+  const addCriterion = () => {
+    setFormData({
+      ...formData,
+      criteria: [...formData.criteria, { field: "description", operator: "contains", value: "" }]
+    });
+  };
+
+  const removeCriterion = (index) => {
+    if (formData.criteria.length > 1) {
+      setFormData({
+        ...formData,
+        criteria: formData.criteria.filter((_, i) => i !== index)
+      });
+    }
+  };
+
+  const updateCriterion = (index, field, value) => {
+    const updated = [...formData.criteria];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData({ ...formData, criteria: updated });
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -257,234 +257,238 @@ function RuleDialog({ open, onClose, rule, onSave, glAccounts, isLoading }) {
         <DialogHeader>
           <DialogTitle>{rule ? "Edit Rule" : "Create Transaction Rule"}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <Label>Rule Name *</Label>
+            <Label className="text-sm font-medium">
+              Rule Name <span className="text-red-500">*</span>
+            </Label>
             <Input
               required
               value={formData.rule_name}
               onChange={(e) => setFormData({ ...formData, rule_name: e.target.value })}
+              placeholder="Enter rule name"
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Description</Label>
-            <Input
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            />
-          </div>
-
-          <div className="space-y-3 border rounded-lg p-4">
-            <h4 className="font-semibold">Conditions</h4>
-            
-            <div className="space-y-2">
-              <Label>Description Contains</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={descKeyword}
-                  onChange={(e) => setDescKeyword(e.target.value)}
-                  placeholder="Add keyword..."
+            <Label className="text-sm font-medium">
+              Apply To <span className="text-red-500">*</span>
+            </Label>
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="apply_to"
+                  value="credit"
+                  checked={formData.apply_to === "credit"}
+                  onChange={(e) => setFormData({ ...formData, apply_to: e.target.value })}
+                  className="w-4 h-4"
                 />
-                <Button
-                  type="button"
-                  onClick={() => {
-                    if (descKeyword.trim()) {
-                      setFormData({
-                        ...formData,
-                        conditions: {
-                          ...formData.conditions,
-                          description_contains: [...(formData.conditions.description_contains || []), descKeyword.trim()]
-                        }
-                      });
-                      setDescKeyword("");
-                    }
-                  }}
-                >
-                  Add
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.conditions.description_contains?.map((kw, i) => (
-                  <Badge key={i} variant="outline">
-                    {kw}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData({
-                          ...formData,
-                          conditions: {
-                            ...formData.conditions,
-                            description_contains: formData.conditions.description_contains.filter((_, idx) => idx !== i)
-                          }
-                        });
-                      }}
-                      className="ml-2 hover:text-red-600"
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Payee Contains</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={payeeKeyword}
-                  onChange={(e) => setPayeeKeyword(e.target.value)}
-                  placeholder="Add payee keyword..."
+                <span className="text-sm">Deposits (Money In)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="apply_to"
+                  value="debit"
+                  checked={formData.apply_to === "debit"}
+                  onChange={(e) => setFormData({ ...formData, apply_to: e.target.value })}
+                  className="w-4 h-4"
                 />
-                <Button
-                  type="button"
-                  onClick={() => {
-                    if (payeeKeyword.trim()) {
-                      setFormData({
-                        ...formData,
-                        conditions: {
-                          ...formData.conditions,
-                          payee_contains: [...(formData.conditions.payee_contains || []), payeeKeyword.trim()]
-                        }
-                      });
-                      setPayeeKeyword("");
-                    }
-                  }}
-                >
-                  Add
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.conditions.payee_contains?.map((kw, i) => (
-                  <Badge key={i} variant="outline">
-                    {kw}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData({
-                          ...formData,
-                          conditions: {
-                            ...formData.conditions,
-                            payee_contains: formData.conditions.payee_contains.filter((_, idx) => idx !== i)
-                          }
-                        });
-                      }}
-                      className="ml-2 hover:text-red-600"
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                ))}
-                </div>
-                </div>
-
-                <div className="space-y-2">
-                <Label>Transaction Type</Label>
-                <Select
-                value={formData.conditions.transaction_type}
-                onValueChange={(v) => setFormData({
-                ...formData,
-                conditions: { ...formData.conditions, transaction_type: v }
-                })}
-                >
-                <SelectTrigger>
-                <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                <SelectItem value="both">Both (Debit & Credit)</SelectItem>
-                <SelectItem value="debit">Debit Only (Money Out)</SelectItem>
-                <SelectItem value="credit">Credit Only (Money In)</SelectItem>
-                </SelectContent>
-                </Select>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-2">
-                <Label>Amount Equals</Label>
-                <Input
-                type="number"
-                step="0.01"
-                placeholder="e.g., 100.00"
-                value={formData.conditions.amount_equals || ""}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  conditions: {
-                    ...formData.conditions,
-                    amount_equals: e.target.value ? parseFloat(e.target.value) : null
-                  }
-                })}
+                <span className="text-sm">Withdrawals (Money Out)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="apply_to"
+                  value="both"
+                  checked={formData.apply_to === "both"}
+                  onChange={(e) => setFormData({ ...formData, apply_to: e.target.value })}
+                  className="w-4 h-4"
                 />
-                </div>
-                <div className="space-y-2">
-                <Label>Amount Greater Than</Label>
-                <Input
-                type="number"
-                step="0.01"
-                placeholder="e.g., 500.00"
-                value={formData.conditions.amount_greater_than || ""}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  conditions: {
-                    ...formData.conditions,
-                    amount_greater_than: e.target.value ? parseFloat(e.target.value) : null
-                  }
-                })}
-                />
-                </div>
-                <div className="space-y-2">
-                <Label>Amount Less Than</Label>
-                <Input
-                type="number"
-                step="0.01"
-                placeholder="e.g., 1000.00"
-                value={formData.conditions.amount_less_than || ""}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  conditions: {
-                    ...formData.conditions,
-                    amount_less_than: e.target.value ? parseFloat(e.target.value) : null
-                  }
-                })}
-                />
-                </div>
-                </div>
-                </div>
-
-                <div className="space-y-3 border rounded-lg p-4">
-                <h4 className="font-semibold">Actions</h4>
-            
-            <div className="space-y-2">
-              <Label>GL Account *</Label>
-              <Select
-                value={formData.actions.gl_account_id}
-                onValueChange={(v) => setFormData({ ...formData, actions: { ...formData.actions, gl_account_id: v } })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select account" />
-                </SelectTrigger>
-                <SelectContent>
-                  {glAccounts.map(acc => (
-                    <SelectItem key={acc.id} value={acc.id}>
-                      {acc.account_code} - {acc.account_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center justify-between border rounded-lg p-3">
-              <div>
-                <Label>Auto-Post to GL</Label>
-                <p className="text-sm text-gray-500">Automatically post matching transactions</p>
-              </div>
-              <Switch
-                checked={formData.actions.auto_post}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, actions: { ...formData.actions, auto_post: checked } })
-                }
-              />
+                <span className="text-sm">Both</span>
+              </label>
             </div>
           </div>
+
+          <div className="space-y-3 pb-4 border-b">
+            <Label className="text-sm font-medium">
+              Categorise the transactions when <span className="text-red-500">*</span>
+            </Label>
+            <div className="flex gap-6 mb-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="match_type"
+                  value="all"
+                  checked={formData.match_type === "all"}
+                  onChange={(e) => setFormData({ ...formData, match_type: e.target.value })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">All the following criteria matches</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="match_type"
+                  value="any"
+                  checked={formData.match_type === "any"}
+                  onChange={(e) => setFormData({ ...formData, match_type: e.target.value })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Any one of the following criteria matches</span>
+              </label>
+            </div>
+
+            <div className="space-y-2">
+              {formData.criteria.map((criterion, index) => (
+                <div key={index} className="flex gap-2 items-start">
+                  <Select
+                    value={criterion.field}
+                    onValueChange={(v) => updateCriterion(index, 'field', v)}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="description">Description</SelectItem>
+                      <SelectItem value="payee">Payee</SelectItem>
+                      <SelectItem value="amount">Amount</SelectItem>
+                      <SelectItem value="reference">Reference</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={criterion.operator}
+                    onValueChange={(v) => updateCriterion(index, 'operator', v)}
+                  >
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {criterion.field === "amount" ? (
+                        <>
+                          <SelectItem value="equals">Equals</SelectItem>
+                          <SelectItem value="greater_than">Greater than</SelectItem>
+                          <SelectItem value="less_than">Less than</SelectItem>
+                          <SelectItem value="between">Between</SelectItem>
+                        </>
+                      ) : (
+                        <>
+                          <SelectItem value="contains">Contains</SelectItem>
+                          <SelectItem value="equals">Equals</SelectItem>
+                          <SelectItem value="starts_with">Starts with</SelectItem>
+                          <SelectItem value="ends_with">Ends with</SelectItem>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+
+                  <Input
+                    placeholder="Enter value"
+                    value={criterion.value}
+                    onChange={(e) => updateCriterion(index, 'value', e.target.value)}
+                    type={criterion.field === "amount" ? "number" : "text"}
+                    step={criterion.field === "amount" ? "0.01" : undefined}
+                    className="flex-1"
+                  />
+
+                  {formData.criteria.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeCriterion(index)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              onClick={addCriterion}
+              className="text-blue-600 p-0 h-auto"
+            >
+              + Add Criterion
+            </Button>
+          </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      Record As
+                    </Label>
+                    <Input
+                      value={formData.actions.category}
+                      onChange={(e) => setFormData({ ...formData, actions: { ...formData.actions, category: e.target.value } })}
+                      placeholder="e.g., Office Supplies, Utilities, etc."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      Account <span className="text-red-500">*</span>
+                    </Label>
+                    <Select
+                      required
+                      value={formData.actions.gl_account_id}
+                      onValueChange={(v) => setFormData({ ...formData, actions: { ...formData.actions, gl_account_id: v } })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an account" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {glAccounts.map(acc => (
+                          <SelectItem key={acc.id} value={acc.id}>
+                            {acc.account_code} - {acc.account_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-3 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <Label className="text-sm font-medium">
+                      Add Transaction in This Rule To <span className="text-red-500">*</span>
+                    </Label>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="auto_post"
+                        checked={formData.actions.auto_post}
+                        onChange={(e) => setFormData({ ...formData, actions: { ...formData.actions, auto_post: e.target.checked } })}
+                        className="w-4 h-4 mt-0.5"
+                      />
+                      <div>
+                        <div className="text-sm font-medium">Recognized Transactions</div>
+                        <p className="text-xs text-gray-600 mt-1">
+                          Your bank statements will be available in Recognized Transactions. You will have to categorize them manually.
+                        </p>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="auto_post"
+                        checked={!formData.actions.auto_post}
+                        onChange={(e) => setFormData({ ...formData, actions: { ...formData.actions, auto_post: !e.target.checked } })}
+                        className="w-4 h-4 mt-0.5"
+                      />
+                      <div>
+                        <div className="text-sm font-medium">Categorized Transactions (Auto-Post)</div>
+                        <p className="text-xs text-gray-600 mt-1">
+                          Automatically post matching transactions to the General Ledger without manual review.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={onClose}>
