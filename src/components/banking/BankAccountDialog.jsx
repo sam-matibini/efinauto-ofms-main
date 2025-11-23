@@ -194,11 +194,76 @@ export default function BankAccountDialog({ open, onClose, account, onSave, glAc
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="manual">Manual Import</SelectItem>
-                    <SelectItem value="connected">Bank Connection (Coming Soon)</SelectItem>
+                    <SelectItem value="connected">Bank Connection</SelectItem>
                     <SelectItem value="disconnected">Disconnected</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              {formData.connection_status === "connected" && (
+                <div className="border rounded-lg p-4 space-y-4 bg-blue-50">
+                  <h4 className="font-semibold text-blue-900">Bank Connection Settings</h4>
+
+                  <div className="space-y-2">
+                    <Label>Provider</Label>
+                    <Select 
+                      value={formData.connection_details?.provider || ""} 
+                      onValueChange={(v) => setFormData({ 
+                        ...formData, 
+                        connection_details: { ...formData.connection_details, provider: v }
+                      })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select provider" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="plaid">Plaid</SelectItem>
+                        <SelectItem value="yodlee">Yodlee</SelectItem>
+                        <SelectItem value="mx">MX</SelectItem>
+                        <SelectItem value="flinks">Flinks (Canadian Banks)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Connection ID</Label>
+                    <Input
+                      value={formData.connection_details?.connection_id || ""}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        connection_details: { ...formData.connection_details, connection_id: e.target.value }
+                      })}
+                      placeholder="Enter connection/access token"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Auto-Import Enabled</Label>
+                      <p className="text-sm text-gray-600">Automatically sync transactions daily</p>
+                    </div>
+                    <Switch
+                      checked={formData.connection_details?.auto_import_enabled || false}
+                      onCheckedChange={(checked) => setFormData({ 
+                        ...formData, 
+                        connection_details: { ...formData.connection_details, auto_import_enabled: checked }
+                      })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Last Sync</Label>
+                    <Input
+                      type="datetime-local"
+                      value={formData.connection_details?.last_sync || ""}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        connection_details: { ...formData.connection_details, last_sync: e.target.value }
+                      })}
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="border rounded-lg p-4 space-y-4">
                 <div className="flex items-center justify-between">
