@@ -7,12 +7,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Plus, CreditCard, Receipt, GitCompare, Settings, Building2 } from "lucide-react";
 import { toast } from "sonner";
-import BankAccountDialog from "@/components/banking/BankAccountDialog";
-import BankAccountsList from "@/components/banking/BankAccountsList";
-import TransactionsList from "@/components/banking/TransactionsList";
-import ReconciliationManager from "@/components/banking/ReconciliationManager";
-import TransactionRulesManager from "@/components/banking/TransactionRulesManager";
-import BankStatementImport from "@/components/banking/BankStatementImport";
+import BankAccountDialog from "@/components/banking/BankAccountDialog.jsx";
+import BankAccountsList from "@/components/banking/BankAccountsList.jsx";
+import TransactionsList from "@/components/banking/TransactionsList.jsx";
+import ReconciliationManager from "@/components/banking/ReconciliationManager.jsx";
+import TransactionRulesManager from "@/components/banking/TransactionRulesManager.jsx";
+import BankStatementImport from "@/components/banking/BankStatementImport.jsx";
 
 export default function BankingPage() {
   const { selectedCompanyId } = useCompany();
