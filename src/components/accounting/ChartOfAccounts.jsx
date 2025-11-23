@@ -51,15 +51,24 @@ export default function ChartOfAccounts() {
       liability: 'bg-orange-100 text-orange-700',
       equity: 'bg-purple-100 text-purple-700',
       revenue: 'bg-green-100 text-green-700',
-      expense: 'bg-red-100 text-red-700'
+      expense: 'bg-red-100 text-red-700',
+      bank: 'bg-teal-100 text-teal-700',
+      credit_card: 'bg-pink-100 text-pink-700'
     };
     return colors[type] || 'bg-gray-100 text-gray-700';
   };
 
+  // Organize accounts into hierarchical structure
   const groupedAccounts = accounts.reduce((groups, account) => {
     const type = account.account_type;
     if (!groups[type]) groups[type] = [];
-    groups[type].push(account);
+    
+    // Only add top-level accounts here (those without parent_account_id)
+    if (!account.parent_account_id) {
+      // Find all sub-accounts for this account
+      const subAccounts = accounts.filter(acc => acc.parent_account_id === account.id);
+      groups[type].push({ ...account, subAccounts });
+    }
     return groups;
   }, {});
 
@@ -127,38 +136,79 @@ export default function ChartOfAccounts() {
           <CardContent>
             <div className="space-y-2">
               {typeAccounts.map(account => (
-                <div
-                  key={account.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center gap-4 flex-1">
-                    <span className="font-mono text-sm font-semibold text-gray-600 w-20">
-                      {account.account_code}
-                    </span>
-                    <div className="flex-1">
-                      <p className="font-semibold">{account.account_name}</p>
-                      {account.description && (
-                        <p className="text-sm text-gray-600">{account.description}</p>
-                      )}
+                <div key={account.id}>
+                  {/* Parent Account */}
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center gap-4 flex-1">
+                      <span className="font-mono text-sm font-semibold text-gray-600 w-20">
+                        {account.account_code}
+                      </span>
+                      <div className="flex-1">
+                        <p className="font-semibold">{account.account_name}</p>
+                        {account.description && (
+                          <p className="text-sm text-gray-600">{account.description}</p>
+                        )}
+                      </div>
+                      <Badge variant="outline">{account.account_category}</Badge>
                     </div>
-                    <Badge variant="outline">{account.account_category}</Badge>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-lg w-32 text-right">
+                        ${account.balance?.toLocaleString() || '0'}
+                      </span>
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(account)}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleDelete(account.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-lg w-32 text-right">
-                      ${account.balance?.toLocaleString() || '0'}
-                    </span>
-                    <Button variant="ghost" size="icon" onClick={() => handleEdit(account)}>
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => handleDelete(account.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+
+                  {/* Sub-Accounts */}
+                  {account.subAccounts?.length > 0 && (
+                    <div className="ml-8 mt-2 space-y-2">
+                      {account.subAccounts.map(subAccount => (
+                        <div
+                          key={subAccount.id}
+                          className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-4 flex-1">
+                            <span className="font-mono text-sm text-gray-500 w-20">
+                              {subAccount.account_code}
+                            </span>
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-700">{subAccount.account_name}</p>
+                              {subAccount.description && (
+                                <p className="text-xs text-gray-500">{subAccount.description}</p>
+                              )}
+                            </div>
+                            <Badge variant="outline" className="text-xs">{subAccount.account_category}</Badge>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-gray-700 w-32 text-right">
+                              ${subAccount.balance?.toLocaleString() || '0'}
+                            </span>
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(subAccount)}>
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => handleDelete(subAccount.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -171,6 +221,7 @@ export default function ChartOfAccounts() {
           open={dialogOpen}
           onClose={() => { setDialogOpen(false); setEditingAccount(null); }}
           account={editingAccount}
+          accounts={accounts}
         />
       )}
     </div>

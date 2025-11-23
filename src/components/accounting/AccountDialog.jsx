@@ -10,7 +10,7 @@ import { base44 } from "@/api/base44Client";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { toast } from "sonner";
 
-export default function AccountDialog({ open, onClose, account }) {
+export default function AccountDialog({ open, onClose, account, accounts = [] }) {
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
@@ -19,6 +19,7 @@ export default function AccountDialog({ open, onClose, account }) {
     account_type: "revenue",
     account_category: "other",
     balance: 0,
+    parent_account_id: "",
     description: ""
   });
 
@@ -30,6 +31,7 @@ export default function AccountDialog({ open, onClose, account }) {
         account_type: account.account_type || "revenue",
         account_category: account.account_category || "other",
         balance: account.balance || 0,
+        parent_account_id: account.parent_account_id || "",
         description: account.description || ""
       });
     } else {
@@ -39,6 +41,7 @@ export default function AccountDialog({ open, onClose, account }) {
         account_type: "revenue",
         account_category: "other",
         balance: 0,
+        parent_account_id: "",
         description: ""
       });
     }
@@ -64,6 +67,7 @@ export default function AccountDialog({ open, onClose, account }) {
         account_type: data.account_type,
         account_category: data.account_category || 'other',
         balance: parseFloat(data.balance) || 0,
+        parent_account_id: data.parent_account_id || null,
         description: data.description || '',
         company_id: selectedCompanyId
       };
@@ -142,6 +146,8 @@ export default function AccountDialog({ open, onClose, account }) {
                   <SelectItem value="equity">Equity</SelectItem>
                   <SelectItem value="revenue">Revenue</SelectItem>
                   <SelectItem value="expense">Expense</SelectItem>
+                  <SelectItem value="bank">Bank</SelectItem>
+                  <SelectItem value="credit_card">Credit Card</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -153,6 +159,8 @@ export default function AccountDialog({ open, onClose, account }) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="bank">Bank</SelectItem>
+                  <SelectItem value="credit_card">Credit Card</SelectItem>
                   <SelectItem value="accounts_receivable">Accounts Receivable</SelectItem>
                   <SelectItem value="inventory">Inventory</SelectItem>
                   <SelectItem value="fixed_assets">Fixed Assets</SelectItem>
@@ -165,6 +173,25 @@ export default function AccountDialog({ open, onClose, account }) {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Parent Account (Optional)</Label>
+            <Select value={formData.parent_account_id} onValueChange={(value) => setFormData({ ...formData, parent_account_id: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select parent account (for sub-accounts)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={null}>None - Top Level Account</SelectItem>
+                {accounts
+                  .filter(acc => acc.id !== account?.id && acc.account_type === formData.account_type)
+                  .map(acc => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      {acc.account_code} - {acc.account_name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
