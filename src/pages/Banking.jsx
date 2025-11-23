@@ -269,6 +269,7 @@ export default function BankingPage() {
         open={importDialogOpen}
         onClose={() => setImportDialogOpen(false)}
         bankAccounts={bankAccounts}
+        glAccounts={glAccounts}
         companyId={selectedCompanyId}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['bankTransactions'] });
