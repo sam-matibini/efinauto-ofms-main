@@ -3,15 +3,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, FileText, Sparkles, Loader2 } from "lucide-react";
+import { Upload, FileText, Sparkles, Loader2, Download, HelpCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
 export default function BankStatementImport({ open, onClose, bankAccounts, companyId, onSuccess }) {
+  const [step, setStep] = useState(1);
   const [selectedAccount, setSelectedAccount] = useState("");
   const [file, setFile] = useState(null);
   const [importing, setImporting] = useState(false);
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
+  const [encoding, setEncoding] = useState("UTF-8");
 
   const handleFileUpload = (e) => {
     const uploadedFile = e.target.files[0];
@@ -122,114 +124,203 @@ export default function BankStatementImport({ open, onClose, bankAccounts, compa
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-purple-600" />
-            AI-Powered Statement Import
-          </DialogTitle>
+          <DialogTitle className="text-center text-xl">Import Statements</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <Label>Select Bank Account *</Label>
-            <Select value={selectedAccount} onValueChange={setSelectedAccount}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose account" />
-              </SelectTrigger>
-              <SelectContent>
-                {bankAccounts
-                  .filter(acc => acc.status === 'active')
-                  .map(acc => (
-                    <SelectItem key={acc.id} value={acc.id}>
-                      {acc.account_name} - {acc.institution_name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+        {/* Steps Indicator */}
+        <div className="flex items-center justify-center gap-8 py-6 border-b">
+          <div className="flex items-center gap-2">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+              step === 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+            }`}>
+              1
+            </div>
+            <span className={`text-sm font-medium ${step === 1 ? 'text-blue-600' : 'text-gray-500'}`}>
+              Configure
+            </span>
           </div>
+          <div className="flex items-center gap-2">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+              step === 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+            }`}>
+              2
+            </div>
+            <span className={`text-sm font-medium ${step === 2 ? 'text-blue-600' : 'text-gray-500'}`}>
+              Map Fields
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+              step === 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+            }`}>
+              3
+            </div>
+            <span className={`text-sm font-medium ${step === 3 ? 'text-blue-600' : 'text-gray-500'}`}>
+              Preview
+            </span>
+          </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label>Upload Bank Statement</Label>
-            <div className="border-2 border-dashed rounded-lg p-8 text-center">
+        {step === 1 && (
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label className="text-red-600">Select an account*</Label>
+              <Select value={selectedAccount} onValueChange={setSelectedAccount}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose your account for import" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bankAccounts
+                    .filter(acc => acc.status === 'active')
+                    .map(acc => (
+                      <SelectItem key={acc.id} value={acc.id}>
+                        {acc.account_name} - {acc.institution_name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center bg-gray-50">
               {file ? (
-                <div className="space-y-2">
-                  <FileText className="w-12 h-12 text-green-600 mx-auto" />
-                  <p className="text-sm font-medium">{file.name}</p>
+                <div className="space-y-3">
+                  <FileText className="w-16 h-16 text-green-600 mx-auto" />
+                  <p className="text-sm font-medium text-gray-900">{file.name}</p>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setFile(null)}
                   >
-                    Remove
+                    Remove File
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <Upload className="w-12 h-12 text-gray-400 mx-auto" />
-                  <p className="text-sm text-gray-600">
-                    Drag and drop or click to upload
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Supports PDF, CSV, XLS, OFX formats
-                  </p>
+                <div className="space-y-4">
+                  <Upload className="w-16 h-16 text-gray-400 mx-auto" />
+                  <p className="text-gray-700 font-medium">Drag and drop file to import</p>
                   <input
                     type="file"
-                    accept=".pdf,.csv,.xls,.xlsx,.ofx"
+                    accept=".pdf,.csv,.xls,.xlsx,.ofx,.tsv,.camt,.camt.053,.camt.054"
                     onChange={handleFileUpload}
                     className="hidden"
                     id="statement-upload"
                   />
                   <label htmlFor="statement-upload">
-                    <Button variant="outline" size="sm" asChild>
-                      <span>Choose File</span>
+                    <Button className="bg-blue-600 hover:bg-blue-700" asChild>
+                      <span>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Choose File
+                      </span>
                     </Button>
                   </label>
+                  <p className="text-xs text-gray-500 mt-3">
+                    Maximum File Size: 1 MB • File format Supported: CSV, TSV, XLS, OFX, QIF, CAMT.053 and CAMT.054
+                  </p>
                 </div>
               )}
             </div>
-          </div>
 
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <Sparkles className="w-5 h-5 text-purple-600 mt-0.5" />
-              <div>
-                <h4 className="font-semibold text-purple-900">AI-Powered Analysis</h4>
-                <p className="text-sm text-purple-800 mt-1">
-                  Our AI will automatically:
-                </p>
-                <ul className="text-sm text-purple-800 mt-2 space-y-1 list-disc list-inside">
-                  <li>Extract all transactions from your statement</li>
-                  <li>Identify payees and transaction details</li>
-                  <li>Suggest categories based on transaction patterns</li>
-                  <li>Match with existing transaction rules</li>
-                </ul>
-              </div>
+            <div className="text-sm text-blue-600">
+              <p>Ensure that the import file is in the correct format by comparing it with our sample file.</p>
+              <button className="flex items-center gap-1 hover:underline mt-1">
+                <Download className="w-4 h-4" />
+                Download sample file
+              </button>
             </div>
-          </div>
 
-          {aiAnalyzing && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center gap-3">
-                <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-                <div>
-                  <p className="font-semibold text-blue-900">Analyzing statement...</p>
-                  <p className="text-sm text-blue-800">
-                    AI is extracting and categorizing transactions
-                  </p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label>Character Encoding</Label>
+                <HelpCircle className="w-4 h-4 text-gray-400" />
+              </div>
+              <Select value={encoding} onValueChange={setEncoding}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="UTF-8">UTF-8 (Unicode)</SelectItem>
+                  <SelectItem value="ISO-8859-1">ISO-8859-1 (Latin-1)</SelectItem>
+                  <SelectItem value="Windows-1252">Windows-1252</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <span className="text-lg">💡</span>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-gray-900">Page Tips</h4>
+                  <ul className="text-sm text-gray-700 space-y-2 list-disc list-inside">
+                    <li>You can download the <button className="text-blue-600 hover:underline">sample xls file</button> to get detailed information about the data fields used while importing.</li>
+                    <li>If you have files in other formats, you can convert it to an accepted file format using any online/offline converter.</li>
+                  </ul>
                 </div>
               </div>
             </div>
-          )}
 
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={onClose} disabled={importing}>
-              Cancel
+            {aiAnalyzing && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                  <div>
+                    <p className="font-semibold text-blue-900">Analyzing statement...</p>
+                    <p className="text-sm text-blue-800">
+                      AI is extracting and categorizing transactions
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-6 py-4">
+            <div className="text-center py-12">
+              <p className="text-gray-600">Map Fields step - Coming soon</p>
+              <p className="text-sm text-gray-500 mt-2">This will allow you to map CSV columns to transaction fields</p>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-6 py-4">
+            <div className="text-center py-12">
+              <p className="text-gray-600">Preview step - Coming soon</p>
+              <p className="text-sm text-gray-500 mt-2">This will show a preview of transactions before final import</p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-3 pt-4 border-t">
+          <Button variant="outline" onClick={onClose} disabled={importing}>
+            Cancel
+          </Button>
+          {step > 1 && (
+            <Button variant="outline" onClick={() => setStep(step - 1)} disabled={importing}>
+              Previous
             </Button>
+          )}
+          {step < 3 ? (
+            <Button
+              onClick={() => {
+                if (step === 1 && (!selectedAccount || !file)) {
+                  toast.error("Please select an account and upload a file");
+                  return;
+                }
+                setStep(step + 1);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Next
+            </Button>
+          ) : (
             <Button
               onClick={handleImport}
               disabled={!selectedAccount || !file || importing}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-blue-600 hover:bg-blue-700"
             >
               {importing ? (
                 <>
@@ -239,11 +330,11 @@ export default function BankStatementImport({ open, onClose, bankAccounts, compa
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Import with AI
+                  Import
                 </>
               )}
             </Button>
-          </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
