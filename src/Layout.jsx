@@ -191,6 +191,12 @@ const allNavigationItems = [
     icon: SettingsIcon,
     pageId: "Settings"
   },
+  {
+    title: "Banking",
+    url: createPageUrl("Banking"),
+    icon: DollarSign,
+    pageId: "Banking"
+  },
 ];
 
 export default function Layout({ children, currentPageName }) {
