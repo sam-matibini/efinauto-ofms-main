@@ -188,7 +188,8 @@ function RuleDialog({ open, onClose, rule, onSave, glAccounts, isLoading }) {
     actions: {
       category: "",
       gl_account_id: "",
-      auto_post: false
+      auto_post: false,
+      auto_categorize: false
     },
     priority: 0,
     enabled: true
@@ -209,7 +210,8 @@ function RuleDialog({ open, onClose, rule, onSave, glAccounts, isLoading }) {
         actions: {
           category: "",
           gl_account_id: "",
-          auto_post: false
+          auto_post: false,
+          auto_categorize: false
         },
         priority: 0,
         enabled: true
@@ -482,8 +484,8 @@ function RuleDialog({ open, onClose, rule, onSave, glAccounts, isLoading }) {
                       <input
                         type="radio"
                         name="auto_post"
-                        checked={formData.actions.auto_post}
-                        onChange={(e) => setFormData({ ...formData, actions: { ...formData.actions, auto_post: e.target.checked } })}
+                        checked={!formData.actions.auto_post}
+                        onChange={(e) => setFormData({ ...formData, actions: { ...formData.actions, auto_post: !e.target.checked, auto_categorize: false } })}
                         className="w-4 h-4 mt-0.5"
                       />
                       <div>
@@ -493,21 +495,34 @@ function RuleDialog({ open, onClose, rule, onSave, glAccounts, isLoading }) {
                         </p>
                       </div>
                     </label>
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="auto_post"
-                        checked={!formData.actions.auto_post}
-                        onChange={(e) => setFormData({ ...formData, actions: { ...formData.actions, auto_post: !e.target.checked } })}
-                        className="w-4 h-4 mt-0.5"
-                      />
-                      <div>
-                        <div className="text-sm font-medium">Categorized Transactions (Auto-Post)</div>
-                        <p className="text-xs text-gray-600 mt-1">
-                          Automatically post matching transactions to the General Ledger without manual review.
-                        </p>
-                      </div>
-                    </label>
+                    <div className="space-y-2">
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="auto_post"
+                          checked={formData.actions.auto_post}
+                          onChange={(e) => setFormData({ ...formData, actions: { ...formData.actions, auto_post: e.target.checked } })}
+                          className="w-4 h-4 mt-0.5"
+                        />
+                        <div>
+                          <div className="text-sm font-medium">Categorized Transactions (Auto-Post)</div>
+                          <p className="text-xs text-gray-600 mt-1">
+                            This option will automatically categorize the bank statements with the transactions in eFinAuto based on the transaction rules you create.
+                          </p>
+                        </div>
+                      </label>
+                      {formData.actions.auto_post && (
+                        <label className="flex items-center gap-2 ml-7 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.actions.auto_categorize || false}
+                            onChange={(e) => setFormData({ ...formData, actions: { ...formData.actions, auto_categorize: e.target.checked } })}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm">Allow the app to categorize my bank statements</span>
+                        </label>
+                      )}
+                    </div>
                   </div>
                 </div>
 
