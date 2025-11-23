@@ -150,6 +150,12 @@ const allNavigationItems = [
     pageId: "Accounting"
   },
   {
+    title: "Banking",
+    url: createPageUrl("Banking"),
+    icon: DollarSign,
+    pageId: "Banking"
+  },
+  {
     title: "Payroll & HR",
     url: createPageUrl("Payroll"),
     icon: Users,
@@ -190,12 +196,6 @@ const allNavigationItems = [
     url: createPageUrl("Settings"),
     icon: SettingsIcon,
     pageId: "Settings"
-  },
-  {
-    title: "Banking",
-    url: createPageUrl("Banking"),
-    icon: DollarSign,
-    pageId: "Banking"
   },
   {
     title: "AI Assistant",
