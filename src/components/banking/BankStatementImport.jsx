@@ -14,11 +14,6 @@ export default function BankStatementImport({ open, onClose, bankAccounts, glAcc
   const [importing, setImporting] = useState(false);
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [encoding, setEncoding] = useState("UTF-8");
-  
-  // Filter GL accounts to show only bank and credit card accounts
-  const bankGLAccounts = glAccounts?.filter(acc => 
-    acc.account_type === 'bank' || acc.account_type === 'credit_card'
-  ) || [];
 
   const handleFileUpload = (e) => {
     const uploadedFile = e.target.files[0];
@@ -98,12 +93,11 @@ export default function BankStatementImport({ open, onClose, bankAccounts, glAcc
       // Create transactions with AI suggestions
       toast.info(`Importing ${extractedData.transactions.length} transactions...`);
       
-      // Find the bank account linked to this GL account
-      const linkedBankAccount = bankAccounts.find(ba => ba.gl_account_id === selectedAccount);
+      const selectedBankAccount = bankAccounts.find(ba => ba.id === selectedAccount);
       
       const transactionsToCreate = extractedData.transactions.map(t => ({
         company_id: companyId,
-        bank_account_id: linkedBankAccount?.id || null,
+        bank_account_id: selectedAccount,
         import_batch_id: batchId,
         transaction_date: t.transaction_date,
         post_date: t.post_date || t.transaction_date,
@@ -114,7 +108,7 @@ export default function BankStatementImport({ open, onClose, bankAccounts, glAcc
         balance: t.balance,
         reference_number: t.reference_number,
         category: t.suggested_category,
-        gl_account_id: selectedAccount,
+        gl_account_id: selectedBankAccount?.gl_account_id || null,
         status: "pending",
         ai_confidence: 75
       }));
@@ -181,11 +175,13 @@ export default function BankStatementImport({ open, onClose, bankAccounts, glAcc
                   <SelectValue placeholder="Choose your account for import" />
                 </SelectTrigger>
                 <SelectContent>
-                  {bankGLAccounts.map(acc => (
-                    <SelectItem key={acc.id} value={acc.id}>
-                      {acc.account_code} - {acc.account_name}
-                    </SelectItem>
-                  ))}
+                  {bankAccounts
+                    .filter(acc => acc.status === 'active')
+                    .map(acc => (
+                      <SelectItem key={acc.id} value={acc.id}>
+                        {acc.account_name} - {acc.institution_name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
