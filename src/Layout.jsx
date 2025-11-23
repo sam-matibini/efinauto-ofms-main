@@ -197,6 +197,12 @@ const allNavigationItems = [
     icon: DollarSign,
     pageId: "Banking"
   },
+  {
+    title: "AI Assistant",
+    url: createPageUrl("FinancialAssistant"),
+    icon: MessageCircle,
+    pageId: "FinancialAssistant"
+  },
 ];
 
 export default function Layout({ children, currentPageName }) {

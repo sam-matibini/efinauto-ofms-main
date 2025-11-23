@@ -27,6 +27,7 @@ import Payroll from './pages/Payroll';
 import TD1Form from './pages/TD1Form';
 import EmployeePortal from './pages/EmployeePortal';
 import Banking from './pages/Banking';
+import FinancialAssistant from './pages/FinancialAssistant';
 import __Layout from './Layout.jsx';
 
 
@@ -60,6 +61,7 @@ export const PAGES = {
     "TD1Form": TD1Form,
     "EmployeePortal": EmployeePortal,
     "Banking": Banking,
+    "FinancialAssistant": FinancialAssistant,
 }
 
 export const pagesConfig = {
