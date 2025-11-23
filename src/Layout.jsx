@@ -329,10 +329,17 @@ export default function Layout({ children, currentPageName }) {
           </Sidebar>
 
           <main className="flex-1 flex flex-col min-h-screen bg-white">
-            <header className="bg-white border-b border-gray-200 px-6 py-4 md:hidden sticky top-0 z-10">
-              <div className="flex items-center gap-4">
+            <header className="bg-white border-b border-gray-200 px-4 py-3 lg:hidden sticky top-0 z-10">
+              <div className="flex items-center gap-3">
                 <SidebarTrigger className="hover:bg-gray-100 p-2 rounded-lg transition-colors duration-200" />
-                <h1 className="text-xl font-bold text-gray-900">eFinAuto OFMS</h1>
+                <div className="w-8 h-8 rounded flex items-center justify-center">
+                  <img 
+                    src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69156af15abcfb916d821138/8e61b7743_1c.png" 
+                    alt="Logo" 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <h1 className="text-base font-bold text-gray-900">eFinAuto OFMS</h1>
               </div>
             </header>
 

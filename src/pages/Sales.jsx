@@ -195,100 +195,100 @@ export default function Sales() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
+      <div className="px-4 md:px-6 py-3 md:py-4" style={{ backgroundColor: '#1e293b' }}>
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-white">Sales Management</h1>
-            <p className="text-sm text-gray-300 mt-1">Comprehensive sales operations</p>
+            <h1 className="text-xl md:text-2xl font-bold text-white">Sales Management</h1>
+            <p className="text-xs md:text-sm text-gray-300 mt-1">Comprehensive sales operations</p>
           </div>
         </div>
       </div>
 
-      <div className="p-6 md:p-8 max-w-7xl mx-auto">
+      <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
         <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8 h-auto bg-white border-b">
-            <TabsTrigger value="sales" className="flex flex-col gap-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-gray-600 data-[state=active]:text-gray-900">
-              <FileText className="w-4 h-4" />
-              <span className="text-xs">Bills of Sale</span>
+          <TabsList className="grid w-full grid-cols-4 md:grid-cols-8 h-auto bg-white border-b overflow-x-auto">
+            <TabsTrigger value="sales" className="flex flex-col gap-1 py-2 md:py-3 data-[state=active]:border-b-2 data-[state=active]:border-gray-600 data-[state=active]:text-gray-900 min-w-[60px]">
+              <FileText className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="text-[10px] md:text-xs">Sales</span>
             </TabsTrigger>
-            <TabsTrigger value="customers" className="flex flex-col gap-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-900">
-              <Users className="w-4 h-4" />
-              <span className="text-xs">Customers</span>
+            <TabsTrigger value="customers" className="flex flex-col gap-1 py-2 md:py-3 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-900 min-w-[60px]">
+              <Users className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="text-[10px] md:text-xs">Customers</span>
             </TabsTrigger>
-            <TabsTrigger value="quotes" className="flex flex-col gap-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-yellow-500 data-[state=active]:text-yellow-900">
-              <FileCheck className="w-4 h-4" />
-              <span className="text-xs">Quotes</span>
+            <TabsTrigger value="quotes" className="flex flex-col gap-1 py-2 md:py-3 data-[state=active]:border-b-2 data-[state=active]:border-yellow-500 data-[state=active]:text-yellow-900 min-w-[60px]">
+              <FileCheck className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="text-[10px] md:text-xs">Quotes</span>
             </TabsTrigger>
-            <TabsTrigger value="invoices" className="flex flex-col gap-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-purple-600 data-[state=active]:text-purple-900">
-              <Receipt className="w-4 h-4" />
-              <span className="text-xs">Invoices</span>
+            <TabsTrigger value="invoices" className="flex flex-col gap-1 py-2 md:py-3 data-[state=active]:border-b-2 data-[state=active]:border-purple-600 data-[state=active]:text-purple-900 min-w-[60px]">
+              <Receipt className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="text-[10px] md:text-xs">Invoices</span>
             </TabsTrigger>
-            <TabsTrigger value="payments" className="flex flex-col gap-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-green-600 data-[state=active]:text-green-900">
-              <CreditCard className="w-4 h-4" />
-              <span className="text-xs">Payments</span>
+            <TabsTrigger value="payments" className="flex flex-col gap-1 py-2 md:py-3 data-[state=active]:border-b-2 data-[state=active]:border-green-600 data-[state=active]:text-green-900 min-w-[60px]">
+              <CreditCard className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="text-[10px] md:text-xs">Payments</span>
             </TabsTrigger>
-            <TabsTrigger value="recurring" className="flex flex-col gap-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-900">
-              <RefreshCw className="w-4 h-4" />
-              <span className="text-xs">Recurring</span>
+            <TabsTrigger value="recurring" className="flex flex-col gap-1 py-2 md:py-3 data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-900 min-w-[60px]">
+              <RefreshCw className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="text-[10px] md:text-xs">Recurring</span>
             </TabsTrigger>
-            <TabsTrigger value="credits" className="flex flex-col gap-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-red-600 data-[state=active]:text-red-900">
-              <FileX className="w-4 h-4" />
-              <span className="text-xs">Credit Notes</span>
+            <TabsTrigger value="credits" className="flex flex-col gap-1 py-2 md:py-3 data-[state=active]:border-b-2 data-[state=active]:border-red-600 data-[state=active]:text-red-900 min-w-[60px]">
+              <FileX className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="text-[10px] md:text-xs">Credits</span>
             </TabsTrigger>
-            <TabsTrigger value="ai-insights" className="flex flex-col gap-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-purple-600 data-[state=active]:text-purple-900">
-              <TrendingUp className="w-4 h-4" />
-              <span className="text-xs">AI Insights</span>
+            <TabsTrigger value="ai-insights" className="flex flex-col gap-1 py-2 md:py-3 data-[state=active]:border-b-2 data-[state=active]:border-purple-600 data-[state=active]:text-purple-900 min-w-[60px]">
+              <TrendingUp className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="text-[10px] md:text-xs">AI</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="sales" className="space-y-6">
 
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Bills of Sale</h2>
-              <Button onClick={() => setDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+            <div className="flex flex-col md:flex-row justify-between md:items-center gap-3 mb-4">
+              <h2 className="text-lg md:text-xl font-bold">Bills of Sale</h2>
+              <Button onClick={() => setDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700" size="sm">
                 <Plus className="w-4 h-4 mr-2" />
-                New Bill of Sale
+                <span className="text-xs md:text-sm">New Bill of Sale</span>
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-8">
         <Card className="border-none shadow-md">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-gray-600">Total Sales Value</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">${totalSales.toLocaleString()}</p>
+                <p className="text-xs md:text-sm text-gray-600">Total Sales Value</p>
+                <p className="text-xl md:text-3xl font-bold text-gray-900 mt-1 md:mt-2">${totalSales.toLocaleString()}</p>
               </div>
-              <div className="p-3 rounded-xl bg-green-100">
-                <DollarSign className="w-6 h-6 text-green-600" />
+              <div className="p-2 md:p-3 rounded-xl bg-green-100">
+                <DollarSign className="w-4 h-4 md:w-6 md:h-6 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-none shadow-md">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-gray-600">Total Sales</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{sales.length}</p>
+                <p className="text-xs md:text-sm text-gray-600">Total Sales</p>
+                <p className="text-xl md:text-3xl font-bold text-gray-900 mt-1 md:mt-2">{sales.length}</p>
               </div>
-              <div className="p-3 rounded-xl bg-blue-100">
-                <TrendingUp className="w-6 h-6 text-blue-600" />
+              <div className="p-2 md:p-3 rounded-xl bg-blue-100">
+                <TrendingUp className="w-4 h-4 md:w-6 md:h-6 text-blue-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-none shadow-md">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-gray-600">Pending Payment</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{pendingSales}</p>
+                <p className="text-xs md:text-sm text-gray-600">Pending Payment</p>
+                <p className="text-xl md:text-3xl font-bold text-gray-900 mt-1 md:mt-2">{pendingSales}</p>
               </div>
-              <div className="p-3 rounded-xl bg-yellow-100">
-                <DollarSign className="w-6 h-6 text-yellow-600" />
+              <div className="p-2 md:p-3 rounded-xl bg-yellow-100">
+                <DollarSign className="w-4 h-4 md:w-6 md:h-6 text-yellow-600" />
               </div>
             </div>
           </CardContent>

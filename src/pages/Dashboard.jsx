@@ -15,14 +15,14 @@ function StatsCard({ title, value, icon: Icon, bgColor, textColor, index = 0 }) 
     >
       <Card className="relative overflow-hidden border-none shadow-md hover:shadow-lg transition-all duration-300 bg-white">
         <div className={`absolute top-0 right-0 w-32 h-32 ${bgColor} opacity-5 rounded-full transform translate-x-12 -translate-y-12`} />
-        <CardContent className="p-6">
+        <CardContent className="p-3 md:p-6">
           <div className="flex justify-between items-start">
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-gray-600">{title}</p>
-              <p className="text-3xl font-bold text-gray-900">{value}</p>
+            <div className="space-y-1 md:space-y-2">
+              <p className="text-xs md:text-sm font-medium text-gray-600 leading-tight">{title}</p>
+              <p className="text-xl md:text-3xl font-bold text-gray-900">{value}</p>
             </div>
-            <div className={`p-3 rounded-xl ${bgColor} bg-opacity-10`}>
-              <Icon className={`w-6 h-6 ${textColor}`} />
+            <div className={`p-2 md:p-3 rounded-xl ${bgColor} bg-opacity-10`}>
+              <Icon className={`w-4 h-4 md:w-6 md:h-6 ${textColor}`} />
             </div>
           </div>
         </CardContent>
@@ -106,14 +106,14 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-        <p className="text-sm text-gray-300 mt-1">Overview of your car dealership operations</p>
+      <div className="px-4 md:px-6 py-3 md:py-4" style={{ backgroundColor: '#1e293b' }}>
+        <h1 className="text-xl md:text-2xl font-bold text-white">Dashboard</h1>
+        <p className="text-xs md:text-sm text-gray-300 mt-1">Overview of your car dealership operations</p>
       </div>
       
-      <div className="p-6 md:p-8 max-w-7xl mx-auto">
+      <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
         <StatsCard
           title="Vehicles in Stock"
           value={vehiclesInStock}
@@ -148,7 +148,7 @@ export default function Dashboard() {
         />
       </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-8">
         <StatsCard
           title="Pending Exports"
           value={pendingExports}
@@ -175,7 +175,7 @@ export default function Dashboard() {
         />
       </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
         <Card className="shadow-md border-none">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

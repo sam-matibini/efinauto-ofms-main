@@ -191,90 +191,94 @@ export default function RepairsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
-        <div className="flex justify-between items-center">
+      <div className="px-4 md:px-6 py-3 md:py-4" style={{ backgroundColor: '#1e293b' }}>
+        <div className="flex flex-col md:flex-row justify-between md:items-center gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-white">Auto Repair Center</h1>
-            <p className="text-sm text-gray-300 mt-1">Comprehensive repair order management</p>
+            <h1 className="text-xl md:text-2xl font-bold text-white">Auto Repair Center</h1>
+            <p className="text-xs md:text-sm text-gray-300 mt-1">Comprehensive repair order management</p>
           </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setSchedulerDialogOpen(true)} variant="outline">
-            <CalendarDays className="w-4 h-4 mr-2" />
-            Scheduler
+        <div className="flex gap-2 flex-wrap">
+          <Button onClick={() => setSchedulerDialogOpen(true)} variant="outline" size="sm">
+            <CalendarDays className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+            <span className="hidden sm:inline">Scheduler</span>
+            <span className="sm:hidden">Schedule</span>
           </Button>
-          <Button onClick={() => setPackagesDialogOpen(true)} variant="outline">
-            <Wrench className="w-4 h-4 mr-2" />
-            Service Packages
+          <Button onClick={() => setPackagesDialogOpen(true)} variant="outline" size="sm">
+            <Wrench className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+            <span className="hidden sm:inline">Service Packages</span>
+            <span className="sm:hidden">Packages</span>
           </Button>
-          <Button onClick={() => setAppointmentDialogOpen(true)} variant="outline">
-            <Calendar className="w-4 h-4 mr-2" />
-            Schedule
+          <Button onClick={() => setAppointmentDialogOpen(true)} variant="outline" size="sm">
+            <Calendar className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+            <span className="hidden sm:inline">Schedule</span>
+            <span className="sm:hidden">Book</span>
           </Button>
           <Button onClick={() => {
             setSelectedPackage(null);
             setDialogOpen(true);
-          }} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="w-4 h-4 mr-2" />
-            New Repair Order
+          }} className="bg-blue-600 hover:bg-blue-700" size="sm">
+            <Plus className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+            <span className="hidden sm:inline">New Repair Order</span>
+            <span className="sm:hidden">New</span>
           </Button>
           </div>
           </div>
           </div>
 
-          <div className="p-6 space-y-6">
+          <div className="p-4 md:p-6 space-y-4 md:space-y-6">
           {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Orders</p>
-                <h3 className="text-2xl font-bold text-gray-900">{stats.total}</h3>
+                <p className="text-xs md:text-sm text-gray-600">Total</p>
+                <h3 className="text-xl md:text-2xl font-bold text-gray-900">{stats.total}</h3>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Wrench className="w-6 h-6 text-blue-600" />
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <Wrench className="w-4 h-4 md:w-6 md:h-6 text-blue-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Active Jobs</p>
-                <h3 className="text-2xl font-bold text-gray-900">{stats.active}</h3>
+                <p className="text-xs md:text-sm text-gray-600">Active</p>
+                <h3 className="text-xl md:text-2xl font-bold text-gray-900">{stats.active}</h3>
               </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                <Clock className="w-6 h-6 text-yellow-600" />
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                <Clock className="w-4 h-4 md:w-6 md:h-6 text-yellow-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Completed</p>
-                <h3 className="text-2xl font-bold text-gray-900">{stats.completed}</h3>
+                <p className="text-xs md:text-sm text-gray-600">Done</p>
+                <h3 className="text-xl md:text-2xl font-bold text-gray-900">{stats.completed}</h3>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-600" />
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-4 h-4 md:w-6 md:h-6 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Revenue</p>
-                <h3 className="text-2xl font-bold text-gray-900">${stats.revenue.toLocaleString()}</h3>
+                <p className="text-xs md:text-sm text-gray-600">Revenue</p>
+                <h3 className="text-lg md:text-2xl font-bold text-gray-900">${(stats.revenue / 1000).toFixed(1)}K</h3>
               </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-purple-600" />
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                <DollarSign className="w-4 h-4 md:w-6 md:h-6 text-purple-600" />
               </div>
             </div>
           </CardContent>
@@ -326,11 +330,20 @@ export default function RepairsPage() {
 
       {/* Main Tabs */}
       <Tabs defaultValue="kanban" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="kanban">Kanban Board</TabsTrigger>
-          <TabsTrigger value="list">List View</TabsTrigger>
-          <TabsTrigger value="workload">Workload</TabsTrigger>
-          <TabsTrigger value="ai-optimizer">AI Optimizer</TabsTrigger>
+        <TabsList className="w-full overflow-x-auto">
+          <TabsTrigger value="kanban" className="text-xs md:text-sm">
+            <span className="hidden sm:inline">Kanban Board</span>
+            <span className="sm:hidden">Kanban</span>
+          </TabsTrigger>
+          <TabsTrigger value="list" className="text-xs md:text-sm">
+            <span className="hidden sm:inline">List View</span>
+            <span className="sm:hidden">List</span>
+          </TabsTrigger>
+          <TabsTrigger value="workload" className="text-xs md:text-sm">Workload</TabsTrigger>
+          <TabsTrigger value="ai-optimizer" className="text-xs md:text-sm">
+            <span className="hidden sm:inline">AI Optimizer</span>
+            <span className="sm:hidden">AI</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="kanban" className="space-y-4">

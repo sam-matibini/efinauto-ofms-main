@@ -173,13 +173,13 @@ export default function Customers() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
-        <div className="flex justify-between items-center">
+      <div className="px-4 md:px-6 py-3 md:py-4" style={{ backgroundColor: '#1e293b' }}>
+        <div className="flex flex-col md:flex-row justify-between md:items-center gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-white">Customer Management</h1>
-            <p className="text-sm text-gray-300 mt-1">{filteredCustomers.length} customers</p>
+            <h1 className="text-xl md:text-2xl font-bold text-white">Customer Management</h1>
+            <p className="text-xs md:text-sm text-gray-300 mt-1">{filteredCustomers.length} customers</p>
           </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2 flex-wrap">
           <div className="flex bg-white rounded-lg shadow-sm border">
             <Button
               variant={viewMode === "list" ? "default" : "ghost"}
@@ -187,8 +187,8 @@ export default function Customers() {
               onClick={() => setViewMode("list")}
               className={viewMode === "list" ? "bg-blue-600 hover:bg-blue-700" : ""}
             >
-              <List className="w-4 h-4 mr-2" />
-              List
+              <List className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+              <span className="text-xs md:text-sm">List</span>
             </Button>
             <Button
               variant={viewMode === "map" ? "default" : "ghost"}
@@ -196,8 +196,8 @@ export default function Customers() {
               onClick={() => setViewMode("map")}
               className={viewMode === "map" ? "bg-blue-600 hover:bg-blue-700" : ""}
             >
-              <Map className="w-4 h-4 mr-2" />
-              Map
+              <Map className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+              <span className="text-xs md:text-sm">Map</span>
             </Button>
           </div>
           <Button 
@@ -206,15 +206,16 @@ export default function Customers() {
               setDialogOpen(true);
             }}
             className="bg-blue-600 hover:bg-blue-700"
+            size="sm"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Customer
+            <Plus className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+            <span className="text-xs md:text-sm">Add Customer</span>
           </Button>
           </div>
           </div>
           </div>
 
-          <div className="p-6 md:p-8 max-w-7xl mx-auto">
+          <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
 
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
