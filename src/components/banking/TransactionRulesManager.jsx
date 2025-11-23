@@ -243,6 +243,20 @@ function RuleDialog({ open, onClose, rule, onSave, glAccounts, isLoading }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validation
+    if (!formData.rule_name || !formData.actions.gl_account_id) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    
+    // Validate criteria
+    const hasValidCriteria = formData.criteria.some(c => c.value && c.value.trim() !== "");
+    if (!hasValidCriteria) {
+      toast.error("Please add at least one criteria with a value");
+      return;
+    }
+    
     const account = glAccounts.find(a => a.id === formData.actions.gl_account_id);
     onSave({
       ...formData,
