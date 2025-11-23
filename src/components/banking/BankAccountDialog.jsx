@@ -217,12 +217,37 @@ export default function BankAccountDialog({ open, onClose, account, onSave, glAc
                         <SelectValue placeholder="Select provider" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="plaid">Plaid</SelectItem>
-                        <SelectItem value="yodlee">Yodlee</SelectItem>
-                        <SelectItem value="mx">MX</SelectItem>
-                        <SelectItem value="flinks">Flinks (Canadian Banks)</SelectItem>
+                        <SelectItem value="flinks">Flinks (Best for Canadian Banks)</SelectItem>
+                        <SelectItem value="plaid">Plaid (US & Canadian Banks)</SelectItem>
+                        <SelectItem value="yodlee">Yodlee (Global)</SelectItem>
+                        <SelectItem value="finicity">Finicity (Mastercard)</SelectItem>
+                        <SelectItem value="akoya">Akoya (Major Canadian Banks)</SelectItem>
+                        <SelectItem value="teller">Teller</SelectItem>
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-blue-700">
+                      {formData.connection_details?.provider === "flinks" && "Supports: RBC, TD, BMO, Scotiabank, CIBC, National Bank, Desjardins, Tangerine, EQ Bank, Simplii"}
+                      {formData.connection_details?.provider === "plaid" && "Supports: All Big 5 banks + credit unions"}
+                      {formData.connection_details?.provider === "akoya" && "Supports: TD, RBC, BMO, Scotiabank via direct API"}
+                    </p>
+                  </div>
+
+                  <div className="bg-white border border-blue-200 rounded p-3">
+                    <p className="text-sm font-semibold text-blue-900 mb-2">Supported Canadian Institutions:</p>
+                    <div className="grid grid-cols-2 gap-1 text-xs text-blue-800">
+                      <div>• RBC Royal Bank</div>
+                      <div>• TD Canada Trust</div>
+                      <div>• Bank of Montreal (BMO)</div>
+                      <div>• Scotiabank</div>
+                      <div>• CIBC</div>
+                      <div>• National Bank of Canada</div>
+                      <div>• Desjardins</div>
+                      <div>• Tangerine</div>
+                      <div>• EQ Bank</div>
+                      <div>• Simplii Financial</div>
+                      <div>• Meridian Credit Union</div>
+                      <div>• Coast Capital Savings</div>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
