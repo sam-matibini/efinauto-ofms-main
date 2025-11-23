@@ -424,11 +424,32 @@ function RuleDialog({ open, onClose, rule, onSave, glAccounts, isLoading }) {
                     <Label className="text-sm font-medium">
                       Record As
                     </Label>
-                    <Input
+                    <Select
                       value={formData.actions.category}
-                      onChange={(e) => setFormData({ ...formData, actions: { ...formData.actions, category: e.target.value } })}
-                      placeholder="e.g., Office Supplies, Utilities, etc."
-                    />
+                      onValueChange={(v) => setFormData({ ...formData, actions: { ...formData.actions, category: v } })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select transaction type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Office Supplies">Office Supplies</SelectItem>
+                        <SelectItem value="Utilities">Utilities</SelectItem>
+                        <SelectItem value="Rent">Rent</SelectItem>
+                        <SelectItem value="Insurance">Insurance</SelectItem>
+                        <SelectItem value="Fuel">Fuel</SelectItem>
+                        <SelectItem value="Vehicle Maintenance">Vehicle Maintenance</SelectItem>
+                        <SelectItem value="Payroll">Payroll</SelectItem>
+                        <SelectItem value="Professional Fees">Professional Fees</SelectItem>
+                        <SelectItem value="Marketing & Advertising">Marketing & Advertising</SelectItem>
+                        <SelectItem value="Bank Fees">Bank Fees</SelectItem>
+                        <SelectItem value="Interest">Interest</SelectItem>
+                        <SelectItem value="Taxes">Taxes</SelectItem>
+                        <SelectItem value="Sales Revenue">Sales Revenue</SelectItem>
+                        <SelectItem value="Service Revenue">Service Revenue</SelectItem>
+                        <SelectItem value="Other Income">Other Income</SelectItem>
+                        <SelectItem value="Other Expense">Other Expense</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
