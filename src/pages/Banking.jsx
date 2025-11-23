@@ -113,76 +113,80 @@ export default function BankingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
-        <div className="flex justify-between items-center">
+      <div className="px-4 md:px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-white">Banking & Reconciliation</h1>
-            <p className="text-sm text-gray-300 mt-1">AI-powered banking and transaction management</p>
+            <h1 className="text-xl md:text-2xl font-bold text-white">Banking & Reconciliation</h1>
+            <p className="text-xs md:text-sm text-gray-300 mt-1">AI-powered banking and transaction management</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button 
               onClick={() => setImportDialogOpen(true)}
               variant="outline"
-              className="bg-white"
+              className="bg-white text-sm"
+              size="sm"
             >
               <Receipt className="w-4 h-4 mr-2" />
-              Import Statement
+              <span className="hidden sm:inline">Import Statement</span>
+              <span className="sm:hidden">Import</span>
             </Button>
             <Button 
               onClick={() => {
                 setEditingAccount(null);
                 setAccountDialogOpen(true);
               }}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 text-sm"
+              size="sm"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Add Bank Account
+              <span className="hidden sm:inline">Add Bank Account</span>
+              <span className="sm:hidden">Add Account</span>
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total Accounts</p>
-                  <h3 className="text-2xl font-bold text-blue-600">{stats.totalAccounts}</h3>
+                  <p className="text-xs md:text-sm text-gray-600">Total Accounts</p>
+                  <h3 className="text-xl md:text-2xl font-bold text-blue-600">{stats.totalAccounts}</h3>
                 </div>
-                <Building2 className="w-8 h-8 text-blue-600" />
+                <Building2 className="w-6 h-6 md:w-8 md:h-8 text-blue-600" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Active Accounts</p>
-                  <h3 className="text-2xl font-bold text-green-600">{stats.activeAccounts}</h3>
+                  <p className="text-xs md:text-sm text-gray-600">Active</p>
+                  <h3 className="text-xl md:text-2xl font-bold text-green-600">{stats.activeAccounts}</h3>
                 </div>
-                <CreditCard className="w-8 h-8 text-green-600" />
+                <CreditCard className="w-6 h-6 md:w-8 md:h-8 text-green-600" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div>
-                <p className="text-sm text-gray-600">Total Balance</p>
-                <h3 className="text-2xl font-bold text-gray-900">${stats.totalBalance.toLocaleString()}</h3>
+                <p className="text-xs md:text-sm text-gray-600">Balance</p>
+                <h3 className="text-lg md:text-2xl font-bold text-gray-900">${(stats.totalBalance / 1000).toFixed(1)}K</h3>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div>
-                <p className="text-sm text-gray-600">Pending Transactions</p>
-                <h3 className="text-2xl font-bold text-orange-600">{stats.pendingTransactions}</h3>
+                <p className="text-xs md:text-sm text-gray-600">Pending</p>
+                <h3 className="text-xl md:text-2xl font-bold text-orange-600">{stats.pendingTransactions}</h3>
               </div>
             </CardContent>
           </Card>
@@ -190,22 +194,25 @@ export default function BankingPage() {
 
         {/* Tabs */}
         <Tabs defaultValue="accounts" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="accounts" className="flex items-center gap-2">
-              <CreditCard className="w-4 h-4" />
-              Bank Accounts
+          <TabsList className="w-full overflow-x-auto flex-nowrap justify-start">
+            <TabsTrigger value="accounts" className="flex items-center gap-2 text-xs md:text-sm">
+              <CreditCard className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">Bank Accounts</span>
+              <span className="sm:hidden">Accounts</span>
             </TabsTrigger>
-            <TabsTrigger value="transactions" className="flex items-center gap-2">
-              <Receipt className="w-4 h-4" />
-              Transactions
+            <TabsTrigger value="transactions" className="flex items-center gap-2 text-xs md:text-sm">
+              <Receipt className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">Transactions</span>
+              <span className="sm:hidden">Trans.</span>
             </TabsTrigger>
-            <TabsTrigger value="reconciliation" className="flex items-center gap-2">
-              <GitCompare className="w-4 h-4" />
-              Reconciliation
+            <TabsTrigger value="reconciliation" className="flex items-center gap-2 text-xs md:text-sm">
+              <GitCompare className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">Reconciliation</span>
+              <span className="sm:hidden">Recon.</span>
             </TabsTrigger>
-            <TabsTrigger value="rules" className="flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              Transaction Rules
+            <TabsTrigger value="rules" className="flex items-center gap-2 text-xs md:text-sm">
+              <Settings className="w-3 h-3 md:w-4 md:h-4" />
+              Rules
             </TabsTrigger>
           </TabsList>
 

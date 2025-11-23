@@ -28,6 +28,7 @@ import TD1Form from './pages/TD1Form';
 import EmployeePortal from './pages/EmployeePortal';
 import Banking from './pages/Banking';
 import FinancialAssistant from './pages/FinancialAssistant';
+import BankingMobile from './pages/BankingMobile';
 import __Layout from './Layout.jsx';
 
 
@@ -62,6 +63,7 @@ export const PAGES = {
     "EmployeePortal": EmployeePortal,
     "Banking": Banking,
     "FinancialAssistant": FinancialAssistant,
+    "BankingMobile": BankingMobile,
 }
 
 export const pagesConfig = {

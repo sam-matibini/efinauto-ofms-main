@@ -156,6 +156,12 @@ const allNavigationItems = [
     pageId: "Banking"
   },
   {
+    title: "Mobile Banking",
+    url: createPageUrl("BankingMobile"),
+    icon: DollarSign,
+    pageId: "BankingMobile"
+  },
+  {
     title: "Payroll & HR",
     url: createPageUrl("Payroll"),
     icon: Users,
