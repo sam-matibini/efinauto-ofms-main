@@ -177,7 +177,7 @@ export default function AccountDialog({ open, onClose, account, accounts = [] })
 
           <div className="space-y-2">
             <Label>Parent Account (Optional)</Label>
-            <Select value={formData.parent_account_id} onValueChange={(value) => setFormData({ ...formData, parent_account_id: value })}>
+            <Select value={formData.parent_account_id || ""} onValueChange={(value) => setFormData({ ...formData, parent_account_id: value === "" ? null : value })}>
               <SelectTrigger>
                 <SelectValue placeholder="Select parent account (for sub-accounts)" />
               </SelectTrigger>
