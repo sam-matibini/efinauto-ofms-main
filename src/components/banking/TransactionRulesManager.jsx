@@ -111,6 +111,26 @@ export default function TransactionRulesManager({ rules, glAccounts, companyId }
                               Payee: {rule.conditions.payee_contains.join(', ')}
                             </Badge>
                           )}
+                          {rule.conditions?.transaction_type && rule.conditions.transaction_type !== 'both' && (
+                            <Badge variant="outline">
+                              Type: {rule.conditions.transaction_type}
+                            </Badge>
+                          )}
+                          {rule.conditions?.amount_equals && (
+                            <Badge variant="outline">
+                              Amount = ${rule.conditions.amount_equals}
+                            </Badge>
+                          )}
+                          {rule.conditions?.amount_greater_than && (
+                            <Badge variant="outline">
+                              Amount {'>'} ${rule.conditions.amount_greater_than}
+                            </Badge>
+                          )}
+                          {rule.conditions?.amount_less_than && (
+                            <Badge variant="outline">
+                              Amount {'<'} ${rule.conditions.amount_less_than}
+                            </Badge>
+                          )}
                           {rule.actions?.gl_account_name && (
                             <Badge className="bg-blue-100 text-blue-800">
                               → {rule.actions.gl_account_name}
@@ -176,6 +196,9 @@ function RuleDialog({ open, onClose, rule, onSave, glAccounts, isLoading }) {
     conditions: {
       description_contains: [],
       payee_contains: [],
+      amount_equals: null,
+      amount_greater_than: null,
+      amount_less_than: null,
       transaction_type: "both"
     },
     actions: {
@@ -200,6 +223,9 @@ function RuleDialog({ open, onClose, rule, onSave, glAccounts, isLoading }) {
         conditions: {
           description_contains: [],
           payee_contains: [],
+          amount_equals: null,
+          amount_greater_than: null,
+          amount_less_than: null,
           transaction_type: "both"
         },
         actions: {
@@ -349,12 +375,83 @@ function RuleDialog({ open, onClose, rule, onSave, glAccounts, isLoading }) {
                     </button>
                   </Badge>
                 ))}
-              </div>
-            </div>
-          </div>
+                </div>
+                </div>
 
-          <div className="space-y-3 border rounded-lg p-4">
-            <h4 className="font-semibold">Actions</h4>
+                <div className="space-y-2">
+                <Label>Transaction Type</Label>
+                <Select
+                value={formData.conditions.transaction_type}
+                onValueChange={(v) => setFormData({
+                ...formData,
+                conditions: { ...formData.conditions, transaction_type: v }
+                })}
+                >
+                <SelectTrigger>
+                <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                <SelectItem value="both">Both (Debit & Credit)</SelectItem>
+                <SelectItem value="debit">Debit Only (Money Out)</SelectItem>
+                <SelectItem value="credit">Credit Only (Money In)</SelectItem>
+                </SelectContent>
+                </Select>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-2">
+                <Label>Amount Equals</Label>
+                <Input
+                type="number"
+                step="0.01"
+                placeholder="e.g., 100.00"
+                value={formData.conditions.amount_equals || ""}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  conditions: {
+                    ...formData.conditions,
+                    amount_equals: e.target.value ? parseFloat(e.target.value) : null
+                  }
+                })}
+                />
+                </div>
+                <div className="space-y-2">
+                <Label>Amount Greater Than</Label>
+                <Input
+                type="number"
+                step="0.01"
+                placeholder="e.g., 500.00"
+                value={formData.conditions.amount_greater_than || ""}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  conditions: {
+                    ...formData.conditions,
+                    amount_greater_than: e.target.value ? parseFloat(e.target.value) : null
+                  }
+                })}
+                />
+                </div>
+                <div className="space-y-2">
+                <Label>Amount Less Than</Label>
+                <Input
+                type="number"
+                step="0.01"
+                placeholder="e.g., 1000.00"
+                value={formData.conditions.amount_less_than || ""}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  conditions: {
+                    ...formData.conditions,
+                    amount_less_than: e.target.value ? parseFloat(e.target.value) : null
+                  }
+                })}
+                />
+                </div>
+                </div>
+                </div>
+
+                <div className="space-y-3 border rounded-lg p-4">
+                <h4 className="font-semibold">Actions</h4>
             
             <div className="space-y-2">
               <Label>GL Account *</Label>
