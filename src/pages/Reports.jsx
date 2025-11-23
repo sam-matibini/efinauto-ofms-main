@@ -10,6 +10,7 @@ import InventoryReport from "@/components/reports/InventoryReport";
 import FinancialReport from "@/components/reports/FinancialReport";
 import ExportReport from "@/components/reports/ExportReport";
 import SalesTaxReport from "@/components/reports/SalesTaxReport";
+import ProfitabilityReport from "@/components/reports/ProfitabilityReport";
 import PeriodComparison from "@/components/shared/PeriodComparison";
 import { Button } from "@/components/ui/button";
 
@@ -57,6 +58,13 @@ export default function ReportsPage() {
     initialData: [],
   });
 
+  const { data: shipments = [] } = useQuery({
+    queryKey: ['shipments', selectedCompanyId],
+    queryFn: () => base44.entities.FreightShipment.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
   if (!selectedCompanyId) {
     return (
       <div className="p-6">
@@ -93,8 +101,12 @@ export default function ReportsPage() {
           </Button>
         </div>
 
-      <Tabs defaultValue="sales" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto bg-gray-100">
+      <Tabs defaultValue="profitability" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-6 lg:w-auto bg-gray-100">
+          <TabsTrigger value="profitability" className="flex items-center gap-2 bg-emerald-50 data-[state=active]:bg-emerald-100 data-[state=active]:text-emerald-700">
+            <TrendingUp className="w-4 h-4" />
+            Profitability
+          </TabsTrigger>
           <TabsTrigger value="sales" className="flex items-center gap-2 bg-blue-50 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700">
             <TrendingUp className="w-4 h-4" />
             Sales
@@ -116,6 +128,16 @@ export default function ReportsPage() {
             Exports
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="profitability">
+          <ProfitabilityReport 
+            sales={sales} 
+            repairs={repairs} 
+            exports={exports}
+            shipments={shipments}
+            vehicles={vehicles}
+          />
+        </TabsContent>
 
         <TabsContent value="sales">
           <SalesReport sales={sales} comparativePeriods={activePeriods} />
