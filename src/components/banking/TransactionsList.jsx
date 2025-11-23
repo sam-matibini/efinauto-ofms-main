@@ -29,6 +29,12 @@ export default function TransactionsList({ transactions, bankAccounts, glAccount
 
   const postToGLMutation = useMutation({
     mutationFn: async ({ transaction }) => {
+      // Get the bank account to find its linked GL account
+      const bankAccount = bankAccounts.find(acc => acc.id === transaction.bank_account_id);
+      if (!bankAccount?.gl_account_id) {
+        throw new Error("Bank account must be linked to a GL account first");
+      }
+
       // Create GL transaction using double-entry bookkeeping
       const glTransaction = await base44.entities.Transaction.create({
         company_id: companyId,
@@ -38,13 +44,15 @@ export default function TransactionsList({ transactions, bankAccounts, glAccount
         type: "bank",
         source_id: transaction.id,
         entries: [
+          // Entry 1: The categorized expense/revenue account
           {
             account_id: transaction.gl_account_id,
             debit: transaction.transaction_type === "debit" ? transaction.amount : 0,
             credit: transaction.transaction_type === "credit" ? transaction.amount : 0,
           },
+          // Entry 2: The bank account (opposite side)
           {
-            account_id: transaction.bank_account_id, // Bank account from BankAccount entity's gl_account_id
+            account_id: bankAccount.gl_account_id,
             debit: transaction.transaction_type === "credit" ? transaction.amount : 0,
             credit: transaction.transaction_type === "debit" ? transaction.amount : 0,
           }
@@ -65,6 +73,9 @@ export default function TransactionsList({ transactions, bankAccounts, glAccount
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       toast.success("Posted to General Ledger");
     },
+    onError: (error) => {
+      toast.error(error.message || "Failed to post to GL");
+    }
   });
 
   const excludeTransactionMutation = useMutation({
