@@ -258,12 +258,45 @@ function RuleDialog({ open, onClose, rule, onSave, glAccounts, isLoading }) {
     }
     
     const account = glAccounts.find(a => a.id === formData.actions.gl_account_id);
-    onSave({
-      ...formData,
-      actions: {
-        ...formData.actions,
-        gl_account_name: account?.account_name
+    
+    // Transform criteria format to match entity schema (conditions)
+    const conditions = {
+      transaction_type: formData.apply_to
+    };
+    
+    // Convert criteria array to conditions object format
+    formData.criteria.forEach(criterion => {
+      if (criterion.value && criterion.value.trim()) {
+        if (criterion.field === "description" && criterion.operator === "contains") {
+          conditions.description_contains = conditions.description_contains || [];
+          conditions.description_contains.push(criterion.value);
+        } else if (criterion.field === "payee" && criterion.operator === "contains") {
+          conditions.payee_contains = conditions.payee_contains || [];
+          conditions.payee_contains.push(criterion.value);
+        } else if (criterion.field === "amount") {
+          if (criterion.operator === "equals") {
+            conditions.amount_equals = parseFloat(criterion.value);
+          } else if (criterion.operator === "greater_than") {
+            conditions.amount_greater_than = parseFloat(criterion.value);
+          } else if (criterion.operator === "less_than") {
+            conditions.amount_less_than = parseFloat(criterion.value);
+          }
+        }
       }
+    });
+    
+    onSave({
+      rule_name: formData.rule_name,
+      description: formData.description || "",
+      conditions: conditions,
+      actions: {
+        category: formData.actions.category,
+        gl_account_id: formData.actions.gl_account_id,
+        gl_account_name: account?.account_name,
+        auto_post: formData.actions.auto_post || false
+      },
+      priority: formData.priority || 0,
+      enabled: formData.enabled !== false
     });
   };
 
