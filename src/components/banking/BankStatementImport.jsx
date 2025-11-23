@@ -7,13 +7,18 @@ import { Upload, FileText, Sparkles, Loader2, Download, HelpCircle } from "lucid
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
-export default function BankStatementImport({ open, onClose, bankAccounts, companyId, onSuccess }) {
+export default function BankStatementImport({ open, onClose, bankAccounts, glAccounts, companyId, onSuccess }) {
   const [step, setStep] = useState(1);
   const [selectedAccount, setSelectedAccount] = useState("");
   const [file, setFile] = useState(null);
   const [importing, setImporting] = useState(false);
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [encoding, setEncoding] = useState("UTF-8");
+  
+  // Filter GL accounts to show only bank and credit card accounts
+  const bankGLAccounts = glAccounts?.filter(acc => 
+    acc.account_type === 'bank' || acc.account_type === 'credit_card'
+  ) || [];
 
   const handleFileUpload = (e) => {
     const uploadedFile = e.target.files[0];
@@ -93,9 +98,12 @@ export default function BankStatementImport({ open, onClose, bankAccounts, compa
       // Create transactions with AI suggestions
       toast.info(`Importing ${extractedData.transactions.length} transactions...`);
       
+      // Find the bank account linked to this GL account
+      const linkedBankAccount = bankAccounts.find(ba => ba.gl_account_id === selectedAccount);
+      
       const transactionsToCreate = extractedData.transactions.map(t => ({
         company_id: companyId,
-        bank_account_id: selectedAccount,
+        bank_account_id: linkedBankAccount?.id || null,
         import_batch_id: batchId,
         transaction_date: t.transaction_date,
         post_date: t.post_date || t.transaction_date,
@@ -106,6 +114,7 @@ export default function BankStatementImport({ open, onClose, bankAccounts, compa
         balance: t.balance,
         reference_number: t.reference_number,
         category: t.suggested_category,
+        gl_account_id: selectedAccount,
         status: "pending",
         ai_confidence: 75
       }));
@@ -172,13 +181,11 @@ export default function BankStatementImport({ open, onClose, bankAccounts, compa
                   <SelectValue placeholder="Choose your account for import" />
                 </SelectTrigger>
                 <SelectContent>
-                  {bankAccounts
-                    .filter(acc => acc.status === 'active')
-                    .map(acc => (
-                      <SelectItem key={acc.id} value={acc.id}>
-                        {acc.account_name} - {acc.institution_name}
-                      </SelectItem>
-                    ))}
+                  {bankGLAccounts.map(acc => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      {acc.account_code} - {acc.account_name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
