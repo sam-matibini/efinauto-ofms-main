@@ -6,7 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Mail, Phone, MapPin, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Mail, Phone, MapPin, Edit, Trash2, Sparkles } from "lucide-react";
+import AIAddressLookup from "../shared/AIAddressLookup";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -145,6 +146,8 @@ function VendorDialog({ open, onClose, vendor, onSave }) {
     phone: "",
     address: "",
     city: "",
+    province: "",
+    postal_code: "",
     country: "",
     vendor_type: "supplier",
     payment_terms: "Net 30",
@@ -161,6 +164,8 @@ function VendorDialog({ open, onClose, vendor, onSave }) {
       phone: "",
       address: "",
       city: "",
+      province: "",
+      postal_code: "",
       country: "",
       vendor_type: "supplier",
       payment_terms: "Net 30",
@@ -207,12 +212,37 @@ function VendorDialog({ open, onClose, vendor, onSave }) {
               <Input value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
             </div>
             <div className="space-y-2 col-span-2">
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-2">
+                <p className="text-xs text-purple-700 mb-2">🔍 AI Address Lookup</p>
+                <AIAddressLookup 
+                  onAddressSelected={(data) => {
+                    setFormData({
+                      ...formData,
+                      address: data.address || formData.address,
+                      city: data.city || formData.city,
+                      province: data.province || formData.province,
+                      postal_code: data.postal_code || formData.postal_code,
+                      country: data.country || formData.country
+                    });
+                  }}
+                />
+              </div>
+            </div>
+            <div className="space-y-2 col-span-2">
               <Label>Address</Label>
-              <Input value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
+              <Input value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} placeholder="Street address" />
             </div>
             <div className="space-y-2">
               <Label>City</Label>
               <Input value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Province / State</Label>
+              <Input value={formData.province} onChange={(e) => setFormData({...formData, province: e.target.value})} placeholder="Province or state" />
+            </div>
+            <div className="space-y-2">
+              <Label>Postal Code / ZIP</Label>
+              <Input value={formData.postal_code} onChange={(e) => setFormData({...formData, postal_code: e.target.value})} placeholder="e.g., A1B 2C3" />
             </div>
             <div className="space-y-2">
               <Label>Country</Label>
