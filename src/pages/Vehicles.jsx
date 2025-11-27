@@ -418,14 +418,30 @@ export default function Vehicles() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Vehicle</TableHead>
-                <TableHead>VIN</TableHead>
-                <TableHead>Stock #</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Condition</TableHead>
-                <TableHead>Mileage</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Location</TableHead>
+                <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => { setSortBy("vehicle"); setSortOrder(sortBy === "vehicle" && sortOrder === "asc" ? "desc" : "asc"); }}>
+                  <div className="flex items-center gap-1">Vehicle {sortBy === "vehicle" && <ArrowUpDown className="w-3 h-3" />}</div>
+                </TableHead>
+                <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => { setSortBy("vin"); setSortOrder(sortBy === "vin" && sortOrder === "asc" ? "desc" : "asc"); }}>
+                  <div className="flex items-center gap-1">VIN {sortBy === "vin" && <ArrowUpDown className="w-3 h-3" />}</div>
+                </TableHead>
+                <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => { setSortBy("stock_number"); setSortOrder(sortBy === "stock_number" && sortOrder === "asc" ? "desc" : "asc"); }}>
+                  <div className="flex items-center gap-1">Stock # {sortBy === "stock_number" && <ArrowUpDown className="w-3 h-3" />}</div>
+                </TableHead>
+                <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => { setSortBy("status"); setSortOrder(sortBy === "status" && sortOrder === "asc" ? "desc" : "asc"); }}>
+                  <div className="flex items-center gap-1">Status {sortBy === "status" && <ArrowUpDown className="w-3 h-3" />}</div>
+                </TableHead>
+                <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => { setSortBy("condition"); setSortOrder(sortBy === "condition" && sortOrder === "asc" ? "desc" : "asc"); }}>
+                  <div className="flex items-center gap-1">Condition {sortBy === "condition" && <ArrowUpDown className="w-3 h-3" />}</div>
+                </TableHead>
+                <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => { setSortBy("mileage"); setSortOrder(sortBy === "mileage" && sortOrder === "asc" ? "desc" : "asc"); }}>
+                  <div className="flex items-center gap-1">Mileage {sortBy === "mileage" && <ArrowUpDown className="w-3 h-3" />}</div>
+                </TableHead>
+                <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => { setSortBy("selling_price"); setSortOrder(sortBy === "selling_price" && sortOrder === "asc" ? "desc" : "asc"); }}>
+                  <div className="flex items-center gap-1">Price {sortBy === "selling_price" && <ArrowUpDown className="w-3 h-3" />}</div>
+                </TableHead>
+                <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => { setSortBy("location"); setSortOrder(sortBy === "location" && sortOrder === "asc" ? "desc" : "asc"); }}>
+                  <div className="flex items-center gap-1">Location {sortBy === "location" && <ArrowUpDown className="w-3 h-3" />}</div>
+                </TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
