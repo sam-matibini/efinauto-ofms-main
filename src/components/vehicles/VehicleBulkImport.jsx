@@ -52,6 +52,9 @@ export default function VehicleBulkImport({ open, onClose, companyId, onImportCo
           type: "object",
           properties: {
             vin: { type: "string" },
+            stock_number: { type: "string" },
+            invoice_number: { type: "string" },
+            transaction_date: { type: "string" },
             make: { type: "string" },
             model: { type: "string" },
             year: { type: "number" },
@@ -85,6 +88,9 @@ export default function VehicleBulkImport({ open, onClose, companyId, onImportCo
         company_id: companyId,
         ownership_type: v.ownership_type || "dealership_owned",
         vin: v.vin,
+        stock_number: v.stock_number || "",
+        invoice_number: v.invoice_number || "",
+        transaction_date: v.transaction_date || "",
         make: v.make,
         model: v.model,
         year: v.year,
@@ -126,9 +132,9 @@ export default function VehicleBulkImport({ open, onClose, companyId, onImportCo
   };
 
   const downloadTemplate = () => {
-    const csvContent = `vin,make,model,year,color,mileage,weight,condition,status,purchase_price,selling_price,fuel_type,transmission,engine_capacity,location,ownership_type
-1HGBH41JXMN109186,Toyota,Camry,2023,Black,15000,1500,used,in_stock,25000,30000,petrol,automatic,2.5L,Lot A,dealership_owned
-2HGBH41JXMN109187,Honda,Civic,2022,White,20000,1400,used,in_stock,22000,27000,petrol,manual,1.8L,Lot B,dealership_owned`;
+    const csvContent = `vin,stock_number,invoice_number,transaction_date,make,model,year,color,mileage,weight,condition,status,purchase_price,selling_price,fuel_type,transmission,engine_capacity,location,ownership_type
+1HGBH41JXMN109186,STK-001,INV-2024-001,2024-01-15,Toyota,Camry,2023,Black,15000,1500,used,in_stock,25000,30000,petrol,automatic,2.5L,Lot A,dealership_owned
+2HGBH41JXMN109187,STK-002,INV-2024-002,2024-01-20,Honda,Civic,2022,White,20000,1400,used,in_stock,22000,27000,petrol,manual,1.8L,Lot B,dealership_owned`;
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -161,7 +167,7 @@ export default function VehicleBulkImport({ open, onClose, companyId, onImportCo
             <ul className="text-sm text-blue-800 space-y-1">
               <li>• Upload a CSV or Excel file with vehicle data</li>
               <li>• Required columns: vin, make, model, year</li>
-              <li>• Optional columns: color, mileage, weight, condition, status, prices, fuel_type, transmission, etc.</li>
+              <li>• Optional columns: stock_number, invoice_number, transaction_date, color, location, mileage, weight, condition, status, prices, fuel_type, transmission, etc.</li>
               <li>• Download the template below to see the correct format</li>
             </ul>
           </div>

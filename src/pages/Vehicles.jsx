@@ -136,6 +136,9 @@ export default function Vehicles() {
 
     if (formData.color?.trim()) cleanData.color = formData.color.trim();
     if (formData.location?.trim()) cleanData.location = formData.location.trim();
+    if (formData.stock_number?.trim()) cleanData.stock_number = formData.stock_number.trim();
+    if (formData.invoice_number?.trim()) cleanData.invoice_number = formData.invoice_number.trim();
+    if (formData.transaction_date) cleanData.transaction_date = formData.transaction_date;
     if (formData.engine_capacity?.trim()) cleanData.engine_capacity = formData.engine_capacity.trim();
     if (formData.features?.trim()) cleanData.features = formData.features.trim();
     if (formData.notes?.trim()) cleanData.notes = formData.notes.trim();
@@ -433,7 +436,8 @@ export default function Vehicles() {
 function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading, isSaving }) {
   const [formData, setFormData] = useState({
     ownership_type: "dealership_owned",
-    vin: "", make: "", model: "", year: new Date().getFullYear(),
+    vin: "", stock_number: "", invoice_number: "", transaction_date: "",
+    make: "", model: "", year: new Date().getFullYear(),
     color: "", mileage: 0, weight: 0, condition: "used", status: "in_stock",
     purchase_price: 0, selling_price: 0, fuel_type: "petrol",
     transmission: "manual", engine_capacity: "", features: "",
@@ -446,6 +450,9 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
         setFormData({
           ownership_type: vehicle.ownership_type || "dealership_owned",
           vin: vehicle.vin || "",
+          stock_number: vehicle.stock_number || "",
+          invoice_number: vehicle.invoice_number || "",
+          transaction_date: vehicle.transaction_date || "",
           make: vehicle.make || "",
           model: vehicle.model || "",
           year: vehicle.year || new Date().getFullYear(),
@@ -467,7 +474,8 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
       } else {
         setFormData({
           ownership_type: "dealership_owned",
-          vin: "", make: "", model: "", year: new Date().getFullYear(),
+          vin: "", stock_number: "", invoice_number: "", transaction_date: "",
+          make: "", model: "", year: new Date().getFullYear(),
           color: "", mileage: 0, weight: 0, condition: "used", status: "in_stock",
           purchase_price: 0, selling_price: 0, fuel_type: "petrol",
           transmission: "manual", engine_capacity: "", features: "",
@@ -535,6 +543,30 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
               <AIVINScanner onVINDetected={(vin) => setFormData({...formData, vin})} />
             </div>
             <div className="space-y-2">
+              <Label>Stock Number</Label>
+              <Input 
+                value={formData.stock_number} 
+                onChange={(e) => setFormData({...formData, stock_number: e.target.value})} 
+                placeholder="e.g., STK-001" 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Invoice Number</Label>
+              <Input 
+                value={formData.invoice_number} 
+                onChange={(e) => setFormData({...formData, invoice_number: e.target.value})} 
+                placeholder="e.g., INV-2024-001" 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Transaction Date</Label>
+              <Input 
+                type="date" 
+                value={formData.transaction_date} 
+                onChange={(e) => setFormData({...formData, transaction_date: e.target.value})} 
+              />
+            </div>
+            <div className="space-y-2">
               <Label>Make *</Label>
               <Input 
                 value={formData.make} 
@@ -565,6 +597,14 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
                 value={formData.color} 
                 onChange={(e) => setFormData({...formData, color: e.target.value})} 
                 placeholder="e.g., Black"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Location</Label>
+              <Input 
+                value={formData.location} 
+                onChange={(e) => setFormData({...formData, location: e.target.value})} 
+                placeholder="e.g., Lot A, Row 3"
               />
             </div>
             <div className="space-y-2">
