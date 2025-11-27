@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, User, Edit, Trash2, Phone, Mail, MapPin, Loader2, Upload, Map, List, CheckCircle, AlertCircle } from "lucide-react";
+import { Plus, Search, User, Edit, Trash2, Phone, Mail, MapPin, Loader2, Upload, Map, List, CheckCircle, AlertCircle, LayoutGrid } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { motion } from "framer-motion";
 import {
   Dialog,
@@ -45,7 +46,7 @@ export default function Customers() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [deletingCustomer, setDeletingCustomer] = useState(null);
-  const [viewMode, setViewMode] = useState("list");
+  const [viewMode, setViewMode] = useState("grid");
   const { selectedCompanyId } = useCompany();
 
   const queryClient = useQueryClient();
@@ -185,6 +186,15 @@ export default function Customers() {
         <div className="flex gap-2 flex-wrap">
           <div className="flex bg-white rounded-lg shadow-sm border">
             <Button
+              variant={viewMode === "grid" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("grid")}
+              className={viewMode === "grid" ? "bg-blue-600 hover:bg-blue-700" : ""}
+            >
+              <LayoutGrid className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+              <span className="text-xs md:text-sm">Grid</span>
+            </Button>
+            <Button
               variant={viewMode === "list" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("list")}
@@ -245,109 +255,161 @@ export default function Customers() {
         </div>
       </div>
 
-      {viewMode === "map" ? (
+      {isLoading ? (
+        <div className="text-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />
+        </div>
+      ) : filteredCustomers.length === 0 ? (
+        <div className="text-center py-16">
+          <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">No customers found</h3>
+          <p className="text-gray-500 mb-6">Add your first customer to get started</p>
+        </div>
+      ) : viewMode === "map" ? (
         <CustomerMap customers={filteredCustomers} />
-      ) : (
-        <>
-          {isLoading ? (
-            <div className="text-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />
-            </div>
-          ) : filteredCustomers.length === 0 ? (
-            <div className="text-center py-16">
-              <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">No customers found</h3>
-              <p className="text-gray-500 mb-6">Add your first customer to get started</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCustomers.map((customer, index) => (
-                <motion.div
-                  key={customer.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card className="hover:shadow-lg transition-all duration-300 border-none shadow-md bg-white">
-                    <CardContent className="p-6 space-y-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-3">
-                          {customer.profile_picture_url ? (
-                            <img
-                              src={customer.profile_picture_url}
-                              alt={customer.full_name}
-                              className="w-12 h-12 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                              <span className="text-white font-bold text-lg">
-                                {customer.full_name?.charAt(0)?.toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                          <div>
-                            <h3 className="font-bold text-lg text-gray-900">{customer.full_name}</h3>
-                            <Badge className={typeColors[customer.customer_type]}>
-                              {customer.customer_type}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-
-                      {customer.company_name && (
-                        <div className="text-sm text-gray-600">
-                          <strong>Company:</strong> {customer.company_name}
+      ) : viewMode === "list" ? (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Tax ID</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredCustomers.map((customer) => (
+                <TableRow key={customer.id} className="hover:bg-gray-50">
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      {customer.profile_picture_url ? (
+                        <img src={customer.profile_picture_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                          <span className="text-white font-bold">{customer.full_name?.charAt(0)?.toUpperCase()}</span>
                         </div>
                       )}
-
-                      <div className="space-y-2">
-                        {customer.email && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Mail className="w-4 h-4 text-gray-400" />
-                            <span className="truncate">{customer.email}</span>
-                          </div>
-                        )}
-                        {customer.phone && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Phone className="w-4 h-4 text-gray-400" />
-                            <span>{customer.phone}</span>
-                          </div>
-                        )}
-                        {customer.city && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <MapPin className="w-4 h-4 text-gray-400" />
-                            <span>{customer.city}, {customer.country}</span>
-                          </div>
-                        )}
+                      <div>
+                        <p className="font-semibold">{customer.full_name}</p>
+                        {customer.company_name && <p className="text-xs text-gray-500">{customer.company_name}</p>}
                       </div>
-
-                      <div className="flex gap-2 pt-2 border-t">
-                        <Button 
-                          onClick={() => {
-                            setEditingCustomer(customer);
-                            setDialogOpen(true);
-                          }}
-                          className="flex-1"
-                          variant="outline"
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit
-                        </Button>
-                        <Button 
-                          onClick={() => setDeletingCustomer(customer)}
-                          variant="outline"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={typeColors[customer.customer_type]}>{customer.customer_type}</Badge>
+                  </TableCell>
+                  <TableCell className="text-sm">{customer.email || "-"}</TableCell>
+                  <TableCell className="text-sm">{customer.phone || "-"}</TableCell>
+                  <TableCell className="text-sm">
+                    {customer.city ? `${customer.city}${customer.province ? `, ${customer.province}` : ""}${customer.postal_code ? ` ${customer.postal_code}` : ""}` : "-"}
+                  </TableCell>
+                  <TableCell className="text-sm">{customer.tax_id || "-"}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => { setEditingCustomer(customer); setDialogOpen(true); }}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setDeletingCustomer(customer)} className="text-red-600 hover:text-red-700">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
               ))}
-            </div>
-          )}
-        </>
+            </TableBody>
+          </Table>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCustomers.map((customer, index) => (
+            <motion.div
+              key={customer.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <Card className="hover:shadow-lg transition-all duration-300 border-none shadow-md bg-white">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                      {customer.profile_picture_url ? (
+                        <img
+                          src={customer.profile_picture_url}
+                          alt={customer.full_name}
+                          className="w-12 h-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                          <span className="text-white font-bold text-lg">
+                            {customer.full_name?.charAt(0)?.toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <h3 className="font-bold text-lg text-gray-900">{customer.full_name}</h3>
+                        <Badge className={typeColors[customer.customer_type]}>
+                          {customer.customer_type}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  {customer.company_name && (
+                    <div className="text-sm text-gray-600">
+                      <strong>Company:</strong> {customer.company_name}
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    {customer.email && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Mail className="w-4 h-4 text-gray-400" />
+                        <span className="truncate">{customer.email}</span>
+                      </div>
+                    )}
+                    {customer.phone && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Phone className="w-4 h-4 text-gray-400" />
+                        <span>{customer.phone}</span>
+                      </div>
+                    )}
+                    {customer.city && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <MapPin className="w-4 h-4 text-gray-400" />
+                        <span>{customer.city}, {customer.country}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 pt-2 border-t">
+                    <Button 
+                      onClick={() => {
+                        setEditingCustomer(customer);
+                        setDialogOpen(true);
+                      }}
+                      className="flex-1"
+                      variant="outline"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button 
+                      onClick={() => setDeletingCustomer(customer)}
+                      variant="outline"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
       )}
 
       <CustomerDialog

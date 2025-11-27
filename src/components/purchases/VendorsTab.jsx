@@ -6,7 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Mail, Phone, MapPin, Edit, Trash2, Sparkles } from "lucide-react";
+import { Plus, Search, Mail, Phone, MapPin, Edit, Trash2, Sparkles, LayoutGrid, List } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import AIAddressLookup from "../shared/AIAddressLookup";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ export default function VendorsTab({ vendors, selectedCompanyId }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState(null);
+  const [viewMode, setViewMode] = useState("grid");
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
@@ -65,10 +67,32 @@ export default function VendorsTab({ vendors, selectedCompanyId }) {
     <>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Vendors</h2>
-        <Button onClick={() => { setEditingVendor(null); setDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Vendor
-        </Button>
+        <div className="flex gap-2">
+          <div className="flex bg-white rounded-lg shadow-sm border">
+            <Button
+              variant={viewMode === "grid" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("grid")}
+              className={viewMode === "grid" ? "bg-blue-600 hover:bg-blue-700" : ""}
+            >
+              <LayoutGrid className="w-4 h-4 mr-1" />
+              Grid
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+              className={viewMode === "list" ? "bg-blue-600 hover:bg-blue-700" : ""}
+            >
+              <List className="w-4 h-4 mr-1" />
+              List
+            </Button>
+          </div>
+          <Button onClick={() => { setEditingVendor(null); setDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Vendor
+          </Button>
+        </div>
       </div>
 
       <Card className="mb-6">
@@ -85,48 +109,98 @@ export default function VendorsTab({ vendors, selectedCompanyId }) {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredVendors.map((vendor) => (
-          <Card key={vendor.id} className="hover:shadow-lg transition-all">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start mb-3">
-                <h3 className="font-bold text-lg">{vendor.vendor_name}</h3>
-                <Badge variant={vendor.status === 'active' ? 'default' : 'secondary'}>{vendor.status}</Badge>
-              </div>
-              <div className="space-y-2">
-                {vendor.contact_person && <p className="text-sm text-gray-600">{vendor.contact_person}</p>}
-                {vendor.email && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Mail className="w-4 h-4" />
-                    <span className="truncate">{vendor.email}</span>
-                  </div>
-                )}
-                {vendor.phone && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Phone className="w-4 h-4" />
-                    <span>{vendor.phone}</span>
-                  </div>
-                )}
-                {vendor.city && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <MapPin className="w-4 h-4" />
-                    <span>{vendor.city}, {vendor.country}</span>
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-2 mt-4">
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => { setEditingVendor(vendor); setDialogOpen(true); }}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit
-                </Button>
-                <Button variant="outline" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(vendor.id)}>
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {viewMode === "list" ? (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Vendor Name</TableHead>
+                <TableHead>Contact Person</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Payment Terms</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredVendors.map((vendor) => (
+                <TableRow key={vendor.id} className="hover:bg-gray-50">
+                  <TableCell className="font-semibold">{vendor.vendor_name}</TableCell>
+                  <TableCell className="text-sm">{vendor.contact_person || "-"}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize">{vendor.vendor_type?.replace(/_/g, ' ')}</Badge>
+                  </TableCell>
+                  <TableCell className="text-sm">{vendor.email || "-"}</TableCell>
+                  <TableCell className="text-sm">{vendor.phone || "-"}</TableCell>
+                  <TableCell className="text-sm">
+                    {vendor.city ? `${vendor.city}${vendor.province ? `, ${vendor.province}` : ""}${vendor.postal_code ? ` ${vendor.postal_code}` : ""}` : "-"}
+                  </TableCell>
+                  <TableCell className="text-sm">{vendor.payment_terms || "-"}</TableCell>
+                  <TableCell>
+                    <Badge variant={vendor.status === 'active' ? 'default' : 'secondary'}>{vendor.status}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => { setEditingVendor(vendor); setDialogOpen(true); }}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="text-red-600 hover:text-red-700" onClick={() => deleteMutation.mutate(vendor.id)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredVendors.map((vendor) => (
+            <Card key={vendor.id} className="hover:shadow-lg transition-all">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="font-bold text-lg">{vendor.vendor_name}</h3>
+                  <Badge variant={vendor.status === 'active' ? 'default' : 'secondary'}>{vendor.status}</Badge>
+                </div>
+                <div className="space-y-2">
+                  {vendor.contact_person && <p className="text-sm text-gray-600">{vendor.contact_person}</p>}
+                  {vendor.email && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Mail className="w-4 h-4" />
+                      <span className="truncate">{vendor.email}</span>
+                    </div>
+                  )}
+                  {vendor.phone && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Phone className="w-4 h-4" />
+                      <span>{vendor.phone}</span>
+                    </div>
+                  )}
+                  {vendor.city && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <MapPin className="w-4 h-4" />
+                      <span>{vendor.city}, {vendor.country}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => { setEditingVendor(vendor); setDialogOpen(true); }}>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit
+                  </Button>
+                  <Button variant="outline" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(vendor.id)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <VendorDialog
         open={dialogOpen}
