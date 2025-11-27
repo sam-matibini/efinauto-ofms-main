@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, Car, Edit, Loader2, TrendingUp, AlertTriangle, DollarSign, Upload, LayoutGrid, List, ArrowUpDown } from "lucide-react";
+import { Plus, Search, Car, Edit, Loader2, TrendingUp, AlertTriangle, DollarSign, Upload, LayoutGrid, List, ArrowUpDown, Trash2 } from "lucide-react";
 import ExportButton from "../components/shared/ExportButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { motion } from "framer-motion";
@@ -33,6 +33,16 @@ import AIVehicleSearchMarketplace from "../components/vehicles/AIVehicleSearchMa
 import VehicleBulkImport from "../components/vehicles/VehicleBulkImport";
 import AIVINScanner from "../components/vehicles/AIVINScanner";
 import AIMileageScanner from "../components/vehicles/AIMileageScanner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function Vehicles() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,6 +55,7 @@ export default function Vehicles() {
   const [viewMode, setViewMode] = useState("grid");
   const [sortBy, setSortBy] = useState("created_date");
   const [sortOrder, setSortOrder] = useState("desc");
+  const [deletingVehicle, setDeletingVehicle] = useState(null);
   const { selectedCompanyId } = useCompany();
 
   const queryClient = useQueryClient();
@@ -82,7 +93,7 @@ export default function Vehicles() {
       return await base44.entities.Vehicle.update(id, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles', selectedCompanyId] }); // Invalidate with company ID
+      queryClient.invalidateQueries({ queryKey: ['vehicles', selectedCompanyId] });
       setDialogOpen(false);
       setEditingVehicle(null);
       toast.success("Vehicle updated successfully!");
@@ -90,6 +101,21 @@ export default function Vehicles() {
     onError: (error) => {
       console.error("Update error:", error);
       toast.error("Failed to update vehicle: " + (error.message || "Unknown error"));
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      return await base44.entities.Vehicle.delete(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles', selectedCompanyId] });
+      setDeletingVehicle(null);
+      toast.success("Vehicle deleted successfully!");
+    },
+    onError: (error) => {
+      console.error("Delete error:", error);
+      toast.error("Failed to delete vehicle: " + (error.message || "Unknown error"));
     },
   });
 
@@ -483,16 +509,26 @@ export default function Vehicles() {
                   <TableCell className="font-semibold text-blue-600">${vehicle.selling_price?.toLocaleString()}</TableCell>
                   <TableCell>{vehicle.location || "-"}</TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setEditingVehicle(vehicle);
-                        setDialogOpen(true);
-                      }}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setEditingVehicle(vehicle);
+                          setDialogOpen(true);
+                        }}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setDeletingVehicle(vehicle)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -561,16 +597,25 @@ export default function Vehicles() {
                       </div>
                     </div>
 
-                    <Button 
-                      onClick={() => {
-                        setEditingVehicle(vehicle);
-                        setDialogOpen(true);
-                      }}
-                      className="w-full bg-blue-600 hover:bg-blue-700"
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit Details
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => {
+                          setEditingVehicle(vehicle);
+                          setDialogOpen(true);
+                        }}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
+                      <Button 
+                        onClick={() => setDeletingVehicle(vehicle)}
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -601,6 +646,26 @@ export default function Vehicles() {
           setBulkImportOpen(false);
         }}
       />
+
+      <AlertDialog open={!!deletingVehicle} onOpenChange={() => setDeletingVehicle(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Vehicle</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {deletingVehicle?.year} {deletingVehicle?.make} {deletingVehicle?.model} (VIN: {deletingVehicle?.vin})? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate(deletingVehicle.id)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
         </div>
         </div>
         );
