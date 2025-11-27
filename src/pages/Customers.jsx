@@ -37,6 +37,7 @@ import {
 import { useCompany } from "../components/shared/CompanyContext";
 import CustomerMap from "../components/customers/CustomerMap";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AIAddressLookup from "../components/shared/AIAddressLookup";
 
 export default function Customers() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -136,6 +137,8 @@ export default function Customers() {
     if (formData.email && formData.email.trim()) cleanData.email = formData.email.trim();
     if (formData.address && formData.address.trim()) cleanData.address = formData.address.trim();
     if (formData.city && formData.city.trim()) cleanData.city = formData.city.trim();
+    if (formData.province && formData.province.trim()) cleanData.province = formData.province.trim();
+    if (formData.postal_code && formData.postal_code.trim()) cleanData.postal_code = formData.postal_code.trim();
     if (formData.country && formData.country.trim()) cleanData.country = formData.country.trim();
     if (formData.latitude !== "" && !isNaN(formData.latitude)) cleanData.latitude = Number(formData.latitude);
     if (formData.longitude !== "" && !isNaN(formData.longitude)) cleanData.longitude = Number(formData.longitude);
@@ -389,6 +392,8 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
     phone: "",
     address: "",
     city: "",
+    province: "",
+    postal_code: "",
     country: "",
     latitude: "",
     longitude: "",
@@ -411,6 +416,8 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
           phone: customer.phone || "",
           address: customer.address || "",
           city: customer.city || "",
+          province: customer.province || "",
+          postal_code: customer.postal_code || "",
           country: customer.country || "",
           latitude: customer.latitude !== undefined ? customer.latitude : "",
           longitude: customer.longitude !== undefined ? customer.longitude : "",
@@ -432,6 +439,8 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
           phone: "",
           address: "",
           city: "",
+          province: "",
+          postal_code: "",
           country: "",
           latitude: "",
           longitude: "",
@@ -596,25 +605,24 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
                   </Select>
                 </div>
                 
+                <div className="space-y-2">
+                  <Label>Tax ID</Label>
+                  <Input 
+                    value={formData.tax_id} 
+                    onChange={(e) => setFormData({...formData, tax_id: e.target.value})} 
+                    placeholder="Enter tax ID (GST/HST number)"
+                  />
+                </div>
+                
                 {formData.customer_type === 'business' && (
-                  <>
-                    <div className="space-y-2">
-                      <Label>Company Name</Label>
-                      <Input 
-                        value={formData.company_name} 
-                        onChange={(e) => setFormData({...formData, company_name: e.target.value})} 
-                        placeholder="Enter company name"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Tax ID</Label>
-                      <Input 
-                        value={formData.tax_id} 
-                        onChange={(e) => setFormData({...formData, tax_id: e.target.value})} 
-                        placeholder="Enter tax ID"
-                      />
-                    </div>
-                  </>
+                  <div className="space-y-2">
+                    <Label>Company Name</Label>
+                    <Input 
+                      value={formData.company_name} 
+                      onChange={(e) => setFormData({...formData, company_name: e.target.value})} 
+                      placeholder="Enter company name"
+                    />
+                  </div>
                 )}
 
                 <div className="space-y-2 col-span-2">
@@ -631,6 +639,27 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
           </TabsContent>
 
           <TabsContent value="location" className="space-y-4 py-4">
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-purple-900 font-medium mb-2">🔍 AI Address Lookup</p>
+              <p className="text-xs text-purple-700 mb-3">
+                Search for an address and auto-fill all location fields including coordinates.
+              </p>
+              <AIAddressLookup 
+                onAddressSelected={(data) => {
+                  setFormData({
+                    ...formData,
+                    address: data.address || formData.address,
+                    city: data.city || formData.city,
+                    province: data.province || formData.province,
+                    postal_code: data.postal_code || formData.postal_code,
+                    country: data.country || formData.country,
+                    latitude: data.latitude !== undefined ? data.latitude : formData.latitude,
+                    longitude: data.longitude !== undefined ? data.longitude : formData.longitude
+                  });
+                }}
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2 col-span-2">
                 <Label>Address</Label>
@@ -638,7 +667,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
                   value={formData.address} 
                   onChange={(e) => setFormData({...formData, address: e.target.value})} 
                   rows={2} 
-                  placeholder="Enter address"
+                  placeholder="Enter street address"
                 />
               </div>
 
@@ -648,6 +677,22 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
                   value={formData.city} 
                   onChange={(e) => setFormData({...formData, city: e.target.value})} 
                   placeholder="Enter city"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Province / State</Label>
+                <Input 
+                  value={formData.province} 
+                  onChange={(e) => setFormData({...formData, province: e.target.value})} 
+                  placeholder="Enter province or state"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Postal Code / ZIP</Label>
+                <Input 
+                  value={formData.postal_code} 
+                  onChange={(e) => setFormData({...formData, postal_code: e.target.value})} 
+                  placeholder="e.g., A1B 2C3"
                 />
               </div>
               <div className="space-y-2">
@@ -679,14 +724,6 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
                   placeholder="e.g., -75.6972"
                 />
               </div>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-900 font-medium mb-2">📍 Location Coordinates</p>
-              <p className="text-xs text-blue-700">
-                Add latitude and longitude coordinates to display this customer on the map view. 
-                You can use Google Maps to find coordinates by right-clicking on a location.
-              </p>
             </div>
           </TabsContent>
         </Tabs>
