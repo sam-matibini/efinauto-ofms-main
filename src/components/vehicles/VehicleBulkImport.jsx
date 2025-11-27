@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, Loader2, Download } from "lucide-react";
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, Loader2, Download, Undo2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
@@ -10,6 +10,8 @@ export default function VehicleBulkImport({ open, onClose, companyId, onImportCo
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [results, setResults] = useState(null);
+  const [importedIds, setImportedIds] = useState([]);
+  const [undoing, setUndoing] = useState(false);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -108,7 +110,11 @@ export default function VehicleBulkImport({ open, onClose, companyId, onImportCo
       }));
 
       // Bulk create vehicles
-      await base44.entities.Vehicle.bulkCreate(vehiclesToImport);
+      const createdVehicles = await base44.entities.Vehicle.bulkCreate(vehiclesToImport);
+      
+      // Store imported IDs for undo functionality
+      const ids = createdVehicles.map(v => v.id);
+      setImportedIds(ids);
 
       setResults({
         success: true,
@@ -148,7 +154,29 @@ export default function VehicleBulkImport({ open, onClose, companyId, onImportCo
   const handleClose = () => {
     setFile(null);
     setResults(null);
+    setImportedIds([]);
     onClose();
+  };
+
+  const handleUndo = async () => {
+    if (importedIds.length === 0) return;
+    
+    setUndoing(true);
+    try {
+      for (const id of importedIds) {
+        await base44.entities.Vehicle.delete(id);
+      }
+      toast.success(`Undone import: Deleted ${importedIds.length} vehicles`);
+      setImportedIds([]);
+      setResults(null);
+      setFile(null);
+      onImportComplete?.();
+    } catch (error) {
+      console.error("Undo error:", error);
+      toast.error("Failed to undo import: " + error.message);
+    } finally {
+      setUndoing(false);
+    }
   };
 
   return (
@@ -208,11 +236,32 @@ export default function VehicleBulkImport({ open, onClose, companyId, onImportCo
                 {results.success ? (
                   <>
                     <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-                    <div>
+                    <div className="flex-1">
                       <h4 className="font-semibold text-green-900">Import Successful!</h4>
                       <p className="text-sm text-green-800 mt-1">
                         Successfully imported {results.count} vehicle{results.count !== 1 ? 's' : ''} into inventory.
                       </p>
+                      {importedIds.length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleUndo}
+                          disabled={undoing}
+                          className="mt-3 text-orange-600 border-orange-300 hover:bg-orange-50"
+                        >
+                          {undoing ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Undoing...
+                            </>
+                          ) : (
+                            <>
+                              <Undo2 className="w-4 h-4 mr-2" />
+                              Undo Import
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </>
                 ) : (

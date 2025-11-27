@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2, Undo2, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
@@ -10,6 +10,8 @@ export default function ImportPartsDialog({ open, onClose, companyId, onSuccess 
   const [file, setFile] = useState(null);
   const [importing, setImporting] = useState(false);
   const [results, setResults] = useState(null);
+  const [importedIds, setImportedIds] = useState([]);
+  const [undoing, setUndoing] = useState(false);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -72,16 +74,18 @@ export default function ImportPartsDialog({ open, onClose, companyId, onSuccess 
     }
 
     setImporting(true);
+    setImportedIds([]);
     try {
       const rows = await parseFile(file);
       
       let created = 0;
       let failed = 0;
       const errors = [];
+      const newIds = [];
 
       for (const row of rows) {
         try {
-          await base44.entities.Part.create({
+          const createdPart = await base44.entities.Part.create({
             company_id: companyId,
             part_number: row.part_number || row['Part Number'] || row.part_no,
             name: row.name || row.Name,
@@ -96,6 +100,7 @@ export default function ImportPartsDialog({ open, onClose, companyId, onSuccess 
             supplier: row.supplier || row.Supplier || '',
             location: row.location || row.Location || ''
           });
+          newIds.push(createdPart.id);
           created++;
         } catch (error) {
           failed++;
@@ -103,6 +108,7 @@ export default function ImportPartsDialog({ open, onClose, companyId, onSuccess 
         }
       }
 
+      setImportedIds(newIds);
       setResults({ created, failed, errors });
       
       if (created > 0) {
@@ -117,6 +123,27 @@ export default function ImportPartsDialog({ open, onClose, companyId, onSuccess 
       toast.error(`Import failed: ${error.message}`);
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handleUndo = async () => {
+    if (importedIds.length === 0) return;
+    
+    setUndoing(true);
+    try {
+      for (const id of importedIds) {
+        await base44.entities.Part.delete(id);
+      }
+      toast.success(`Undone import: Deleted ${importedIds.length} parts`);
+      setImportedIds([]);
+      setResults(null);
+      setFile(null);
+      onSuccess();
+    } catch (error) {
+      console.error("Undo error:", error);
+      toast.error("Failed to undo import: " + error.message);
+    } finally {
+      setUndoing(false);
     }
   };
 
@@ -195,11 +222,34 @@ export default function ImportPartsDialog({ open, onClose, companyId, onSuccess 
           {results && (
             <div className="space-y-3">
               {results.created > 0 && (
-                <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                  <span className="text-sm text-green-800">
-                    Successfully imported {results.created} part(s)
-                  </span>
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    <span className="text-sm text-green-800">
+                      Successfully imported {results.created} part(s)
+                    </span>
+                  </div>
+                  {importedIds.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleUndo}
+                      disabled={undoing}
+                      className="mt-3 text-orange-600 border-orange-300 hover:bg-orange-50"
+                    >
+                      {undoing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Undoing...
+                        </>
+                      ) : (
+                        <>
+                          <Undo2 className="w-4 h-4 mr-2" />
+                          Undo Import
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </div>
               )}
               
