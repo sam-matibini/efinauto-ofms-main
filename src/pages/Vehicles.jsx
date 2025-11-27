@@ -89,9 +89,14 @@ export default function Vehicles() {
   });
 
   const filteredVehicles = vehicles.filter(v => {
-    const matchesSearch = v.make?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          v.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          v.vin?.toLowerCase().includes(searchTerm.toLowerCase());
+    const search = searchTerm.toLowerCase();
+    const matchesSearch = v.make?.toLowerCase().includes(search) ||
+                          v.model?.toLowerCase().includes(search) ||
+                          v.vin?.toLowerCase().includes(search) ||
+                          v.stock_number?.toLowerCase().includes(search) ||
+                          v.color?.toLowerCase().includes(search) ||
+                          v.location?.toLowerCase().includes(search) ||
+                          String(v.year).includes(search);
     const matchesStatus = statusFilter === "all" || v.status === statusFilter;
     const matchesOwnership = ownershipFilter === "all" || v.ownership_type === ownershipFilter;
     return matchesSearch && matchesStatus && matchesOwnership;
@@ -271,7 +276,16 @@ export default function Vehicles() {
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Search VIN, make, model, stock #..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
           <Select value={ownershipFilter} onValueChange={setOwnershipFilter}>
             <SelectTrigger>
               <SelectValue placeholder="All Ownership" />
