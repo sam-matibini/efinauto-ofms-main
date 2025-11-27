@@ -427,6 +427,12 @@ export default function Vehicles() {
                 <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => { setSortBy("stock_number"); setSortOrder(sortBy === "stock_number" && sortOrder === "asc" ? "desc" : "asc"); }}>
                   <div className="flex items-center gap-1">Stock # {sortBy === "stock_number" && <ArrowUpDown className="w-3 h-3" />}</div>
                 </TableHead>
+                <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => { setSortBy("invoice_number"); setSortOrder(sortBy === "invoice_number" && sortOrder === "asc" ? "desc" : "asc"); }}>
+                  <div className="flex items-center gap-1">Invoice # {sortBy === "invoice_number" && <ArrowUpDown className="w-3 h-3" />}</div>
+                </TableHead>
+                <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => { setSortBy("transaction_date"); setSortOrder(sortBy === "transaction_date" && sortOrder === "asc" ? "desc" : "asc"); }}>
+                  <div className="flex items-center gap-1">Transaction Date {sortBy === "transaction_date" && <ArrowUpDown className="w-3 h-3" />}</div>
+                </TableHead>
                 <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => { setSortBy("status"); setSortOrder(sortBy === "status" && sortOrder === "asc" ? "desc" : "asc"); }}>
                   <div className="flex items-center gap-1">Status {sortBy === "status" && <ArrowUpDown className="w-3 h-3" />}</div>
                 </TableHead>
@@ -465,6 +471,8 @@ export default function Vehicles() {
                   </TableCell>
                   <TableCell className="font-mono text-sm">{vehicle.vin}</TableCell>
                   <TableCell>{vehicle.stock_number || "-"}</TableCell>
+                  <TableCell>{vehicle.invoice_number || "-"}</TableCell>
+                  <TableCell>{vehicle.transaction_date || "-"}</TableCell>
                   <TableCell>
                     <Badge className={statusColors[vehicle.status]}>
                       {vehicle.status?.replace(/_/g, ' ')}
