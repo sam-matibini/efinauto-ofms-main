@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, Car, Edit, Loader2, TrendingUp, AlertTriangle, DollarSign, Upload } from "lucide-react";
+import { Plus, Search, Car, Edit, Loader2, TrendingUp, AlertTriangle, DollarSign, Upload, LayoutGrid, List } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { motion } from "framer-motion";
 import {
   Dialog,
@@ -40,6 +41,7 @@ export default function Vehicles() {
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
+  const [viewMode, setViewMode] = useState("grid");
   const { selectedCompanyId } = useCompany();
 
   const queryClient = useQueryClient();
@@ -276,7 +278,7 @@ export default function Vehicles() {
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
@@ -309,6 +311,22 @@ export default function Vehicles() {
               <SelectItem value="exported">Exported</SelectItem>
             </SelectContent>
           </Select>
+          <div className="flex gap-1 justify-end">
+            <Button
+              variant={viewMode === "grid" ? "default" : "outline"}
+              size="icon"
+              onClick={() => setViewMode("grid")}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "default" : "outline"}
+              size="icon"
+              onClick={() => setViewMode("list")}
+            >
+              <List className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -340,6 +358,68 @@ export default function Vehicles() {
           <h3 className="text-xl font-semibold text-gray-700 mb-2">No vehicles found</h3>
           <p className="text-gray-500 mb-6">Add your first vehicle to get started</p>
         </div>
+      ) : viewMode === "list" ? (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Vehicle</TableHead>
+                <TableHead>VIN</TableHead>
+                <TableHead>Stock #</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Condition</TableHead>
+                <TableHead>Mileage</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredVehicles.map((vehicle) => (
+                <TableRow key={vehicle.id} className="cursor-pointer hover:bg-gray-50">
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
+                        {vehicle.images?.[0] ? (
+                          <img src={vehicle.images[0]} alt="" className="w-full h-full object-cover rounded" />
+                        ) : (
+                          <Car className="w-6 h-6 text-gray-400" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-semibold">{vehicle.year} {vehicle.make} {vehicle.model}</p>
+                        <p className="text-xs text-gray-500">{vehicle.color}</p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">{vehicle.vin}</TableCell>
+                  <TableCell>{vehicle.stock_number || "-"}</TableCell>
+                  <TableCell>
+                    <Badge className={statusColors[vehicle.status]}>
+                      {vehicle.status?.replace(/_/g, ' ')}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="capitalize">{vehicle.condition}</TableCell>
+                  <TableCell>{vehicle.mileage?.toLocaleString()} km</TableCell>
+                  <TableCell className="font-semibold text-blue-600">${vehicle.selling_price?.toLocaleString()}</TableCell>
+                  <TableCell>{vehicle.location || "-"}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setEditingVehicle(vehicle);
+                        setDialogOpen(true);
+                      }}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredVehicles.map((vehicle, index) => (

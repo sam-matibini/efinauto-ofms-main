@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Settings, AlertTriangle, Edit, Loader2, Trash2, Package, TrendingDown, TrendingUp, BarChart3, Upload } from "lucide-react";
+import { Plus, Search, Settings, AlertTriangle, Edit, Loader2, Trash2, Package, TrendingDown, TrendingUp, BarChart3, Upload, LayoutGrid, List } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { motion } from "framer-motion";
 import {
   Dialog,
@@ -54,6 +55,7 @@ export default function Parts() {
   const [editingPart, setEditingPart] = useState(null);
   const [selectedPart, setSelectedPart] = useState(null);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState("grid");
   const { selectedCompanyId } = useCompany();
 
   const queryClient = useQueryClient();
@@ -251,7 +253,7 @@ export default function Parts() {
           {/* Search and Filters */}
           <Card className="mt-6">
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
@@ -294,6 +296,22 @@ export default function Parts() {
                 <SelectItem value="out">Out of Stock</SelectItem>
               </SelectContent>
             </Select>
+            <div className="flex gap-1 justify-end">
+              <Button
+                variant={viewMode === "grid" ? "default" : "outline"}
+                size="icon"
+                onClick={() => setViewMode("grid")}
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "outline"}
+                size="icon"
+                onClick={() => setViewMode("list")}
+              >
+                <List className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
           </CardContent>
           </Card>
@@ -318,7 +336,7 @@ export default function Parts() {
             <AIPartsSearchMarketplace />
           </div>
 
-          {/* Parts Grid */}
+          {/* Parts Grid/List */}
       {isLoading ? (
         <div className="text-center py-12">
           <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />
@@ -331,8 +349,90 @@ export default function Parts() {
             <p className="text-gray-500 mb-6">Add your first part to get started</p>
           </CardContent>
         </Card>
+      ) : viewMode === "list" ? (
+        <Card className="mt-6">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Part</TableHead>
+                <TableHead>Part #</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Quantity</TableHead>
+                <TableHead>Reorder Level</TableHead>
+                <TableHead>Cost</TableHead>
+                <TableHead>Selling Price</TableHead>
+                <TableHead>Supplier</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredParts.map((part) => {
+                const isLowStock = part.quantity <= part.reorder_level && part.quantity > 0;
+                const isOutOfStock = part.quantity === 0;
+                return (
+                  <TableRow key={part.id} className="cursor-pointer hover:bg-gray-50">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center">
+                          {part.image_url ? (
+                            <img src={part.image_url} alt="" className="w-full h-full object-cover rounded" />
+                          ) : (
+                            <Package className="w-5 h-5 text-gray-400" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-semibold">{part.name}</p>
+                          <p className="text-xs text-gray-500">{part.compatible_makes}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">{part.part_number}</TableCell>
+                    <TableCell className="capitalize">{part.category?.replace(/_/g, ' ')}</TableCell>
+                    <TableCell>
+                      <Badge className={isOutOfStock ? 'bg-red-100 text-red-800' : isLowStock ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'}>
+                        {part.quantity}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{part.reorder_level}</TableCell>
+                    <TableCell>${part.cost_price?.toLocaleString()}</TableCell>
+                    <TableCell className="font-semibold text-blue-600">${part.selling_price?.toLocaleString()}</TableCell>
+                    <TableCell>{part.supplier || "-"}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex gap-1 justify-end">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleStockAdjustment(part)}
+                        >
+                          <TrendingUp className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditingPart(part);
+                            setDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(part)}
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
           {filteredParts.map((part, index) => (
             <PartCard
               key={part.id}
