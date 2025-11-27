@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, Car, Edit, Loader2, TrendingUp, AlertTriangle, DollarSign, Upload, LayoutGrid, List } from "lucide-react";
+import { Plus, Search, Car, Edit, Loader2, TrendingUp, AlertTriangle, DollarSign, Upload, LayoutGrid, List, ArrowUpDown } from "lucide-react";
+import ExportButton from "../components/shared/ExportButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { motion } from "framer-motion";
 import {
@@ -42,6 +43,8 @@ export default function Vehicles() {
   const [uploading, setUploading] = useState(false);
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
+  const [sortBy, setSortBy] = useState("created_date");
+  const [sortOrder, setSortOrder] = useState("desc");
   const { selectedCompanyId } = useCompany();
 
   const queryClient = useQueryClient();
@@ -102,7 +105,36 @@ export default function Vehicles() {
     const matchesStatus = statusFilter === "all" || v.status === statusFilter;
     const matchesOwnership = ownershipFilter === "all" || v.ownership_type === ownershipFilter;
     return matchesSearch && matchesStatus && matchesOwnership;
+  }).sort((a, b) => {
+    let aVal = a[sortBy];
+    let bVal = b[sortBy];
+    if (sortBy === "vehicle") {
+      aVal = `${a.year} ${a.make} ${a.model}`;
+      bVal = `${b.year} ${b.make} ${b.model}`;
+    }
+    if (typeof aVal === "string") aVal = aVal?.toLowerCase() || "";
+    if (typeof bVal === "string") bVal = bVal?.toLowerCase() || "";
+    if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+    if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+    return 0;
   });
+
+  const vehicleExportColumns = [
+    { label: "VIN", accessor: (v) => v.vin },
+    { label: "Stock #", accessor: (v) => v.stock_number },
+    { label: "Year", accessor: (v) => v.year },
+    { label: "Make", accessor: (v) => v.make },
+    { label: "Model", accessor: (v) => v.model },
+    { label: "Color", accessor: (v) => v.color },
+    { label: "Status", accessor: (v) => v.status },
+    { label: "Condition", accessor: (v) => v.condition },
+    { label: "Mileage", accessor: (v) => v.mileage },
+    { label: "Purchase Price", accessor: (v) => v.purchase_price },
+    { label: "Selling Price", accessor: (v) => v.selling_price },
+    { label: "Location", accessor: (v) => v.location },
+    { label: "Fuel Type", accessor: (v) => v.fuel_type },
+    { label: "Transmission", accessor: (v) => v.transmission },
+  ];
 
   const stats = {
     total: vehicles.length,
@@ -194,6 +226,11 @@ export default function Vehicles() {
             <p className="text-sm text-gray-300 mt-1">{filteredVehicles.length} vehicles</p>
           </div>
           <div className="flex gap-2">
+            <ExportButton 
+              data={filteredVehicles} 
+              columns={vehicleExportColumns} 
+              filename="vehicles" 
+            />
             <Button 
               onClick={() => setBulkImportOpen(true)}
               variant="outline"
@@ -309,6 +346,24 @@ export default function Vehicles() {
               <SelectItem value="reserved">Reserved</SelectItem>
               <SelectItem value="in_transit">In Transit</SelectItem>
               <SelectItem value="exported">Exported</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={`${sortBy}-${sortOrder}`} onValueChange={(v) => { const [field, order] = v.split("-"); setSortBy(field); setSortOrder(order); }}>
+            <SelectTrigger>
+              <ArrowUpDown className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Sort By" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="created_date-desc">Newest First</SelectItem>
+              <SelectItem value="created_date-asc">Oldest First</SelectItem>
+              <SelectItem value="vehicle-asc">Vehicle (A-Z)</SelectItem>
+              <SelectItem value="vehicle-desc">Vehicle (Z-A)</SelectItem>
+              <SelectItem value="year-desc">Year (Newest)</SelectItem>
+              <SelectItem value="year-asc">Year (Oldest)</SelectItem>
+              <SelectItem value="selling_price-desc">Price (High-Low)</SelectItem>
+              <SelectItem value="selling_price-asc">Price (Low-High)</SelectItem>
+              <SelectItem value="mileage-asc">Mileage (Low-High)</SelectItem>
+              <SelectItem value="mileage-desc">Mileage (High-Low)</SelectItem>
             </SelectContent>
           </Select>
           <div className="flex gap-1 justify-end">
