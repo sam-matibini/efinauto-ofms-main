@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Settings, AlertTriangle, Edit, Loader2, Trash2, Package, TrendingDown, TrendingUp, BarChart3, Upload, LayoutGrid, List } from "lucide-react";
+import { Plus, Search, Settings, AlertTriangle, Edit, Loader2, Trash2, Package, TrendingDown, TrendingUp, BarChart3, Upload, LayoutGrid, List, ArrowUpDown } from "lucide-react";
+import ExportButton from "../components/shared/ExportButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { motion } from "framer-motion";
 import {
@@ -56,6 +57,8 @@ export default function Parts() {
   const [selectedPart, setSelectedPart] = useState(null);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
+  const [sortBy, setSortBy] = useState("created_date");
+  const [sortOrder, setSortOrder] = useState("desc");
   const { selectedCompanyId } = useCompany();
 
   const queryClient = useQueryClient();
@@ -114,7 +117,28 @@ export default function Parts() {
     }
     
     return matchesSearch && matchesCategory && matchesStock;
+  }).sort((a, b) => {
+    let aVal = a[sortBy];
+    let bVal = b[sortBy];
+    if (typeof aVal === "string") aVal = aVal?.toLowerCase() || "";
+    if (typeof bVal === "string") bVal = bVal?.toLowerCase() || "";
+    if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+    if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+    return 0;
   });
+
+  const partExportColumns = [
+    { label: "Part Number", accessor: (p) => p.part_number },
+    { label: "Name", accessor: (p) => p.name },
+    { label: "Category", accessor: (p) => p.category },
+    { label: "Quantity", accessor: (p) => p.quantity },
+    { label: "Reorder Level", accessor: (p) => p.reorder_level },
+    { label: "Cost Price", accessor: (p) => p.cost_price },
+    { label: "Selling Price", accessor: (p) => p.selling_price },
+    { label: "Supplier", accessor: (p) => p.supplier },
+    { label: "Location", accessor: (p) => p.location },
+    { label: "Compatible Makes", accessor: (p) => p.compatible_makes },
+  ];
 
   const handleSave = (formData) => {
     if (!selectedCompanyId) {
@@ -167,6 +191,11 @@ export default function Parts() {
             <p className="text-sm text-gray-300 mt-1">Manage your parts stock and reorder points</p>
           </div>
           <div className="flex gap-2">
+            <ExportButton 
+              data={filteredParts} 
+              columns={partExportColumns} 
+              filename="parts" 
+            />
             <Button 
               onClick={() => setImportDialogOpen(true)}
               variant="outline"
@@ -294,6 +323,22 @@ export default function Parts() {
                 <SelectItem value="available">Available</SelectItem>
                 <SelectItem value="low">Low Stock</SelectItem>
                 <SelectItem value="out">Out of Stock</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={`${sortBy}-${sortOrder}`} onValueChange={(v) => { const [field, order] = v.split("-"); setSortBy(field); setSortOrder(order); }}>
+              <SelectTrigger>
+                <ArrowUpDown className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Sort By" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="created_date-desc">Newest First</SelectItem>
+                <SelectItem value="created_date-asc">Oldest First</SelectItem>
+                <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+                <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+                <SelectItem value="quantity-asc">Quantity (Low-High)</SelectItem>
+                <SelectItem value="quantity-desc">Quantity (High-Low)</SelectItem>
+                <SelectItem value="selling_price-desc">Price (High-Low)</SelectItem>
+                <SelectItem value="selling_price-asc">Price (Low-High)</SelectItem>
               </SelectContent>
             </Select>
             <div className="flex gap-1 justify-end">

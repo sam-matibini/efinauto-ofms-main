@@ -6,7 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Mail, Phone, MapPin, Edit, Trash2, Sparkles, LayoutGrid, List } from "lucide-react";
+import { Plus, Search, Mail, Phone, MapPin, Edit, Trash2, Sparkles, LayoutGrid, List, ArrowUpDown } from "lucide-react";
+import ExportButton from "../shared/ExportButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import AIAddressLookup from "../shared/AIAddressLookup";
 import { toast } from "sonner";
@@ -19,6 +20,8 @@ export default function VendorsTab({ vendors, selectedCompanyId }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState(null);
   const [viewMode, setViewMode] = useState("grid");
+  const [sortBy, setSortBy] = useState("created_date");
+  const [sortOrder, setSortOrder] = useState("desc");
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
@@ -53,7 +56,31 @@ export default function VendorsTab({ vendors, selectedCompanyId }) {
     v.vendor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     v.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     v.phone?.includes(searchTerm)
-  );
+  ).sort((a, b) => {
+    let aVal = a[sortBy];
+    let bVal = b[sortBy];
+    if (typeof aVal === "string") aVal = aVal?.toLowerCase() || "";
+    if (typeof bVal === "string") bVal = bVal?.toLowerCase() || "";
+    if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+    if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  const vendorExportColumns = [
+    { label: "Vendor Name", accessor: (v) => v.vendor_name },
+    { label: "Contact Person", accessor: (v) => v.contact_person },
+    { label: "Email", accessor: (v) => v.email },
+    { label: "Phone", accessor: (v) => v.phone },
+    { label: "Type", accessor: (v) => v.vendor_type },
+    { label: "Address", accessor: (v) => v.address },
+    { label: "City", accessor: (v) => v.city },
+    { label: "Province", accessor: (v) => v.province },
+    { label: "Postal Code", accessor: (v) => v.postal_code },
+    { label: "Country", accessor: (v) => v.country },
+    { label: "Payment Terms", accessor: (v) => v.payment_terms },
+    { label: "Tax ID", accessor: (v) => v.tax_id },
+    { label: "Status", accessor: (v) => v.status },
+  ];
 
   const handleSave = (data) => {
     if (editingVendor) {
@@ -88,6 +115,11 @@ export default function VendorsTab({ vendors, selectedCompanyId }) {
               List
             </Button>
           </div>
+          <ExportButton 
+            data={filteredVendors} 
+            columns={vendorExportColumns} 
+            filename="vendors" 
+          />
           <Button onClick={() => { setEditingVendor(null); setDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="w-4 h-4 mr-2" />
             Add Vendor
@@ -97,14 +129,30 @@ export default function VendorsTab({ vendors, selectedCompanyId }) {
 
       <Card className="mb-6">
         <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <Input
-              placeholder="Search vendors..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Input
+                placeholder="Search vendors..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={`${sortBy}-${sortOrder}`} onValueChange={(v) => { const [field, order] = v.split("-"); setSortBy(field); setSortOrder(order); }}>
+              <SelectTrigger>
+                <ArrowUpDown className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Sort By" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="created_date-desc">Newest First</SelectItem>
+                <SelectItem value="created_date-asc">Oldest First</SelectItem>
+                <SelectItem value="vendor_name-asc">Name (A-Z)</SelectItem>
+                <SelectItem value="vendor_name-desc">Name (Z-A)</SelectItem>
+                <SelectItem value="city-asc">City (A-Z)</SelectItem>
+                <SelectItem value="city-desc">City (Z-A)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>

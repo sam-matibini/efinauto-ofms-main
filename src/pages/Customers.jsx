@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, User, Edit, Trash2, Phone, Mail, MapPin, Loader2, Upload, Map, List, CheckCircle, AlertCircle, LayoutGrid } from "lucide-react";
+import { Plus, Search, User, Edit, Trash2, Phone, Mail, MapPin, Loader2, Upload, Map, List, CheckCircle, AlertCircle, LayoutGrid, ArrowUpDown } from "lucide-react";
+import ExportButton from "../components/shared/ExportButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { motion } from "framer-motion";
 import {
@@ -47,6 +48,8 @@ export default function Customers() {
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [deletingCustomer, setDeletingCustomer] = useState(null);
   const [viewMode, setViewMode] = useState("grid");
+  const [sortBy, setSortBy] = useState("created_date");
+  const [sortOrder, setSortOrder] = useState("desc");
   const { selectedCompanyId } = useCompany();
 
   const queryClient = useQueryClient();
@@ -113,7 +116,29 @@ export default function Customers() {
                           c.phone?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === "all" || c.customer_type === typeFilter;
     return matchesSearch && matchesType;
+  }).sort((a, b) => {
+    let aVal = a[sortBy];
+    let bVal = b[sortBy];
+    if (typeof aVal === "string") aVal = aVal?.toLowerCase() || "";
+    if (typeof bVal === "string") bVal = bVal?.toLowerCase() || "";
+    if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+    if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+    return 0;
   });
+
+  const customerExportColumns = [
+    { label: "Full Name", accessor: (c) => c.full_name },
+    { label: "Email", accessor: (c) => c.email },
+    { label: "Phone", accessor: (c) => c.phone },
+    { label: "Type", accessor: (c) => c.customer_type },
+    { label: "Company Name", accessor: (c) => c.company_name },
+    { label: "Tax ID", accessor: (c) => c.tax_id },
+    { label: "Address", accessor: (c) => c.address },
+    { label: "City", accessor: (c) => c.city },
+    { label: "Province", accessor: (c) => c.province },
+    { label: "Postal Code", accessor: (c) => c.postal_code },
+    { label: "Country", accessor: (c) => c.country },
+  ];
 
   const handleSave = (formData) => {
     console.log("handleSave called with:", formData);
@@ -213,6 +238,11 @@ export default function Customers() {
               <span className="text-xs md:text-sm">Map</span>
             </Button>
           </div>
+          <ExportButton 
+            data={filteredCustomers} 
+            columns={customerExportColumns} 
+            filename="customers" 
+          />
           <Button 
             onClick={() => {
               setEditingCustomer(null);
@@ -250,6 +280,20 @@ export default function Customers() {
               <SelectItem value="individual">Individual</SelectItem>
               <SelectItem value="business">Business</SelectItem>
               <SelectItem value="government">Government</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={`${sortBy}-${sortOrder}`} onValueChange={(v) => { const [field, order] = v.split("-"); setSortBy(field); setSortOrder(order); }}>
+            <SelectTrigger>
+              <ArrowUpDown className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Sort By" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="created_date-desc">Newest First</SelectItem>
+              <SelectItem value="created_date-asc">Oldest First</SelectItem>
+              <SelectItem value="full_name-asc">Name (A-Z)</SelectItem>
+              <SelectItem value="full_name-desc">Name (Z-A)</SelectItem>
+              <SelectItem value="city-asc">City (A-Z)</SelectItem>
+              <SelectItem value="city-desc">City (Z-A)</SelectItem>
             </SelectContent>
           </Select>
         </div>
