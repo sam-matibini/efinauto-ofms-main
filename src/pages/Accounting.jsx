@@ -70,8 +70,9 @@ export default function Accounting() {
         to = endOfWeek(subWeeks(today, 1), { weekStartsOn: 1 });
         break;
       case "previous_month":
-        from = startOfMonth(subMonths(today, 1));
-        to = endOfMonth(subMonths(today, 1));
+        const prevMonth = subMonths(today, 1);
+        from = startOfMonth(prevMonth);
+        to = endOfMonth(prevMonth);
         break;
       case "previous_quarter":
         from = startOfQuarter(subQuarters(today, 1));
