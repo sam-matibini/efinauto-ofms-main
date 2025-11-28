@@ -29,70 +29,100 @@ export default function ProfitLossStatement({ transactions, comparativePeriods =
       return transDate >= period.from && transDate <= period.to;
     });
 
-    // Revenue from revenue accounts (4000-4999)
-    // Revenue accounts have normal credit balance, so credits increase revenue
+    // Revenue - from revenue category or revenue accounts
     const revenue = periodTransactions
       .filter(t => {
         const account = accounts.find(a => a.id === t.account_id);
-        return account?.account_type === 'revenue';
+        return t.category === 'revenue' || account?.account_type === 'revenue';
       })
       .reduce((sum, t) => {
         if (t.debit_amount > 0 || t.credit_amount > 0) {
           return sum + (t.credit_amount || 0) - (t.debit_amount || 0);
         }
-        return sum + t.amount;
+        return sum + (t.amount || 0);
       }, 0);
 
-    // COGS from expense accounts (5000-5199 typically)
-    // Expense accounts have normal debit balance, so debits increase expenses
+    // Sales Revenue breakdown
+    const vehicleSalesRevenue = periodTransactions
+      .filter(t => t.transaction_type === 'sale_revenue' || t.reference_type === 'Sale' || t.reference_type === 'Export')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+    const serviceRevenue = periodTransactions
+      .filter(t => t.transaction_type === 'service_revenue' || t.reference_type === 'RepairOrder')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+    const partsRevenue = periodTransactions
+      .filter(t => t.transaction_type === 'parts_revenue')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+    // COGS - Cost of Goods Sold (vehicle purchases, parts purchases)
     const cogs = periodTransactions
       .filter(t => {
         const account = accounts.find(a => a.id === t.account_id);
-        return account?.account_type === 'expense' && 
-               (account?.account_code?.startsWith('50') || account?.account_code?.startsWith('51'));
+        return t.transaction_type === 'vehicle_purchase' || 
+               t.transaction_type === 'parts_purchase' ||
+               (account?.account_type === 'expense' && 
+                (account?.account_code?.startsWith('50') || account?.account_code?.startsWith('51')));
       })
       .reduce((sum, t) => {
         if (t.debit_amount > 0 || t.credit_amount > 0) {
           return sum + (t.debit_amount || 0) - (t.credit_amount || 0);
         }
-        return sum + t.amount;
+        return sum + (t.amount || 0);
       }, 0);
 
     const grossProfit = revenue - cogs;
 
-    // Operating expenses (5200-5999)
+    // Operating expenses (freight, overhead, etc.)
     const operatingExpenses = periodTransactions
       .filter(t => {
         const account = accounts.find(a => a.id === t.account_id);
-        return account?.account_type === 'expense' && 
-               account?.account_code && 
-               parseInt(account.account_code) >= 5400 &&
-               !account?.account_code?.startsWith('52') &&
-               !account?.account_code?.startsWith('53');
+        return t.transaction_type === 'overhead_expense' ||
+               t.transaction_type === 'labor_expense' ||
+               (t.category === 'expense' && 
+                t.transaction_type !== 'vehicle_purchase' && 
+                t.transaction_type !== 'parts_purchase' &&
+                t.transaction_type !== 'payroll_expense') ||
+               (account?.account_type === 'expense' && 
+                account?.account_code && 
+                parseInt(account.account_code) >= 5400);
       })
       .reduce((sum, t) => {
         if (t.debit_amount > 0 || t.credit_amount > 0) {
           return sum + (t.debit_amount || 0) - (t.credit_amount || 0);
         }
-        return sum + t.amount;
+        return sum + (t.amount || 0);
       }, 0);
     
-    // Payroll expenses (5200-5399 - wages, CPP, EI)
+    // Payroll expenses
     const payrollExpenses = periodTransactions
       .filter(t => {
         const account = accounts.find(a => a.id === t.account_id);
-        return account?.account_code?.startsWith('52') || account?.account_code?.startsWith('53');
+        return t.transaction_type === 'payroll_expense' ||
+               account?.account_code?.startsWith('52') || 
+               account?.account_code?.startsWith('53');
       })
       .reduce((sum, t) => {
         if (t.debit_amount > 0 || t.credit_amount > 0) {
           return sum + (t.debit_amount || 0) - (t.credit_amount || 0);
         }
-        return sum + t.amount;
+        return sum + (t.amount || 0);
       }, 0);
 
     const netProfit = grossProfit - operatingExpenses - payrollExpenses;
 
-    return { period, revenue, cogs, grossProfit, operatingExpenses, payrollExpenses, netProfit };
+    return { 
+      period, 
+      revenue, 
+      vehicleSalesRevenue,
+      serviceRevenue,
+      partsRevenue,
+      cogs, 
+      grossProfit, 
+      operatingExpenses, 
+      payrollExpenses, 
+      netProfit 
+    };
   });
 
   const renderLine = (label, values, isSubtotal = false, isTotal = false, indent = 0) => (
@@ -186,7 +216,10 @@ export default function ProfitLossStatement({ transactions, comparativePeriods =
         {/* Revenue Section */}
         <div>
           <h3 className="font-bold text-base mb-2 text-gray-900 px-4">Operating Income</h3>
-          {renderLine('Revenue', periodData.map(d => d.revenue), true)}
+          {renderLine('Vehicle Sales', periodData.map(d => d.vehicleSalesRevenue), false, false, 1)}
+          {renderLine('Service Revenue', periodData.map(d => d.serviceRevenue), false, false, 1)}
+          {renderLine('Parts Revenue', periodData.map(d => d.partsRevenue), false, false, 1)}
+          {renderLine('Total Revenue', periodData.map(d => d.revenue), true)}
         </div>
 
         {/* Cost of Goods Sold */}
