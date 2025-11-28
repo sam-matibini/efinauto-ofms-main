@@ -29,6 +29,14 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
     initialData: [],
   });
 
+  // Get vehicles inventory (in_stock vehicles are inventory assets)
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ['vehicles', selectedCompanyId],
+    queryFn: () => base44.entities.Vehicle.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
   // Calculate for each period
   const periodData = periods.map(period => {
     const periodTransactions = transactions.filter(t => {
@@ -66,7 +74,14 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
     // ASSETS
     const cashAndBank = getAccountBalance('asset', 'cash');
     const accountsReceivable = getAccountBalance('asset', 'accounts_receivable');
-    const inventory = getAccountBalance('asset', 'inventory');
+    const otherInventory = getAccountBalance('asset', 'inventory');
+    
+    // Vehicle Inventory - in_stock vehicles at cost (purchase_price or total_cost)
+    const vehicleInventory = vehicles
+      .filter(v => v.status === 'in_stock')
+      .reduce((sum, v) => sum + (v.total_cost || v.purchase_price || 0), 0);
+    
+    const inventory = otherInventory + vehicleInventory;
     const totalCurrentAssets = cashAndBank + accountsReceivable + inventory;
 
     const fixedAssets = getAccountBalance('asset', 'fixed_assets');
@@ -149,6 +164,8 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
       cashAndBank,
       accountsReceivable,
       inventory,
+      vehicleInventory,
+      otherInventory,
       totalCurrentAssets,
       fixedAssets,
       accumulatedDepreciation,
@@ -238,7 +255,8 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
             <h4 className="font-semibold text-sm mb-2 px-4 text-gray-700">Current Assets</h4>
             {renderLine('Cash and Bank', periodData.map(d => d.cashAndBank), false, false, 1)}
             {renderLine('Accounts Receivable', periodData.map(d => d.accountsReceivable), false, false, 1)}
-            {renderLine('Inventory', periodData.map(d => d.inventory), false, false, 1)}
+            {renderLine('Vehicle Inventory', periodData.map(d => d.vehicleInventory), false, false, 1)}
+            {renderLine('Other Inventory', periodData.map(d => d.otherInventory), false, false, 1)}
             {renderLine('Total Current Assets', periodData.map(d => d.totalCurrentAssets), true, false, 1)}
           </div>
 

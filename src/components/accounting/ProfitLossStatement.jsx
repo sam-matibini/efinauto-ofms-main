@@ -22,6 +22,21 @@ export default function ProfitLossStatement({ transactions, comparativePeriods =
     initialData: [],
   });
 
+  // Get sales to calculate COGS from vehicle inventory
+  const { data: sales = [] } = useQuery({
+    queryKey: ['sales', selectedCompanyId],
+    queryFn: () => base44.entities.Sale.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ['vehicles', selectedCompanyId],
+    queryFn: () => base44.entities.Vehicle.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
   // Calculate metrics for each period
   const periodData = periods.map(period => {
     const periodTransactions = transactions.filter(t => {
@@ -55,12 +70,29 @@ export default function ProfitLossStatement({ transactions, comparativePeriods =
       .filter(t => t.transaction_type === 'parts_revenue')
       .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-    // COGS - Cost of Goods Sold (vehicle purchases, parts purchases)
-    const cogs = periodTransactions
+    // COGS - Cost of Goods Sold from Vehicle Inventory
+    // For each sale in the period, get the vehicle's cost (purchase_price or total_cost)
+    const periodSales = sales.filter(s => {
+      const saleDate = new Date(s.sale_date || s.created_date);
+      return saleDate >= period.from && saleDate <= period.to;
+    });
+
+    // Vehicle COGS - cost of vehicles sold (from inventory)
+    const vehicleCogs = periodSales.reduce((sum, sale) => {
+      if (sale.vehicle_id) {
+        const vehicle = vehicles.find(v => v.id === sale.vehicle_id);
+        if (vehicle) {
+          return sum + (vehicle.total_cost || vehicle.purchase_price || 0);
+        }
+      }
+      return sum;
+    }, 0);
+
+    // Other COGS from transactions (parts, etc.)
+    const otherCogs = periodTransactions
       .filter(t => {
         const account = accounts.find(a => a.id === t.account_id);
-        return t.transaction_type === 'vehicle_purchase' || 
-               t.transaction_type === 'parts_purchase' ||
+        return t.transaction_type === 'parts_purchase' ||
                (account?.account_type === 'expense' && 
                 (account?.account_code?.startsWith('50') || account?.account_code?.startsWith('51')));
       })
@@ -70,6 +102,8 @@ export default function ProfitLossStatement({ transactions, comparativePeriods =
         }
         return sum + (t.amount || 0);
       }, 0);
+
+    const cogs = vehicleCogs + otherCogs;
 
     const grossProfit = revenue - cogs;
 
@@ -117,7 +151,9 @@ export default function ProfitLossStatement({ transactions, comparativePeriods =
       vehicleSalesRevenue,
       serviceRevenue,
       partsRevenue,
-      cogs, 
+      cogs,
+      vehicleCogs,
+      otherCogs,
       grossProfit, 
       operatingExpenses, 
       payrollExpenses, 
@@ -225,6 +261,8 @@ export default function ProfitLossStatement({ transactions, comparativePeriods =
         {/* Cost of Goods Sold */}
         <div>
           <h3 className="font-bold text-base mb-2 text-gray-900 px-4">Cost of Goods Sold</h3>
+          {renderLine('Vehicle Inventory Cost', periodData.map(d => d.vehicleCogs), false, false, 1)}
+          {renderLine('Parts & Other COGS', periodData.map(d => d.otherCogs), false, false, 1)}
           {renderLine('Total COGS', periodData.map(d => d.cogs), true)}
         </div>
 
