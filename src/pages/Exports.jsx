@@ -401,6 +401,7 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
         setPartSearch("");
         setVehicleDropdownSearch("");
         setPartDropdownSearch("");
+        setSaleSearch("");
       }
     }
   }, [open, exportOrder, customers]);
