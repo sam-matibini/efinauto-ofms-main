@@ -519,6 +519,10 @@ Important:
     }
   };
 
+  const [isSavingPDF, setIsSavingPDF] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState(null);
+  const [copied, setCopied] = useState(false);
+
   const handlePrint = () => {
     window.print();
   };
@@ -526,6 +530,203 @@ Important:
   const handleDownloadPDF = () => {
     window.print();
     toast.success("Use your browser's print dialog to save as PDF");
+  };
+
+  const generatePDFContent = (data) => {
+    const vehicleRows = (data.vehicles || []).map((v, i) => `
+      <tr>
+        <td style="border: 1px solid #999; padding: 8px;">${v.year || ''}</td>
+        <td style="border: 1px solid #999; padding: 8px;">${v.make_model || ''}</td>
+        <td style="border: 1px solid #999; padding: 8px; font-family: monospace;">${v.vin || ''}</td>
+        <td style="border: 1px solid #999; padding: 8px; text-align: right;">${v.weight || 0} kg</td>
+        <td style="border: 1px solid #999; padding: 8px; text-align: right;">$${(v.value || 0).toLocaleString()}</td>
+      </tr>
+    `).join('');
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Loading Declaration - ${data.declaration_number || data.booking_number}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; color: #333; }
+    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #1e40af; padding-bottom: 20px; }
+    .header h1 { color: #1e40af; margin: 0; font-size: 28px; }
+    .header p { color: #666; margin: 5px 0 0; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 30px; background: #eff6ff; padding: 20px; border-radius: 8px; }
+    .info-box { }
+    .info-box label { font-size: 11px; color: #666; text-transform: uppercase; display: block; margin-bottom: 4px; }
+    .info-box p { font-weight: bold; margin: 0; font-size: 14px; }
+    .section { margin-bottom: 25px; }
+    .section h2 { font-size: 16px; color: #1e40af; border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-bottom: 15px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+    .detail-row { margin-bottom: 8px; }
+    .detail-row label { font-size: 11px; color: #666; display: block; }
+    .detail-row p { margin: 2px 0 0; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th { background: #f3f4f6; border: 1px solid #999; padding: 10px; text-align: left; font-size: 12px; font-weight: 600; }
+    .totals { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 20px; background: #f0fdf4; padding: 15px; border-radius: 8px; }
+    .total-box label { font-size: 11px; color: #666; display: block; }
+    .total-box p { font-size: 18px; font-weight: bold; color: #166534; margin: 4px 0 0; }
+    .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 11px; }
+    .declaration-number { position: absolute; top: 40px; right: 40px; background: #1e40af; color: white; padding: 8px 16px; border-radius: 4px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="declaration-number">${data.declaration_number || 'DRAFT'}</div>
+  
+  <div class="header">
+    <h1>LOADING DECLARATION</h1>
+    <p>Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-box">
+      <label>Booking Number</label>
+      <p>${data.booking_number || 'N/A'}</p>
+    </div>
+    <div class="info-box">
+      <label>Container Number</label>
+      <p>${data.container_number || 'N/A'}</p>
+    </div>
+    <div class="info-box">
+      <label>Seal Number</label>
+      <p>${data.seal_number || 'N/A'}</p>
+    </div>
+  </div>
+
+  ${data.shipment_number ? `
+  <div style="background: #dbeafe; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px;">
+    <strong>Shipment Reference:</strong> ${data.shipment_number}
+    ${data.export_numbers?.length ? ` | <strong>Export Orders:</strong> ${data.export_numbers.join(', ')}` : ''}
+  </div>
+  ` : ''}
+
+  <div class="two-col">
+    <div class="section">
+      <h2>EXPORTER</h2>
+      <div class="detail-row"><label>Name</label><p>${data.exporter?.name || ''}</p></div>
+      <div class="detail-row"><label>Tax ID</label><p>${data.exporter?.tax_id || ''}</p></div>
+      <div class="detail-row"><label>Address</label><p>${data.exporter?.address_postal || ''}</p></div>
+      <div class="detail-row"><label>City & Province</label><p>${data.exporter?.city_province || ''}</p></div>
+      <div class="detail-row"><label>Telephone</label><p>${data.exporter?.telephone || ''}</p></div>
+      <div class="detail-row"><label>Email</label><p>${data.exporter?.email || ''}</p></div>
+    </div>
+
+    <div class="section">
+      <h2>CONSIGNEE</h2>
+      <div class="detail-row"><label>Name</label><p>${data.consignee?.name || ''}</p></div>
+      <div class="detail-row"><label>Address</label><p>${data.consignee?.address_street || ''}</p></div>
+      <div class="detail-row"><label>Postal Code</label><p>${data.consignee?.postal_code || ''}</p></div>
+      <div class="detail-row"><label>City & Country</label><p>${data.consignee?.city_country || ''}</p></div>
+      <div class="detail-row"><label>Telephone</label><p>${data.consignee?.telephone || ''}</p></div>
+      <div class="detail-row"><label>Email</label><p>${data.consignee?.email || ''}</p></div>
+      <div class="detail-row"><label>Tax ID / Passport</label><p>${data.consignee?.tax_id_passport || ''}</p></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>COMMODITY INFORMATION</h2>
+    ${data.vehicles?.length > 0 ? `
+    <table>
+      <thead>
+        <tr>
+          <th>YEAR</th>
+          <th>MAKE & MODEL</th>
+          <th>VIN NUMBER</th>
+          <th style="text-align: right;">WEIGHT</th>
+          <th style="text-align: right;">VALUE</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${vehicleRows}
+      </tbody>
+    </table>
+    ` : ''}
+    
+    <div class="totals">
+      <div class="total-box">
+        <label>Commodity</label>
+        <p style="font-size: 13px; color: #333;">${data.commodity || 'N/A'}</p>
+      </div>
+      <div class="total-box">
+        <label>Total Weight</label>
+        <p>${data.weight || 0} kg</p>
+      </div>
+      <div class="total-box">
+        <label>Total Value</label>
+        <p>$${(data.value || 0).toLocaleString()}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>This is an official Loading Declaration document generated by eFinAuto Center Freight Management System</p>
+    <p>Document ID: ${data.declaration_number || data.id || 'DRAFT'} | Generated: ${new Date().toISOString()}</p>
+  </div>
+</body>
+</html>
+    `;
+  };
+
+  const handleSavePDF = async () => {
+    const data = savedData || formData;
+    setIsSavingPDF(true);
+    
+    try {
+      const htmlContent = generatePDFContent(data);
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const file = new File([blob], `loading-declaration-${data.declaration_number || data.booking_number || 'draft'}.html`, { type: 'text/html' });
+      
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setPdfUrl(file_url);
+      
+      // Update the declaration with the PDF URL if it exists
+      if (existingDeclaration?.id) {
+        await base44.entities.LoadingDeclaration.update(existingDeclaration.id, {
+          document_url: file_url
+        });
+      }
+      
+      toast.success("Document saved! You can now share via email or WhatsApp.");
+    } catch (error) {
+      console.error("Error saving PDF:", error);
+      toast.error("Failed to save document");
+    } finally {
+      setIsSavingPDF(false);
+    }
+  };
+
+  const handleShareWhatsApp = () => {
+    const data = savedData || formData;
+    const message = encodeURIComponent(
+      `Loading Declaration - ${data.declaration_number || data.booking_number}\n\n` +
+      `Booking: ${data.booking_number}\n` +
+      `Container: ${data.container_number || 'N/A'}\n` +
+      `Consignee: ${data.consignee?.name}\n` +
+      `Vehicles: ${data.vehicles?.length || 0}\n` +
+      `Total Value: $${(data.value || 0).toLocaleString()}\n\n` +
+      (pdfUrl ? `View Document: ${pdfUrl}` : '')
+    );
+    window.open(`https://wa.me/?text=${message}`, '_blank');
+  };
+
+  const handleCopyLink = async () => {
+    if (pdfUrl) {
+      await navigator.clipboard.writeText(pdfUrl);
+      setCopied(true);
+      toast.success("Link copied to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleOpenInNewTab = () => {
+    const data = savedData || formData;
+    const htmlContent = generatePDFContent(data);
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
   };
 
   const generateEmailBody = (data) => {
