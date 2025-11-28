@@ -274,11 +274,27 @@ export default function Accounting() {
 
   // Use comparative periods if active, otherwise use date range filter
   const selectedDateRange = getDateRangeFromPreset(dateRange);
+  
+  // Create label for selected date range
+  const dateRangeLabels = {
+    this_week: 'This Week',
+    this_month: 'This Month',
+    this_quarter: 'This Quarter',
+    this_year: 'This Year',
+    year_to_date: 'Year To Date',
+    yesterday: 'Yesterday',
+    previous_week: 'Previous Week',
+    previous_month: 'Previous Month',
+    previous_quarter: 'Previous Quarter',
+    previous_year: 'Previous Year'
+  };
+  
   const effectivePeriods = activePeriods.length > 0 
     ? activePeriods 
-    : [{ from: selectedDateRange.from, to: selectedDateRange.to, label: 'Current Period' }];
+    : [{ from: selectedDateRange.from, to: selectedDateRange.to, label: dateRangeLabels[dateRange] || 'Current Period' }];
   
   const filteredTransactions = allTransactions.filter(t => {
+    if (!t.transaction_date) return false;
     const transDate = new Date(t.transaction_date);
     // Filter by the union of all active periods or by selected date range
     if (activePeriods.length > 0) {
@@ -325,7 +341,7 @@ export default function Accounting() {
     ? ((totalRevenue - previousPeriod.revenue) / previousPeriod.revenue * 100).toFixed(1)
     : 0;
   
-  const currentDateRange = activePeriods[0] || { from: new Date(), to: new Date() };
+  const currentDateRange = activePeriods[0] || { from: selectedDateRange.from, to: selectedDateRange.to };
 
   if (!selectedCompanyId) {
     return (
@@ -402,17 +418,18 @@ export default function Accounting() {
         {/* Period Comparison Selector */}
         <PeriodComparison onPeriodsChange={handlePeriodsChange} maxPeriods={12} />
 
-        <div className="flex justify-end">
-          <Button 
-            onClick={handleRunReport} 
-            size="lg"
-            className="bg-blue-600 hover:bg-blue-700"
-            disabled={comparativePeriods.length === 0}
-          >
-            <Play className="w-4 h-4 mr-2" />
-            Run Report
-          </Button>
-        </div>
+        {comparativePeriods.length > 0 && (
+          <div className="flex justify-end">
+            <Button 
+              onClick={handleRunReport} 
+              size="lg"
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Play className="w-4 h-4 mr-2" />
+              Run Comparison Report
+            </Button>
+          </div>
+        )}
 
         {/* Comparative Periods Summary */}
         {activePeriods.length > 0 && (
