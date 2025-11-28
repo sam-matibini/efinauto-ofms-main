@@ -685,6 +685,88 @@ export default function Freight() {
         shipment={selectedShipment}
         exportOrder={selectedShipment?.linkedExport}
       />
+
+      {/* View Declaration Dialog */}
+      <Dialog open={!!viewDeclaration} onOpenChange={() => setViewDeclaration(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Loading Declaration - {viewDeclaration?.declaration_number || viewDeclaration?.booking_number}</DialogTitle>
+          </DialogHeader>
+          {viewDeclaration && (
+            <div className="space-y-6 py-4">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h3 className="font-bold border-b pb-2">Exporter</h3>
+                  <div className="space-y-1 text-sm">
+                    <p><strong>Name:</strong> {viewDeclaration.exporter?.name}</p>
+                    <p><strong>Address:</strong> {viewDeclaration.exporter?.address_postal}</p>
+                    <p><strong>City:</strong> {viewDeclaration.exporter?.city_province}</p>
+                    <p><strong>Tax ID:</strong> {viewDeclaration.exporter?.tax_id}</p>
+                    <p><strong>Phone:</strong> {viewDeclaration.exporter?.telephone}</p>
+                    <p><strong>Email:</strong> {viewDeclaration.exporter?.email}</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <h3 className="font-bold border-b pb-2">Consignee</h3>
+                  <div className="space-y-1 text-sm">
+                    <p><strong>Name:</strong> {viewDeclaration.consignee?.name}</p>
+                    <p><strong>Address:</strong> {viewDeclaration.consignee?.address_street}</p>
+                    <p><strong>City:</strong> {viewDeclaration.consignee?.city_country}</p>
+                    <p><strong>Postal:</strong> {viewDeclaration.consignee?.postal_code}</p>
+                    <p><strong>Phone:</strong> {viewDeclaration.consignee?.telephone}</p>
+                    <p><strong>Email:</strong> {viewDeclaration.consignee?.email}</p>
+                    <p><strong>Tax/Passport:</strong> {viewDeclaration.consignee?.tax_id_passport}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div><strong>Booking #:</strong> {viewDeclaration.booking_number || '-'}</div>
+                <div><strong>Container #:</strong> {viewDeclaration.container_number || '-'}</div>
+                <div><strong>Seal #:</strong> {viewDeclaration.seal_number || '-'}</div>
+              </div>
+
+              {viewDeclaration.vehicles?.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-bold border-b pb-2">Vehicles ({viewDeclaration.vehicles.length})</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Year</TableHead>
+                        <TableHead>Make/Model</TableHead>
+                        <TableHead>VIN</TableHead>
+                        <TableHead className="text-right">Weight</TableHead>
+                        <TableHead className="text-right">Value</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {viewDeclaration.vehicles.map((v, i) => (
+                        <TableRow key={i}>
+                          <TableCell>{v.year || '-'}</TableCell>
+                          <TableCell>{v.make_model}</TableCell>
+                          <TableCell className="font-mono text-xs">{v.vin || '-'}</TableCell>
+                          <TableCell className="text-right">{v.weight || 0} kg</TableCell>
+                          <TableCell className="text-right">${v.value?.toLocaleString() || '0'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+                <div>
+                  <p className="text-sm text-gray-600">Total Weight: <strong>{viewDeclaration.weight || 0} kg</strong></p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-blue-600">${viewDeclaration.value?.toLocaleString() || '0'}</p>
+                  <p className="text-xs text-gray-500">Total Value</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
       </div>
     </div>
   );
