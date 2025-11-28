@@ -242,7 +242,7 @@ Keep each item concise.`,
               alt="Logo" 
               className="w-8 h-8 object-contain"
             />
-            <span className="text-white font-bold text-lg">eFinAuto OFMS</span>
+            <span className="text-white font-bold text-lg">efinauto.ca</span>
           </div>
           <div className="flex items-center gap-3">
             {user ? (
@@ -291,11 +291,11 @@ Keep each item concise.`,
                 <p className="text-blue-400 mt-3 font-semibold">Featured: 2025 BMW X6</p>
               </div>
               <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
-                eFinAuto <span className="text-blue-400">OFMS</span>
+                Welcome to <span className="text-blue-400">efinauto.ca</span>
               </h1>
               <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
-                Complete dealership management solution with inventory, sales, exports, 
-                auto repair, accounting, and AI-powered insights.
+                Your trusted Canadian automotive partner. Complete dealership management, 
+                vehicle exports, financing solutions, and AI-powered business tools.
               </p>
               <div className="flex gap-4 justify-center">
                 {user ? (
@@ -588,7 +588,7 @@ Keep each item concise.`,
       {/* Footer */}
       <footer className="py-8 border-t border-slate-700">
         <div className="max-w-7xl mx-auto px-6 text-center text-gray-400">
-          <p>© 2024 eFinAuto OFMS. All rights reserved.</p>
+          <p>© 2025 efinauto.ca - Canadian Automotive Solutions. All rights reserved.</p>
         </div>
       </footer>
     </div>
