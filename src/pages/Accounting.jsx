@@ -567,7 +567,6 @@ export default function Accounting() {
 
           <TabsContent value="transactions">
             <TransactionsList 
-              transactions={filteredTransactions} 
               dateRange={currentDateRange} 
               comparativePeriods={effectivePeriods}
             />
@@ -579,7 +578,6 @@ export default function Accounting() {
 
           <TabsContent value="profit-loss">
             <ProfitLossStatement 
-              transactions={allTransactions}
               comparativePeriods={effectivePeriods}
             />
           </TabsContent>
@@ -590,14 +588,12 @@ export default function Accounting() {
 
           <TabsContent value="trial-balance">
             <TrialBalance 
-              transactions={allTransactions}
               comparativePeriods={effectivePeriods}
             />
           </TabsContent>
 
           <TabsContent value="general-ledger">
             <GeneralLedger 
-              transactions={allTransactions}
               comparativePeriods={effectivePeriods}
             />
           </TabsContent>
