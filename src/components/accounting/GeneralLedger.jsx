@@ -412,6 +412,80 @@ export default function GeneralLedger({ transactions, comparativePeriods = [] })
             </div>
           </div>
         )}
+
+        {/* Drilldown Dialog */}
+        <Dialog open={!!drilldownAccount} onOpenChange={() => setDrilldownAccount(null)}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5" />
+                {drilldownAccount?.accountLabel || 'Account Transactions'}
+              </DialogTitle>
+            </DialogHeader>
+            
+            {drilldownAccount && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="text-xs text-gray-500">Total Debit</p>
+                    <p className="text-lg font-bold text-blue-600">
+                      ${drilldownAccount.totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Total Credit</p>
+                    <p className="text-lg font-bold text-green-600">
+                      ${drilldownAccount.totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Net Balance</p>
+                    <p className={`text-lg font-bold ${(drilldownAccount.totalDebit - drilldownAccount.totalCredit) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                      ${Math.abs(drilldownAccount.totalDebit - drilldownAccount.totalCredit).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b-2 border-gray-300 bg-gray-100">
+                      <th className="text-left py-2 px-3 font-semibold">Date</th>
+                      <th className="text-left py-2 px-3 font-semibold">Transaction #</th>
+                      <th className="text-left py-2 px-3 font-semibold">Description</th>
+                      <th className="text-left py-2 px-3 font-semibold">Reference</th>
+                      <th className="text-right py-2 px-3 font-semibold">Debit</th>
+                      <th className="text-right py-2 px-3 font-semibold">Credit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {drilldownAccount.transactions.map((t, idx) => (
+                      <tr key={idx} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-3">
+                          {format(new Date(t.transaction_date), 'MMM d, yyyy')}
+                        </td>
+                        <td className="py-2 px-3 font-mono text-xs">
+                          {t.transaction_number || t.id?.slice(0, 8) || '-'}
+                        </td>
+                        <td className="py-2 px-3">
+                          {t.description || 'Untitled Transaction'}
+                        </td>
+                        <td className="py-2 px-3 text-xs text-gray-600">
+                          {t.reference_number || '-'}
+                        </td>
+                        <td className="text-right py-2 px-3">
+                          {t.debit > 0 ? `$${t.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
+                        </td>
+                        <td className="text-right py-2 px-3">
+                          {t.credit > 0 ? `$${t.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
