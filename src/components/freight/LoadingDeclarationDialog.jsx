@@ -164,6 +164,43 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     return yearMatch ? parseInt(yearMatch[0]) : "";
   };
 
+  const lookupVinFromVehicles = (description, itemVin) => {
+    // If VIN already exists, use it
+    if (itemVin && itemVin !== "MISSING_VIN") return itemVin;
+    
+    // Try to extract VIN from description (legacy format)
+    if (description) {
+      const vinMatch = description.match(/\(VIN:\s*([^)]+)\)/i);
+      if (vinMatch) {
+        return vinMatch[1].trim();
+      }
+    }
+    
+    // Try to match vehicle from database by year/make/model
+    if (description && vehicles.length > 0) {
+      const yearMatch = description.match(/\b(19|20)\d{2}\b/);
+      const year = yearMatch ? parseInt(yearMatch[0]) : null;
+      const descLower = description.toLowerCase();
+      
+      for (const vehicle of vehicles) {
+        if (vehicle.vin && vehicle.vin !== "MISSING_VIN") {
+          const vehicleYear = vehicle.year;
+          const vehicleMake = vehicle.make?.toLowerCase() || "";
+          const vehicleModel = vehicle.model?.toLowerCase() || "";
+          
+          // Check if year matches and make/model are in description
+          if (year === vehicleYear && 
+              descLower.includes(vehicleMake) && 
+              (descLower.includes(vehicleModel) || vehicleModel.split(' ').some(part => descLower.includes(part)))) {
+            return vehicle.vin;
+          }
+        }
+      }
+    }
+    
+    return "";
+  };
+
   const handleAddExportOrder = (exportId) => {
     if (!exportId || selectedExportIds.includes(exportId)) return;
     
@@ -175,14 +212,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
       const exportVehicles = (exportOrder.items || [])
         .filter(item => item.description && item.value)
         .map(item => {
-          // Extract VIN from description if stored there (legacy format: "2013 NISSAN ROGUE (VIN: xxx)")
-          let vin = item.vin || "";
-          if (!vin && item.description) {
-            const vinMatch = item.description.match(/\(VIN:\s*([^)]+)\)/i);
-            if (vinMatch) {
-              vin = vinMatch[1].trim();
-            }
-          }
+          const vin = lookupVinFromVehicles(item.description, item.vin);
           return {
             year: extractYearFromDescription(item.description) || "",
             make_model: item.description?.replace(/\s*\(VIN:[^)]+\)/i, '') || "",
