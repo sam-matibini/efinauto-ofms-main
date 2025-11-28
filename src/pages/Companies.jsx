@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, Building2, Edit, Mail, Phone, MapPin, Trash2, User } from "lucide-react";
+import { Plus, Search, Building2, Edit, Mail, Phone, MapPin, Trash2, User, LayoutGrid, List, ArrowUpDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -21,6 +21,9 @@ export default function Companies() {
   const [editingCompany, setEditingCompany] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [companyToDelete, setCompanyToDelete] = useState(null);
+  const [viewMode, setViewMode] = useState("grid");
+  const [sortBy, setSortBy] = useState("created_date");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   const queryClient = useQueryClient();
 
@@ -110,7 +113,16 @@ export default function Companies() {
     .filter(c =>
       c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.code?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    )
+    .sort((a, b) => {
+      let aVal = a[sortBy];
+      let bVal = b[sortBy];
+      if (typeof aVal === "string") aVal = aVal?.toLowerCase() || "";
+      if (typeof bVal === "string") bVal = bVal?.toLowerCase() || "";
+      if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
 
   const handleSave = async (formData) => {
     console.log('HandleSave called with:', formData);
@@ -179,14 +191,48 @@ export default function Companies() {
         <div className="p-6 md:p-8 max-w-7xl mx-auto">
 
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <Input
-            placeholder="Search by name or code..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Input
+              placeholder="Search by name or code..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={`${sortBy}-${sortOrder}`} onValueChange={(v) => { const [field, order] = v.split("-"); setSortBy(field); setSortOrder(order); }}>
+            <SelectTrigger>
+              <ArrowUpDown className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Sort By" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="created_date-desc">Newest First</SelectItem>
+              <SelectItem value="created_date-asc">Oldest First</SelectItem>
+              <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+              <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+              <SelectItem value="code-asc">Code (A-Z)</SelectItem>
+              <SelectItem value="code-desc">Code (Z-A)</SelectItem>
+              <SelectItem value="city-asc">City (A-Z)</SelectItem>
+              <SelectItem value="city-desc">City (Z-A)</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="flex gap-1 justify-end">
+            <Button
+              variant={viewMode === "grid" ? "default" : "outline"}
+              size="icon"
+              onClick={() => setViewMode("grid")}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "default" : "outline"}
+              size="icon"
+              onClick={() => setViewMode("list")}
+            >
+              <List className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -196,6 +242,79 @@ export default function Companies() {
           <h3 className="text-xl font-semibold text-gray-700 mb-2">No companies found</h3>
           <p className="text-gray-500 mb-6">Add your first company to get started</p>
         </div>
+      ) : viewMode === "list" ? (
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="text-left p-4 font-medium text-gray-600">Company</th>
+                  <th className="text-left p-4 font-medium text-gray-600">Code</th>
+                  <th className="text-left p-4 font-medium text-gray-600">Contact</th>
+                  <th className="text-left p-4 font-medium text-gray-600">Location</th>
+                  <th className="text-left p-4 font-medium text-gray-600">Status</th>
+                  <th className="text-right p-4 font-medium text-gray-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCompanies.map((company) => (
+                  <tr key={company.id} className="border-b hover:bg-gray-50">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
+                          <Building2 className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="font-semibold">{company.name}</span>
+                      </div>
+                    </td>
+                    <td className="p-4 text-gray-600">{company.code}</td>
+                    <td className="p-4">
+                      <div className="text-sm">
+                        {company.email && <div className="text-gray-600">{company.email}</div>}
+                        {company.phone && <div className="text-gray-500">{company.phone}</div>}
+                      </div>
+                    </td>
+                    <td className="p-4 text-gray-600">
+                      {company.city ? `${company.city}, ${company.country}` : "-"}
+                    </td>
+                    <td className="p-4">
+                      <Badge className={company.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                        {company.status}
+                      </Badge>
+                    </td>
+                    <td className="p-4 text-right">
+                      <div className="flex gap-1 justify-end">
+                        <Button 
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditingCompany(company);
+                            setDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        {currentUser?.role === 'admin' && (
+                          <Button 
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setCompanyToDelete(company);
+                              setDeleteDialogOpen(true);
+                            }}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCompanies.map((company, index) => (
