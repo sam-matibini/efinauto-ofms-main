@@ -233,12 +233,24 @@ export default function Freight() {
   });
 
   const createLoadingDeclarationMutation = useMutation({
-    mutationFn: (data) => base44.entities.LoadingDeclaration.create({...data, company_id: selectedCompanyId}),
+    mutationFn: (data) => base44.entities.LoadingDeclaration.create({
+      ...data, 
+      company_id: selectedCompanyId,
+      declaration_number: data.declaration_number || generateDeclarationNumber()
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loading-declarations'] });
       setLoadingDeclOpen(false);
       setSelectedShipment(null);
       toast.success("Loading declaration created!");
+    },
+  });
+
+  const deleteDeclarationMutation = useMutation({
+    mutationFn: (id) => base44.entities.LoadingDeclaration.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loading-declarations'] });
+      toast.success("Loading declaration deleted!");
     },
   });
 
