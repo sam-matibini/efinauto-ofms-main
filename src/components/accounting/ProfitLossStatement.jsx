@@ -7,13 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Download, Printer, FileText } from "lucide-react";
 import { format } from "date-fns";
 
-export default function ProfitLossStatement({ transactions, comparativePeriods = [] }) {
+export default function ProfitLossStatement({ comparativePeriods = [] }) {
   const { selectedCompanyId } = useCompany();
   const periods = comparativePeriods.length > 0 ? comparativePeriods : [{ 
     from: new Date(new Date().getFullYear(), 0, 1), 
     to: new Date(),
     label: 'Current Period'
   }];
+
+  const { data: transactions = [] } = useQuery({
+    queryKey: ['transactions', selectedCompanyId],
+    queryFn: () => base44.entities.Transaction.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
 
   const { data: accounts = [] } = useQuery({
     queryKey: ['accounts', selectedCompanyId],
