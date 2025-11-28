@@ -181,19 +181,41 @@ export default function CustomerCommunications() {
               <CardContent className="overflow-y-auto h-[calc(100%-80px)]">
                 <div className="space-y-2">
                   {customers.map((customer) => (
-                    <button
-                      key={customer.id}
-                      onClick={() => setSelectedCustomer(customer)}
-                      className={`w-full text-left p-3 rounded-lg transition-colors ${
-                        selectedCustomer?.id === customer.id
-                          ? 'bg-blue-50 border-2 border-blue-500'
-                          : 'bg-white hover:bg-gray-50 border border-gray-200'
-                      }`}
-                    >
-                      <p className="font-medium text-sm truncate">{customer.full_name}</p>
-                      <p className="text-xs text-gray-500 truncate">{customer.email}</p>
-                      <p className="text-xs text-gray-500">{customer.phone}</p>
-                    </button>
+                    <div
+                                                          key={customer.id}
+                                                          onClick={() => setSelectedCustomer(customer)}
+                                                          className={`w-full text-left p-3 rounded-lg transition-colors cursor-pointer ${
+                                                            selectedCustomer?.id === customer.id
+                                                              ? 'bg-blue-50 border-2 border-blue-500'
+                                                              : 'bg-white hover:bg-gray-50 border border-gray-200'
+                                                          }`}
+                                                        >
+                                                          <p className="font-medium text-sm truncate">{customer.full_name}</p>
+                                                          {customer.email && (
+                                                            <p 
+                                                              className="text-xs text-blue-600 truncate hover:underline cursor-pointer"
+                                                              onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedCustomer(customer);
+                                                                setActiveChannel("email");
+                                                              }}
+                                                            >
+                                                              {customer.email}
+                                                            </p>
+                                                          )}
+                                                          {customer.phone && (
+                                                            <p 
+                                                              className="text-xs text-green-600 hover:underline cursor-pointer"
+                                                              onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedCustomer(customer);
+                                                                setActiveChannel("sms");
+                                                              }}
+                                                            >
+                                                              {customer.phone}
+                                                            </p>
+                                                          )}
+                                                        </div>
                   ))}
                 </div>
               </CardContent>
