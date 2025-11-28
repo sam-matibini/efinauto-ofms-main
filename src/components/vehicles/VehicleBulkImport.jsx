@@ -71,7 +71,17 @@ export default function VehicleBulkImport({ open, onClose, companyId, onImportCo
             transmission: { type: "string" },
             engine_capacity: { type: "string" },
             location: { type: "string" },
-            ownership_type: { type: "string" }
+            ownership_type: { type: "string" },
+            vendor_name: { type: "string" },
+            vendor_phone: { type: "string" },
+            vendor_email: { type: "string" },
+            province: { type: "string" },
+            tax_status: { type: "string" },
+            tax_gst: { type: "number" },
+            tax_pst: { type: "number" },
+            tax_hst: { type: "number" },
+            tax_total: { type: "number" },
+            total_cost: { type: "number" }
           },
           required: ["vin", "make", "model", "year"]
         }
@@ -106,7 +116,17 @@ export default function VehicleBulkImport({ open, onClose, companyId, onImportCo
         fuel_type: v.fuel_type || "petrol",
         transmission: v.transmission || "manual",
         engine_capacity: v.engine_capacity || "",
-        location: v.location || ""
+        location: v.location || "",
+        vendor_name: v.vendor_name || "",
+        vendor_phone: v.vendor_phone || "",
+        vendor_email: v.vendor_email || "",
+        province: v.province || "",
+        tax_status: v.tax_status || "taxable",
+        tax_gst: v.tax_gst || 0,
+        tax_pst: v.tax_pst || 0,
+        tax_hst: v.tax_hst || 0,
+        tax_total: v.tax_total || 0,
+        total_cost: v.total_cost || 0
       }));
 
       // Bulk create vehicles
@@ -138,9 +158,9 @@ export default function VehicleBulkImport({ open, onClose, companyId, onImportCo
   };
 
   const downloadTemplate = () => {
-    const csvContent = `vin,stock_number,invoice_number,transaction_date,make,model,year,color,mileage,weight,condition,status,purchase_price,selling_price,fuel_type,transmission,engine_capacity,location,ownership_type
-1HGBH41JXMN109186,STK-001,INV-2024-001,2024-01-15,Toyota,Camry,2023,Black,15000,1500,used,in_stock,25000,30000,petrol,automatic,2.5L,Lot A,dealership_owned
-2HGBH41JXMN109187,STK-002,INV-2024-002,2024-01-20,Honda,Civic,2022,White,20000,1400,used,in_stock,22000,27000,petrol,manual,1.8L,Lot B,dealership_owned`;
+    const csvContent = `vin,stock_number,invoice_number,transaction_date,make,model,year,color,mileage,weight,condition,status,purchase_price,selling_price,fuel_type,transmission,engine_capacity,location,ownership_type,vendor_name,vendor_phone,vendor_email,province,tax_status,tax_gst,tax_pst,tax_hst,tax_total,total_cost
+1HGBH41JXMN109186,STK-001,INV-2024-001,2024-01-15,Toyota,Camry,2023,Black,15000,1500,used,in_stock,25000,30000,petrol,automatic,2.5L,Lot A,dealership_owned,Auto Supplier Inc,204-555-1234,supplier@example.com,MB,taxable,1250,1750,0,3000,28000
+2HGBH41JXMN109187,STK-002,INV-2024-002,2024-01-20,Honda,Civic,2022,White,20000,1400,used,in_stock,22000,27000,petrol,manual,1.8L,Lot B,dealership_owned,Car Dealers Ltd,416-555-5678,dealer@example.com,ON,taxable,0,0,2860,2860,24860`;
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -195,7 +215,9 @@ export default function VehicleBulkImport({ open, onClose, companyId, onImportCo
             <ul className="text-sm text-blue-800 space-y-1">
               <li>• Upload a CSV or Excel file with vehicle data</li>
               <li>• Required columns: vin, make, model, year</li>
-              <li>• Optional columns: stock_number, invoice_number, transaction_date, color, location, mileage, weight, condition, status, prices, fuel_type, transmission, etc.</li>
+              <li>• Optional columns: stock_number, invoice_number, transaction_date, color, location, mileage, weight, condition, status, prices, fuel_type, transmission</li>
+              <li>• Vendor columns: vendor_name, vendor_phone, vendor_email</li>
+              <li>• Tax columns: province, tax_status, tax_gst, tax_pst, tax_hst, tax_total, total_cost</li>
               <li>• Download the template below to see the correct format</li>
             </ul>
           </div>

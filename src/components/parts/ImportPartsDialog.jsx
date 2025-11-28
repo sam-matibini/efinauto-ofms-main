@@ -97,8 +97,20 @@ export default function ImportPartsDialog({ open, onClose, companyId, onSuccess 
             reorder_level: parseFloat(row.reorder_level || row['Reorder Level']) || 5,
             cost_price: parseFloat(row.cost_price || row['Cost Price']) || 0,
             selling_price: parseFloat(row.selling_price || row['Selling Price'] || row.price || row.Price) || 0,
-            supplier: row.supplier || row.Supplier || '',
-            location: row.location || row.Location || ''
+            supplier: row.supplier || row.Supplier || row.vendor_name || '',
+            location: row.location || row.Location || '',
+            vendor_name: row.vendor_name || row['Vendor Name'] || row.supplier || '',
+            vendor_phone: row.vendor_phone || row['Vendor Phone'] || '',
+            vendor_email: row.vendor_email || row['Vendor Email'] || '',
+            invoice_number: row.invoice_number || row['Invoice Number'] || '',
+            purchase_date: row.purchase_date || row['Purchase Date'] || '',
+            province: row.province || row.Province || '',
+            tax_status: row.tax_status || row['Tax Status'] || 'taxable',
+            tax_gst: parseFloat(row.tax_gst || row['Tax GST']) || 0,
+            tax_pst: parseFloat(row.tax_pst || row['Tax PST']) || 0,
+            tax_hst: parseFloat(row.tax_hst || row['Tax HST']) || 0,
+            tax_total: parseFloat(row.tax_total || row['Tax Total']) || 0,
+            total_cost: parseFloat(row.total_cost || row['Total Cost']) || 0
           });
           newIds.push(createdPart.id);
           created++;
@@ -148,9 +160,9 @@ export default function ImportPartsDialog({ open, onClose, companyId, onSuccess 
   };
 
   const downloadTemplate = () => {
-    const headers = ['part_number', 'name', 'description', 'category', 'compatible_makes', 'compatible_models', 'quantity', 'reorder_level', 'cost_price', 'selling_price', 'supplier', 'location'];
+    const headers = ['part_number', 'name', 'description', 'category', 'compatible_makes', 'compatible_models', 'quantity', 'reorder_level', 'cost_price', 'selling_price', 'supplier', 'location', 'vendor_name', 'vendor_phone', 'vendor_email', 'invoice_number', 'purchase_date', 'province', 'tax_status', 'tax_gst', 'tax_pst', 'tax_hst', 'tax_total', 'total_cost'];
     const sampleData = [
-      ['BRAKE-001', 'Brake Pad Set', 'Front brake pads', 'brakes', 'Toyota,Honda', 'Camry,Accord', '50', '10', '45.00', '89.99', 'Auto Parts Co', 'Shelf A3']
+      ['BRAKE-001', 'Brake Pad Set', 'Front brake pads', 'brakes', 'Toyota,Honda', 'Camry,Accord', '50', '10', '45.00', '89.99', 'Auto Parts Co', 'Shelf A3', 'Auto Parts Co', '204-555-1234', 'parts@example.com', 'INV-001', '2024-01-15', 'MB', 'taxable', '2.25', '3.15', '0', '5.40', '50.40']
     ];
 
     const csv = [headers, ...sampleData].map(row => row.join(',')).join('\n');
@@ -290,6 +302,12 @@ export default function ImportPartsDialog({ open, onClose, companyId, onSuccess 
             </ul>
             <p className="text-xs text-gray-500 mt-3">
               Optional fields: description, category, compatible_makes, compatible_models, reorder_level, cost_price, selling_price, supplier, location
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Vendor fields: vendor_name, vendor_phone, vendor_email, invoice_number, purchase_date
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Tax fields: province, tax_status, tax_gst, tax_pst, tax_hst, tax_total, total_cost
             </p>
           </div>
         </div>
