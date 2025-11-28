@@ -33,7 +33,7 @@ export default function Accounting() {
   const { selectedCompanyId } = useCompany();
   const [comparativePeriods, setComparativePeriods] = useState([]);
   const [activePeriods, setActivePeriods] = useState([]);
-  const [dateRange, setDateRange] = useState("previous_year");
+  const [dateRange, setDateRange] = useState("this_year");
   const [reportBasis, setReportBasis] = useState("accrual");
 
   const getDateRangeFromPreset = (preset) => {
