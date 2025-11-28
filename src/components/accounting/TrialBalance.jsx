@@ -22,6 +22,13 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
     enabled: !!selectedCompanyId,
     initialData: [],
   });
+
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ['vehicles', selectedCompanyId],
+    queryFn: () => base44.entities.Vehicle.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
   const periods = comparativePeriods.length > 0 ? comparativePeriods : [{ 
     from: new Date(new Date().getFullYear(), 0, 1), 
     to: new Date(),
