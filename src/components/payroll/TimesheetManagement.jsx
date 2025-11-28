@@ -257,15 +257,136 @@ export default function TimesheetManagement({ company, employees, timeEntries, q
             </div>
           </div>
 
-          {/* Time Entries List */}
+          {/* Time Entries - Grouped or List View */}
           <div className="space-y-3">
             {filteredEntries.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
                 <p>No time entries found</p>
               </div>
+            ) : viewMode === "grouped" ? (
+              /* Grouped by Employee View */
+              <div className="space-y-4">
+                {/* Expand/Collapse All */}
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={expandAll}>
+                    Expand All
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={collapseAll}>
+                    Collapse All
+                  </Button>
+                </div>
+
+                {employeeGroups.map((group) => (
+                  <Card key={group.employeeId} className="overflow-hidden">
+                    {/* Employee Header */}
+                    <div 
+                      className="p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => toggleEmployeeExpand(group.employeeId)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {expandedEmployees.has(group.employeeId) ? (
+                            <ChevronDown className="w-5 h-5 text-gray-500" />
+                          ) : (
+                            <ChevronRight className="w-5 h-5 text-gray-500" />
+                          )}
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <Users className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">{group.employeeName}</h3>
+                            <p className="text-sm text-gray-600">
+                              {group.entries.length} entries • 
+                              Regular: {group.totalRegular.toFixed(1)}h • 
+                              Overtime: {group.totalOvertime.toFixed(1)}h
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          {group.pendingCount > 0 && (
+                            <Badge className="bg-yellow-100 text-yellow-800">
+                              {group.pendingCount} Pending
+                            </Badge>
+                          )}
+                          {group.approvedCount > 0 && (
+                            <Badge className="bg-green-100 text-green-800">
+                              {group.approvedCount} Approved
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Employee Entries */}
+                    {expandedEmployees.has(group.employeeId) && (
+                      <div className="divide-y">
+                        {group.entries.sort((a, b) => b.date.localeCompare(a.date)).map((entry) => (
+                          <div key={entry.id} className="p-4 hover:bg-gray-50">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 pl-8">
+                                <div className="flex items-center gap-2">
+                                  <Badge className={getEntryTypeColor(entry.entry_type)}>
+                                    {entry.entry_type}
+                                  </Badge>
+                                  {entry.approved ? (
+                                    <Badge className="bg-green-100 text-green-800">Approved</Badge>
+                                  ) : (
+                                    <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
+                                  )}
+                                </div>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  {new Date(entry.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })} • 
+                                  {entry.clock_in && entry.clock_out && ` ${entry.clock_in} - ${entry.clock_out} • `}
+                                  Regular: {entry.regular_hours}h
+                                  {entry.overtime_hours > 0 && ` • Overtime: ${entry.overtime_hours}h`}
+                                </p>
+                                {entry.notes && (
+                                  <p className="text-xs text-gray-500 mt-1">{entry.notes}</p>
+                                )}
+                              </div>
+                              <div className="flex gap-2">
+                                {!entry.approved && (
+                                  <>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={(e) => { e.stopPropagation(); approveTimeEntryMutation.mutate({ id: entry.id, approved: true }); }}
+                                      className="text-green-600 hover:text-green-700"
+                                    >
+                                      <Check className="w-4 h-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={(e) => { e.stopPropagation(); handleEdit(entry); }}
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                  </>
+                                )}
+                                {entry.approved && (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={(e) => { e.stopPropagation(); approveTimeEntryMutation.mutate({ id: entry.id, approved: false }); }}
+                                    className="text-red-600 hover:text-red-700"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
             ) : (
-              filteredEntries.map((entry) => (
+              /* List View */
+              filteredEntries.sort((a, b) => b.date.localeCompare(a.date)).map((entry) => (
                 <Card key={entry.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
