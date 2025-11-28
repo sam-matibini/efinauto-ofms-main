@@ -43,6 +43,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import DateRangeFilter, { getDateRangeValues } from "../components/shared/DateRangeFilter";
+import CompareWithFilter from "../components/shared/CompareWithFilter";
 
 export default function Vehicles() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -56,6 +58,8 @@ export default function Vehicles() {
   const [sortBy, setSortBy] = useState("created_date");
   const [sortOrder, setSortOrder] = useState("desc");
   const [deletingVehicle, setDeletingVehicle] = useState(null);
+  const [dateRange, setDateRange] = useState("all");
+  const [compareWith, setCompareWith] = useState(null);
   const { selectedCompanyId } = useCompany();
 
   const queryClient = useQueryClient();
@@ -130,7 +134,18 @@ export default function Vehicles() {
                           String(v.year).includes(search);
     const matchesStatus = statusFilter === "all" || v.status === statusFilter;
     const matchesOwnership = ownershipFilter === "all" || v.ownership_type === ownershipFilter;
-    return matchesSearch && matchesStatus && matchesOwnership;
+    
+    // Date range filter
+    let matchesDateRange = true;
+    if (dateRange !== "all") {
+      const { start, end } = getDateRangeValues(dateRange);
+      if (start && end) {
+        const vehicleDate = v.transaction_date ? new Date(v.transaction_date) : new Date(v.created_date);
+        matchesDateRange = vehicleDate >= start && vehicleDate <= new Date(end.getTime() + 86400000);
+      }
+    }
+    
+    return matchesSearch && matchesStatus && matchesOwnership && matchesDateRange;
   }).sort((a, b) => {
     let aVal = a[sortBy];
     let bVal = b[sortBy];
@@ -341,7 +356,7 @@ export default function Vehicles() {
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
@@ -392,7 +407,11 @@ export default function Vehicles() {
               <SelectItem value="mileage-desc">Mileage (High-Low)</SelectItem>
             </SelectContent>
           </Select>
-          <div className="flex gap-1 justify-end">
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <DateRangeFilter value={dateRange} onChange={setDateRange} />
+          <CompareWithFilter value={compareWith} onChange={setCompareWith} />
+          <div className="flex gap-1 ml-auto">
             <Button
               variant={viewMode === "grid" ? "default" : "outline"}
               size="icon"

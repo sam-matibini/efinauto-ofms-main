@@ -7,6 +7,8 @@ import { Plus, Trash2, LayoutGrid, List, ArrowUpDown, Search } from "lucide-reac
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import DateRangeFilter, { getDateRangeValues } from "../shared/DateRangeFilter";
+import CompareWithFilter from "../shared/CompareWithFilter";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 
@@ -16,12 +18,25 @@ export default function InvoicesTab({ invoices, selectedCompanyId }) {
   const [viewMode, setViewMode] = useState("list");
   const [sortBy, setSortBy] = useState("created_date");
   const [sortOrder, setSortOrder] = useState("desc");
+  const [dateRange, setDateRange] = useState("all");
+  const [compareWith, setCompareWith] = useState(null);
   const queryClient = useQueryClient();
 
-  const filteredInvoices = invoices.filter(i =>
-    i.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    i.customer_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  ).sort((a, b) => {
+  const filteredInvoices = invoices.filter(i => {
+    const matchesSearch = i.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      i.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    let matchesDateRange = true;
+    if (dateRange !== "all") {
+      const { start, end } = getDateRangeValues(dateRange);
+      if (start && end) {
+        const invoiceDate = i.invoice_date ? new Date(i.invoice_date) : new Date(i.created_date);
+        matchesDateRange = invoiceDate >= start && invoiceDate <= new Date(end.getTime() + 86400000);
+      }
+    }
+    
+    return matchesSearch && matchesDateRange;
+  }).sort((a, b) => {
     let aVal = a[sortBy];
     let bVal = b[sortBy];
     if (typeof aVal === "string") aVal = aVal?.toLowerCase() || "";
@@ -60,7 +75,7 @@ export default function InvoicesTab({ invoices, selectedCompanyId }) {
 
       <Card className="mb-6">
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input placeholder="Search invoices..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
@@ -80,6 +95,10 @@ export default function InvoicesTab({ invoices, selectedCompanyId }) {
               <Button variant={viewMode === "grid" ? "default" : "outline"} size="icon" onClick={() => setViewMode("grid")}><LayoutGrid className="w-4 h-4" /></Button>
               <Button variant={viewMode === "list" ? "default" : "outline"} size="icon" onClick={() => setViewMode("list")}><List className="w-4 h-4" /></Button>
             </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <DateRangeFilter value={dateRange} onChange={setDateRange} />
+            <CompareWithFilter value={compareWith} onChange={setCompareWith} />
           </div>
         </CardContent>
       </Card>
