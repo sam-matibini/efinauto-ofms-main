@@ -315,6 +315,7 @@ export default function Exports() {
         customers={customers}
         vehicles={vehicles}
         parts={parts}
+        sales={sales}
       />
       </div>
     </div>
