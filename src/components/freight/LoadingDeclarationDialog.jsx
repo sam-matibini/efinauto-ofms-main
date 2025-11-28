@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Mail, Loader2, Edit, Save, Printer, Download, Share2, X } from "lucide-react";
+import { Plus, Trash2, Mail, Loader2, Edit, Save, Printer, Download, Share2, X, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCompany } from "@/components/shared/CompanyContext";
@@ -50,6 +50,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
   });
 
   const inStockVehicles = vehicles.filter(v => v.status === 'in_stock');
+  const [isAIProcessing, setIsAIProcessing] = useState(false);
   
   const [formData, setFormData] = useState({
     company_id: selectedCompanyId,
@@ -154,6 +155,12 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     }
   };
 
+  const extractYearFromDescription = (description) => {
+    if (!description) return "";
+    const yearMatch = description.match(/\b(19|20)\d{2}\b/);
+    return yearMatch ? parseInt(yearMatch[0]) : "";
+  };
+
   const handleAddExportOrder = (exportId) => {
     if (!exportId || selectedExportIds.includes(exportId)) return;
     
@@ -165,7 +172,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
       const exportVehicles = (exportOrder.items || [])
         .filter(item => item.description && item.value)
         .map(item => ({
-          year: "",
+          year: extractYearFromDescription(item.description) || "",
           make_model: item.description || "",
           vin: item.vin || "",
           weight: item.weight || 0,
@@ -222,6 +229,76 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
 
   const getSelectedExports = () => {
     return selectedExportIds.map(id => exports?.find(e => e.id === id)).filter(Boolean);
+  };
+
+  const handleAIAutoFill = async () => {
+    if (formData.vehicles.length === 0) {
+      toast.error("No vehicles to process");
+      return;
+    }
+
+    setIsAIProcessing(true);
+    try {
+      const vehiclesToProcess = formData.vehicles.filter(v => !v.year || !v.vin);
+      
+      if (vehiclesToProcess.length === 0) {
+        toast.info("All vehicles already have Year and VIN");
+        setIsAIProcessing(false);
+        return;
+      }
+
+      const prompt = `Extract vehicle information from these descriptions. For each vehicle, extract the Year of Manufacture and suggest a placeholder VIN if missing.
+
+Vehicles:
+${vehiclesToProcess.map((v, i) => `${i + 1}. ${v.make_model}`).join('\n')}
+
+Return a JSON array with objects containing: index (0-based), year (number), vin (string - use existing if provided, otherwise leave empty string)`;
+
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            vehicles: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  index: { type: "number" },
+                  year: { type: "number" },
+                  vin: { type: "string" }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (response?.vehicles) {
+        const updatedVehicles = [...formData.vehicles];
+        let originalIndex = 0;
+        
+        formData.vehicles.forEach((vehicle, idx) => {
+          if (!vehicle.year || !vehicle.vin) {
+            const aiData = response.vehicles.find(v => v.index === originalIndex);
+            if (aiData) {
+              if (!vehicle.year && aiData.year) {
+                updatedVehicles[idx] = { ...updatedVehicles[idx], year: aiData.year };
+              }
+            }
+            originalIndex++;
+          }
+        });
+
+        setFormData({ ...formData, vehicles: updatedVehicles });
+        toast.success("AI extracted vehicle years successfully!");
+      }
+    } catch (error) {
+      console.error("AI processing error:", error);
+      toast.error("Failed to process with AI");
+    } finally {
+      setIsAIProcessing(false);
+    }
   };
 
   const handleVehicleSelect = (vehicleId) => {
@@ -972,6 +1049,22 @@ This is an automated message from eFinAuto Center Freight Management System.
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-semibold">Vehicle Information (if loaded)</h3>
                 <div className="flex gap-2">
+                  {formData.vehicles.length > 0 && (
+                    <Button 
+                      onClick={handleAIAutoFill} 
+                      size="sm" 
+                      variant="outline"
+                      disabled={isAIProcessing}
+                      className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                    >
+                      {isAIProcessing ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4 mr-2" />
+                      )}
+                      AI Auto-Fill
+                    </Button>
+                  )}
                   <Select onValueChange={handleVehicleSelect}>
                     <SelectTrigger className="w-64">
                       <SelectValue placeholder="Select from in-stock vehicles" />
