@@ -471,6 +471,36 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
     }
   };
 
+  const addSaleItem = (sale) => {
+    // Add vehicle from sale
+    const description = sale.vehicle_details || `${sale.vehicle_year || ''} ${sale.vehicle_make_model || ''}`.trim();
+    const newItem = {
+      description: description || 'Export Sale Item',
+      vin: sale.vehicle_vin || "",
+      quantity: 1,
+      weight: 0,
+      value: sale.sale_price || 0,
+      sale_id: sale.id,
+      vehicle_id: sale.vehicle_id
+    };
+    
+    // Also populate customer info from sale if not already set
+    const updatedFormData = {
+      ...formData,
+      items: [...(formData.items || []), newItem]
+    };
+    
+    if (!formData.customer_name && sale.customer_name) {
+      updatedFormData.customer_name = sale.customer_name;
+      updatedFormData.customer_phone = sale.customer_phone || "";
+      updatedFormData.customer_email = sale.customer_email || "";
+      updatedFormData.customer_country = sale.customer_country || "";
+      updatedFormData.destination_country = sale.customer_country || "";
+    }
+    
+    setFormData(updatedFormData);
+  };
+
   React.useEffect(() => {
     const total = (formData.items || []).reduce((sum, item) => sum + (item.quantity * item.value), 0);
     setFormData(prev => ({ ...prev, total_value: total }));
