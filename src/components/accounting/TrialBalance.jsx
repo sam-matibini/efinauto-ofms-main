@@ -82,9 +82,9 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
   // Add standard accounts for display in the Trial Balance
   const standardAccounts = [
     { id: 'cash', account_code: '1000', account_name: 'Cash and Bank', account_type: 'asset' },
-    { id: 'ar', account_code: '1200', account_name: 'Accounts Receivable', account_type: 'asset' },
-    { id: 'vehicle-inventory', account_code: '1400', account_name: 'Vehicle Inventory', account_type: 'asset' },
-    { id: 'parts-inventory', account_code: '1410', account_name: 'Parts Inventory', account_type: 'asset' },
+    { id: 'ar', account_code: '1100', account_name: 'Accounts Receivable', account_type: 'asset' },
+    { id: 'vehicle-inventory', account_code: '1200', account_name: 'Vehicle Inventory', account_type: 'asset' },
+    { id: 'parts-inventory', account_code: '1210', account_name: 'Parts Inventory', account_type: 'asset' },
     { id: 'ap', account_code: '2000', account_name: 'Accounts Payable', account_type: 'liability' },
     { id: 'retained-earnings', account_code: '3100', account_name: 'Retained Earnings', account_type: 'equity' },
     { id: 'sales-revenue', account_code: '4000', account_name: 'Vehicle Sales Revenue', account_type: 'revenue' },
@@ -169,7 +169,7 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
     const totalReceivable = accountsReceivable + serviceReceivable;
     if (totalReceivable > 0) {
       accountBalances.push({
-        code: '1200',
+        code: '1100',
         name: 'Accounts Receivable',
         type: 'asset',
         group: 'Assets',
@@ -178,14 +178,14 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
       });
     }
 
-    // 3. Vehicle Inventory - in_stock vehicles at cost
+    // 3. Vehicle Inventory - in_stock vehicles at cost (Account 1200)
     const vehicleInventoryValue = vehicles
       .filter(v => v.status === 'in_stock')
       .reduce((sum, v) => sum + (v.total_cost || v.purchase_price || 0), 0);
 
     if (vehicleInventoryValue > 0) {
       accountBalances.push({
-        code: '1400',
+        code: '1200',
         name: 'Vehicle Inventory',
         type: 'asset',
         group: 'Assets',
@@ -194,13 +194,13 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
       });
     }
 
-    // 4. Parts Inventory
+    // 4. Parts Inventory (Account 1210)
     const partsInventoryValue = parts
       .reduce((sum, p) => sum + ((p.cost_price || 0) * (p.quantity || 0)), 0);
 
     if (partsInventoryValue > 0) {
       accountBalances.push({
-        code: '1410',
+        code: '1210',
         name: 'Parts Inventory',
         type: 'asset',
         group: 'Assets',
