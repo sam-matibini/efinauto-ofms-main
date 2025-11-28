@@ -68,6 +68,37 @@ export default function Freight() {
     initialData: [],
   });
 
+  const { data: loadingDeclarations = [] } = useQuery({
+    queryKey: ['loading-declarations', selectedCompanyId],
+    queryFn: () => base44.entities.LoadingDeclaration.filter({ company_id: selectedCompanyId }, '-created_date'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  // Generate next declaration number
+  const generateDeclarationNumber = () => {
+    const prefix = "LD";
+    const year = new Date().getFullYear().toString().slice(-2);
+    const existingNumbers = loadingDeclarations
+      .map(d => d.declaration_number)
+      .filter(n => n && n.startsWith(`${prefix}${year}`))
+      .map(n => parseInt(n.replace(`${prefix}${year}-`, '')) || 0);
+    const nextNum = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+    return `${prefix}${year}-${String(nextNum).padStart(5, '0')}`;
+  };
+
+  // Generate next shipment number
+  const generateShipmentNumber = () => {
+    const prefix = "SHP";
+    const year = new Date().getFullYear().toString().slice(-2);
+    const existingNumbers = shipments
+      .map(s => s.shipment_number)
+      .filter(n => n && n.startsWith(`${prefix}${year}`))
+      .map(n => parseInt(n.replace(`${prefix}${year}-`, '')) || 0);
+    const nextNum = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+    return `${prefix}${year}-${String(nextNum).padStart(5, '0')}`;
+  };
+
   const createMutation = useMutation({
     mutationFn: async (data) => {
       const shipment = await base44.entities.FreightShipment.create({...data, company_id: selectedCompanyId});
