@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, MessageSquare, Loader2, Plane, Package, FileText, Link2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
@@ -40,6 +41,101 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
     } finally {
       setUploadingFile(false);
       e.target.value = '';
+    }
+  };
+
+  const [aiDocSearch, setAiDocSearch] = useState("");
+  const [aiSearching, setAiSearching] = useState(false);
+  const [aiDocResults, setAiDocResults] = useState([]);
+
+  const handleAIDocSearch = async () => {
+    if (!aiDocSearch.trim()) {
+      toast.error("Please enter a search query");
+      return;
+    }
+
+    setAiSearching(true);
+    try {
+      const allDocs = [];
+      
+      exports?.forEach(exp => allDocs.push({
+        type: "Export Order",
+        id: exp.id,
+        name: `Export ${exp.export_number}`,
+        details: `${exp.customer_name} - ${exp.destination_country}`,
+        customer: exp.customer_name
+      }));
+
+      shipments?.forEach(ship => allDocs.push({
+        type: "Shipment",
+        id: ship.id,
+        name: `Shipment ${ship.shipment_number}`,
+        details: `${ship.customer_name} - ${ship.destination_country}`,
+        customer: ship.customer_name
+      }));
+
+      loadingDeclarations?.forEach(decl => allDocs.push({
+        type: "Loading Declaration",
+        id: decl.id,
+        name: `Declaration ${decl.declaration_number}`,
+        details: `Container: ${decl.container_number}`,
+        url: decl.document_url
+      }));
+
+      invoices?.forEach(inv => allDocs.push({
+        type: "Invoice",
+        id: inv.id,
+        name: `Invoice ${inv.invoice_number}`,
+        details: `${inv.customer_name} - $${inv.total_amount?.toLocaleString() || 0}`,
+        url: inv.pdf_url
+      }));
+
+      payrollEntries?.forEach(pe => allDocs.push({
+        type: "Paystub",
+        id: pe.id,
+        name: `Paystub - ${pe.employee_name}`,
+        details: `${pe.pay_date}`
+      }));
+
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `Find documents matching: "${aiDocSearch}"
+
+Documents:
+${allDocs.map((d, i) => `${i}. [${d.type}] ${d.name} - ${d.details}`).join('\n')}
+
+Return indices of top 3 most relevant documents.`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            matches: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: { index: { type: "number" } }
+              }
+            }
+          }
+        }
+      });
+
+      const results = response.matches?.map(m => allDocs[m.index]).filter(Boolean) || [];
+      setAiDocResults(results);
+      if (results.length === 0) toast.info("No matching documents found");
+    } catch (error) {
+      toast.error("AI search failed");
+    } finally {
+      setAiSearching(false);
+    }
+  };
+
+  const attachAIResult = (doc) => {
+    if (doc.url) {
+      setDocumentLink(doc.url);
+      setMessage(prev => prev + `\n\nDocument: ${doc.url}`);
+      toast.success(`${doc.name} link added!`);
+      setAiDocResults(prev => prev.filter(d => d.id !== doc.id));
+    } else {
+      toast.error("No document link available for this item");
     }
   };
 
@@ -285,11 +381,46 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
           </div>
         )}
 
-        {/* Document Attachment for SMS */}
+        {/* AI Document Search for SMS */}
+        <div className="space-y-2 p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+          <Label className="flex items-center gap-2 text-purple-800">
+            <Sparkles className="w-4 h-4" />
+            AI Document Finder
+          </Label>
+          <div className="flex gap-2">
+            <Input
+              value={aiDocSearch}
+              onChange={(e) => setAiDocSearch(e.target.value)}
+              placeholder="e.g., 'invoice for John' or 'loading declaration'"
+              className="flex-1"
+              onKeyDown={(e) => e.key === 'Enter' && handleAIDocSearch()}
+            />
+            <Button onClick={handleAIDocSearch} disabled={aiSearching} variant="outline" size="sm" className="border-purple-300">
+              {aiSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            </Button>
+          </div>
+          {aiDocResults.length > 0 && (
+            <div className="space-y-1 mt-2">
+              {aiDocResults.map((doc, i) => (
+                <div key={i} className="flex items-center justify-between bg-white p-2 rounded border border-purple-100 text-sm">
+                  <div className="flex-1 min-w-0">
+                    <span className="font-medium">{doc.name}</span>
+                    <span className="text-gray-500 text-xs ml-2">{doc.details}</span>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={() => attachAIResult(doc)} className="text-purple-600">
+                    <Link2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Manual Document Upload for SMS */}
         <div className="space-y-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
           <Label className="flex items-center gap-2">
             <Link2 className="w-4 h-4" />
-            Attach Document Link
+            Manual Upload
           </Label>
           <div className="flex gap-2">
             <label className="cursor-pointer">
@@ -308,7 +439,6 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
               Link attached: {documentLink.slice(0, 50)}...
             </div>
           )}
-          <p className="text-xs text-gray-500">Upload invoices, declarations, or other documents to include a shareable link in the SMS.</p>
         </div>
 
         <div>

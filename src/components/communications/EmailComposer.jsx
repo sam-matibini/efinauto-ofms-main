@@ -78,6 +78,150 @@ export default function EmailComposer({ customer, customers, exports, shipments,
     }
   };
 
+  const [aiDocSearch, setAiDocSearch] = useState("");
+  const [aiSearching, setAiSearching] = useState(false);
+  const [aiDocResults, setAiDocResults] = useState([]);
+
+  const handleAIDocSearch = async () => {
+    if (!aiDocSearch.trim()) {
+      toast.error("Please enter a search query");
+      return;
+    }
+
+    setAiSearching(true);
+    try {
+      // Build document context
+      const allDocs = [];
+      
+      exports?.forEach(exp => allDocs.push({
+        type: "Export Order",
+        id: exp.id,
+        name: `Export ${exp.export_number}`,
+        details: `${exp.customer_name} - ${exp.destination_country} - $${exp.total_value?.toLocaleString() || 0}`,
+        customer: exp.customer_name,
+        date: exp.created_date
+      }));
+
+      shipments?.forEach(ship => allDocs.push({
+        type: "Shipment",
+        id: ship.id,
+        name: `Shipment ${ship.shipment_number}`,
+        details: `${ship.customer_name} - ${ship.origin_country} → ${ship.destination_country}`,
+        customer: ship.customer_name,
+        date: ship.created_date
+      }));
+
+      loadingDeclarations?.forEach(decl => allDocs.push({
+        type: "Loading Declaration",
+        id: decl.id,
+        name: `Declaration ${decl.declaration_number}`,
+        details: `Container: ${decl.container_number} - ${decl.consignee?.name || 'N/A'}`,
+        customer: decl.consignee?.name,
+        date: decl.created_date,
+        url: decl.document_url
+      }));
+
+      invoices?.forEach(inv => allDocs.push({
+        type: "Invoice",
+        id: inv.id,
+        name: `Invoice ${inv.invoice_number}`,
+        details: `${inv.customer_name} - $${inv.total_amount?.toLocaleString() || 0}`,
+        customer: inv.customer_name,
+        date: inv.invoice_date,
+        url: inv.pdf_url
+      }));
+
+      payrollEntries?.forEach(pe => allDocs.push({
+        type: "Paystub",
+        id: pe.id,
+        name: `Paystub - ${pe.employee_name}`,
+        details: `Pay Date: ${pe.pay_date} - $${pe.net_pay?.toLocaleString() || 0}`,
+        employee: pe.employee_name,
+        date: pe.pay_date
+      }));
+
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `Find documents matching this search: "${aiDocSearch}"
+
+Available documents:
+${allDocs.map((d, i) => `${i}. [${d.type}] ${d.name} - ${d.details} (${d.customer || d.employee || 'N/A'})`).join('\n')}
+
+Return the indices of the top 5 most relevant documents that match the search query. Consider document type, customer/employee name, dates, and any keywords.`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            matches: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  index: { type: "number" },
+                  relevance: { type: "string" }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const results = response.matches?.map(m => ({
+        ...allDocs[m.index],
+        relevance: m.relevance
+      })).filter(Boolean) || [];
+
+      setAiDocResults(results);
+      if (results.length === 0) {
+        toast.info("No matching documents found");
+      }
+    } catch (error) {
+      toast.error("AI search failed");
+    } finally {
+      setAiSearching(false);
+    }
+  };
+
+  const attachAIResult = async (doc) => {
+    try {
+      let docUrl = doc.url;
+      let docName = doc.name;
+
+      // Generate document if no URL exists
+      if (!docUrl) {
+        if (doc.type === "Export Order") {
+          const exp = exports?.find(e => e.id === doc.id);
+          if (exp) {
+            const link = await generateDocumentLink("export", exp);
+            if (link) {
+              docUrl = link.url;
+              docName = link.name;
+            }
+          }
+        } else if (doc.type === "Shipment") {
+          const ship = shipments?.find(s => s.id === doc.id);
+          if (ship) {
+            const link = await generateDocumentLink("shipment", ship);
+            if (link) {
+              docUrl = link.url;
+              docName = link.name;
+            }
+          }
+        }
+      }
+
+      if (docUrl) {
+        setAttachedLinks(prev => [...prev, { url: docUrl, name: docName, type: doc.type }]);
+        const linkText = `\n📎 ${docName}: ${docUrl}`;
+        setBody(prev => prev ? prev + "\n\n--- Attached Documents ---" + linkText : linkText);
+        toast.success(`${doc.name} attached!`);
+        setAiDocResults(prev => prev.filter(d => d.id !== doc.id));
+      } else {
+        toast.error("Could not generate document link");
+      }
+    } catch (error) {
+      toast.error("Failed to attach document");
+    }
+  };
+
   const generateDocumentLink = async (type, data) => {
     try {
       let htmlContent = "";
@@ -664,11 +808,50 @@ export default function EmailComposer({ customer, customers, exports, shipments,
           </div>
         )}
 
+        {/* AI Document Search */}
+        <div className="space-y-3 p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+          <Label className="flex items-center gap-2 text-purple-800">
+            <Sparkles className="w-4 h-4" />
+            AI Document Finder
+          </Label>
+          <div className="flex gap-2">
+            <Input
+              value={aiDocSearch}
+              onChange={(e) => setAiDocSearch(e.target.value)}
+              placeholder="e.g., 'John's invoice from last week' or 'export to Nigeria'"
+              className="flex-1"
+              onKeyDown={(e) => e.key === 'Enter' && handleAIDocSearch()}
+            />
+            <Button onClick={handleAIDocSearch} disabled={aiSearching} variant="outline" className="border-purple-300">
+              {aiSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            </Button>
+          </div>
+          {aiDocResults.length > 0 && (
+            <div className="space-y-2 mt-2">
+              <p className="text-xs text-purple-700 font-medium">Found {aiDocResults.length} document(s):</p>
+              {aiDocResults.map((doc, i) => (
+                <div key={i} className="flex items-center justify-between bg-white p-2 rounded border border-purple-100">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">{doc.type}</Badge>
+                      <span className="text-sm font-medium truncate">{doc.name}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 truncate">{doc.details}</p>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={() => attachAIResult(doc)} className="text-purple-600">
+                    <Paperclip className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Universal Document Attachment */}
         <div className="space-y-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
           <Label className="flex items-center gap-2">
             <Paperclip className="w-4 h-4" />
-            Attach Documents
+            Manual Upload
           </Label>
           <div className="flex gap-2 flex-wrap">
             <label className="cursor-pointer">
@@ -681,7 +864,6 @@ export default function EmailComposer({ customer, customers, exports, shipments,
               </Button>
             </label>
           </div>
-          <p className="text-xs text-gray-500">Upload invoices, loading declarations, paystubs, T4s, bills of sale, or any document to attach.</p>
         </div>
 
         {(attachExportDoc || attachShipmentDoc || attachDeclarationDoc) && (
