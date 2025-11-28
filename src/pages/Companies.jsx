@@ -248,11 +248,21 @@ export default function Companies() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="text-left p-4 font-medium text-gray-600">Company</th>
-                  <th className="text-left p-4 font-medium text-gray-600">Code</th>
-                  <th className="text-left p-4 font-medium text-gray-600">Contact</th>
-                  <th className="text-left p-4 font-medium text-gray-600">Location</th>
-                  <th className="text-left p-4 font-medium text-gray-600">Status</th>
+                  <th className="text-left p-4 font-medium text-gray-600 cursor-pointer hover:bg-gray-100" onClick={() => { setSortBy("name"); setSortOrder(sortBy === "name" && sortOrder === "asc" ? "desc" : "asc"); }}>
+                    <div className="flex items-center gap-1">Company {sortBy === "name" && <ArrowUpDown className="w-3 h-3" />}</div>
+                  </th>
+                  <th className="text-left p-4 font-medium text-gray-600 cursor-pointer hover:bg-gray-100" onClick={() => { setSortBy("code"); setSortOrder(sortBy === "code" && sortOrder === "asc" ? "desc" : "asc"); }}>
+                    <div className="flex items-center gap-1">Code {sortBy === "code" && <ArrowUpDown className="w-3 h-3" />}</div>
+                  </th>
+                  <th className="text-left p-4 font-medium text-gray-600 cursor-pointer hover:bg-gray-100" onClick={() => { setSortBy("email"); setSortOrder(sortBy === "email" && sortOrder === "asc" ? "desc" : "asc"); }}>
+                    <div className="flex items-center gap-1">Contact {sortBy === "email" && <ArrowUpDown className="w-3 h-3" />}</div>
+                  </th>
+                  <th className="text-left p-4 font-medium text-gray-600 cursor-pointer hover:bg-gray-100" onClick={() => { setSortBy("city"); setSortOrder(sortBy === "city" && sortOrder === "asc" ? "desc" : "asc"); }}>
+                    <div className="flex items-center gap-1">Location {sortBy === "city" && <ArrowUpDown className="w-3 h-3" />}</div>
+                  </th>
+                  <th className="text-left p-4 font-medium text-gray-600 cursor-pointer hover:bg-gray-100" onClick={() => { setSortBy("status"); setSortOrder(sortBy === "status" && sortOrder === "asc" ? "desc" : "asc"); }}>
+                    <div className="flex items-center gap-1">Status {sortBy === "status" && <ArrowUpDown className="w-3 h-3" />}</div>
+                  </th>
                   <th className="text-right p-4 font-medium text-gray-600">Actions</th>
                 </tr>
               </thead>
