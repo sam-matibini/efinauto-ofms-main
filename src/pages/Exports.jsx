@@ -620,26 +620,20 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, consignee
                                       }}
                                     >
                                       <SelectTrigger>
-                                        <SelectValue placeholder="Select consignee or customer..." />
+                                        <SelectValue placeholder="Select consignee..." />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        {consignees.length > 0 && (
-                                          <>
-                                            <div className="px-2 py-1 text-xs font-semibold text-blue-600 bg-blue-50">Consignees</div>
-                                            {consignees.map(c => (
-                                              <SelectItem key={c.id} value={c.id}>
-                                                {c.full_name} {c.consignee_only ? '(Consignee Only)' : ''}
-                                              </SelectItem>
-                                            ))}
-                                          </>
-                                        )}
-                                        <div className="px-2 py-1 text-xs font-semibold text-gray-600 bg-gray-50">All Customers</div>
-                                        {customers.filter(c => !c.is_consignee && !c.consignee_only).map(c => (
-                                          <SelectItem key={c.id} value={c.id}>
-                                            {c.full_name}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
+                                                                {consignees.map(c => (
+                                                                  <SelectItem key={c.id} value={c.id}>
+                                                                    {c.full_name} {c.consignee_only ? '(Consignee Only)' : '(Consignee)'}
+                                                                  </SelectItem>
+                                                                ))}
+                                                                {consignees.length === 0 && (
+                                                                  <div className="px-2 py-2 text-sm text-gray-500">
+                                                                    No consignees found. Mark customers as consignees first.
+                                                                  </div>
+                                                                )}
+                                                              </SelectContent>
                                     </Select>
                                   </div>
               <div className="space-y-2">
