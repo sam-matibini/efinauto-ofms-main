@@ -15,6 +15,7 @@ import {
 
 export default function TrialBalance({ comparativePeriods = [] }) {
   const { selectedCompanyId } = useCompany();
+  const [drilldown, setDrilldown] = useState(null);
 
   const cleanAccountName = (name) => {
     if (!name) return '';

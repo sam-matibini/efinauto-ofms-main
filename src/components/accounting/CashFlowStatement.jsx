@@ -15,6 +15,8 @@ import {
 
 export default function CashFlowStatement({ comparativePeriods = [] }) {
   const { selectedCompanyId } = useCompany();
+  const [drilldown, setDrilldown] = useState(null);
+  
   const periods = comparativePeriods.length > 0 ? comparativePeriods : [{ 
     from: new Date(new Date().getFullYear(), 0, 1), 
     to: new Date(),
