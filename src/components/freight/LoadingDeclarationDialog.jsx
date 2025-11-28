@@ -907,10 +907,24 @@ This is an automated message from eFinAuto Center Freight Management System.
                       <Printer className="w-4 h-4 mr-2" />
                       Print
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleDownloadPDF}>
+                    <DropdownMenuItem onClick={handleOpenInNewTab}>
                       <Download className="w-4 h-4 mr-2" />
-                      Download PDF
+                      Open as PDF View
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleSavePDF} disabled={isSavingPDF}>
+                      {isSavingPDF ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileDown className="w-4 h-4 mr-2" />}
+                      Save & Get Shareable Link
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleShareWhatsApp}>
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Share via WhatsApp
+                    </DropdownMenuItem>
+                    {pdfUrl && (
+                      <DropdownMenuItem onClick={handleCopyLink}>
+                        {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                        {copied ? 'Copied!' : 'Copy Link'}
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <Button
