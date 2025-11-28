@@ -339,6 +339,9 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
 
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [vinSearch, setVinSearch] = useState("");
+  const [partSearch, setPartSearch] = useState("");
+  const [vehicleDropdownSearch, setVehicleDropdownSearch] = useState("");
+  const [partDropdownSearch, setPartDropdownSearch] = useState("");
 
   React.useEffect(() => {
     if (open) {
@@ -375,6 +378,9 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
         });
         setSelectedCustomer(null);
         setVinSearch("");
+        setPartSearch("");
+        setVehicleDropdownSearch("");
+        setPartDropdownSearch("");
       }
     }
   }, [open, exportOrder, customers]);
@@ -542,7 +548,8 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
 
           <TabsContent value="items" className="space-y-4 py-4">
             <div className="flex gap-2 mb-4 flex-wrap">
-              <div className="relative flex-1 min-w-[200px]">
+              {/* VIN Search */}
+              <div className="relative flex-1 min-w-[150px]">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   placeholder="Search by VIN..."
@@ -577,31 +584,107 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
                 )}
               </div>
 
-              <Select onValueChange={(v) => addVehicleItem(v)}>
-                <SelectTrigger className="flex-1 min-w-[200px]">
-                  <SelectValue placeholder="Add Vehicle" />
-                </SelectTrigger>
-                <SelectContent>
-                  {vehicles.map(vehicle => (
-                    <SelectItem key={vehicle.id} value={vehicle.id}>
-                      {vehicle.year} {vehicle.make} {vehicle.model} - ${vehicle.selling_price?.toLocaleString()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Part Number Search */}
+              <div className="relative flex-1 min-w-[150px]">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search by Part #..."
+                  value={partSearch}
+                  onChange={(e) => setPartSearch(e.target.value)}
+                  className="pl-9"
+                />
+                {partSearch && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                    {parts
+                      .filter(p => p.part_number?.toLowerCase().includes(partSearch.toLowerCase()))
+                      .slice(0, 10)
+                      .map(part => (
+                        <div
+                          key={part.id}
+                          className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                          onClick={() => {
+                            addPartItem(part.id);
+                            setPartSearch("");
+                          }}
+                        >
+                          <span className="font-medium">{part.part_number}</span>
+                          <span className="text-gray-500 ml-2">
+                            {part.name} - ${part.selling_price?.toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                    {parts.filter(p => p.part_number?.toLowerCase().includes(partSearch.toLowerCase())).length === 0 && (
+                      <div className="px-3 py-2 text-sm text-gray-500">No parts found</div>
+                    )}
+                  </div>
+                )}
+              </div>
 
-              <Select onValueChange={(v) => addPartItem(v)}>
-                <SelectTrigger className="flex-1 min-w-[150px]">
-                  <SelectValue placeholder="Add Part" />
-                </SelectTrigger>
-                <SelectContent>
-                  {parts.map(part => (
-                    <SelectItem key={part.id} value={part.id}>
-                      {part.name} ({part.part_number}) - ${part.selling_price?.toFixed(2)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Add Vehicle Dropdown with Search */}
+              <div className="relative flex-1 min-w-[180px]">
+                <Select onValueChange={(v) => { addVehicleItem(v); setVehicleDropdownSearch(""); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Add Vehicle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <div className="px-2 pb-2">
+                      <Input
+                        placeholder="Type to search..."
+                        value={vehicleDropdownSearch}
+                        onChange={(e) => setVehicleDropdownSearch(e.target.value)}
+                        className="h-8"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                    {vehicles
+                      .filter(v => {
+                        if (!vehicleDropdownSearch) return true;
+                        const search = vehicleDropdownSearch.toLowerCase();
+                        return v.vin?.toLowerCase().includes(search) ||
+                               v.make?.toLowerCase().includes(search) ||
+                               v.model?.toLowerCase().includes(search) ||
+                               String(v.year).includes(search);
+                      })
+                      .map(vehicle => (
+                        <SelectItem key={vehicle.id} value={vehicle.id}>
+                          {vehicle.year} {vehicle.make} {vehicle.model} - ${vehicle.selling_price?.toLocaleString()}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Add Part Dropdown with Search */}
+              <div className="relative flex-1 min-w-[150px]">
+                <Select onValueChange={(v) => { addPartItem(v); setPartDropdownSearch(""); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Add Part" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <div className="px-2 pb-2">
+                      <Input
+                        placeholder="Type to search..."
+                        value={partDropdownSearch}
+                        onChange={(e) => setPartDropdownSearch(e.target.value)}
+                        className="h-8"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                    {parts
+                      .filter(p => {
+                        if (!partDropdownSearch) return true;
+                        const search = partDropdownSearch.toLowerCase();
+                        return p.part_number?.toLowerCase().includes(search) ||
+                               p.name?.toLowerCase().includes(search);
+                      })
+                      .map(part => (
+                        <SelectItem key={part.id} value={part.id}>
+                          {part.name} ({part.part_number}) - ${part.selling_price?.toFixed(2)}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               <Button onClick={addItem} variant="outline">
                 <Plus className="w-4 h-4 mr-2" />
