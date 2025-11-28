@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Mail, Loader2, Edit, Save, Printer, Download, Share2, X, Sparkles } from "lucide-react";
+import { Plus, Trash2, Mail, Loader2, Edit, Save, Printer, Download, Share2, X, Sparkles, FileDown, MessageCircle, Copy, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCompany } from "@/components/shared/CompanyContext";
