@@ -907,22 +907,31 @@ This is an automated message from eFinAuto Center Freight Management System.
           <Card>
             <CardContent className="p-4">
               <div className="grid grid-cols-3 gap-4">
+                {formData.shipment_number && (
+                  <div className="col-span-3 bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
+                    <p className="text-sm text-blue-700">
+                      <strong>Shipment:</strong> {formData.shipment_number}
+                      {formData.shipment_id && <span className="text-blue-500 ml-2">(Linked)</span>}
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-2 col-span-3">
-                  <Label>Link to Export Orders (Multiple)</Label>
-                  <Select onValueChange={handleAddExportOrder} value="">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Add export order..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(exports || [])
-                        .filter(exp => !selectedExportIds.includes(exp.id))
-                        .map(exp => (
-                          <SelectItem key={exp.id} value={exp.id}>
-                            {exp.export_number} - {exp.customer_name} → {exp.destination_country}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                    <Label>Link to Export Orders (Multiple)</Label>
+                    <Select onValueChange={handleAddExportOrder} value="">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Add export order..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(exports || [])
+                          .filter(exp => !selectedExportIds.includes(exp.id))
+                          .map(exp => (
+                            <SelectItem key={exp.id} value={exp.id}>
+                              {exp.export_number} - {exp.customer_name} → {exp.destination_country}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
                   
                   {selectedExportIds.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
