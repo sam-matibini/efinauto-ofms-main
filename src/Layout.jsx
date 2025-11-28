@@ -48,6 +48,12 @@ import { toast } from "sonner";
 
 const allNavigationItems = [
   {
+    title: "Home",
+    url: createPageUrl("Landing"),
+    icon: LayoutDashboard,
+    pageId: "Landing"
+  },
+  {
     title: "Dashboard",
     url: createPageUrl("Dashboard"),
     icon: LayoutDashboard,
