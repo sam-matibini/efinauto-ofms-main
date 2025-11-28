@@ -189,9 +189,15 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
       entries.push(entry);
     });
 
-    // Add vehicle purchases (Dr: Vehicle Inventory, Cr: Cash/AP)
+    // Create a map of vehicles by ID for quick lookup (including sold vehicles)
+    const vehicleMap = {};
     vehicles.forEach(v => {
-      if (!existingRefs.has(`Vehicle-${v.id}`) && (v.purchase_price > 0 || v.total_cost > 0)) {
+      vehicleMap[v.id] = v;
+    });
+
+    // Add vehicle purchases (Dr: Vehicle Inventory, Cr: Cash/AP) - only for unsold vehicles
+    vehicles.forEach(v => {
+      if (!existingRefs.has(`Vehicle-${v.id}`) && (v.purchase_price > 0 || v.total_cost > 0) && v.status === 'in_stock') {
         entries.push({
           id: `vehicle-${v.id}`,
           transaction_date: v.transaction_date || v.created_date,
