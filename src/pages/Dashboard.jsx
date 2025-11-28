@@ -1,10 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Car, Settings, Wrench, DollarSign, ShoppingCart, Plane, Package, TrendingUp } from "lucide-react";
+import { Car, Settings, Wrench, DollarSign, ShoppingCart, Plane, Package, TrendingUp, LayoutGrid, List } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { useCompany } from "../components/shared/CompanyContext";
+import { format } from "date-fns";
 
 function StatsCard({ title, value, icon: Icon, bgColor, textColor, index = 0 }) {
   return (
@@ -33,6 +37,8 @@ function StatsCard({ title, value, icon: Icon, bgColor, textColor, index = 0 }) 
 
 export default function Dashboard() {
   const { selectedCompanyId } = useCompany();
+  const [salesViewMode, setSalesViewMode] = useState("cards");
+  const [repairsViewMode, setRepairsViewMode] = useState("cards");
 
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles', selectedCompanyId],
@@ -177,28 +183,77 @@ export default function Dashboard() {
 
         <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
         <Card className="shadow-md border-none">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <ShoppingCart className="w-5 h-5 text-green-600" />
               Recent Sales
             </CardTitle>
+            <div className="flex gap-1 border rounded-lg p-1">
+              <Button
+                variant={salesViewMode === "cards" ? "default" : "ghost"}
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setSalesViewMode("cards")}
+              >
+                <LayoutGrid className="w-3 h-3" />
+              </Button>
+              <Button
+                variant={salesViewMode === "list" ? "default" : "ghost"}
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setSalesViewMode("list")}
+              >
+                <List className="w-3 h-3" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {recentSales.length > 0 ? (
-              <div className="space-y-3">
-                {recentSales.map((sale) => (
-                  <div key={sale.id} className="flex justify-between items-center p-3 rounded-lg bg-gray-50">
-                    <div>
-                      <p className="font-medium text-gray-900">{sale.vehicle_details}</p>
-                      <p className="text-sm text-gray-500">{sale.customer_name}</p>
+              salesViewMode === "list" ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Vehicle</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentSales.map((sale) => (
+                      <TableRow key={sale.id}>
+                        <TableCell className="font-medium">{sale.vehicle_details}</TableCell>
+                        <TableCell>{sale.customer_name}</TableCell>
+                        <TableCell className="text-right text-green-600 font-bold">${sale.sale_price?.toLocaleString()}</TableCell>
+                        <TableCell>
+                          <Badge className={
+                            sale.payment_status === 'paid' ? 'bg-green-100 text-green-700' :
+                            sale.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-gray-100 text-gray-700'
+                          }>
+                            {sale.payment_status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="space-y-3">
+                  {recentSales.map((sale) => (
+                    <div key={sale.id} className="flex justify-between items-center p-3 rounded-lg bg-gray-50">
+                      <div>
+                        <p className="font-medium text-gray-900">{sale.vehicle_details}</p>
+                        <p className="text-sm text-gray-500">{sale.customer_name}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-green-600">${sale.sale_price?.toLocaleString()}</p>
+                        <p className="text-xs text-gray-500">{sale.status}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-green-600">${sale.sale_price?.toLocaleString()}</p>
-                      <p className="text-xs text-gray-500">{sale.status}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )
             ) : (
               <p className="text-center text-gray-500 py-8">No sales yet</p>
             )}
@@ -206,35 +261,85 @@ export default function Dashboard() {
         </Card>
 
         <Card className="shadow-md border-none">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Wrench className="w-5 h-5 text-orange-600" />
               Recent Repairs
             </CardTitle>
+            <div className="flex gap-1 border rounded-lg p-1">
+              <Button
+                variant={repairsViewMode === "cards" ? "default" : "ghost"}
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setRepairsViewMode("cards")}
+              >
+                <LayoutGrid className="w-3 h-3" />
+              </Button>
+              <Button
+                variant={repairsViewMode === "list" ? "default" : "ghost"}
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setRepairsViewMode("list")}
+              >
+                <List className="w-3 h-3" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {recentRepairs.length > 0 ? (
-              <div className="space-y-3">
-                {recentRepairs.map((repair) => (
-                  <div key={repair.id} className="flex justify-between items-center p-3 rounded-lg bg-gray-50">
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {repair.vehicle_make} {repair.vehicle_model}
-                      </p>
-                      <p className="text-sm text-gray-500">{repair.customer_name}</p>
+              repairsViewMode === "list" ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Vehicle</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentRepairs.map((repair) => (
+                      <TableRow key={repair.id}>
+                        <TableCell className="font-medium">{repair.vehicle_make} {repair.vehicle_model}</TableCell>
+                        <TableCell>{repair.customer_name}</TableCell>
+                        <TableCell className="text-xs">{repair.service_type?.replace(/_/g, ' ')}</TableCell>
+                        <TableCell>
+                          <Badge className={
+                            repair.status === 'completed' ? 'bg-green-100 text-green-700' :
+                            repair.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                            repair.status === 'waiting_parts' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-gray-100 text-gray-700'
+                          }>
+                            {repair.status?.replace(/_/g, ' ')}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="space-y-3">
+                  {recentRepairs.map((repair) => (
+                    <div key={repair.id} className="flex justify-between items-center p-3 rounded-lg bg-gray-50">
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {repair.vehicle_make} {repair.vehicle_model}
+                        </p>
+                        <p className="text-sm text-gray-500">{repair.customer_name}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-xs font-medium px-2 py-1 rounded-full ${
+                          repair.status === 'completed' ? 'bg-green-100 text-green-700' :
+                          repair.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {repair.status?.replace(/_/g, ' ')}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className={`text-xs font-medium px-2 py-1 rounded-full ${
-                        repair.status === 'completed' ? 'bg-green-100 text-green-700' :
-                        repair.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {repair.status?.replace(/_/g, ' ')}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )
             ) : (
               <p className="text-center text-gray-500 py-8">No repair orders yet</p>
             )}
