@@ -663,6 +663,7 @@ export default function Freight() {
         vehicles={vehicles}
         parts={parts}
         exports={exports}
+        generateShipmentNumber={generateShipmentNumber}
       />
 
       <LoadingDeclarationDialog
