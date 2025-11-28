@@ -178,10 +178,10 @@ export default function Vehicles() {
   ];
 
   const stats = {
-    total: vehicles.length,
-    inStock: vehicles.filter(v => v.status === "in_stock").length,
-    sold: vehicles.filter(v => v.status === "sold").length,
-    totalValue: vehicles.reduce((sum, v) => sum + (v.selling_price || 0), 0),
+    total: filteredVehicles.length,
+    inStock: filteredVehicles.filter(v => v.status === "in_stock").length,
+    sold: filteredVehicles.filter(v => v.status === "sold").length,
+    totalValue: filteredVehicles.reduce((sum, v) => sum + (v.selling_price || 0), 0),
   };
 
   const handleSave = (formData) => {
