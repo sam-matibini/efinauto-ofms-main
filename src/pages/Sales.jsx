@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, DollarSign, TrendingUp, ChevronDown, ChevronUp, FileText, Users, FileCheck, Receipt, RefreshCw, CreditCard, FileX, Mail, Edit, Trash2, LayoutGrid, List } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, ChevronDown, ChevronUp, FileText, Users, FileCheck, Receipt, RefreshCw, CreditCard, FileX, Mail, Edit, Trash2, LayoutGrid, List, Download, FileSpreadsheet, Loader2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   AlertDialog,
@@ -43,6 +43,7 @@ import CreditNotesTab from "../components/sales/CreditNotesTab";
 import AISalesInsights from "../components/sales/AISalesInsights";
 import DateRangeFilter, { getDateRangeValues } from "../components/shared/DateRangeFilter";
 import CompareWithFilter from "../components/shared/CompareWithFilter";
+import BillOfSaleExport from "../components/sales/BillOfSaleExport";
 
 export default function Sales() {
   const [activeMainTab, setActiveMainTab] = useState("sales");
@@ -333,7 +334,8 @@ export default function Sales() {
 
             <div className="flex flex-col md:flex-row justify-between md:items-center gap-3 mb-4">
               <h2 className="text-lg md:text-xl font-bold">Bills of Sale</h2>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <BillOfSaleExport sales={filteredSales} company={company} />
                 <div className="flex gap-1 border rounded-lg p-1">
                   <Button
                     variant={salesViewMode === "cards" ? "default" : "ghost"}
