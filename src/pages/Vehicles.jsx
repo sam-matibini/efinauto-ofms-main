@@ -707,6 +707,23 @@ export default function Vehicles() {
         }
 
 function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading, isSaving }) {
+  const { selectedCompanyId } = useCompany();
+  const { data: vendors = [] } = useQuery({
+    queryKey: ['vendors', selectedCompanyId],
+    queryFn: () => base44.entities.Vendor.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId && open,
+    initialData: [],
+  });
+
+  const { data: company } = useQuery({
+    queryKey: ['company', selectedCompanyId],
+    queryFn: async () => {
+      const companies = await base44.entities.Company.filter({ id: selectedCompanyId });
+      return companies[0];
+    },
+    enabled: !!selectedCompanyId && open,
+  });
+
   const [formData, setFormData] = useState({
     ownership_type: "dealership_owned",
     vin: "", stock_number: "", invoice_number: "", transaction_date: "",
@@ -714,7 +731,9 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
     color: "", mileage: 0, weight: 0, condition: "used", status: "in_stock",
     purchase_price: 0, selling_price: 0, fuel_type: "petrol",
     transmission: "manual", engine_capacity: "", features: "",
-    location: "", images: [], notes: ""
+    location: "", images: [], notes: "",
+    vendor_id: "", vendor_name: "", vendor_phone: "", vendor_email: "",
+    province: "", tax_status: "taxable", tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0, total_cost: 0
   });
 
   React.useEffect(() => {
@@ -742,7 +761,18 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
           features: vehicle.features || "",
           location: vehicle.location || "",
           images: vehicle.images || [],
-          notes: vehicle.notes || ""
+          notes: vehicle.notes || "",
+          vendor_id: vehicle.vendor_id || "",
+          vendor_name: vehicle.vendor_name || "",
+          vendor_phone: vehicle.vendor_phone || "",
+          vendor_email: vehicle.vendor_email || "",
+          province: vehicle.province || "",
+          tax_status: vehicle.tax_status || "taxable",
+          tax_gst: vehicle.tax_gst || 0,
+          tax_pst: vehicle.tax_pst || 0,
+          tax_hst: vehicle.tax_hst || 0,
+          tax_total: vehicle.tax_total || 0,
+          total_cost: vehicle.total_cost || 0
         });
       } else {
         setFormData({
@@ -752,11 +782,53 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
           color: "", mileage: 0, weight: 0, condition: "used", status: "in_stock",
           purchase_price: 0, selling_price: 0, fuel_type: "petrol",
           transmission: "manual", engine_capacity: "", features: "",
-          location: "", images: [], notes: ""
+          location: "", images: [], notes: "",
+          vendor_id: "", vendor_name: "", vendor_phone: "", vendor_email: "",
+          province: "", tax_status: "taxable", tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0, total_cost: 0
         });
       }
     }
   }, [vehicle, open]);
+
+  const calculateTaxes = (price, province, taxStatus) => {
+    if (taxStatus !== "taxable" || !province || !price) {
+      return { tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0, total_cost: price || 0 };
+    }
+    const rates = company?.tax_rates?.[province] || { gst: 5, pst: 0, hst: 0 };
+    const tax_gst = (price * (rates.gst || 0)) / 100;
+    const tax_pst = (price * (rates.pst || 0)) / 100;
+    const tax_hst = (price * (rates.hst || 0)) / 100;
+    const tax_total = tax_gst + tax_pst + tax_hst;
+    return { tax_gst, tax_pst, tax_hst, tax_total, total_cost: price + tax_total };
+  };
+
+  const handleProvinceChange = (province) => {
+    const taxes = calculateTaxes(formData.purchase_price, province, formData.tax_status);
+    setFormData({ ...formData, province, ...taxes });
+  };
+
+  const handleTaxStatusChange = (taxStatus) => {
+    const taxes = calculateTaxes(formData.purchase_price, formData.province, taxStatus);
+    setFormData({ ...formData, tax_status: taxStatus, ...taxes });
+  };
+
+  const handlePurchasePriceChange = (price) => {
+    const taxes = calculateTaxes(price, formData.province, formData.tax_status);
+    setFormData({ ...formData, purchase_price: price, ...taxes });
+  };
+
+  const handleVendorSelect = (vendorId) => {
+    const vendor = vendors.find(v => v.id === vendorId);
+    if (vendor) {
+      setFormData({
+        ...formData,
+        vendor_id: vendor.id,
+        vendor_name: vendor.vendor_name,
+        vendor_phone: vendor.phone || "",
+        vendor_email: vendor.email || ""
+      });
+    }
+  };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -928,7 +1000,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
               <Input 
                 type="number" 
                 value={formData.purchase_price} 
-                onChange={(e) => setFormData({...formData, purchase_price: parseFloat(e.target.value) || 0})} 
+                onChange={(e) => handlePurchasePriceChange(parseFloat(e.target.value) || 0)} 
                 placeholder="0" 
               />
             </div>
@@ -967,7 +1039,104 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
             </div>
           </div>
 
+          {/* Vendor Section */}
+          <div className="col-span-2 border-t pt-4 mt-4">
+            <h3 className="font-semibold text-gray-900 mb-4">Vendor / Supplier Information</h3>
+          </div>
           <div className="space-y-2">
+            <Label>Select Vendor</Label>
+            <Select value={formData.vendor_id} onValueChange={handleVendorSelect}>
+              <SelectTrigger><SelectValue placeholder="Select a vendor" /></SelectTrigger>
+              <SelectContent>
+                {vendors.map(v => (
+                  <SelectItem key={v.id} value={v.id}>{v.vendor_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Vendor Name</Label>
+            <Input 
+              value={formData.vendor_name} 
+              onChange={(e) => setFormData({...formData, vendor_name: e.target.value})} 
+              placeholder="Vendor name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Vendor Phone</Label>
+            <Input 
+              value={formData.vendor_phone} 
+              onChange={(e) => setFormData({...formData, vendor_phone: e.target.value})} 
+              placeholder="Phone number"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Vendor Email</Label>
+            <Input 
+              value={formData.vendor_email} 
+              onChange={(e) => setFormData({...formData, vendor_email: e.target.value})} 
+              placeholder="Email address"
+            />
+          </div>
+
+          {/* Tax Section */}
+          <div className="col-span-2 border-t pt-4 mt-4">
+            <h3 className="font-semibold text-gray-900 mb-4">Sales Tax Information</h3>
+          </div>
+          <div className="space-y-2">
+            <Label>Province</Label>
+            <Select value={formData.province} onValueChange={handleProvinceChange}>
+              <SelectTrigger><SelectValue placeholder="Select province" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="AB">Alberta</SelectItem>
+                <SelectItem value="BC">British Columbia</SelectItem>
+                <SelectItem value="MB">Manitoba</SelectItem>
+                <SelectItem value="NB">New Brunswick</SelectItem>
+                <SelectItem value="NL">Newfoundland</SelectItem>
+                <SelectItem value="NT">Northwest Territories</SelectItem>
+                <SelectItem value="NS">Nova Scotia</SelectItem>
+                <SelectItem value="NU">Nunavut</SelectItem>
+                <SelectItem value="ON">Ontario</SelectItem>
+                <SelectItem value="PE">Prince Edward Island</SelectItem>
+                <SelectItem value="QC">Quebec</SelectItem>
+                <SelectItem value="SK">Saskatchewan</SelectItem>
+                <SelectItem value="YT">Yukon</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Tax Status</Label>
+            <Select value={formData.tax_status} onValueChange={handleTaxStatusChange}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="taxable">Taxable</SelectItem>
+                <SelectItem value="zero_rated">Zero-Rated</SelectItem>
+                <SelectItem value="exempt">Exempt</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>GST Amount</Label>
+            <Input type="number" step="0.01" value={formData.tax_gst} readOnly className="bg-gray-50" />
+          </div>
+          <div className="space-y-2">
+            <Label>PST Amount</Label>
+            <Input type="number" step="0.01" value={formData.tax_pst} readOnly className="bg-gray-50" />
+          </div>
+          <div className="space-y-2">
+            <Label>HST Amount</Label>
+            <Input type="number" step="0.01" value={formData.tax_hst} readOnly className="bg-gray-50" />
+          </div>
+          <div className="space-y-2">
+            <Label>Total Tax</Label>
+            <Input type="number" step="0.01" value={formData.tax_total} readOnly className="bg-gray-50" />
+          </div>
+          <div className="space-y-2 col-span-2">
+            <Label>Total Cost (Purchase + Tax)</Label>
+            <Input type="number" step="0.01" value={formData.total_cost} readOnly className="bg-gray-100 font-semibold" />
+          </div>
+
+          <div className="space-y-2 col-span-2">
             <Label>Upload Image</Label>
             <input 
               type="file" 
@@ -993,7 +1162,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 col-span-2">
             <Label>Notes</Label>
             <Textarea 
               value={formData.notes} 
@@ -1002,7 +1171,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
               placeholder="Add any additional notes"
             />
           </div>
-        </div>
+          </div>
 
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
