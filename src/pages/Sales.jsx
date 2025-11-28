@@ -124,7 +124,35 @@ export default function Sales() {
       const sale = await base44.entities.Sale.create({...data, company_id: selectedCompanyId});
       
       if (data.vehicle_id) {
-        await base44.entities.Vehicle.update(data.vehicle_id, { status: 'sold' });
+        const vehicleStatus = data.sale_type === 'export' ? 'exported' : 'sold';
+        await base44.entities.Vehicle.update(data.vehicle_id, { status: vehicleStatus });
+      }
+      
+      // If export sale, create an Export record
+      let exportRecord = null;
+      if (data.sale_type === 'export') {
+        exportRecord = await base44.entities.Export.create({
+          company_id: selectedCompanyId,
+          export_number: `EXP-${Date.now()}`,
+          export_type: 'vehicle',
+          customer_name: data.customer_name,
+          customer_email: data.customer_email || '',
+          customer_phone: data.customer_phone || '',
+          destination_country: 'TBD',
+          items: [{
+            description: data.vehicle_details,
+            quantity: 1,
+            value: data.sale_price,
+            vin: data.vehicle_vin
+          }],
+          total_value: data.sale_price,
+          status: 'pending',
+          payment_status: data.payment_status,
+          notes: `Auto-created from export sale: ${sale.sale_number}`
+        });
+
+        // Update sale with export_id
+        await base44.entities.Sale.update(sale.id, { export_id: exportRecord.id });
       }
       
       // Create accounting transaction for revenue
@@ -138,21 +166,27 @@ export default function Sales() {
         reference_id: sale.id,
         reference_number: sale.sale_number,
         customer_name: sale.customer_name,
-        description: `Vehicle sale: ${sale.vehicle_details}`,
+        description: `${data.sale_type === 'export' ? 'Export ' : ''}Vehicle sale: ${sale.vehicle_details}`,
         transaction_date: sale.sale_date || new Date().toISOString().split('T')[0],
         payment_method: 'other',
         status: sale.payment_status === 'paid' ? 'completed' : 'pending',
-        tax_amount: sale.tax_total || 0
+        tax_amount: sale.tax_total || 0,
+        tax_status: data.tax_status
       });
       
-      return sale;
+      return { sale, exportRecord };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['exports'] });
       setDialogOpen(false);
-      toast.success("Sale recorded successfully!");
+      if (result.exportRecord) {
+        toast.success("Export sale recorded and export order created!");
+      } else {
+        toast.success("Sale recorded successfully!");
+      }
     },
   });
 
@@ -355,6 +389,11 @@ export default function Sales() {
                               Trade-In
                             </Badge>
                           )}
+                          {sale.sale_type === 'export' && (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              Export
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-gray-600">
                           <strong>Customer:</strong> {sale.customer_name}
@@ -550,6 +589,7 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
   const [activeTab, setActiveTab] = useState("basic");
   const [formData, setFormData] = useState({
     sale_number: `SALE-${Date.now()}`,
+    sale_type: "domestic",
     customer_id: null,
     customer_name: "",
     customer_phone: "",
@@ -576,6 +616,17 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
     trade_in: { has_trade_in: false },
     notes: ""
   });
+
+  // Auto-set tax_status to zero_rated when sale_type is export
+  const handleSaleTypeChange = (isExport) => {
+    const newSaleType = isExport ? "export" : "domestic";
+    const newTaxStatus = isExport ? "zero_rated" : "taxable";
+    setFormData(prev => ({
+      ...prev,
+      sale_type: newSaleType,
+      tax_status: newTaxStatus
+    }));
+  };
 
   React.useEffect(() => {
     const taxDetails = calculateCanadianTax(formData.sale_price, formData.province, formData.tax_status);
@@ -668,6 +719,26 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
                 value={formData.vehicle_id}
                 onSelect={handleVehicleSelect}
               />
+            </div>
+
+            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg mb-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="is_export_sale"
+                  checked={formData.sale_type === "export"}
+                  onChange={(e) => handleSaleTypeChange(e.target.checked)}
+                  className="h-5 w-5 rounded border-gray-300 text-blue-600"
+                />
+                <Label htmlFor="is_export_sale" className="cursor-pointer font-medium">
+                  Export Sale
+                </Label>
+              </div>
+              {formData.sale_type === "export" && (
+                <Badge className="bg-blue-100 text-blue-800">
+                  Zero-Rated (No Tax)
+                </Badge>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

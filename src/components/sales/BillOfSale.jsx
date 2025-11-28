@@ -4,6 +4,8 @@ import { format } from "date-fns";
 export default function BillOfSale({ sale, company }) {
   if (!sale) return null;
 
+  const isExport = sale.sale_type === 'export';
+
   return (
     <div className="bg-white p-8 max-w-4xl mx-auto" id="bill-of-sale">
       <div className="flex justify-between items-start mb-8">
@@ -12,6 +14,14 @@ export default function BillOfSale({ sale, company }) {
         )}
         <div className="text-right">
           <h1 className="text-2xl font-bold">BILL OF SALE</h1>
+          <div className="mt-2 flex justify-end gap-2">
+            <span className={`inline-block px-3 py-1 rounded text-sm font-semibold ${isExport ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+              {isExport ? '☑ EXPORT SALE' : '☑ DOMESTIC SALE'}
+            </span>
+          </div>
+          {isExport && (
+            <p className="text-sm mt-1 text-green-700 font-medium">Zero-Rated (GST/HST Exempt)</p>
+          )}
           {company?.dealer_permit_number && (
             <p className="text-sm mt-2">Dealer Permit # {company.dealer_permit_number}</p>
           )}
