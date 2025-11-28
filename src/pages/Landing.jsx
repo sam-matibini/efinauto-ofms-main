@@ -233,8 +233,46 @@ Keep each item concise.`,
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+      {/* Top Navigation Bar */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-700">
+        <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <img 
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69156af15abcfb916d821138/8e61b7743_1c.png" 
+              alt="Logo" 
+              className="w-8 h-8 object-contain"
+            />
+            <span className="text-white font-bold text-lg">eFinAuto OFMS</span>
+          </div>
+          <div className="flex items-center gap-3">
+            {user ? (
+              <>
+                <span className="text-gray-300 text-sm hidden md:block">Welcome, {user.full_name}</span>
+                <Link to={createPageUrl("Dashboard")}>
+                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                    Dashboard
+                  </Button>
+                </Link>
+                <Button size="sm" variant="ghost" className="text-gray-300 hover:text-white" onClick={() => base44.auth.logout()}>
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button size="sm" variant="ghost" className="text-gray-300 hover:text-white" onClick={() => base44.auth.redirectToLogin()}>
+                  Sign In
+                </Button>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => base44.auth.redirectToLogin()}>
+                  Get Started
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </nav>
+
       {/* Hero Section */}
-      <header className="relative overflow-hidden">
+      <header className="relative overflow-hidden pt-16">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1555215695-3004980ad54e?w=1920')] bg-cover bg-center opacity-20" />
         <div className="relative max-w-7xl mx-auto px-6 py-16 md:py-24">
           <div className="text-center">
