@@ -24,8 +24,12 @@ export default function Freight() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingShipment, setEditingShipment] = useState(null);
   const [loadingDeclOpen, setLoadingDeclOpen] = useState(false);
-  const [docGenOpen, setDocGenOpen] = useState(false); // Added docGenOpen state
+  const [docGenOpen, setDocGenOpen] = useState(false);
   const [selectedShipment, setSelectedShipment] = useState(null);
+  const [activeTab, setActiveTab] = useState("shipments");
+  const [shipmentsViewMode, setShipmentsViewMode] = useState("cards");
+  const [declarationsViewMode, setDeclarationsViewMode] = useState("cards");
+  const [viewDeclaration, setViewDeclaration] = useState(null);
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
 
