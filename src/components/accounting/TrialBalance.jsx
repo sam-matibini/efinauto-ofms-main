@@ -79,19 +79,34 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
     }
   });
 
-  // Add Vehicle Inventory as a virtual account in Assets group
-  const vehicleInventoryValue = vehicles
-    .filter(v => v.status === 'in_stock')
-    .reduce((sum, v) => sum + (v.total_cost || v.purchase_price || 0), 0);
+  // Add standard accounts for display in the Trial Balance
+  const standardAccounts = [
+    { id: 'cash', account_code: '1000', account_name: 'Cash and Bank', account_type: 'asset' },
+    { id: 'ar', account_code: '1200', account_name: 'Accounts Receivable', account_type: 'asset' },
+    { id: 'vehicle-inventory', account_code: '1400', account_name: 'Vehicle Inventory', account_type: 'asset' },
+    { id: 'parts-inventory', account_code: '1410', account_name: 'Parts Inventory', account_type: 'asset' },
+    { id: 'ap', account_code: '2000', account_name: 'Accounts Payable', account_type: 'liability' },
+    { id: 'retained-earnings', account_code: '3100', account_name: 'Retained Earnings', account_type: 'equity' },
+    { id: 'sales-revenue', account_code: '4000', account_name: 'Vehicle Sales Revenue', account_type: 'revenue' },
+    { id: 'service-revenue', account_code: '4100', account_name: 'Service Revenue', account_type: 'revenue' },
+    { id: 'cogs', account_code: '5000', account_name: 'Cost of Goods Sold', account_type: 'expense' },
+    { id: 'parts-expense', account_code: '5100', account_name: 'Parts Expense', account_type: 'expense' },
+    { id: 'labor-expense', account_code: '5200', account_name: 'Labor Expense', account_type: 'expense' },
+  ];
 
-  if (vehicleInventoryValue > 0) {
-    accountGroups.asset.accounts.push({
-      id: 'vehicle-inventory',
-      account_code: '1400',
-      account_name: 'Vehicle Inventory',
-      account_type: 'asset'
-    });
-  }
+  standardAccounts.forEach(stdAccount => {
+    const exists = accountGroups[stdAccount.account_type].accounts.some(
+      a => a.account_code === stdAccount.account_code
+    );
+    if (!exists) {
+      accountGroups[stdAccount.account_type].accounts.push(stdAccount);
+    }
+  });
+
+  // Sort accounts by code within each group
+  Object.values(accountGroups).forEach(group => {
+    group.accounts.sort((a, b) => (a.account_code || '').localeCompare(b.account_code || ''));
+  });
 
   // Calculate balances for each period using GAAP principles
   const periodData = periods.map(period => {
