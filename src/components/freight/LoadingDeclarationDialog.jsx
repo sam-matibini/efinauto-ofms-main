@@ -4,8 +4,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Mail, Loader2, Edit, Save, Printer, Download, Share2 } from "lucide-react";
+import { Plus, Trash2, Mail, Loader2, Edit, Save, Printer, Download, Share2, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
@@ -53,6 +54,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
   const [formData, setFormData] = useState({
     company_id: selectedCompanyId,
     export_id: "",
+    export_ids: [],
     shipment_id: shipment?.id || "",
     booking_number: shipment?.tracking_number || "",
     container_number: shipment?.container_number || "",
@@ -81,11 +83,14 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     status: "draft"
   });
 
+  const [selectedExportIds, setSelectedExportIds] = useState([]);
+
   React.useEffect(() => {
     if (open && shipment) {
       setFormData({
         company_id: selectedCompanyId,
         export_id: shipment.export_id || "",
+        export_ids: [],
         shipment_id: shipment.id || "",
         booking_number: shipment.tracking_number || "",
         container_number: shipment.container_number || "",
@@ -106,6 +111,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
         vehicles: [],
         status: "draft"
       });
+      setSelectedExportIds([]);
       setViewMode(false);
       setSavedData(null);
     }
@@ -148,39 +154,74 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     }
   };
 
-  const handleExportSelect = (exportId) => {
+  const handleAddExportOrder = (exportId) => {
+    if (!exportId || selectedExportIds.includes(exportId)) return;
+    
     const exportOrder = exports?.find(e => e.id === exportId);
     if (exportOrder) {
+      const newExportIds = [...selectedExportIds, exportId];
+      setSelectedExportIds(newExportIds);
+
       const exportVehicles = (exportOrder.items || [])
         .filter(item => item.description && item.value)
         .map(item => ({
           year: "",
           make_model: item.description || "",
-          vin: "",
+          vin: item.vin || "",
           weight: item.weight || 0,
           value: item.value || 0,
-          saved: false
+          saved: false,
+          export_id: exportId
         }));
 
-      const totalWeight = (exportOrder.items || []).reduce((sum, item) => sum + (item.weight || 0) * (item.quantity || 1), 0);
+      const updatedVehicles = [...formData.vehicles, ...exportVehicles];
+      const totalWeight = updatedVehicles.reduce((sum, v) => sum + (parseFloat(v.weight) || 0), 0);
+      const totalValue = updatedVehicles.reduce((sum, v) => sum + (parseFloat(v.value) || 0), 0);
+
+      // Use first export's consignee if not already set
+      const shouldUpdateConsignee = !formData.consignee.name;
 
       setFormData({
         ...formData,
-        export_id: exportId,
-        consignee: {
+        export_id: newExportIds[0], // Keep first one for legacy
+        export_ids: newExportIds,
+        consignee: shouldUpdateConsignee ? {
           ...formData.consignee,
           name: exportOrder.customer_name || "",
           city_country: exportOrder.destination_country || "",
           telephone: exportOrder.customer_phone || "",
           email: exportOrder.customer_email || ""
-        },
-        commodity: exportOrder.items?.map(i => i.description).join(', ') || "",
+        } : formData.consignee,
+        commodity: [...new Set([formData.commodity, ...(exportOrder.items?.map(i => i.description) || [])].filter(Boolean))].join(', '),
         weight: totalWeight,
-        value: exportOrder.total_value || 0,
-        vehicles: exportVehicles
+        value: totalValue,
+        vehicles: updatedVehicles
       });
-      toast.success("Export order data loaded!");
+      toast.success(`Export order ${exportOrder.export_number} added!`);
     }
+  };
+
+  const handleRemoveExportOrder = (exportId) => {
+    const newExportIds = selectedExportIds.filter(id => id !== exportId);
+    setSelectedExportIds(newExportIds);
+
+    const updatedVehicles = formData.vehicles.filter(v => v.export_id !== exportId);
+    const totalWeight = updatedVehicles.reduce((sum, v) => sum + (parseFloat(v.weight) || 0), 0);
+    const totalValue = updatedVehicles.reduce((sum, v) => sum + (parseFloat(v.value) || 0), 0);
+
+    setFormData({
+      ...formData,
+      export_id: newExportIds[0] || "",
+      export_ids: newExportIds,
+      weight: totalWeight,
+      value: totalValue,
+      vehicles: updatedVehicles
+    });
+    toast.success("Export order removed");
+  };
+
+  const getSelectedExports = () => {
+    return selectedExportIds.map(id => exports?.find(e => e.id === id)).filter(Boolean);
   };
 
   const handleVehicleSelect = (vehicleId) => {
@@ -685,19 +726,42 @@ This is an automated message from eFinAuto Center Freight Management System.
             <CardContent className="p-4">
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2 col-span-3">
-                  <Label>Link to Export Order (Optional)</Label>
-                  <Select value={formData.export_id} onValueChange={handleExportSelect}>
+                  <Label>Link to Export Orders (Multiple)</Label>
+                  <Select onValueChange={handleAddExportOrder} value="">
                     <SelectTrigger>
-                      <SelectValue placeholder="Select export order..." />
+                      <SelectValue placeholder="Add export order..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {(exports || []).map(exp => (
-                        <SelectItem key={exp.id} value={exp.id}>
-                          {exp.export_number} - {exp.customer_name} → {exp.destination_country}
-                        </SelectItem>
-                      ))}
+                      {(exports || [])
+                        .filter(exp => !selectedExportIds.includes(exp.id))
+                        .map(exp => (
+                          <SelectItem key={exp.id} value={exp.id}>
+                            {exp.export_number} - {exp.customer_name} → {exp.destination_country}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
+                  
+                  {selectedExportIds.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {getSelectedExports().map(exp => (
+                        <Badge 
+                          key={exp.id} 
+                          variant="secondary"
+                          className="flex items-center gap-1 py-1 px-2"
+                        >
+                          <span>{exp.export_number} - {exp.customer_name}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveExportOrder(exp.id)}
+                            className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
