@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sparkles, Send, Loader2, Plane, Package, FileText } from "lucide-react";
+import { Sparkles, Send, Loader2, Plane, Package, FileText, Paperclip, Link2, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
@@ -17,6 +19,11 @@ export default function EmailComposer({ customer, customers, exports, shipments,
   const [selectedExport, setSelectedExport] = useState("");
   const [selectedShipment, setSelectedShipment] = useState("");
   const [selectedDeclaration, setSelectedDeclaration] = useState("");
+  const [attachExportDoc, setAttachExportDoc] = useState(false);
+  const [attachShipmentDoc, setAttachShipmentDoc] = useState(false);
+  const [attachDeclarationDoc, setAttachDeclarationDoc] = useState(false);
+  const [generatingDocs, setGeneratingDocs] = useState(false);
+  const [attachedLinks, setAttachedLinks] = useState([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [sending, setSending] = useState(false);
 
@@ -35,11 +42,197 @@ export default function EmailComposer({ customer, customers, exports, shipments,
     { value: "promotion", label: "Promotion", prompt: "Write a promotional email about current vehicle deals", category: "customer" },
     { value: "thankyou", label: "Thank You", prompt: "Write a thank you email after a purchase", category: "customer" },
     { value: "export_status", label: "Export Status Update", prompt: "Write an email updating customer about their vehicle export status", category: "export" },
-    { value: "export_docs", label: "Export Documentation", prompt: "Write an email about required export documentation", category: "export" },
+    { value: "export_docs", label: "Export Documentation", prompt: "Write an email about required export documentation and attach documents", category: "export" },
+    { value: "export_invoice", label: "Export Invoice & Summary", prompt: "Write an email with export order invoice and summary details", category: "export" },
     { value: "shipment_tracking", label: "Shipment Tracking", prompt: "Write an email with shipment tracking information", category: "shipment" },
     { value: "shipment_arrival", label: "Shipment Arrival Notice", prompt: "Write an email notifying about shipment arrival", category: "shipment" },
-    { value: "loading_confirmation", label: "Loading Confirmation", prompt: "Write an email confirming vehicle loading details", category: "declaration" }
+    { value: "shipment_docs", label: "Shipment Documents", prompt: "Write an email attaching shipment documents like bill of lading", category: "shipment" },
+    { value: "loading_confirmation", label: "Loading Confirmation", prompt: "Write an email confirming vehicle loading details with declaration attached", category: "declaration" },
+    { value: "loading_docs", label: "Loading Declaration Docs", prompt: "Write an email sending loading declaration documents for review", category: "declaration" }
   ];
+
+  const generateDocumentLink = async (type, data) => {
+    try {
+      let htmlContent = "";
+      let fileName = "";
+
+      if (type === "export" && data) {
+        fileName = `export-order-${data.export_number || data.id}.html`;
+        htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Export Order - ${data.export_number}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    .header { text-align: center; border-bottom: 2px solid #1e40af; padding-bottom: 20px; margin-bottom: 30px; }
+    h1 { color: #1e40af; }
+    .section { margin-bottom: 20px; }
+    .section h2 { color: #374151; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 8px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .field { margin-bottom: 8px; }
+    .field label { font-size: 12px; color: #666; display: block; }
+    .field p { margin: 2px 0; font-weight: 500; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f3f4f6; }
+    .total { font-size: 18px; font-weight: bold; color: #166534; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>EXPORT ORDER</h1>
+    <p>Order #: ${data.export_number || 'N/A'}</p>
+    <p>Date: ${new Date().toLocaleDateString()}</p>
+  </div>
+  <div class="grid">
+    <div class="section">
+      <h2>Customer Information</h2>
+      <div class="field"><label>Name</label><p>${data.customer_name || 'N/A'}</p></div>
+      <div class="field"><label>Email</label><p>${data.customer_email || 'N/A'}</p></div>
+      <div class="field"><label>Phone</label><p>${data.customer_phone || 'N/A'}</p></div>
+      <div class="field"><label>Country</label><p>${data.customer_country || 'N/A'}</p></div>
+    </div>
+    <div class="section">
+      <h2>Destination</h2>
+      <div class="field"><label>Country</label><p>${data.destination_country || 'N/A'}</p></div>
+      <div class="field"><label>Port</label><p>${data.destination_port || 'N/A'}</p></div>
+      <div class="field"><label>Address</label><p>${data.destination_address || 'N/A'}</p></div>
+      <div class="field"><label>Status</label><p>${data.status || 'N/A'}</p></div>
+    </div>
+  </div>
+  <div class="section">
+    <h2>Items</h2>
+    <table>
+      <thead><tr><th>Description</th><th>VIN</th><th>Qty</th><th>Value</th></tr></thead>
+      <tbody>
+        ${(data.items || []).map(item => `<tr><td>${item.description || ''}</td><td>${item.vin || ''}</td><td>${item.quantity || 1}</td><td>$${(item.value || 0).toLocaleString()}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+  <div class="section">
+    <p class="total">Total Value: $${(data.total_value || 0).toLocaleString()}</p>
+  </div>
+</body>
+</html>`;
+      } else if (type === "shipment" && data) {
+        fileName = `shipment-${data.shipment_number || data.id}.html`;
+        htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Shipment - ${data.shipment_number}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    .header { text-align: center; border-bottom: 2px solid #059669; padding-bottom: 20px; margin-bottom: 30px; }
+    h1 { color: #059669; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .section { margin-bottom: 20px; }
+    .section h2 { font-size: 16px; color: #374151; border-bottom: 1px solid #ddd; padding-bottom: 8px; }
+    .field { margin-bottom: 8px; }
+    .field label { font-size: 12px; color: #666; display: block; }
+    .field p { margin: 2px 0; font-weight: 500; }
+    .status { display: inline-block; padding: 4px 12px; background: #d1fae5; color: #065f46; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>SHIPMENT DETAILS</h1>
+    <p>Shipment #: ${data.shipment_number || 'N/A'}</p>
+    <p><span class="status">${data.status || 'N/A'}</span></p>
+  </div>
+  <div class="grid">
+    <div class="section">
+      <h2>Origin</h2>
+      <div class="field"><label>Location</label><p>${data.origin_location || 'N/A'}</p></div>
+      <div class="field"><label>Country</label><p>${data.origin_country || 'N/A'}</p></div>
+      <div class="field"><label>Departure Date</label><p>${data.departure_date || 'N/A'}</p></div>
+    </div>
+    <div class="section">
+      <h2>Destination</h2>
+      <div class="field"><label>Location</label><p>${data.destination_location || 'N/A'}</p></div>
+      <div class="field"><label>Country</label><p>${data.destination_country || 'N/A'}</p></div>
+      <div class="field"><label>Expected Arrival</label><p>${data.expected_arrival || 'N/A'}</p></div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="section">
+      <h2>Cargo Details</h2>
+      <div class="field"><label>Description</label><p>${data.cargo_description || 'N/A'}</p></div>
+      <div class="field"><label>Weight</label><p>${data.total_weight || 0} kg</p></div>
+      <div class="field"><label>Value</label><p>$${(data.cargo_value || 0).toLocaleString()}</p></div>
+    </div>
+    <div class="section">
+      <h2>Shipping Info</h2>
+      <div class="field"><label>Carrier</label><p>${data.carrier_name || 'N/A'}</p></div>
+      <div class="field"><label>Container #</label><p>${data.container_number || 'N/A'}</p></div>
+      <div class="field"><label>Tracking #</label><p>${data.tracking_number || 'N/A'}</p></div>
+    </div>
+  </div>
+</body>
+</html>`;
+      }
+
+      if (htmlContent) {
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const file = new File([blob], fileName, { type: 'text/html' });
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        return { url: file_url, name: fileName, type };
+      }
+    } catch (error) {
+      console.error("Error generating document:", error);
+      return null;
+    }
+    return null;
+  };
+
+  const handleGenerateAndAttachDocs = async () => {
+    setGeneratingDocs(true);
+    const newLinks = [];
+
+    try {
+      if (attachExportDoc && selectedExport) {
+        const exp = exports?.find(e => e.id === selectedExport);
+        if (exp) {
+          const link = await generateDocumentLink("export", exp);
+          if (link) newLinks.push(link);
+        }
+      }
+
+      if (attachShipmentDoc && selectedShipment) {
+        const ship = shipments?.find(s => s.id === selectedShipment);
+        if (ship) {
+          const link = await generateDocumentLink("shipment", ship);
+          if (link) newLinks.push(link);
+        }
+      }
+
+      if (attachDeclarationDoc && selectedDeclaration) {
+        const decl = loadingDeclarations?.find(d => d.id === selectedDeclaration);
+        if (decl?.document_url) {
+          newLinks.push({ url: decl.document_url, name: `Loading Declaration - ${decl.declaration_number}`, type: "declaration" });
+        }
+      }
+
+      if (newLinks.length > 0) {
+        setAttachedLinks(prev => [...prev, ...newLinks]);
+        // Add links to email body
+        const linksText = newLinks.map(l => `\n📎 ${l.name}: ${l.url}`).join('');
+        setBody(prev => prev + "\n\n--- Attached Documents ---" + linksText);
+        toast.success(`${newLinks.length} document(s) attached!`);
+      }
+    } catch (error) {
+      toast.error("Failed to generate documents");
+    } finally {
+      setGeneratingDocs(false);
+    }
+  };
+
+  const removeAttachedLink = (index) => {
+    setAttachedLinks(prev => prev.filter((_, i) => i !== index));
+  };
 
   const generateWithAI = async () => {
     if (!template) {
@@ -183,6 +376,10 @@ export default function EmailComposer({ customer, customers, exports, shipments,
       setSelectedExport("");
       setSelectedShipment("");
       setSelectedDeclaration("");
+      setAttachedLinks([]);
+      setAttachExportDoc(false);
+      setAttachShipmentDoc(false);
+      setAttachDeclarationDoc(false);
     } catch (error) {
       console.error("Email send error:", error);
       toast.error(`Failed to send email: ${error.message || "Unknown error"}`);
@@ -275,56 +472,138 @@ export default function EmailComposer({ customer, customers, exports, shipments,
         </div>
 
         {template && templates.find(t => t.value === template)?.category === 'export' && exports?.length > 0 && (
-          <div>
-            <Label>Select Export</Label>
-            <Select value={selectedExport} onValueChange={setSelectedExport}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose an export..." />
-              </SelectTrigger>
-              <SelectContent>
-                {exports.map(exp => (
-                  <SelectItem key={exp.id} value={exp.id}>
-                    {exp.export_number} - {exp.vehicle_details} ({exp.status})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <div>
+              <Label>Select Export Order</Label>
+              <Select value={selectedExport} onValueChange={setSelectedExport}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose an export..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {exports.map(exp => (
+                    <SelectItem key={exp.id} value={exp.id}>
+                      {exp.export_number} - {exp.customer_name} ({exp.status})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedExport && (
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  id="attachExport" 
+                  checked={attachExportDoc} 
+                  onCheckedChange={setAttachExportDoc}
+                />
+                <label htmlFor="attachExport" className="text-sm text-blue-800 cursor-pointer">
+                  <Paperclip className="w-3 h-3 inline mr-1" />
+                  Attach Export Order Document
+                </label>
+              </div>
+            )}
           </div>
         )}
 
         {template && templates.find(t => t.value === template)?.category === 'shipment' && shipments?.length > 0 && (
-          <div>
-            <Label>Select Shipment</Label>
-            <Select value={selectedShipment} onValueChange={setSelectedShipment}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a shipment..." />
-              </SelectTrigger>
-              <SelectContent>
-                {shipments.map(ship => (
-                  <SelectItem key={ship.id} value={ship.id}>
-                    {ship.shipment_number} - {ship.origin_port} → {ship.destination_port}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-3 p-3 bg-green-50 rounded-lg border border-green-200">
+            <div>
+              <Label>Select Shipment</Label>
+              <Select value={selectedShipment} onValueChange={setSelectedShipment}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a shipment..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {shipments.map(ship => (
+                    <SelectItem key={ship.id} value={ship.id}>
+                      {ship.shipment_number} - {ship.origin_country} → {ship.destination_country}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedShipment && (
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  id="attachShipment" 
+                  checked={attachShipmentDoc} 
+                  onCheckedChange={setAttachShipmentDoc}
+                />
+                <label htmlFor="attachShipment" className="text-sm text-green-800 cursor-pointer">
+                  <Paperclip className="w-3 h-3 inline mr-1" />
+                  Attach Shipment Document
+                </label>
+              </div>
+            )}
           </div>
         )}
 
         {template && templates.find(t => t.value === template)?.category === 'declaration' && loadingDeclarations?.length > 0 && (
-          <div>
-            <Label>Select Loading Declaration</Label>
-            <Select value={selectedDeclaration} onValueChange={setSelectedDeclaration}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a declaration..." />
-              </SelectTrigger>
-              <SelectContent>
-                {loadingDeclarations.map(decl => (
-                  <SelectItem key={decl.id} value={decl.id}>
-                    {decl.declaration_number} - Container {decl.container_number}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+            <div>
+              <Label>Select Loading Declaration</Label>
+              <Select value={selectedDeclaration} onValueChange={setSelectedDeclaration}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a declaration..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {loadingDeclarations.map(decl => (
+                    <SelectItem key={decl.id} value={decl.id}>
+                      {decl.declaration_number} - Container {decl.container_number}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedDeclaration && (
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  id="attachDeclaration" 
+                  checked={attachDeclarationDoc} 
+                  onCheckedChange={setAttachDeclarationDoc}
+                />
+                <label htmlFor="attachDeclaration" className="text-sm text-purple-800 cursor-pointer">
+                  <Paperclip className="w-3 h-3 inline mr-1" />
+                  Attach Loading Declaration PDF
+                </label>
+              </div>
+            )}
+          </div>
+        )}
+
+        {(attachExportDoc || attachShipmentDoc || attachDeclarationDoc) && (
+          <Button 
+            onClick={handleGenerateAndAttachDocs} 
+            disabled={generatingDocs}
+            variant="outline" 
+            className="w-full border-dashed"
+          >
+            {generatingDocs ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Link2 className="w-4 h-4 mr-2" />
+            )}
+            Generate & Attach Selected Documents
+          </Button>
+        )}
+
+        {attachedLinks.length > 0 && (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Paperclip className="w-4 h-4" />
+              Attached Documents
+            </Label>
+            <div className="space-y-1">
+              {attachedLinks.map((link, index) => (
+                <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded text-sm">
+                  <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate flex-1">
+                    {link.name}
+                  </a>
+                  <Button variant="ghost" size="sm" onClick={() => removeAttachedLink(index)}>
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
