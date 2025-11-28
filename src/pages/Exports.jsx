@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Plane, Trash2 } from "lucide-react";
+import { Plus, Plane, Trash2, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -338,6 +338,7 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
   });
 
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [vinSearch, setVinSearch] = useState("");
 
   React.useEffect(() => {
     if (open) {
@@ -373,6 +374,7 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
           notes: ""
         });
         setSelectedCustomer(null);
+        setVinSearch("");
       }
     }
   }, [open, exportOrder, customers]);
@@ -539,9 +541,44 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
           </TabsContent>
 
           <TabsContent value="items" className="space-y-4 py-4">
-            <div className="flex gap-2 mb-4">
+            <div className="flex gap-2 mb-4 flex-wrap">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search by VIN..."
+                  value={vinSearch}
+                  onChange={(e) => setVinSearch(e.target.value)}
+                  className="pl-9"
+                />
+                {vinSearch && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                    {vehicles
+                      .filter(v => v.vin?.toLowerCase().includes(vinSearch.toLowerCase()))
+                      .slice(0, 10)
+                      .map(vehicle => (
+                        <div
+                          key={vehicle.id}
+                          className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                          onClick={() => {
+                            addVehicleItem(vehicle.id);
+                            setVinSearch("");
+                          }}
+                        >
+                          <span className="font-medium">{vehicle.vin}</span>
+                          <span className="text-gray-500 ml-2">
+                            {vehicle.year} {vehicle.make} {vehicle.model} - ${vehicle.selling_price?.toLocaleString()}
+                          </span>
+                        </div>
+                      ))}
+                    {vehicles.filter(v => v.vin?.toLowerCase().includes(vinSearch.toLowerCase())).length === 0 && (
+                      <div className="px-3 py-2 text-sm text-gray-500">No vehicles found</div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <Select onValueChange={(v) => addVehicleItem(v)}>
-                <SelectTrigger className="flex-1">
+                <SelectTrigger className="flex-1 min-w-[200px]">
                   <SelectValue placeholder="Add Vehicle" />
                 </SelectTrigger>
                 <SelectContent>
@@ -554,7 +591,7 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
               </Select>
 
               <Select onValueChange={(v) => addPartItem(v)}>
-                <SelectTrigger className="flex-1">
+                <SelectTrigger className="flex-1 min-w-[150px]">
                   <SelectValue placeholder="Add Part" />
                 </SelectTrigger>
                 <SelectContent>
