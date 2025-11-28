@@ -183,8 +183,8 @@ export default function GeneralLedger({ transactions, comparativePeriods = [] })
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Account Filter */}
-        <div className="flex items-center gap-4">
+        {/* Account Filter and View Mode */}
+        <div className="flex items-center gap-4 flex-wrap">
           <Label className="text-sm font-semibold">Account:</Label>
           <Select value={selectedAccount} onValueChange={setSelectedAccount}>
             <SelectTrigger className="w-64">
@@ -198,82 +198,195 @@ export default function GeneralLedger({ transactions, comparativePeriods = [] })
               ))}
             </SelectContent>
           </Select>
-          <div className="text-sm text-gray-600">
-            {ledgerEntries.length} transaction{ledgerEntries.length !== 1 ? 's' : ''}
+          
+          <Label className="text-sm font-semibold ml-4">View:</Label>
+          <Select value={viewMode} onValueChange={setViewMode}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="grouped">Grouped by Account</SelectItem>
+              <SelectItem value="detailed">Detailed List</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <div className="text-sm text-gray-600 ml-auto">
+            {ledgerEntries.length} transaction{ledgerEntries.length !== 1 ? 's' : ''} in {accountGroups.length} account{accountGroups.length !== 1 ? 's' : ''}
           </div>
         </div>
 
-        {/* Ledger Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="border-b-2 border-gray-300 bg-gray-100">
-                <th className="text-left py-3 px-4 font-semibold">Date</th>
-                <th className="text-left py-3 px-4 font-semibold">Transaction #</th>
-                <th className="text-left py-3 px-4 font-semibold">Account</th>
-                <th className="text-left py-3 px-4 font-semibold">Description</th>
-                <th className="text-left py-3 px-4 font-semibold">Reference</th>
-                <th className="text-right py-3 px-4 font-semibold">Debit</th>
-                <th className="text-right py-3 px-4 font-semibold">Credit</th>
-                <th className="text-right py-3 px-4 font-semibold">Balance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ledgerEntries.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-8 text-gray-500">
-                    No transactions found for the selected account
-                  </td>
+        {viewMode === "grouped" ? (
+          /* Grouped by Account View */
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="border-b-2 border-gray-300 bg-gray-100">
+                  <th className="text-left py-3 px-4 font-semibold w-8"></th>
+                  <th className="text-left py-3 px-4 font-semibold">Account</th>
+                  <th className="text-right py-3 px-4 font-semibold"># Trans</th>
+                  <th className="text-right py-3 px-4 font-semibold">Total Debit</th>
+                  <th className="text-right py-3 px-4 font-semibold">Total Credit</th>
+                  <th className="text-right py-3 px-4 font-semibold">Net Balance</th>
                 </tr>
-              ) : (
-                ledgerEntries.map((entry, idx) => (
-                  <tr key={idx} className="border-b hover:bg-gray-50">
-                    <td className="py-2 px-4">
-                      {format(new Date(entry.transaction_date), 'MMM d, yyyy')}
-                    </td>
-                    <td className="py-2 px-4 font-mono text-xs">
-                      {entry.transaction_number || entry.id.slice(0, 8)}
-                    </td>
-                    <td className="py-2 px-4 font-mono text-xs">
-                      {entry.account_code ? `${entry.account_code} - ${entry.account_name}` : '-'}
-                    </td>
-                    <td className="py-2 px-4">
-                      {entry.description || 'Untitled Transaction'}
-                    </td>
-                    <td className="py-2 px-4 text-xs text-gray-600">
-                      {entry.reference_number || '-'}
-                    </td>
-                    <td className="text-right py-2 px-4">
-                      {entry.debit > 0 ? `$${entry.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
-                    </td>
-                    <td className="text-right py-2 px-4">
-                      {entry.credit > 0 ? `$${entry.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
-                    </td>
-                    <td className={`text-right py-2 px-4 font-semibold ${entry.balance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                      ${Math.abs(entry.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </thead>
+              <tbody>
+                {accountGroups.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-8 text-gray-500">
+                      No transactions found
                     </td>
                   </tr>
-                ))
+                ) : (
+                  accountGroups.map((group) => (
+                    <React.Fragment key={group.accountKey}>
+                      <tr 
+                        className="border-b hover:bg-blue-50 cursor-pointer"
+                        onClick={() => toggleAccountExpand(group.accountKey)}
+                        onDoubleClick={() => handleAccountDoubleClick(group)}
+                        title="Double-click to view transactions"
+                      >
+                        <td className="py-3 px-4">
+                          {expandedAccounts.has(group.accountKey) ? (
+                            <ChevronDown className="w-4 h-4 text-gray-500" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-gray-500" />
+                          )}
+                        </td>
+                        <td className="py-3 px-4 font-medium">
+                          <span className="font-mono text-xs text-gray-500 mr-2">{group.accountCode}</span>
+                          {group.accountName}
+                        </td>
+                        <td className="text-right py-3 px-4 text-gray-600">
+                          {group.transactions.length}
+                        </td>
+                        <td className="text-right py-3 px-4">
+                          ${group.totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="text-right py-3 px-4">
+                          ${group.totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className={`text-right py-3 px-4 font-semibold ${(group.totalDebit - group.totalCredit) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                          ${Math.abs(group.totalDebit - group.totalCredit).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                      {expandedAccounts.has(group.accountKey) && (
+                        group.transactions.map((t, idx) => (
+                          <tr key={`${group.accountKey}-${idx}`} className="bg-gray-50 border-b text-xs">
+                            <td className="py-2 px-4"></td>
+                            <td className="py-2 px-4 pl-12 text-gray-600">
+                              {format(new Date(t.transaction_date), 'MMM d')} - {t.description || t.transaction_number || 'Transaction'}
+                            </td>
+                            <td className="text-right py-2 px-4 text-gray-500">
+                              {t.reference_number || '-'}
+                            </td>
+                            <td className="text-right py-2 px-4">
+                              {t.debit > 0 ? `$${t.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
+                            </td>
+                            <td className="text-right py-2 px-4">
+                              {t.credit > 0 ? `$${t.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
+                            </td>
+                            <td className="py-2 px-4"></td>
+                          </tr>
+                        ))
+                      )}
+                    </React.Fragment>
+                  ))
+                )}
+              </tbody>
+              {accountGroups.length > 0 && (
+                <tfoot>
+                  <tr className="border-t-2 border-gray-300 bg-blue-50 font-bold">
+                    <td colSpan={3} className="py-3 px-4">TOTALS</td>
+                    <td className="text-right py-3 px-4">
+                      ${accountGroups.reduce((sum, g) => sum + g.totalDebit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="text-right py-3 px-4">
+                      ${accountGroups.reduce((sum, g) => sum + g.totalCredit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className={`text-right py-3 px-4 ${runningBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                      ${Math.abs(runningBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                </tfoot>
               )}
-            </tbody>
-            {ledgerEntries.length > 0 && (
-              <tfoot>
-                <tr className="border-t-2 border-gray-300 bg-blue-50 font-bold">
-                  <td colSpan={5} className="py-3 px-4">TOTALS</td>
-                  <td className="text-right py-3 px-4">
-                    ${ledgerEntries.reduce((sum, e) => sum + e.debit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </td>
-                  <td className="text-right py-3 px-4">
-                    ${ledgerEntries.reduce((sum, e) => sum + e.credit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </td>
-                  <td className={`text-right py-3 px-4 ${runningBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                    ${Math.abs(runningBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </td>
+            </table>
+            <p className="text-xs text-gray-500 mt-2 italic">
+              💡 Tip: Double-click any account row to view detailed transactions
+            </p>
+          </div>
+        ) : (
+          /* Detailed List View */
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="border-b-2 border-gray-300 bg-gray-100">
+                  <th className="text-left py-3 px-4 font-semibold">Date</th>
+                  <th className="text-left py-3 px-4 font-semibold">Transaction #</th>
+                  <th className="text-left py-3 px-4 font-semibold">Account</th>
+                  <th className="text-left py-3 px-4 font-semibold">Description</th>
+                  <th className="text-left py-3 px-4 font-semibold">Reference</th>
+                  <th className="text-right py-3 px-4 font-semibold">Debit</th>
+                  <th className="text-right py-3 px-4 font-semibold">Credit</th>
+                  <th className="text-right py-3 px-4 font-semibold">Balance</th>
                 </tr>
-              </tfoot>
-            )}
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {ledgerEntries.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="text-center py-8 text-gray-500">
+                      No transactions found for the selected account
+                    </td>
+                  </tr>
+                ) : (
+                  ledgerEntries.map((entry, idx) => (
+                    <tr key={idx} className="border-b hover:bg-gray-50">
+                      <td className="py-2 px-4">
+                        {format(new Date(entry.transaction_date), 'MMM d, yyyy')}
+                      </td>
+                      <td className="py-2 px-4 font-mono text-xs">
+                        {entry.transaction_number || entry.id.slice(0, 8)}
+                      </td>
+                      <td className="py-2 px-4 font-mono text-xs">
+                        {entry.account_code ? `${entry.account_code} - ${entry.account_name}` : '-'}
+                      </td>
+                      <td className="py-2 px-4">
+                        {entry.description || 'Untitled Transaction'}
+                      </td>
+                      <td className="py-2 px-4 text-xs text-gray-600">
+                        {entry.reference_number || '-'}
+                      </td>
+                      <td className="text-right py-2 px-4">
+                        {entry.debit > 0 ? `$${entry.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
+                      </td>
+                      <td className="text-right py-2 px-4">
+                        {entry.credit > 0 ? `$${entry.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
+                      </td>
+                      <td className={`text-right py-2 px-4 font-semibold ${entry.balance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                        ${Math.abs(entry.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+              {ledgerEntries.length > 0 && (
+                <tfoot>
+                  <tr className="border-t-2 border-gray-300 bg-blue-50 font-bold">
+                    <td colSpan={5} className="py-3 px-4">TOTALS</td>
+                    <td className="text-right py-3 px-4">
+                      ${ledgerEntries.reduce((sum, e) => sum + e.debit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="text-right py-3 px-4">
+                      ${ledgerEntries.reduce((sum, e) => sum + e.credit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className={`text-right py-3 px-4 ${runningBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                      ${Math.abs(runningBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+        )}
 
         {ledgerEntries.length > 0 && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
