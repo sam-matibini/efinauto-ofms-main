@@ -235,11 +235,11 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
           source: 'sale'
         });
 
-        // COGS entry (cost of vehicle sold) - always create for sold vehicles
-        const soldVehicle = s.vehicle_id ? vehicles.find(v => v.id === s.vehicle_id) : null;
+        // COGS entry (cost of vehicle sold) - lookup vehicle from map
+        const soldVehicle = s.vehicle_id ? vehicleMap[s.vehicle_id] : null;
         const vehicleCost = soldVehicle ? (soldVehicle.total_cost || soldVehicle.purchase_price || 0) : 0;
         
-        // Create COGS entry if we have a vehicle cost, or estimate based on typical margin
+        // Create COGS entry if we have a vehicle cost
         if (vehicleCost > 0) {
           entries.push({
             id: `sale-cogs-${s.id}`,
@@ -254,6 +254,22 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
             reference_id: s.id,
             reference_number: s.sale_number,
             source: 'sale-cogs'
+          });
+          
+          // Also reduce inventory when vehicle is sold (Credit Vehicle Inventory)
+          entries.push({
+            id: `sale-inv-reduce-${s.id}`,
+            transaction_date: s.sale_date || s.created_date,
+            account_code: '1200',
+            account_name: 'Vehicle Inventory',
+            account_type: 'liability', // Credit entry to reduce asset
+            category: 'liability',
+            amount: vehicleCost,
+            description: `Inventory Reduction: ${s.vehicle_details || (soldVehicle ? soldVehicle.year + ' ' + soldVehicle.make + ' ' + soldVehicle.model : 'Vehicle')}`,
+            reference_type: 'Sale',
+            reference_id: s.id,
+            reference_number: s.sale_number,
+            source: 'sale-inv-reduce'
           });
         }
 
