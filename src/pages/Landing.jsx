@@ -235,7 +235,7 @@ Keep each item concise.`,
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
       {/* Hero Section */}
       <header className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1920')] bg-cover bg-center opacity-10" />
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1555215695-3004980ad54e?w=1920')] bg-cover bg-center opacity-20" />
         <div className="relative max-w-7xl mx-auto px-6 py-16 md:py-24">
           <div className="text-center">
             <motion.div
@@ -244,6 +244,14 @@ Keep each item concise.`,
               transition={{ duration: 0.5 }}
             >
               <Badge className="bg-blue-600 text-white mb-4">Automotive Business Management</Badge>
+              <div className="mb-6">
+                <img 
+                  src="https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800" 
+                  alt="2025 BMW X6" 
+                  className="w-full max-w-2xl mx-auto rounded-xl shadow-2xl border border-slate-700"
+                />
+                <p className="text-blue-400 mt-3 font-semibold">Featured: 2025 BMW X6</p>
+              </div>
               <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
                 eFinAuto <span className="text-blue-400">OFMS</span>
               </h1>
