@@ -408,9 +408,9 @@ export default function Accounting() {
                 </div>
               </div>
               <div className="text-sm text-gray-600">
-                <span className="font-medium">From:</span> {format(selectedDateRange.from, 'yyyy/MM/dd')}
+                <span className="font-medium">From:</span> {format(selectedDateRange.from, 'MMM d, yyyy')}
                 <br />
-                <span className="font-medium">To:</span> {format(selectedDateRange.to, 'yyyy/MM/dd')}
+                <span className="font-medium">To:</span> {format(selectedDateRange.to, 'MMM d, yyyy')}
               </div>
             </div>
           </CardContent>
