@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Package, FileText, Trash2 } from "lucide-react";
+import { Plus, Package, FileText, Trash2, LayoutGrid, List, Eye, Ship } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -17,6 +17,8 @@ import DocumentGenerationDialog from "../components/freight/DocumentGenerationDi
 import { useCompany } from "../components/shared/CompanyContext";
 import CustomerSelector from "../components/shared/CustomerSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { format } from "date-fns";
 
 export default function Freight() {
   const [dialogOpen, setDialogOpen] = useState(false);
