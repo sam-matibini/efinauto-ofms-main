@@ -123,10 +123,7 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
     if (type === 'parts_purchase' || desc.includes('parts purchase')) {
       return { account_code: '1210', account_name: 'Parts Inventory', account_type: 'asset' };
     }
-    // COGS
-    if (desc.includes('cogs') || desc.includes('cost of goods')) {
-      return { account_code: '5000', account_name: 'Cost of Goods Sold', account_type: 'expense' };
-    }
+
     // Accounts Receivable
     if (desc.includes('ar:') || desc.includes('accounts receivable')) {
       return { account_code: '1100', account_name: 'Accounts Receivable', account_type: 'asset' };
