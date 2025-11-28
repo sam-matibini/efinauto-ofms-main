@@ -733,8 +733,8 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
     transmission: "manual", engine_capacity: "", features: "",
     location: "", images: [], notes: "",
     vendor_id: "", vendor_name: "", vendor_phone: "", vendor_email: "",
-    province: "", tax_status: "taxable", tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0, total_cost: 0
-  });
+    province: "", tax_status: "taxable", pst_exempt: false, tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0, total_cost: 0
+          });
 
   React.useEffect(() => {
     if (open) {
@@ -767,8 +767,9 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
           vendor_phone: vehicle.vendor_phone || "",
           vendor_email: vehicle.vendor_email || "",
           province: vehicle.province || "",
-          tax_status: vehicle.tax_status || "taxable",
-          tax_gst: vehicle.tax_gst || 0,
+                          tax_status: vehicle.tax_status || "taxable",
+                          pst_exempt: vehicle.pst_exempt || false,
+                          tax_gst: vehicle.tax_gst || 0,
           tax_pst: vehicle.tax_pst || 0,
           tax_hst: vehicle.tax_hst || 0,
           tax_total: vehicle.tax_total || 0,
@@ -784,38 +785,43 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
           transmission: "manual", engine_capacity: "", features: "",
           location: "", images: [], notes: "",
           vendor_id: "", vendor_name: "", vendor_phone: "", vendor_email: "",
-          province: "", tax_status: "taxable", tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0, total_cost: 0
-        });
+          province: "", tax_status: "taxable", pst_exempt: false, tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0, total_cost: 0
+                      });
       }
     }
   }, [vehicle, open]);
 
-  const calculateTaxes = (price, province, taxStatus) => {
-    if (taxStatus !== "taxable" || !province || !price) {
-      return { tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0, total_cost: price || 0 };
-    }
-    const rates = company?.tax_rates?.[province] || { gst: 5, pst: 0, hst: 0 };
-    const tax_gst = (price * (rates.gst || 0)) / 100;
-    const tax_pst = (price * (rates.pst || 0)) / 100;
-    const tax_hst = (price * (rates.hst || 0)) / 100;
-    const tax_total = tax_gst + tax_pst + tax_hst;
-    return { tax_gst, tax_pst, tax_hst, tax_total, total_cost: price + tax_total };
-  };
+  const calculateTaxes = (price, province, taxStatus, pstExempt = false) => {
+        if (taxStatus !== "taxable" || !province || !price) {
+          return { tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0, total_cost: price || 0 };
+        }
+        const rates = company?.tax_rates?.[province] || { gst: 5, pst: 0, hst: 0 };
+        const tax_gst = (price * (rates.gst || 0)) / 100;
+        const tax_pst = pstExempt ? 0 : (price * (rates.pst || 0)) / 100;
+        const tax_hst = (price * (rates.hst || 0)) / 100;
+        const tax_total = tax_gst + tax_pst + tax_hst;
+        return { tax_gst, tax_pst, tax_hst, tax_total, total_cost: price + tax_total };
+      };
 
   const handleProvinceChange = (province) => {
-    const taxes = calculateTaxes(formData.purchase_price, province, formData.tax_status);
-    setFormData({ ...formData, province, ...taxes });
-  };
+        const taxes = calculateTaxes(formData.purchase_price, province, formData.tax_status, formData.pst_exempt);
+        setFormData({ ...formData, province, ...taxes });
+      };
 
-  const handleTaxStatusChange = (taxStatus) => {
-    const taxes = calculateTaxes(formData.purchase_price, formData.province, taxStatus);
-    setFormData({ ...formData, tax_status: taxStatus, ...taxes });
-  };
+      const handleTaxStatusChange = (taxStatus) => {
+        const taxes = calculateTaxes(formData.purchase_price, formData.province, taxStatus, formData.pst_exempt);
+        setFormData({ ...formData, tax_status: taxStatus, ...taxes });
+      };
 
-  const handlePurchasePriceChange = (price) => {
-    const taxes = calculateTaxes(price, formData.province, formData.tax_status);
-    setFormData({ ...formData, purchase_price: price, ...taxes });
-  };
+      const handlePurchasePriceChange = (price) => {
+        const taxes = calculateTaxes(price, formData.province, formData.tax_status, formData.pst_exempt);
+        setFormData({ ...formData, purchase_price: price, ...taxes });
+      };
+
+      const handlePstExemptChange = (checked) => {
+        const taxes = calculateTaxes(formData.purchase_price, formData.province, formData.tax_status, checked);
+        setFormData({ ...formData, pst_exempt: checked, ...taxes });
+      };
 
   const handleVendorSelect = (vendorId) => {
     const vendor = vendors.find(v => v.id === vendorId);
@@ -1105,18 +1111,28 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Tax Status</Label>
-            <Select value={formData.tax_status} onValueChange={handleTaxStatusChange}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="taxable">Taxable</SelectItem>
-                <SelectItem value="zero_rated">Zero-Rated</SelectItem>
-                <SelectItem value="exempt">Exempt</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>GST Amount</Label>
+                            <Label>Tax Status</Label>
+                            <Select value={formData.tax_status} onValueChange={handleTaxStatusChange}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="taxable">Taxable</SelectItem>
+                                <SelectItem value="zero_rated">Zero-Rated</SelectItem>
+                                <SelectItem value="exempt">Exempt</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2 flex items-center gap-2 pt-6">
+                            <input
+                              type="checkbox"
+                              id="pst_exempt"
+                              checked={formData.pst_exempt || false}
+                              onChange={(e) => handlePstExemptChange(e.target.checked)}
+                              className="h-4 w-4 rounded border-gray-300"
+                            />
+                            <Label htmlFor="pst_exempt" className="cursor-pointer">PST Exempt</Label>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>GST Amount</Label>
             <Input type="number" step="0.01" value={formData.tax_gst} readOnly className="bg-gray-50" />
           </div>
           <div className="space-y-2">
