@@ -57,7 +57,7 @@ export default function PartDialog({ open, onClose, part, onSave, isSaving }) {
     image_url: "",
     vendor_id: "", vendor_name: "", vendor_phone: "", vendor_email: "",
     invoice_number: "", purchase_date: "",
-    province: "", tax_status: "taxable", tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0, total_cost: 0
+    province: "", tax_status: "taxable", pst_exempt: false, tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0, total_cost: 0
   });
 
   React.useEffect(() => {
@@ -73,6 +73,7 @@ export default function PartDialog({ open, onClose, part, onSave, isSaving }) {
           purchase_date: part.purchase_date || "",
           province: part.province || "",
           tax_status: part.tax_status || "taxable",
+          pst_exempt: part.pst_exempt || false,
           tax_gst: part.tax_gst || 0,
           tax_pst: part.tax_pst || 0,
           tax_hst: part.tax_hst || 0,
@@ -96,37 +97,42 @@ export default function PartDialog({ open, onClose, part, onSave, isSaving }) {
           image_url: "",
           vendor_id: "", vendor_name: "", vendor_phone: "", vendor_email: "",
           invoice_number: "", purchase_date: "",
-          province: "", tax_status: "taxable", tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0, total_cost: 0
+          province: "", tax_status: "taxable", pst_exempt: false, tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0, total_cost: 0
         });
       }
     }
   }, [part, open]);
 
-  const calculateTaxes = (price, province, taxStatus) => {
+  const calculateTaxes = (price, province, taxStatus, pstExempt = false) => {
     if (taxStatus !== "taxable" || !province || !price) {
       return { tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0, total_cost: price || 0 };
     }
     const rates = company?.tax_rates?.[province] || { gst: 5, pst: 0, hst: 0 };
     const tax_gst = (price * (rates.gst || 0)) / 100;
-    const tax_pst = (price * (rates.pst || 0)) / 100;
+    const tax_pst = pstExempt ? 0 : (price * (rates.pst || 0)) / 100;
     const tax_hst = (price * (rates.hst || 0)) / 100;
     const tax_total = tax_gst + tax_pst + tax_hst;
     return { tax_gst, tax_pst, tax_hst, tax_total, total_cost: price + tax_total };
   };
 
   const handleProvinceChange = (province) => {
-    const taxes = calculateTaxes(formData.cost_price, province, formData.tax_status);
+    const taxes = calculateTaxes(formData.cost_price, province, formData.tax_status, formData.pst_exempt);
     setFormData({ ...formData, province, ...taxes });
   };
 
   const handleTaxStatusChange = (taxStatus) => {
-    const taxes = calculateTaxes(formData.cost_price, formData.province, taxStatus);
+    const taxes = calculateTaxes(formData.cost_price, formData.province, taxStatus, formData.pst_exempt);
     setFormData({ ...formData, tax_status: taxStatus, ...taxes });
   };
 
   const handleCostPriceChange = (price) => {
-    const taxes = calculateTaxes(price, formData.province, formData.tax_status);
+    const taxes = calculateTaxes(price, formData.province, formData.tax_status, formData.pst_exempt);
     setFormData({ ...formData, cost_price: price, ...taxes });
+  };
+
+  const handlePstExemptChange = (checked) => {
+    const taxes = calculateTaxes(formData.cost_price, formData.province, formData.tax_status, checked);
+    setFormData({ ...formData, pst_exempt: checked, ...taxes });
   };
 
   const handleVendorSelect = (vendorId) => {
@@ -313,6 +319,16 @@ export default function PartDialog({ open, onClose, part, onSave, isSaving }) {
                       <SelectItem value="exempt">Exempt</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-2 flex items-center gap-2 pt-6">
+                  <input
+                    type="checkbox"
+                    id="pst_exempt_part"
+                    checked={formData.pst_exempt || false}
+                    onChange={(e) => handlePstExemptChange(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <Label htmlFor="pst_exempt_part" className="cursor-pointer">PST Exempt</Label>
                 </div>
                 <div className="space-y-2">
                   <Label>GST Amount</Label>
