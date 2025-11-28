@@ -599,6 +599,66 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
           </TabsContent>
 
           <TabsContent value="items" className="space-y-4 py-4">
+            {/* Export Sales Search */}
+            {sales && sales.length > 0 && (
+              <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                <Label className="text-sm font-medium text-purple-800 mb-2 block">Import from Export Sales</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-400 w-4 h-4" />
+                  <Input
+                    placeholder="Search export sales by customer, VIN, or sale #..."
+                    value={saleSearch}
+                    onChange={(e) => setSaleSearch(e.target.value)}
+                    className="pl-9 border-purple-300 focus:border-purple-500"
+                  />
+                  {saleSearch && (
+                    <div className="absolute z-20 w-full mt-1 bg-white border border-purple-200 rounded-md shadow-lg max-h-64 overflow-y-auto">
+                      {sales
+                        .filter(s => {
+                          const search = saleSearch.toLowerCase();
+                          return s.customer_name?.toLowerCase().includes(search) ||
+                                 s.vehicle_vin?.toLowerCase().includes(search) ||
+                                 s.sale_number?.toLowerCase().includes(search) ||
+                                 s.vehicle_details?.toLowerCase().includes(search);
+                        })
+                        .slice(0, 10)
+                        .map(sale => (
+                          <div
+                            key={sale.id}
+                            className="px-3 py-2 hover:bg-purple-50 cursor-pointer border-b last:border-b-0"
+                            onClick={() => {
+                              addSaleItem(sale);
+                              setSaleSearch("");
+                            }}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="font-medium text-purple-800">{sale.sale_number}</span>
+                                <span className="text-gray-600 ml-2">{sale.customer_name}</span>
+                              </div>
+                              <span className="text-green-600 font-medium">${sale.sale_price?.toLocaleString()}</span>
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {sale.vehicle_details || `${sale.vehicle_year || ''} ${sale.vehicle_make_model || ''}`}
+                              {sale.vehicle_vin && <span className="ml-2 font-mono text-xs">VIN: {sale.vehicle_vin}</span>}
+                            </div>
+                          </div>
+                        ))}
+                      {sales.filter(s => {
+                        const search = saleSearch.toLowerCase();
+                        return s.customer_name?.toLowerCase().includes(search) ||
+                               s.vehicle_vin?.toLowerCase().includes(search) ||
+                               s.sale_number?.toLowerCase().includes(search) ||
+                               s.vehicle_details?.toLowerCase().includes(search);
+                      }).length === 0 && (
+                        <div className="px-3 py-2 text-sm text-gray-500">No export sales found</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-2 mb-4 flex-wrap">
               {/* VIN Search */}
               <div className="relative flex-1 min-w-[150px]">
