@@ -164,9 +164,34 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     return yearMatch ? parseInt(yearMatch[0]) : "";
   };
 
+  const lookupVinFromVehicles = (description, year) => {
+    if (!description || !vehicles || vehicles.length === 0) return "";
+
+    const descLower = description.toLowerCase();
+
+    // Try to find a matching vehicle by year and make/model
+    for (const vehicle of vehicles) {
+      if (!vehicle.vin || vehicle.vin === "MISSING_VIN" || vehicle.vin === "") continue;
+
+      const vehicleYear = vehicle.year;
+      const vehicleMake = vehicle.make?.toLowerCase() || "";
+      const vehicleModel = vehicle.model?.toLowerCase() || "";
+
+      // Check if year matches and make/model are in the description
+      if (year && vehicleYear && parseInt(year) === parseInt(vehicleYear)) {
+        if (vehicleMake && descLower.includes(vehicleMake)) {
+          if (vehicleModel && descLower.includes(vehicleModel.split(' ')[0])) {
+            return vehicle.vin;
+          }
+        }
+      }
+    }
+    return "";
+  };
+
   const handleAddExportOrder = (exportId) => {
     if (!exportId || selectedExportIds.includes(exportId)) return;
-    
+
     const exportOrder = exports?.find(e => e.id === exportId);
     if (exportOrder) {
       const newExportIds = [...selectedExportIds, exportId];
@@ -175,16 +200,26 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
       const exportVehicles = (exportOrder.items || [])
         .filter(item => item.description && item.value)
         .map(item => {
-          // Extract VIN from description if stored there (legacy format: "2013 NISSAN ROGUE (VIN: xxx)")
+          // Priority 1: Use item.vin if available
           let vin = item.vin || "";
+
+          // Priority 2: Extract VIN from description (legacy format: "2013 NISSAN ROGUE (VIN: xxx)")
           if (!vin && item.description) {
             const vinMatch = item.description.match(/\(VIN:\s*([^)]+)\)/i);
             if (vinMatch) {
               vin = vinMatch[1].trim();
             }
           }
+
+          const year = extractYearFromDescription(item.description);
+
+          // Priority 3: Lookup VIN from Vehicle database by matching year/make/model
+          if (!vin && item.description) {
+            vin = lookupVinFromVehicles(item.description, year);
+          }
+
           return {
-            year: extractYearFromDescription(item.description) || "",
+            year: year || "",
             make_model: item.description?.replace(/\s*\(VIN:[^)]+\)/i, '') || "",
             vin: vin,
             weight: item.weight || 0,
