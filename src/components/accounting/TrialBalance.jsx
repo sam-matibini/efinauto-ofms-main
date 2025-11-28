@@ -29,6 +29,35 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
     enabled: !!selectedCompanyId,
     initialData: [],
   });
+
+  const { data: sales = [] } = useQuery({
+    queryKey: ['sales', selectedCompanyId],
+    queryFn: () => base44.entities.Sale.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: purchases = [] } = useQuery({
+    queryKey: ['purchases', selectedCompanyId],
+    queryFn: () => base44.entities.Purchase.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: repairs = [] } = useQuery({
+    queryKey: ['repairs', selectedCompanyId],
+    queryFn: () => base44.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: parts = [] } = useQuery({
+    queryKey: ['parts', selectedCompanyId],
+    queryFn: () => base44.entities.Part.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
   const periods = comparativePeriods.length > 0 ? comparativePeriods : [{ 
     from: new Date(new Date().getFullYear(), 0, 1), 
     to: new Date(),
