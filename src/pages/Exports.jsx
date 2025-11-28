@@ -151,14 +151,85 @@ export default function Exports() {
         }
       }
       
+      // Auto-update linked shipments
+      const linkedShipments = await base44.entities.FreightShipment.filter({ export_id: id });
+      for (const shipment of linkedShipments) {
+        await base44.entities.FreightShipment.update(shipment.id, {
+          customer_name: data.customer_name,
+          customer_phone: data.customer_phone,
+          destination_country: data.destination_country,
+          destination_location: data.destination_port || data.destination_address,
+          cargo_value: data.total_value,
+          cargo_description: (data.items || []).map(i => i.description).join(', ')
+        });
+      }
+      
+      // Auto-update linked loading declarations
+      const linkedDeclarations = await base44.entities.LoadingDeclaration.filter({ export_id: id });
+      for (const decl of linkedDeclarations) {
+        const updatedVehicles = (data.items || []).filter(item => item.vin || item.vehicle_id).map(item => ({
+          year: item.description?.match(/\b(19|20)\d{2}\b/)?.[0] || '',
+          make_model: item.description?.replace(/\s*\(VIN:[^)]+\)/i, '') || '',
+          vin: item.vin || '',
+          weight: item.weight || 0,
+          value: item.value || 0
+        }));
+        
+        await base44.entities.LoadingDeclaration.update(decl.id, {
+          consignee: {
+            ...decl.consignee,
+            name: data.customer_name
+          },
+          commodity: (data.items || []).map(i => i.description).join(', '),
+          value: data.total_value,
+          weight: (data.items || []).reduce((sum, i) => sum + (i.weight || 0), 0),
+          vehicles: updatedVehicles
+        });
+      }
+      
+      // Also check for declarations with this export in export_ids array
+      const allDeclarations = await base44.entities.LoadingDeclaration.filter({ company_id: selectedCompanyId });
+      for (const decl of allDeclarations) {
+        if (decl.export_ids?.includes(id)) {
+          // Recalculate from all linked exports
+          const allLinkedExports = await Promise.all(
+            decl.export_ids.map(expId => 
+              exports.find(e => e.id === expId) || base44.entities.Export.filter({ id: expId }).then(r => r[0])
+            )
+          );
+          
+          const allVehicles = allLinkedExports.filter(Boolean).flatMap(exp => 
+            (exp.items || []).filter(item => item.vin || item.vehicle_id).map(item => ({
+              year: item.description?.match(/\b(19|20)\d{2}\b/)?.[0] || '',
+              make_model: item.description?.replace(/\s*\(VIN:[^)]+\)/i, '') || '',
+              vin: item.vin || '',
+              weight: item.weight || 0,
+              value: item.value || 0,
+              export_id: exp.id
+            }))
+          );
+          
+          const totalValue = allLinkedExports.filter(Boolean).reduce((sum, exp) => sum + (exp.total_value || 0), 0);
+          const totalWeight = allVehicles.reduce((sum, v) => sum + (v.weight || 0), 0);
+          
+          await base44.entities.LoadingDeclaration.update(decl.id, {
+            value: totalValue,
+            weight: totalWeight,
+            vehicles: allVehicles
+          });
+        }
+      }
+      
       return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exports'] });
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['shipments'] });
+      queryClient.invalidateQueries({ queryKey: ['loadingDeclarations'] });
       setDialogOpen(false);
       setEditingExport(null);
-      toast.success("Export order updated!");
+      toast.success("Export order and linked records updated!");
     },
     onError: (error) => {
       toast.error(`Failed to update export order: ${error.message || 'Unknown error'}`);
