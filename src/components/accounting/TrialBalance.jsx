@@ -178,9 +178,15 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
       });
     }
 
-    // 3. Vehicle Inventory - in_stock vehicles at cost (Account 1200)
+    // 3. Vehicle Inventory - in_stock vehicles acquired within period (Account 1200)
+    // Filter by transaction_date or created_date within the period
     const vehicleInventoryValue = vehicles
-      .filter(v => v.status === 'in_stock')
+      .filter(v => {
+        const acquisitionDate = new Date(v.transaction_date || v.created_date);
+        return v.status === 'in_stock' && 
+               acquisitionDate >= period.from && 
+               acquisitionDate <= period.to;
+      })
       .reduce((sum, v) => sum + (v.total_cost || v.purchase_price || 0), 0);
 
     if (vehicleInventoryValue > 0) {
