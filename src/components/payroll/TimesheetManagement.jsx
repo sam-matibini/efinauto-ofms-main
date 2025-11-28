@@ -189,12 +189,35 @@ export default function TimesheetManagement({ company, employees, timeEntries, q
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center flex-wrap gap-2">
             <CardTitle>Timesheet Management</CardTitle>
-            <Button onClick={() => { resetForm(); setDialogOpen(true); }} className="bg-blue-600">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Time Entry
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* View Toggle */}
+              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                <Button
+                  variant={viewMode === "grouped" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("grouped")}
+                  className={viewMode === "grouped" ? "bg-white shadow-sm" : ""}
+                >
+                  <Users className="w-4 h-4 mr-1" />
+                  Grouped
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("list")}
+                  className={viewMode === "list" ? "bg-white shadow-sm" : ""}
+                >
+                  <List className="w-4 h-4 mr-1" />
+                  List
+                </Button>
+              </div>
+              <Button onClick={() => { resetForm(); setDialogOpen(true); }} className="bg-blue-600">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Time Entry
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
