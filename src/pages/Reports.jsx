@@ -65,6 +65,13 @@ export default function ReportsPage() {
     initialData: [],
   });
 
+  const { data: purchases = [] } = useQuery({
+    queryKey: ['purchases', selectedCompanyId],
+    queryFn: () => base44.entities.Purchase.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
   if (!selectedCompanyId) {
     return (
       <div className="p-6">
@@ -144,7 +151,13 @@ export default function ReportsPage() {
         </TabsContent>
 
         <TabsContent value="taxes">
-          <SalesTaxReport sales={sales} comparativePeriods={activePeriods} />
+          <SalesTaxReport 
+            sales={sales} 
+            vehicles={vehicles} 
+            parts={parts} 
+            purchases={purchases} 
+            comparativePeriods={activePeriods} 
+          />
         </TabsContent>
 
         <TabsContent value="inventory">
