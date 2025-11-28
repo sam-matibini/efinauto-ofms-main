@@ -37,6 +37,30 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
     initialData: [],
   });
 
+  // Get sales for accounts receivable calculation
+  const { data: sales = [] } = useQuery({
+    queryKey: ['sales', selectedCompanyId],
+    queryFn: () => base44.entities.Sale.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  // Get purchases for accounts payable calculation
+  const { data: purchases = [] } = useQuery({
+    queryKey: ['purchases', selectedCompanyId],
+    queryFn: () => base44.entities.Purchase.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  // Get repairs for service receivables
+  const { data: repairs = [] } = useQuery({
+    queryKey: ['repairs', selectedCompanyId],
+    queryFn: () => base44.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
   // Calculate for each period
   const periodData = periods.map(period => {
     const periodTransactions = transactions.filter(t => {
@@ -72,9 +96,31 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
     };
 
     // ASSETS
-    const cashAndBank = getAccountBalance('asset', 'cash');
-    const accountsReceivable = getAccountBalance('asset', 'accounts_receivable');
+    const cashAndBankFromAccounts = getAccountBalance('asset', 'cash');
+    const accountsReceivableFromAccounts = getAccountBalance('asset', 'accounts_receivable');
     const otherInventory = getAccountBalance('asset', 'inventory');
+    
+    // Accounts Receivable from unpaid sales (within period)
+    const salesReceivable = sales
+      .filter(s => {
+        const saleDate = new Date(s.sale_date || s.created_date);
+        return saleDate <= period.to && 
+               (s.payment_status === 'pending' || s.payment_status === 'partial');
+      })
+      .reduce((sum, s) => sum + ((s.grand_total || s.sale_price || 0) - (s.total_paid || 0)), 0);
+
+    // Service receivables from unpaid repairs
+    const serviceReceivable = repairs
+      .filter(r => {
+        const repairDate = new Date(r.completion_date || r.created_date);
+        return repairDate <= period.to && 
+               r.status === 'completed' &&
+               (r.payment_status === 'pending' || r.payment_status === 'partial');
+      })
+      .reduce((sum, r) => sum + ((r.total_cost || 0) - (r.amount_paid || 0)), 0);
+
+    const cashAndBank = cashAndBankFromAccounts;
+    const accountsReceivable = accountsReceivableFromAccounts + salesReceivable + serviceReceivable;
     
     // Vehicle Inventory - in_stock vehicles at cost (purchase_price or total_cost)
     const vehicleInventory = vehicles
@@ -97,7 +143,7 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
     const totalAssets = totalCurrentAssets + netFixedAssets;
 
     // LIABILITIES
-    const accountsPayable = periodTransactions
+    const accountsPayableFromAccounts = periodTransactions
       .filter(t => {
         const account = accounts.find(a => a.id === t.account_id);
         return account?.account_type === 'liability' && 
@@ -106,6 +152,17 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
                t.status === 'pending';
       })
       .reduce((sum, t) => sum + t.amount, 0);
+
+    // Accounts Payable from unpaid purchases
+    const purchasesPayable = purchases
+      .filter(p => {
+        const purchaseDate = new Date(p.order_date || p.created_date);
+        return purchaseDate <= period.to && 
+               (p.payment_status === 'pending' || p.payment_status === 'partial');
+      })
+      .reduce((sum, p) => sum + ((p.total_amount || 0) - (p.amount_paid || 0)), 0);
+
+    const accountsPayable = accountsPayableFromAccounts + purchasesPayable;
     
     const payrollLiabilities = periodTransactions
       .filter(t => {
@@ -132,20 +189,47 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
       .reduce((sum, t) => sum + t.amount, 0);
     const totalLiabilities = totalCurrentLiabilities + longTermDebt;
 
-    // EQUITY
-    const revenueTotal = periodTransactions
+    // EQUITY - Calculate retained earnings from all revenue sources
+    const revenueFromAccounts = periodTransactions
       .filter(t => {
         const account = accounts.find(a => a.id === t.account_id);
         return account?.account_type === 'revenue';
       })
       .reduce((sum, t) => sum + t.amount, 0);
 
-    const expenseTotal = periodTransactions
+    // Revenue from sales (paid)
+    const salesRevenue = sales
+      .filter(s => {
+        const saleDate = new Date(s.sale_date || s.created_date);
+        return saleDate <= period.to && s.payment_status === 'paid';
+      })
+      .reduce((sum, s) => sum + (s.grand_total || s.sale_price || 0), 0);
+
+    // Revenue from repairs (paid)
+    const repairRevenue = repairs
+      .filter(r => {
+        const repairDate = new Date(r.completion_date || r.created_date);
+        return repairDate <= period.to && r.status === 'completed' && r.payment_status === 'paid';
+      })
+      .reduce((sum, r) => sum + (r.total_cost || 0), 0);
+
+    const expenseFromAccounts = periodTransactions
       .filter(t => {
         const account = accounts.find(a => a.id === t.account_id);
         return account?.account_type === 'expense';
       })
       .reduce((sum, t) => sum + t.amount, 0);
+
+    // Expenses from purchases (paid)
+    const purchaseExpenses = purchases
+      .filter(p => {
+        const purchaseDate = new Date(p.order_date || p.created_date);
+        return purchaseDate <= period.to && p.payment_status === 'paid';
+      })
+      .reduce((sum, p) => sum + (p.total_amount || 0), 0);
+
+    const revenueTotal = revenueFromAccounts + salesRevenue + repairRevenue;
+    const expenseTotal = expenseFromAccounts + purchaseExpenses;
 
     const retainedEarnings = revenueTotal - expenseTotal;
     const ownerEquity = periodTransactions
