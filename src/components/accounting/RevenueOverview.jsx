@@ -157,7 +157,7 @@ export default function RevenueOverview({ transactions, sales, repairs, purchase
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                  <Tooltip formatter={(value) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -185,7 +185,7 @@ export default function RevenueOverview({ transactions, sales, repairs, purchase
                     <span className="font-medium">{item.name}</span>
                   </div>
                   <span className="text-lg font-bold text-blue-600">
-                    ${item.value.toLocaleString()}
+                    ${item.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               ))}
@@ -206,7 +206,7 @@ export default function RevenueOverview({ transactions, sales, repairs, purchase
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                <Tooltip formatter={(value) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
                 <Legend />
                 <Bar dataKey="revenue" fill="#10b981" name="Revenue" />
                 <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />

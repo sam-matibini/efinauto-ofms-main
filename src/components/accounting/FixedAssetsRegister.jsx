@@ -169,19 +169,19 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
           <Card>
             <CardContent className="p-4">
               <p className="text-sm text-gray-600">Total Cost</p>
-              <p className="text-2xl font-bold text-blue-600">${totalCost.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-blue-600">${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <p className="text-sm text-gray-600">Accumulated Depreciation</p>
-              <p className="text-2xl font-bold text-red-600">${totalDepreciation.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-red-600">${totalDepreciation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <p className="text-sm text-gray-600">Net Book Value</p>
-              <p className="text-2xl font-bold text-green-600">${totalNetValue.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-green-600">${totalNetValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </CardContent>
           </Card>
         </div>
@@ -215,7 +215,7 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
                     <td className="p-3 text-sm">{asset.description}</td>
                     <td className="p-3 text-sm font-mono text-xs">{asset.serialNumber}</td>
                     <td className="p-3 text-sm">{new Date(asset.purchaseDate).toLocaleDateString()}</td>
-                    <td className="p-3 text-sm text-right font-mono">${asset.purchasePrice.toLocaleString()}</td>
+                    <td className="p-3 text-sm text-right font-mono">${asset.purchasePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td className="p-3 text-sm">
                       <Badge className={hasAICalc ? "bg-purple-100 text-purple-800" : "bg-gray-100 text-gray-600"} variant="outline">
                         {hasAICalc && <Sparkles className="w-3 h-3 mr-1 inline" />}
@@ -223,10 +223,10 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
                       </Badge>
                     </td>
                     <td className="p-3 text-sm text-right font-mono text-red-600">
-                      ${dep.accumulatedDepreciation.toLocaleString()}
+                      ${dep.accumulatedDepreciation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td className="p-3 text-sm text-right font-mono font-semibold">
-                      ${dep.netBookValue.toLocaleString()}
+                      ${dep.netBookValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td className="p-3 text-sm">
                       <Badge className={
@@ -254,10 +254,10 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
             <tfoot className="bg-gray-50 font-bold">
               <tr>
                 <td colSpan="4" className="p-3 text-sm">TOTALS</td>
-                <td className="p-3 text-sm text-right">${totalCost.toLocaleString()}</td>
+                <td className="p-3 text-sm text-right">${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td></td>
-                <td className="p-3 text-sm text-right text-red-600">${totalDepreciation.toLocaleString()}</td>
-                <td className="p-3 text-sm text-right text-green-600">${totalNetValue.toLocaleString()}</td>
+                <td className="p-3 text-sm text-right text-red-600">${totalDepreciation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="p-3 text-sm text-right text-green-600">${totalNetValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td colSpan="2"></td>
               </tr>
             </tfoot>

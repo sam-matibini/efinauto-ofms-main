@@ -234,7 +234,7 @@ export default function TransactionsList({ transactions, dateRange, comparativeP
                   </div>
                   <div className="text-right">
                     <p className={`text-lg font-bold ${transaction.category === 'revenue' ? 'text-green-600' : 'text-red-600'}`}>
-                      {transaction.category === 'revenue' ? '+' : '-'}${transaction.amount.toLocaleString()}
+                      {transaction.category === 'revenue' ? '+' : '-'}${transaction.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                     {transaction.tax_amount > 0 && (
                       <p className="text-xs text-gray-500">Tax: ${transaction.tax_amount.toFixed(2)}</p>
@@ -276,7 +276,7 @@ export default function TransactionsList({ transactions, dateRange, comparativeP
                       <td className="border border-gray-300 p-2">{t.description}</td>
                       <td className="border border-gray-300 p-2">{t.customer_name || '-'}</td>
                       <td className="border border-gray-300 p-2">{t.category}</td>
-                      <td className="border border-gray-300 p-2 text-right">${t.amount.toLocaleString()}</td>
+                      <td className="border border-gray-300 p-2 text-right">${t.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                   ))}
                 </tbody>
