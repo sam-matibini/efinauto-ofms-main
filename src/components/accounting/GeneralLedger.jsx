@@ -81,17 +81,238 @@ export default function GeneralLedger({ transactions, comparativePeriods = [] })
   ];
 
   const currentPeriod = periods[0];
+
+  // Build comprehensive ledger entries from all data sources
+  const allLedgerEntries = React.useMemo(() => {
+    const entries = [];
+    const existingRefs = new Set(transactions.map(t => `${t.reference_type}-${t.reference_id}`));
+
+    // Add existing transactions
+    transactions.forEach(t => {
+      entries.push({
+        ...t,
+        source: 'transaction'
+      });
+    });
+
+    // Add vehicle purchases (Dr: Vehicle Inventory, Cr: Cash/AP)
+    vehicles.forEach(v => {
+      if (!existingRefs.has(`Vehicle-${v.id}`) && v.purchase_price > 0) {
+        entries.push({
+          id: `vehicle-${v.id}`,
+          transaction_date: v.transaction_date || v.created_date,
+          account_code: '1200',
+          account_name: 'Vehicle Inventory',
+          account_type: 'asset',
+          category: 'asset',
+          amount: v.total_cost || v.purchase_price || 0,
+          description: `Vehicle Purchase: ${v.year} ${v.make} ${v.model}`,
+          reference_type: 'Vehicle',
+          reference_id: v.id,
+          reference_number: v.stock_number || v.vin,
+          source: 'vehicle'
+        });
+      }
+    });
+
+    // Add sales revenue (Dr: Cash/AR, Cr: Sales Revenue)
+    sales.forEach(s => {
+      if (!existingRefs.has(`Sale-${s.id}`)) {
+        // Sales Revenue entry
+        entries.push({
+          id: `sale-revenue-${s.id}`,
+          transaction_date: s.sale_date || s.created_date,
+          account_code: '4000',
+          account_name: 'Vehicle Sales Revenue',
+          account_type: 'revenue',
+          category: 'revenue',
+          amount: s.sale_price || s.grand_total || 0,
+          description: `Vehicle Sale: ${s.vehicle_details || s.vehicle_make_model || 'Vehicle'}`,
+          reference_type: 'Sale',
+          reference_id: s.id,
+          reference_number: s.sale_number,
+          customer_name: s.customer_name,
+          source: 'sale'
+        });
+
+        // COGS entry (cost of vehicle sold)
+        const soldVehicle = vehicles.find(v => v.id === s.vehicle_id);
+        if (soldVehicle) {
+          entries.push({
+            id: `sale-cogs-${s.id}`,
+            transaction_date: s.sale_date || s.created_date,
+            account_code: '5000',
+            account_name: 'Cost of Goods Sold',
+            account_type: 'expense',
+            category: 'expense',
+            amount: soldVehicle.total_cost || soldVehicle.purchase_price || 0,
+            description: `COGS: ${s.vehicle_details || soldVehicle.year + ' ' + soldVehicle.make + ' ' + soldVehicle.model}`,
+            reference_type: 'Sale',
+            reference_id: s.id,
+            reference_number: s.sale_number,
+            source: 'sale-cogs'
+          });
+        }
+
+        // Accounts Receivable if not fully paid
+        if (s.payment_status !== 'paid' && (s.balance_due > 0 || (s.grand_total - (s.total_paid || 0)) > 0)) {
+          const arAmount = s.balance_due || ((s.grand_total || s.sale_price || 0) - (s.total_paid || 0));
+          if (arAmount > 0) {
+            entries.push({
+              id: `sale-ar-${s.id}`,
+              transaction_date: s.sale_date || s.created_date,
+              account_code: '1100',
+              account_name: 'Accounts Receivable',
+              account_type: 'asset',
+              category: 'asset',
+              amount: arAmount,
+              description: `AR: ${s.customer_name} - ${s.sale_number}`,
+              reference_type: 'Sale',
+              reference_id: s.id,
+              reference_number: s.sale_number,
+              source: 'sale-ar'
+            });
+          }
+        }
+
+        // Cash received
+        if (s.total_paid > 0) {
+          entries.push({
+            id: `sale-cash-${s.id}`,
+            transaction_date: s.sale_date || s.created_date,
+            account_code: '1000',
+            account_name: 'Cash and Bank',
+            account_type: 'asset',
+            category: 'asset',
+            amount: s.total_paid,
+            description: `Cash Received: ${s.customer_name} - ${s.sale_number}`,
+            reference_type: 'Sale',
+            reference_id: s.id,
+            reference_number: s.sale_number,
+            source: 'sale-cash'
+          });
+        }
+      }
+    });
+
+    // Add purchases
+    purchases.forEach(p => {
+      if (!existingRefs.has(`Purchase-${p.id}`)) {
+        const accountCode = p.purchase_type === 'vehicle' ? '1200' : 
+                           p.purchase_type === 'parts' ? '1210' : '5300';
+        const accountName = p.purchase_type === 'vehicle' ? 'Vehicle Inventory' :
+                           p.purchase_type === 'parts' ? 'Parts Inventory' : 'Purchases Expense';
+        const accountType = p.purchase_type === 'vehicle' || p.purchase_type === 'parts' ? 'asset' : 'expense';
+
+        entries.push({
+          id: `purchase-${p.id}`,
+          transaction_date: p.order_date || p.created_date,
+          account_code: accountCode,
+          account_name: accountName,
+          account_type: accountType,
+          category: accountType,
+          amount: p.total_amount || p.subtotal || 0,
+          description: `Purchase: ${p.purchase_type} from ${p.supplier_name}`,
+          reference_type: 'Purchase',
+          reference_id: p.id,
+          reference_number: p.purchase_number,
+          source: 'purchase'
+        });
+
+        // Accounts Payable if not fully paid
+        if (p.payment_status !== 'paid') {
+          const apAmount = (p.total_amount || 0) - (p.amount_paid || 0);
+          if (apAmount > 0) {
+            entries.push({
+              id: `purchase-ap-${p.id}`,
+              transaction_date: p.order_date || p.created_date,
+              account_code: '2000',
+              account_name: 'Accounts Payable',
+              account_type: 'liability',
+              category: 'liability',
+              amount: apAmount,
+              description: `AP: ${p.supplier_name} - ${p.purchase_number}`,
+              reference_type: 'Purchase',
+              reference_id: p.id,
+              reference_number: p.purchase_number,
+              source: 'purchase-ap'
+            });
+          }
+        }
+      }
+    });
+
+    // Add repair order revenue and expenses
+    repairs.forEach(r => {
+      if (!existingRefs.has(`RepairOrder-${r.id}`) && r.status === 'completed') {
+        // Service Revenue
+        entries.push({
+          id: `repair-revenue-${r.id}`,
+          transaction_date: r.completion_date || r.created_date,
+          account_code: '4100',
+          account_name: 'Service Revenue',
+          account_type: 'revenue',
+          category: 'revenue',
+          amount: r.total_cost || 0,
+          description: `Service: ${r.service_type?.replace(/_/g, ' ')} - ${r.customer_name}`,
+          reference_type: 'RepairOrder',
+          reference_id: r.id,
+          reference_number: r.order_number,
+          customer_name: r.customer_name,
+          source: 'repair'
+        });
+
+        // Parts Cost (expense)
+        if (r.parts_cost > 0) {
+          entries.push({
+            id: `repair-parts-${r.id}`,
+            transaction_date: r.completion_date || r.created_date,
+            account_code: '5100',
+            account_name: 'Parts Expense',
+            account_type: 'expense',
+            category: 'expense',
+            amount: r.parts_cost,
+            description: `Parts Used: ${r.order_number}`,
+            reference_type: 'RepairOrder',
+            reference_id: r.id,
+            reference_number: r.order_number,
+            source: 'repair-parts'
+          });
+        }
+
+        // Labor Cost (expense)
+        if (r.labor_cost > 0) {
+          entries.push({
+            id: `repair-labor-${r.id}`,
+            transaction_date: r.completion_date || r.created_date,
+            account_code: '5200',
+            account_name: 'Labor Expense',
+            account_type: 'expense',
+            category: 'expense',
+            amount: r.labor_cost,
+            description: `Labor: ${r.order_number}`,
+            reference_type: 'RepairOrder',
+            reference_id: r.id,
+            reference_number: r.order_number,
+            source: 'repair-labor'
+          });
+        }
+      }
+    });
+
+    return entries.sort((a, b) => new Date(a.transaction_date) - new Date(b.transaction_date));
+  }, [transactions, vehicles, sales, purchases, repairs]);
   
   // Filter transactions by period and account
-  const filteredTransactions = transactions.filter(t => {
+  const filteredTransactions = allLedgerEntries.filter(t => {
     const transDate = new Date(t.transaction_date);
     const inPeriod = transDate >= currentPeriod.from && transDate <= currentPeriod.to;
     
     if (!inPeriod) return false;
     if (selectedAccount === "all") return true;
 
-    // Filter by selected account ID
-    return t.account_id === selectedAccount;
+    // Filter by selected account ID or code
+    return t.account_id === selectedAccount || t.account_code === selectedAccount;
   });
 
   // Calculate running balance
