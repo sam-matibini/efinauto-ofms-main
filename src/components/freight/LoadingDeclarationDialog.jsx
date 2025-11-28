@@ -300,6 +300,13 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     }
   };
 
+  // Get export numbers for display
+  const getExportNumbers = () => {
+    return selectedExportIds
+      .map(id => exports?.find(e => e.id === id)?.export_number)
+      .filter(Boolean);
+  };
+
   const handleRemoveExportOrder = (exportId) => {
     const newExportIds = selectedExportIds.filter(id => id !== exportId);
     setSelectedExportIds(newExportIds);
