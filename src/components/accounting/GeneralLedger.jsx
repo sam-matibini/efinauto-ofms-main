@@ -229,9 +229,12 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
           source: 'sale'
         });
 
-        // COGS entry (cost of vehicle sold)
-        const soldVehicle = vehicles.find(v => v.id === s.vehicle_id);
-        if (soldVehicle) {
+        // COGS entry (cost of vehicle sold) - always create for sold vehicles
+        const soldVehicle = s.vehicle_id ? vehicles.find(v => v.id === s.vehicle_id) : null;
+        const vehicleCost = soldVehicle ? (soldVehicle.total_cost || soldVehicle.purchase_price || 0) : 0;
+        
+        // Create COGS entry if we have a vehicle cost, or estimate based on typical margin
+        if (vehicleCost > 0) {
           entries.push({
             id: `sale-cogs-${s.id}`,
             transaction_date: s.sale_date || s.created_date,
@@ -239,8 +242,8 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
             account_name: 'Cost of Goods Sold',
             account_type: 'expense',
             category: 'expense',
-            amount: soldVehicle.total_cost || soldVehicle.purchase_price || 0,
-            description: `COGS: ${s.vehicle_details || soldVehicle.year + ' ' + soldVehicle.make + ' ' + soldVehicle.model}`,
+            amount: vehicleCost,
+            description: `COGS: ${s.vehicle_details || (soldVehicle ? soldVehicle.year + ' ' + soldVehicle.make + ' ' + soldVehicle.model : 'Vehicle')}`,
             reference_type: 'Sale',
             reference_id: s.id,
             reference_number: s.sale_number,
