@@ -461,10 +461,10 @@ export default function Accounting() {
                       return (
                         <tr key={idx} className="border-b hover:bg-gray-50">
                           <td className="py-2 px-2 font-medium">{period.label}</td>
-                          <td className="text-right py-2 px-2 text-green-600">${period.revenue.toLocaleString()}</td>
-                          <td className="text-right py-2 px-2 text-red-600">${period.expenses.toLocaleString()}</td>
+                          <td className="text-right py-2 px-2 text-green-600">${period.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td className="text-right py-2 px-2 text-red-600">${period.expenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                           <td className={`text-right py-2 px-2 font-semibold ${period.profit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                            ${period.profit.toLocaleString()}
+                            ${period.profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
                           <td className="text-right py-2 px-2">{margin}%</td>
                         </tr>
@@ -484,7 +484,7 @@ export default function Accounting() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Revenue</p>
-                  <h3 className="text-2xl font-bold text-green-600">${totalRevenue.toLocaleString()}</h3>
+                  <h3 className="text-2xl font-bold text-green-600">${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
                 </div>
                 <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                   <TrendingUp className="w-6 h-6 text-green-600" />
@@ -498,7 +498,7 @@ export default function Accounting() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Expenses</p>
-                  <h3 className="text-2xl font-bold text-red-600">${totalExpenses.toLocaleString()}</h3>
+                  <h3 className="text-2xl font-bold text-red-600">${totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
                 </div>
                 <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
                   <TrendingDown className="w-6 h-6 text-red-600" />
@@ -513,7 +513,7 @@ export default function Accounting() {
                 <div>
                   <p className="text-sm text-gray-600">Net Profit</p>
                   <h3 className={`text-2xl font-bold ${netProfit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                    ${netProfit.toLocaleString()}
+                    ${netProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </h3>
                 </div>
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">

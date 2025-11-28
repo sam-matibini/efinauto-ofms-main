@@ -311,31 +311,31 @@ export default function ProfitLossStatement({ transactions, comparativePeriods =
               <tr>
                 <td className="border border-gray-300 p-2 font-semibold">Revenue</td>
                 {periodData.map((d, idx) => (
-                  <td key={idx} className="border border-gray-300 p-2 text-right">${d.revenue.toLocaleString()}</td>
+                  <td key={idx} className="border border-gray-300 p-2 text-right">${d.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 ))}
               </tr>
               <tr>
                 <td className="border border-gray-300 p-2 font-semibold">COGS</td>
                 {periodData.map((d, idx) => (
-                  <td key={idx} className="border border-gray-300 p-2 text-right">${d.cogs.toLocaleString()}</td>
+                  <td key={idx} className="border border-gray-300 p-2 text-right">${d.cogs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 ))}
               </tr>
               <tr>
                 <td className="border border-gray-300 p-2 font-semibold">Gross Profit</td>
                 {periodData.map((d, idx) => (
-                  <td key={idx} className="border border-gray-300 p-2 text-right font-bold">${d.grossProfit.toLocaleString()}</td>
+                  <td key={idx} className="border border-gray-300 p-2 text-right font-bold">${d.grossProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 ))}
               </tr>
               <tr>
                 <td className="border border-gray-300 p-2 font-semibold">Operating Expenses</td>
                 {periodData.map((d, idx) => (
-                  <td key={idx} className="border border-gray-300 p-2 text-right">${d.operatingExpenses.toLocaleString()}</td>
+                  <td key={idx} className="border border-gray-300 p-2 text-right">${d.operatingExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 ))}
               </tr>
               <tr className="bg-blue-50">
                 <td className="border border-gray-300 p-2 font-bold">NET PROFIT</td>
                 {periodData.map((d, idx) => (
-                  <td key={idx} className="border border-gray-300 p-2 text-right font-bold">${d.netProfit.toLocaleString()}</td>
+                  <td key={idx} className="border border-gray-300 p-2 text-right font-bold">${d.netProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 ))}
               </tr>
             </tbody>
