@@ -772,9 +772,9 @@ export default function Freight() {
   );
 }
 
-function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, parts, exports }) {
+function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, parts, exports, generateShipmentNumber }) {
   const [formData, setFormData] = useState({
-    shipment_number: `FRT-${Date.now()}`,
+    shipment_number: "",
     deal_number: "",
     seal_number: "", // Added seal_number
     export_id: "",
