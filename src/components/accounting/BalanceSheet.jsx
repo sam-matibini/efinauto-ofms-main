@@ -440,9 +440,9 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
           
           <div className="mb-4">
             <h4 className="font-semibold text-sm mb-2 px-4 text-gray-700">Current Assets</h4>
-            {renderLine('Cash and Bank', periodData.map(d => d.cashAndBank), false, false, 1)}
-            {renderLine('Accounts Receivable', periodData.map(d => d.accountsReceivable), false, false, 1)}
-            {renderLine('Vehicle Inventory', periodData.map(d => d.vehicleInventory), false, false, 1)}
+            {renderLine('Cash and Bank', periodData.map(d => d.cashAndBank), false, false, 1, 'cashAndBank')}
+            {renderLine('Accounts Receivable', periodData.map(d => d.accountsReceivable), false, false, 1, 'accountsReceivable')}
+            {renderLine('Vehicle Inventory', periodData.map(d => d.vehicleInventory), false, false, 1, 'vehicleInventory')}
             {renderLine('Other Inventory', periodData.map(d => d.otherInventory), false, false, 1)}
             {renderLine('Total Current Assets', periodData.map(d => d.totalCurrentAssets), true, false, 1)}
           </div>
