@@ -250,12 +250,17 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
         return;
       }
 
-      const prompt = `Extract vehicle information from these descriptions. For each vehicle, extract the Year of Manufacture and suggest a placeholder VIN if missing.
+      const prompt = `Extract vehicle information from these descriptions. For each vehicle:
+1. Extract the Year of Manufacture (4-digit year like 2013, 2020, etc.)
+2. Extract the VIN (Vehicle Identification Number) if present in the description - VINs are typically 17 characters alphanumeric
 
-Vehicles:
-${vehiclesToProcess.map((v, i) => `${i + 1}. ${v.make_model}`).join('\n')}
+Vehicles to process:
+${vehiclesToProcess.map((v, i) => `${i + 1}. Description: "${v.make_model}" | Current VIN: "${v.vin || 'not set'}"`).join('\n')}
 
-Return a JSON array with objects containing: index (0-based), year (number), vin (string - use existing if provided, otherwise leave empty string)`;
+Important: 
+- If a VIN is already set or found in the description, include it
+- If no VIN is found, return empty string for vin
+- Extract year from descriptions like "2013 NISSAN ROGUE" = year 2013`;
 
       const response = await base44.integrations.Core.InvokeLLM({
         prompt,
@@ -280,21 +285,29 @@ Return a JSON array with objects containing: index (0-based), year (number), vin
       if (response?.vehicles) {
         const updatedVehicles = [...formData.vehicles];
         let originalIndex = 0;
+        let updatedCount = 0;
         
         formData.vehicles.forEach((vehicle, idx) => {
           if (!vehicle.year || !vehicle.vin) {
             const aiData = response.vehicles.find(v => v.index === originalIndex);
             if (aiData) {
+              let updated = false;
               if (!vehicle.year && aiData.year) {
                 updatedVehicles[idx] = { ...updatedVehicles[idx], year: aiData.year };
+                updated = true;
               }
+              if (!vehicle.vin && aiData.vin) {
+                updatedVehicles[idx] = { ...updatedVehicles[idx], vin: aiData.vin };
+                updated = true;
+              }
+              if (updated) updatedCount++;
             }
             originalIndex++;
           }
         });
 
         setFormData({ ...formData, vehicles: updatedVehicles });
-        toast.success("AI extracted vehicle years successfully!");
+        toast.success(`AI extracted data for ${updatedCount} vehicle(s)!`);
       }
     } catch (error) {
       console.error("AI processing error:", error);
