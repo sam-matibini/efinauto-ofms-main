@@ -29,6 +29,8 @@ import PaymentsTab from "../components/sales/PaymentsTab";
 import RecurringInvoicesTab from "../components/sales/RecurringInvoicesTab";
 import CreditNotesTab from "../components/sales/CreditNotesTab";
 import AISalesInsights from "../components/sales/AISalesInsights";
+import DateRangeFilter, { getDateRangeValues } from "../components/shared/DateRangeFilter";
+import CompareWithFilter from "../components/shared/CompareWithFilter";
 
 export default function Sales() {
   const [activeMainTab, setActiveMainTab] = useState("sales");
@@ -37,6 +39,8 @@ export default function Sales() {
   const [expandedSaleId, setExpandedSaleId] = useState(null);
   const [billOfSaleOpen, setBillOfSaleOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
+  const [dateRange, setDateRange] = useState("all");
+  const [compareWith, setCompareWith] = useState(null);
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
 
@@ -161,8 +165,19 @@ export default function Sales() {
     },
   });
 
-  const totalSales = sales.reduce((sum, s) => sum + (s.grand_total || s.sale_price || 0), 0);
-  const pendingSales = sales.filter(s => s.payment_status === 'pending').length;
+  // Filter sales by date range
+  const filteredSales = sales.filter(s => {
+    if (dateRange === "all") return true;
+    const { start, end } = getDateRangeValues(dateRange);
+    if (start && end) {
+      const saleDate = s.sale_date ? new Date(s.sale_date) : new Date(s.created_date);
+      return saleDate >= start && saleDate <= new Date(end.getTime() + 86400000);
+    }
+    return true;
+  });
+
+  const totalSales = filteredSales.reduce((sum, s) => sum + (s.grand_total || s.sale_price || 0), 0);
+  const pendingSales = filteredSales.filter(s => s.payment_status === 'pending').length;
 
   const statusColors = {
     pending: "bg-yellow-100 text-yellow-800",
@@ -251,6 +266,15 @@ export default function Sales() {
               </Button>
             </div>
 
+            <Card className="mb-6">
+              <CardContent className="p-4">
+                <div className="flex flex-wrap items-center gap-4">
+                  <DateRangeFilter value={dateRange} onChange={setDateRange} />
+                  <CompareWithFilter value={compareWith} onChange={setCompareWith} />
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-8">
         <Card className="border-none shadow-md">
           <CardContent className="p-4 md:p-6">
@@ -296,7 +320,7 @@ export default function Sales() {
       </div>
 
       <div className="space-y-4">
-        {sales.map((sale, index) => {
+        {filteredSales.map((sale, index) => {
           const isExpanded = expandedSaleId === sale.id;
           const totalPaid = sale.total_paid || 0;
           const balanceDue = (sale.grand_total || sale.sale_price || 0) - totalPaid;
