@@ -275,7 +275,17 @@ export default function Freight() {
   };
 
   const handleLoadingDeclSave = (formData) => {
-    createLoadingDeclarationMutation.mutate(formData);
+    createLoadingDeclarationMutation.mutate({
+      ...formData,
+      declaration_number: formData.declaration_number || generateDeclarationNumber()
+    });
+  };
+
+  const handleDeleteDeclaration = (id, e) => {
+    e.stopPropagation();
+    if (confirm("Are you sure you want to delete this loading declaration?")) {
+      deleteDeclarationMutation.mutate(id);
+    }
   };
 
   const statusColors = {
