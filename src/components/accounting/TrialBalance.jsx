@@ -78,6 +78,87 @@ export default function TrialBalance({ comparativePeriods = [] }) {
     label: 'Current Period'
   }];
 
+  // Drilldown handler
+  const handleDrilldown = (accountCode, periodIdx, balanceType) => {
+    const period = periods[periodIdx];
+    const account = accounts.find(a => a.account_code === accountCode) || { account_code: accountCode, account_name: accountCode };
+    let items = [];
+
+    // Get transactions for this account code in the period
+    switch (accountCode) {
+      case '1000': // Cash and Bank
+        const cashSales = sales.filter(s => {
+          const saleDate = new Date(s.sale_date || s.created_date);
+          return saleDate >= period.from && saleDate <= period.to && s.payment_status === 'paid';
+        }).map(s => ({ date: s.sale_date || s.created_date, description: `Sale: ${s.customer_name}`, reference: s.sale_number, amount: s.total_paid || s.grand_total || 0 }));
+        const cashRepairs = repairs.filter(r => {
+          const repairDate = new Date(r.completion_date || r.created_date);
+          return repairDate >= period.from && repairDate <= period.to && r.payment_status === 'paid';
+        }).map(r => ({ date: r.completion_date || r.created_date, description: `Service: ${r.customer_name}`, reference: r.order_number, amount: r.total_cost || 0 }));
+        items = [...cashSales, ...cashRepairs];
+        break;
+      case '1100': // Accounts Receivable
+        items = sales.filter(s => {
+          const saleDate = new Date(s.sale_date || s.created_date);
+          return saleDate >= period.from && saleDate <= period.to && (s.payment_status === 'pending' || s.payment_status === 'partial');
+        }).map(s => ({ date: s.sale_date || s.created_date, description: `Sale: ${s.customer_name}`, reference: s.sale_number, amount: (s.grand_total || s.sale_price || 0) - (s.total_paid || 0) }));
+        break;
+      case '1200': // Vehicle Inventory
+        items = vehicles.filter(v => {
+          const acquisitionDate = new Date(v.transaction_date || v.created_date);
+          return v.status === 'in_stock' && acquisitionDate >= period.from && acquisitionDate <= period.to;
+        }).map(v => ({ date: v.transaction_date || v.created_date, description: `${v.year} ${v.make} ${v.model}`, reference: v.stock_number || v.vin, amount: v.total_cost || v.purchase_price || 0 }));
+        break;
+      case '2000': // Accounts Payable
+        items = purchases.filter(p => {
+          const purchaseDate = new Date(p.order_date || p.created_date);
+          return purchaseDate >= period.from && purchaseDate <= period.to && (p.payment_status === 'pending' || p.payment_status === 'partial');
+        }).map(p => ({ date: p.order_date || p.created_date, description: `Purchase: ${p.supplier_name}`, reference: p.purchase_number, amount: (p.total_amount || 0) - (p.amount_paid || 0) }));
+        break;
+      case '4000': // Vehicle Sales Revenue
+        items = sales.filter(s => {
+          const saleDate = new Date(s.sale_date || s.created_date);
+          return saleDate >= period.from && saleDate <= period.to;
+        }).map(s => ({ date: s.sale_date || s.created_date, description: `Sale: ${s.customer_name}`, reference: s.sale_number, amount: s.sale_price || s.grand_total || 0 }));
+        break;
+      case '4100': // Service Revenue
+        items = repairs.filter(r => {
+          const repairDate = new Date(r.completion_date || r.created_date);
+          return repairDate >= period.from && repairDate <= period.to && r.status === 'completed';
+        }).map(r => ({ date: r.completion_date || r.created_date, description: `Service: ${r.customer_name}`, reference: r.order_number, amount: r.total_cost || 0 }));
+        break;
+      case '5000': // COGS
+        items = sales.filter(s => {
+          const saleDate = new Date(s.sale_date || s.created_date);
+          return saleDate >= period.from && saleDate <= period.to && s.vehicle_id;
+        }).map(s => {
+          const vehicle = vehicles.find(v => v.id === s.vehicle_id);
+          return { date: s.sale_date || s.created_date, description: vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : 'Vehicle', reference: s.sale_number, amount: vehicle?.total_cost || vehicle?.purchase_price || 0 };
+        });
+        break;
+      case '5100': // Parts Expense
+        items = repairs.filter(r => {
+          const repairDate = new Date(r.completion_date || r.created_date);
+          return repairDate >= period.from && repairDate <= period.to && r.status === 'completed' && r.parts_cost > 0;
+        }).map(r => ({ date: r.completion_date || r.created_date, description: `Parts: ${r.order_number}`, reference: r.order_number, amount: r.parts_cost || 0 }));
+        break;
+      case '5200': // Labor Expense
+        items = repairs.filter(r => {
+          const repairDate = new Date(r.completion_date || r.created_date);
+          return repairDate >= period.from && repairDate <= period.to && r.status === 'completed' && r.labor_cost > 0;
+        }).map(r => ({ date: r.completion_date || r.created_date, description: `Labor: ${r.order_number}`, reference: r.order_number, amount: r.labor_cost || 0 }));
+        break;
+      default:
+        items = [];
+    }
+
+    setDrilldown({
+      title: `${account.account_code} - ${cleanAccountName(account.account_name)} (${balanceType})`,
+      items,
+      period
+    });
+  };
+
   // Group accounts by type
   const accountGroups = {
     asset: { title: "Assets", accounts: [] },
@@ -500,10 +581,18 @@ export default function TrialBalance({ comparativePeriods = [] }) {
                           const acc = pd.accounts.find(a => a.code === account.account_code);
                           return (
                             <React.Fragment key={pdIdx}>
-                              <td className="text-right py-2 px-4">
+                              <td 
+                                className={`text-right py-2 px-4 ${acc && acc.debit > 0 ? 'cursor-pointer hover:text-blue-600 hover:underline' : ''}`}
+                                onDoubleClick={() => acc && acc.debit > 0 && handleDrilldown(account.account_code, pdIdx, 'debit')}
+                                title={acc && acc.debit > 0 ? 'Double-click to view details' : ''}
+                              >
                                 {acc && acc.debit > 0 ? `$${acc.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
                               </td>
-                              <td className="text-right py-2 px-4">
+                              <td 
+                                className={`text-right py-2 px-4 ${acc && acc.credit > 0 ? 'cursor-pointer hover:text-blue-600 hover:underline' : ''}`}
+                                onDoubleClick={() => acc && acc.credit > 0 && handleDrilldown(account.account_code, pdIdx, 'credit')}
+                                title={acc && acc.credit > 0 ? 'Double-click to view details' : ''}
+                              >
                                 {acc && acc.credit > 0 ? `$${acc.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
                               </td>
                             </React.Fragment>
@@ -561,6 +650,49 @@ export default function TrialBalance({ comparativePeriods = [] }) {
             </p>
           </div>
         )}
+
+        {/* Drilldown Dialog */}
+        <Dialog open={!!drilldown} onOpenChange={() => setDrilldown(null)}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{drilldown?.title} - {drilldown?.period?.label}</DialogTitle>
+            </DialogHeader>
+            {drilldown && (
+              <div className="space-y-4">
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-sm text-gray-600">Total</p>
+                  <p className="text-xl font-bold text-blue-600">
+                    ${drilldown.items.reduce((sum, i) => sum + i.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 bg-gray-100">
+                      <th className="text-left py-2 px-3">Date</th>
+                      <th className="text-left py-2 px-3">Description</th>
+                      <th className="text-left py-2 px-3">Reference</th>
+                      <th className="text-right py-2 px-3">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {drilldown.items.length === 0 ? (
+                      <tr><td colSpan={4} className="text-center py-4 text-gray-500">No items found</td></tr>
+                    ) : (
+                      drilldown.items.map((item, idx) => (
+                        <tr key={idx} className="border-b hover:bg-gray-50">
+                          <td className="py-2 px-3">{format(new Date(item.date), 'MMM d, yyyy')}</td>
+                          <td className="py-2 px-3">{item.description}</td>
+                          <td className="py-2 px-3 text-gray-600">{item.reference || '-'}</td>
+                          <td className="py-2 px-3 text-right font-medium">${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
