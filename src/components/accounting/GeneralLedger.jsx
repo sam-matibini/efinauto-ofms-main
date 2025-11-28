@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-export default function GeneralLedger({ transactions, comparativePeriods = [] }) {
+export default function GeneralLedger({ comparativePeriods = [] }) {
   const { selectedCompanyId } = useCompany();
   const [selectedAccount, setSelectedAccount] = useState("all");
   const [viewMode, setViewMode] = useState("grouped"); // "grouped" or "detailed"
@@ -67,6 +67,13 @@ export default function GeneralLedger({ transactions, comparativePeriods = [] })
   const { data: parts = [] } = useQuery({
     queryKey: ['parts', selectedCompanyId],
     queryFn: () => base44.entities.Part.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: transactions = [] } = useQuery({
+    queryKey: ['transactions', selectedCompanyId],
+    queryFn: () => base44.entities.Transaction.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
