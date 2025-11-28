@@ -1076,6 +1076,27 @@ This is an automated message from eFinAuto Center Freight Management System.
               </CardContent>
             </Card>
 
+            {/* Shareable Link Section */}
+            {pdfUrl && (
+              <Card className="border-green-200 bg-green-50/50 no-print">
+                <CardContent className="p-4">
+                  <h3 className="font-semibold mb-3 flex items-center gap-2 text-green-700">
+                    <Check className="w-4 h-4" />
+                    Document Saved - Shareable Link
+                  </h3>
+                  <div className="flex gap-2">
+                    <Input value={pdfUrl} readOnly className="flex-1 bg-white text-sm" />
+                    <Button variant="outline" onClick={handleCopyLink}>
+                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                    <Button variant="outline" onClick={handleShareWhatsApp} className="text-green-600">
+                      <MessageCircle className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Email Section */}
             <Card className="border-blue-200 bg-blue-50/50 no-print">
               <CardContent className="p-4">
