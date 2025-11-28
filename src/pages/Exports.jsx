@@ -322,7 +322,7 @@ export default function Exports() {
   );
 }
 
-function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles, parts }) {
+function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles, parts, sales }) {
   const [formData, setFormData] = useState({
     export_number: `EXP-${Date.now()}`,
     export_type: "vehicle",
@@ -350,6 +350,7 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
   const [partSearch, setPartSearch] = useState("");
   const [vehicleDropdownSearch, setVehicleDropdownSearch] = useState("");
   const [partDropdownSearch, setPartDropdownSearch] = useState("");
+  const [saleSearch, setSaleSearch] = useState("");
 
   React.useEffect(() => {
     if (open) {
