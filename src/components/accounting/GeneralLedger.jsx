@@ -190,7 +190,7 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
 
     // Add vehicle purchases (Dr: Vehicle Inventory, Cr: Cash/AP)
     vehicles.forEach(v => {
-      if (!existingRefs.has(`Vehicle-${v.id}`) && v.purchase_price > 0) {
+      if (!existingRefs.has(`Vehicle-${v.id}`) && (v.purchase_price > 0 || v.total_cost > 0)) {
         entries.push({
           id: `vehicle-${v.id}`,
           transaction_date: v.transaction_date || v.created_date,
