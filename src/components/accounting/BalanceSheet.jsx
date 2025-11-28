@@ -123,8 +123,16 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
     const accountsReceivable = accountsReceivableFromAccounts + salesReceivable + serviceReceivable;
     
     // Vehicle Inventory - in_stock vehicles at cost (purchase_price or total_cost)
+    // Filter by vehicles that were in stock as of the period end date
     const vehicleInventory = vehicles
-      .filter(v => v.status === 'in_stock')
+      .filter(v => {
+        // Include vehicles that are currently in_stock or were acquired before period end
+        const acquisitionDate = new Date(v.transaction_date || v.created_date);
+        const isInStockOrAvailable = v.status === 'in_stock' || v.status === 'reserved';
+        // For balance sheet, we want vehicles that were in inventory at period end
+        return isInStockOrAvailable || (acquisitionDate <= period.to && v.status !== 'exported');
+      })
+      .filter(v => v.status === 'in_stock') // Only count in_stock for inventory
       .reduce((sum, v) => sum + (v.total_cost || v.purchase_price || 0), 0);
     
     const inventory = otherInventory + vehicleInventory;
