@@ -67,6 +67,20 @@ export default function CustomerCommunications() {
     initialData: [],
   });
 
+  const { data: invoices = [] } = useQuery({
+    queryKey: ['invoices', selectedCompanyId],
+    queryFn: () => base44.entities.Invoice.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: payrollEntries = [] } = useQuery({
+    queryKey: ['payrollEntries', selectedCompanyId],
+    queryFn: () => base44.entities.PayrollEntry.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
   const handleEmailDraft = (draft) => {
     setEmailDraft(draft);
     setActiveChannel("email");
@@ -255,6 +269,8 @@ export default function CustomerCommunications() {
                   exports={exports}
                   shipments={shipments}
                   loadingDeclarations={loadingDeclarations}
+                  invoices={invoices}
+                  payrollEntries={payrollEntries}
                   draft={emailDraft}
                   company={company}
                 />
@@ -267,6 +283,8 @@ export default function CustomerCommunications() {
                   exports={exports}
                   shipments={shipments}
                   loadingDeclarations={loadingDeclarations}
+                  invoices={invoices}
+                  payrollEntries={payrollEntries}
                   draft={smsDraft}
                   company={company}
                 />
