@@ -115,12 +115,64 @@ export default function CashFlowStatement({ comparativePeriods = [] }) {
     };
   });
 
-  const renderLine = (label, values, indent = 0, className = '') => (
+  // Get drilldown data for cash flow items
+  const getDrilldownData = (category, periodIdx) => {
+    const period = periods[periodIdx];
+    let items = [];
+    let title = category;
+
+    switch (category) {
+      case 'cashFromSales':
+        title = 'Cash from Customers';
+        items = sales.filter(s => {
+          const saleDate = new Date(s.sale_date);
+          return saleDate >= period.from && saleDate <= period.to && s.payment_status === 'paid';
+        }).map(s => ({ date: s.sale_date, description: `Sale: ${s.customer_name}`, reference: s.sale_number, amount: s.total_paid || 0 }));
+        break;
+      case 'cashPaidToSuppliers':
+        title = 'Cash to Suppliers';
+        items = purchases.filter(p => {
+          const purchaseDate = new Date(p.order_date);
+          return purchaseDate >= period.from && purchaseDate <= period.to && p.payment_status === 'paid';
+        }).map(p => ({ date: p.order_date, description: `Purchase: ${p.supplier_name}`, reference: p.purchase_number, amount: p.amount_paid || 0 }));
+        break;
+      case 'vehiclePurchases':
+        title = 'Vehicle Purchases';
+        items = transactions.filter(t => {
+          const transDate = new Date(t.transaction_date);
+          return transDate >= period.from && transDate <= period.to && t.transaction_type === 'vehicle_purchase';
+        }).map(t => ({ date: t.transaction_date, description: t.description || 'Vehicle Purchase', reference: t.reference_number, amount: t.amount || 0 }));
+        break;
+      case 'equipmentPurchases':
+        title = 'Equipment Purchases';
+        items = purchases.filter(p => {
+          const purchaseDate = new Date(p.order_date);
+          return purchaseDate >= period.from && purchaseDate <= period.to && p.purchase_type === 'equipment' && p.payment_status === 'paid';
+        }).map(p => ({ date: p.order_date, description: `Equipment: ${p.supplier_name}`, reference: p.purchase_number, amount: p.amount_paid || 0 }));
+        break;
+      default:
+        items = [];
+    }
+
+    return { title, items, period };
+  };
+
+  const handleDrilldown = (category, periodIdx) => {
+    const data = getDrilldownData(category, periodIdx);
+    setDrilldown(data);
+  };
+
+  const renderLine = (label, values, indent = 0, className = '', drilldownKey = null) => (
     <div className={`grid gap-4 py-2 px-4 ${className}`}
          style={{ gridTemplateColumns: `300px repeat(${periods.length}, 1fr)` }}>
       <span style={{ paddingLeft: `${indent * 20}px` }}>{label}</span>
       {values.map((value, idx) => (
-        <span key={idx} className="text-right">
+        <span 
+          key={idx} 
+          className={`text-right ${drilldownKey ? 'cursor-pointer hover:text-blue-600 hover:underline' : ''}`}
+          onDoubleClick={() => drilldownKey && handleDrilldown(drilldownKey, idx)}
+          title={drilldownKey ? 'Double-click to view details' : ''}
+        >
           ${Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       ))}
@@ -184,8 +236,8 @@ export default function CashFlowStatement({ comparativePeriods = [] }) {
           {/* Operating Activities */}
           <div>
             <h3 className="font-bold text-base mb-2 text-gray-900 px-4">Cash Flows from Operating Activities</h3>
-            {renderLine('Cash from customers', periodData.map(d => d.cashFromSales), 1, 'text-green-600')}
-            {renderLine('Cash to suppliers', periodData.map(d => -d.cashPaidToSuppliers), 1, 'text-red-600')}
+            {renderLine('Cash from customers', periodData.map(d => d.cashFromSales), 1, 'text-green-600', 'cashFromSales')}
+            {renderLine('Cash to suppliers', periodData.map(d => -d.cashPaidToSuppliers), 1, 'text-red-600', 'cashPaidToSuppliers')}
             {renderLine('Operating expenses', periodData.map(d => -d.operatingExpenses), 1, 'text-red-600')}
             {renderLine('Net cash from operating', periodData.map(d => d.netCashFromOperating), 1, 'border-t font-semibold')}
           </div>
@@ -193,8 +245,8 @@ export default function CashFlowStatement({ comparativePeriods = [] }) {
           {/* Investing Activities */}
           <div>
             <h3 className="font-bold text-base mb-2 text-gray-900 px-4">Cash Flows from Investing Activities</h3>
-            {renderLine('Vehicle purchases', periodData.map(d => -d.vehiclePurchases), 1, 'text-red-600')}
-            {renderLine('Equipment purchases', periodData.map(d => -d.equipmentPurchases), 1, 'text-red-600')}
+            {renderLine('Vehicle purchases', periodData.map(d => -d.vehiclePurchases), 1, 'text-red-600', 'vehiclePurchases')}
+            {renderLine('Equipment purchases', periodData.map(d => -d.equipmentPurchases), 1, 'text-red-600', 'equipmentPurchases')}
             {renderLine('Net cash from investing', periodData.map(d => d.netCashFromInvesting), 1, 'border-t font-semibold')}
           </div>
 
@@ -211,6 +263,49 @@ export default function CashFlowStatement({ comparativePeriods = [] }) {
             {renderLine('Ending cash balance', periodData.map(d => d.endingCash), 0, 'font-bold text-lg border-t-2 border-gray-300 pt-2 text-blue-700')}
           </div>
         </div>
+
+        {/* Drilldown Dialog */}
+        <Dialog open={!!drilldown} onOpenChange={() => setDrilldown(null)}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{drilldown?.title} - {drilldown?.period?.label}</DialogTitle>
+            </DialogHeader>
+            {drilldown && (
+              <div className="space-y-4">
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-sm text-gray-600">Total</p>
+                  <p className="text-xl font-bold text-blue-600">
+                    ${drilldown.items.reduce((sum, i) => sum + i.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 bg-gray-100">
+                      <th className="text-left py-2 px-3">Date</th>
+                      <th className="text-left py-2 px-3">Description</th>
+                      <th className="text-left py-2 px-3">Reference</th>
+                      <th className="text-right py-2 px-3">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {drilldown.items.length === 0 ? (
+                      <tr><td colSpan={4} className="text-center py-4 text-gray-500">No items found</td></tr>
+                    ) : (
+                      drilldown.items.map((item, idx) => (
+                        <tr key={idx} className="border-b hover:bg-gray-50">
+                          <td className="py-2 px-3">{format(new Date(item.date), 'MMM d, yyyy')}</td>
+                          <td className="py-2 px-3">{item.description}</td>
+                          <td className="py-2 px-3 text-gray-600">{item.reference || '-'}</td>
+                          <td className="py-2 px-3 text-right font-medium">${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
