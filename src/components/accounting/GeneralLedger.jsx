@@ -95,6 +95,10 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
     const type = entry.transaction_type || '';
     const refType = entry.reference_type || '';
     
+    // Cost of Goods Sold - check this first before other matches
+    if (desc.includes('cogs') || desc.includes('cost of goods') || desc.includes('cost of vehicle')) {
+      return { account_code: '5000', account_name: 'Cost of Goods Sold', account_type: 'expense' };
+    }
     // Freight/Shipping revenue
     if (desc.includes('freight') && (desc.includes('revenue') || desc.includes('service'))) {
       return { account_code: '4200', account_name: 'Freight Service Revenue', account_type: 'revenue' };
