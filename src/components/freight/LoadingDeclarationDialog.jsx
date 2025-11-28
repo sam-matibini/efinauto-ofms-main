@@ -142,13 +142,14 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     const customer = customers.find(c => c.id === customerId);
     setSelectedCustomer(customer);
     if (customer) {
+      const cityCountry = [customer.city, customer.postal_code, customer.country].filter(Boolean).join(", ");
       setFormData({
         ...formData,
         consignee: {
           name: customer.full_name || "",
           address_street: customer.address || "",
-          postal_code: "",
-          city_country: `${customer.city || ""}, ${customer.country || ""}`,
+          postal_code: customer.postal_code || "",
+          city_country: cityCountry,
           telephone: customer.phone || "",
           email: customer.email || "",
           tax_id_passport: customer.tax_id || ""

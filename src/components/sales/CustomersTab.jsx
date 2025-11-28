@@ -236,13 +236,23 @@ function CustomerDialog({ open, onClose, customer, onSave }) {
     phone: "",
     address: "",
     city: "",
+    province: "",
+    postal_code: "",
     country: "",
-    customer_type: "individual"
+    customer_type: "individual",
+    is_consignee: false,
+    consignee_only: false,
+    tax_id: ""
   });
 
   React.useEffect(() => {
     if (customer) {
-      setFormData(customer);
+      setFormData({
+        ...customer,
+        is_consignee: customer.is_consignee || false,
+        consignee_only: customer.consignee_only || false,
+        tax_id: customer.tax_id || ""
+      });
     } else {
       setFormData({
         full_name: "",
@@ -250,15 +260,20 @@ function CustomerDialog({ open, onClose, customer, onSave }) {
         phone: "",
         address: "",
         city: "",
+        province: "",
+        postal_code: "",
         country: "",
-        customer_type: "individual"
+        customer_type: "individual",
+        is_consignee: false,
+        consignee_only: false,
+        tax_id: ""
       });
     }
   }, [customer, open]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{customer ? 'Edit Customer' : 'Add Customer'}</DialogTitle>
         </DialogHeader>
@@ -287,8 +302,49 @@ function CustomerDialog({ open, onClose, customer, onSave }) {
               <Input value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})} />
             </div>
             <div className="space-y-2">
+              <Label>Province</Label>
+              <Input value={formData.province} onChange={(e) => setFormData({...formData, province: e.target.value})} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Postal Code</Label>
+              <Input value={formData.postal_code} onChange={(e) => setFormData({...formData, postal_code: e.target.value})} />
+            </div>
+            <div className="space-y-2">
               <Label>Country</Label>
               <Input value={formData.country} onChange={(e) => setFormData({...formData, country: e.target.value})} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Tax ID / Passport No</Label>
+            <Input value={formData.tax_id} onChange={(e) => setFormData({...formData, tax_id: e.target.value})} placeholder="Tax ID or Passport number" />
+          </div>
+
+          {/* Consignee Options */}
+          <div className="border-t pt-4 mt-4">
+            <h4 className="font-medium text-sm text-gray-700 mb-3">Consignee Options</h4>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="is_consignee"
+                  checked={formData.is_consignee || false}
+                  onChange={(e) => setFormData({...formData, is_consignee: e.target.checked, consignee_only: e.target.checked ? formData.consignee_only : false})}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <Label htmlFor="is_consignee" className="cursor-pointer text-sm">This customer is also a consignee (for exports)</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="consignee_only"
+                  checked={formData.consignee_only || false}
+                  onChange={(e) => setFormData({...formData, consignee_only: e.target.checked, is_consignee: e.target.checked ? true : formData.is_consignee})}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <Label htmlFor="consignee_only" className="cursor-pointer text-sm">Consignee only (not a regular customer)</Label>
+              </div>
             </div>
           </div>
         </div>
