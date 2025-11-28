@@ -6,15 +6,47 @@ export default function BillOfSale({ sale, company }) {
 
   const isExport = sale.sale_type === 'export';
 
+  // Build full address
+  const companyAddress = [
+    company?.address,
+    company?.city,
+    company?.province,
+    company?.postal_code,
+    company?.country
+  ].filter(Boolean).join(', ');
+
   return (
     <div className="bg-white p-8 max-w-4xl mx-auto" id="bill-of-sale">
-      <div className="flex justify-between items-start mb-8">
-        {company?.logo_url && (
-          <img src={company.logo_url} alt={company.name} className="h-20 object-contain" />
+      {/* Company Logo - Top Center */}
+      {company?.logo_url && (
+        <div className="flex justify-center mb-4">
+          <img src={company.logo_url} alt={company.name} className="h-24 object-contain" />
+        </div>
+      )}
+
+      {/* Company Header */}
+      <div className="text-center mb-6 border-b pb-4">
+        <h2 className="text-xl font-bold text-gray-900">{company?.name || 'Company Name'}</h2>
+        {companyAddress && (
+          <p className="text-sm text-gray-600 mt-1">{companyAddress}</p>
         )}
-        <div className="text-right">
+        <div className="flex justify-center gap-6 mt-2 text-sm text-gray-600">
+          {company?.phone && <span>Tel: {company.phone}</span>}
+          {company?.email && <span>Email: {company.email}</span>}
+        </div>
+        <div className="flex justify-center gap-6 mt-1 text-sm text-gray-700 font-medium">
+          {company?.gst_number && <span>GST #: {company.gst_number}</span>}
+          {company?.pst_number && <span>PST #: {company.pst_number}</span>}
+          {company?.dealer_permit_number && <span>Dealer Permit #: {company.dealer_permit_number}</span>}
+        </div>
+      </div>
+
+      {/* Bill of Sale Title */}
+      <div className="flex justify-between items-start mb-8">
+        <div></div>
+        <div className="text-center flex-1">
           <h1 className="text-2xl font-bold">BILL OF SALE</h1>
-          <div className="mt-2 flex justify-end gap-2">
+          <div className="mt-2 flex justify-center gap-2">
             <span className={`inline-block px-3 py-1 rounded text-sm font-semibold ${isExport ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
               {isExport ? '☑ EXPORT SALE' : '☑ DOMESTIC SALE'}
             </span>
@@ -22,10 +54,8 @@ export default function BillOfSale({ sale, company }) {
           {isExport && (
             <p className="text-sm mt-1 text-green-700 font-medium">Zero-Rated (GST/HST Exempt)</p>
           )}
-          {company?.dealer_permit_number && (
-            <p className="text-sm mt-2">Dealer Permit # {company.dealer_permit_number}</p>
-          )}
         </div>
+        <div></div>
       </div>
 
       <div className="space-y-4 mb-6">
