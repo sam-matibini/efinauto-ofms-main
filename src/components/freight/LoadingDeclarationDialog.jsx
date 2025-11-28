@@ -476,9 +476,14 @@ Important:
   }, [formData.vehicles]);
 
   const handleSaveDeclaration = () => {
-    setSavedData(formData);
+    // Add export numbers for reference
+    const dataToSave = {
+      ...formData,
+      export_numbers: getExportNumbers()
+    };
+    setSavedData(dataToSave);
     setViewMode(true);
-    onSave(formData);
+    onSave(dataToSave);
     toast.success("Loading declaration saved successfully!");
   };
 
