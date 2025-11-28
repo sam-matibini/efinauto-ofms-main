@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Mail, Phone, MapPin, Edit, Trash2, Upload, LayoutGrid, List, ArrowUpDown } from "lucide-react";
+import { Plus, Search, Mail, Phone, MapPin, Edit, Trash2, Upload, LayoutGrid, List, ArrowUpDown, Loader2, Sparkles } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
@@ -244,6 +244,52 @@ function CustomerDialog({ open, onClose, customer, onSave }) {
     consignee_only: false,
     tax_id: ""
   });
+  const [addressSearch, setAddressSearch] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleAddressLookup = async () => {
+    if (!addressSearch.trim()) {
+      toast.error("Please enter an address to search");
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `Parse this address and extract the components: "${addressSearch}"
+        
+Return a structured address with street address, city, province/state, postal code, and country. If any component is missing, leave it empty.`,
+        add_context_from_internet: true,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            street_address: { type: "string" },
+            city: { type: "string" },
+            province: { type: "string" },
+            postal_code: { type: "string" },
+            country: { type: "string" }
+          }
+        }
+      });
+
+      if (response) {
+        setFormData(prev => ({
+          ...prev,
+          address: response.street_address || prev.address,
+          city: response.city || prev.city,
+          province: response.province || prev.province,
+          postal_code: response.postal_code || prev.postal_code,
+          country: response.country || prev.country
+        }));
+        setAddressSearch("");
+        toast.success("Address found and populated!");
+      }
+    } catch (error) {
+      console.error("Address lookup error:", error);
+      toast.error("Failed to lookup address");
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   React.useEffect(() => {
     if (customer) {
@@ -290,6 +336,29 @@ function CustomerDialog({ open, onClose, customer, onSave }) {
             <div className="space-y-2">
               <Label>Phone *</Label>
               <Input value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-purple-500" />
+              AI Address Lookup
+            </Label>
+            <div className="flex gap-2">
+              <Input 
+                value={addressSearch} 
+                onChange={(e) => setAddressSearch(e.target.value)} 
+                placeholder="Search address (e.g., 123 Main St, Toronto)"
+                onKeyDown={(e) => e.key === 'Enter' && handleAddressLookup()}
+              />
+              <Button 
+                type="button"
+                onClick={handleAddressLookup} 
+                disabled={isSearching}
+                variant="outline"
+                className="border-purple-300 text-purple-700 hover:bg-purple-50"
+              >
+                {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+              </Button>
             </div>
           </div>
           <div className="space-y-2">
