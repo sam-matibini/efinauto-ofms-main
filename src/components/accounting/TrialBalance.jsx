@@ -93,124 +93,280 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
     });
   }
 
-  // Calculate balances for each period
+  // Calculate balances for each period using GAAP principles
   const periodData = periods.map(period => {
+    const accountBalances = [];
+
+    // === ASSETS (Debit balances) ===
+    
+    // 1. Cash and Bank - from paid sales minus paid purchases/expenses
+    const cashFromSales = sales
+      .filter(s => {
+        const saleDate = new Date(s.sale_date || s.created_date);
+        return saleDate >= period.from && saleDate <= period.to && s.payment_status === 'paid';
+      })
+      .reduce((sum, s) => sum + (s.total_paid || s.grand_total || s.sale_price || 0), 0);
+
+    const cashFromRepairs = repairs
+      .filter(r => {
+        const repairDate = new Date(r.completion_date || r.created_date);
+        return repairDate >= period.from && repairDate <= period.to && r.payment_status === 'paid';
+      })
+      .reduce((sum, r) => sum + (r.total_cost || 0), 0);
+
+    const cashPaidForPurchases = purchases
+      .filter(p => {
+        const purchaseDate = new Date(p.order_date || p.created_date);
+        return purchaseDate >= period.from && purchaseDate <= period.to && p.payment_status === 'paid';
+      })
+      .reduce((sum, p) => sum + (p.amount_paid || p.total_amount || 0), 0);
+
+    const netCash = cashFromSales + cashFromRepairs - cashPaidForPurchases;
+    if (netCash !== 0) {
+      accountBalances.push({
+        code: '1000',
+        name: 'Cash and Bank',
+        type: 'asset',
+        group: 'Assets',
+        debit: Math.max(0, netCash),
+        credit: Math.max(0, -netCash)
+      });
+    }
+
+    // 2. Accounts Receivable - unpaid sales and repairs
+    const accountsReceivable = sales
+      .filter(s => {
+        const saleDate = new Date(s.sale_date || s.created_date);
+        return saleDate >= period.from && saleDate <= period.to && 
+               (s.payment_status === 'pending' || s.payment_status === 'partial');
+      })
+      .reduce((sum, s) => sum + ((s.grand_total || s.sale_price || 0) - (s.total_paid || 0)), 0);
+
+    const serviceReceivable = repairs
+      .filter(r => {
+        const repairDate = new Date(r.completion_date || r.created_date);
+        return repairDate >= period.from && repairDate <= period.to && 
+               r.status === 'completed' &&
+               (r.payment_status === 'pending' || r.payment_status === 'partial');
+      })
+      .reduce((sum, r) => sum + ((r.total_cost || 0) - (r.amount_paid || 0)), 0);
+
+    const totalReceivable = accountsReceivable + serviceReceivable;
+    if (totalReceivable > 0) {
+      accountBalances.push({
+        code: '1200',
+        name: 'Accounts Receivable',
+        type: 'asset',
+        group: 'Assets',
+        debit: totalReceivable,
+        credit: 0
+      });
+    }
+
+    // 3. Vehicle Inventory - in_stock vehicles at cost
+    const vehicleInventoryValue = vehicles
+      .filter(v => v.status === 'in_stock')
+      .reduce((sum, v) => sum + (v.total_cost || v.purchase_price || 0), 0);
+
+    if (vehicleInventoryValue > 0) {
+      accountBalances.push({
+        code: '1400',
+        name: 'Vehicle Inventory',
+        type: 'asset',
+        group: 'Assets',
+        debit: vehicleInventoryValue,
+        credit: 0
+      });
+    }
+
+    // 4. Parts Inventory
+    const partsInventoryValue = parts
+      .reduce((sum, p) => sum + ((p.cost_price || 0) * (p.quantity || 0)), 0);
+
+    if (partsInventoryValue > 0) {
+      accountBalances.push({
+        code: '1410',
+        name: 'Parts Inventory',
+        type: 'asset',
+        group: 'Assets',
+        debit: partsInventoryValue,
+        credit: 0
+      });
+    }
+
+    // === LIABILITIES (Credit balances) ===
+
+    // 5. Accounts Payable - unpaid purchases
+    const accountsPayable = purchases
+      .filter(p => {
+        const purchaseDate = new Date(p.order_date || p.created_date);
+        return purchaseDate >= period.from && purchaseDate <= period.to && 
+               (p.payment_status === 'pending' || p.payment_status === 'partial');
+      })
+      .reduce((sum, p) => sum + ((p.total_amount || 0) - (p.amount_paid || 0)), 0);
+
+    if (accountsPayable > 0) {
+      accountBalances.push({
+        code: '2000',
+        name: 'Accounts Payable',
+        type: 'liability',
+        group: 'Liabilities',
+        debit: 0,
+        credit: accountsPayable
+      });
+    }
+
+    // === REVENUE (Credit balances) ===
+
+    // 6. Sales Revenue - vehicle sales
+    const salesRevenue = sales
+      .filter(s => {
+        const saleDate = new Date(s.sale_date || s.created_date);
+        return saleDate >= period.from && saleDate <= period.to;
+      })
+      .reduce((sum, s) => sum + (s.sale_price || s.grand_total || 0), 0);
+
+    if (salesRevenue > 0) {
+      accountBalances.push({
+        code: '4000',
+        name: 'Vehicle Sales Revenue',
+        type: 'revenue',
+        group: 'Revenue',
+        debit: 0,
+        credit: salesRevenue
+      });
+    }
+
+    // 7. Service Revenue - repair orders
+    const serviceRevenue = repairs
+      .filter(r => {
+        const repairDate = new Date(r.completion_date || r.created_date);
+        return repairDate >= period.from && repairDate <= period.to && r.status === 'completed';
+      })
+      .reduce((sum, r) => sum + (r.total_cost || 0), 0);
+
+    if (serviceRevenue > 0) {
+      accountBalances.push({
+        code: '4100',
+        name: 'Service Revenue',
+        type: 'revenue',
+        group: 'Revenue',
+        debit: 0,
+        credit: serviceRevenue
+      });
+    }
+
+    // === EXPENSES (Debit balances) ===
+
+    // 8. Cost of Goods Sold - cost of vehicles sold
+    const vehiclesCOGS = sales
+      .filter(s => {
+        const saleDate = new Date(s.sale_date || s.created_date);
+        return saleDate >= period.from && saleDate <= period.to && s.vehicle_id;
+      })
+      .reduce((sum, s) => {
+        const vehicle = vehicles.find(v => v.id === s.vehicle_id);
+        return sum + (vehicle?.total_cost || vehicle?.purchase_price || 0);
+      }, 0);
+
+    if (vehiclesCOGS > 0) {
+      accountBalances.push({
+        code: '5000',
+        name: 'Cost of Goods Sold',
+        type: 'expense',
+        group: 'Expenses',
+        debit: vehiclesCOGS,
+        credit: 0
+      });
+    }
+
+    // 9. Parts Expense - parts used in repairs
+    const partsExpense = repairs
+      .filter(r => {
+        const repairDate = new Date(r.completion_date || r.created_date);
+        return repairDate >= period.from && repairDate <= period.to && r.status === 'completed';
+      })
+      .reduce((sum, r) => sum + (r.parts_cost || 0), 0);
+
+    if (partsExpense > 0) {
+      accountBalances.push({
+        code: '5100',
+        name: 'Parts Expense',
+        type: 'expense',
+        group: 'Expenses',
+        debit: partsExpense,
+        credit: 0
+      });
+    }
+
+    // 10. Labor Expense
+    const laborExpense = repairs
+      .filter(r => {
+        const repairDate = new Date(r.completion_date || r.created_date);
+        return repairDate >= period.from && repairDate <= period.to && r.status === 'completed';
+      })
+      .reduce((sum, r) => sum + (r.labor_cost || 0), 0);
+
+    if (laborExpense > 0) {
+      accountBalances.push({
+        code: '5200',
+        name: 'Labor Expense',
+        type: 'expense',
+        group: 'Expenses',
+        debit: laborExpense,
+        credit: 0
+      });
+    }
+
+    // === EQUITY ===
+    // 11. Retained Earnings (balancing entry to ensure DR = CR)
+    const totalDebitsCalc = accountBalances.reduce((sum, a) => sum + a.debit, 0);
+    const totalCreditsCalc = accountBalances.reduce((sum, a) => sum + a.credit, 0);
+    const retainedEarnings = totalCreditsCalc - totalDebitsCalc;
+
+    if (Math.abs(retainedEarnings) > 0.01) {
+      accountBalances.push({
+        code: '3100',
+        name: 'Retained Earnings',
+        type: 'equity',
+        group: 'Equity',
+        debit: retainedEarnings < 0 ? Math.abs(retainedEarnings) : 0,
+        credit: retainedEarnings > 0 ? retainedEarnings : 0
+      });
+    }
+
+    // Also add any transactions from Transaction entity that have account mappings
     const periodTransactions = transactions.filter(t => {
       const transDate = new Date(t.transaction_date);
       return transDate >= period.from && transDate <= period.to;
     });
 
-    // Create account balance map
-    const accountBalanceMap = new Map();
-    
-    // Initialize all accounts
-    accounts.forEach(account => {
-      accountBalanceMap.set(account.id, {
-        code: account.account_code,
-        name: account.account_name,
-        type: account.account_type,
-        debit: 0,
-        credit: 0
-      });
-    });
-
-    // Find or create Cash account for offsetting entries
-    let cashAccount = accounts.find(a => 
-      a.account_code === '1000' || 
-      a.account_name.toLowerCase().includes('cash') ||
-      a.account_category === 'cash'
-    );
-    if (!cashAccount && accounts.length > 0) {
-      cashAccount = accounts.find(a => a.account_type === 'asset');
-    }
-
-    // Process each transaction with proper double-entry logic
     periodTransactions.forEach(t => {
-      const account = accounts.find(a => a.id === t.account_id);
-      const transactionAccount = accountBalanceMap.get(t.account_id);
-      
-      if (transactionAccount && account) {
-        // Use debit/credit amounts if provided (new double-entry format)
-        if (t.debit_amount > 0 || t.credit_amount > 0) {
-          transactionAccount.debit += t.debit_amount || 0;
-          transactionAccount.credit += t.credit_amount || 0;
-          
-          // Process contra account if specified
-          if (t.contra_account_id && accountBalanceMap.has(t.contra_account_id)) {
-            const contraAccount = accountBalanceMap.get(t.contra_account_id);
-            // Mirror the entry: if main is DR, contra is CR and vice versa
-            contraAccount.debit += t.credit_amount || 0;
-            contraAccount.credit += t.debit_amount || 0;
-          }
-        } else {
-          // Fallback to old format for backwards compatibility
-          const accountType = account.account_type;
-          
-          if (accountType === 'expense' || accountType === 'asset') {
-            transactionAccount.debit += t.amount;
-            
-            if (cashAccount && accountBalanceMap.has(cashAccount.id) && cashAccount.id !== t.account_id) {
-              accountBalanceMap.get(cashAccount.id).credit += t.amount;
-            }
-          } else if (accountType === 'revenue' || accountType === 'liability' || accountType === 'equity') {
-            transactionAccount.credit += t.amount;
-            
-            if (cashAccount && accountBalanceMap.has(cashAccount.id) && cashAccount.id !== t.account_id) {
-              accountBalanceMap.get(cashAccount.id).debit += t.amount;
+      if (t.account_id) {
+        const account = accounts.find(a => a.id === t.account_id);
+        if (account) {
+          const existing = accountBalances.find(a => a.code === account.account_code);
+          if (existing) {
+            if (t.debit_amount > 0) existing.debit += t.debit_amount;
+            if (t.credit_amount > 0) existing.credit += t.credit_amount;
+            if (!t.debit_amount && !t.credit_amount && t.amount) {
+              if (account.account_type === 'asset' || account.account_type === 'expense') {
+                existing.debit += t.amount;
+              } else {
+                existing.credit += t.amount;
+              }
             }
           }
         }
       }
     });
 
-    // Convert map to array and add to groups
-    const accountBalances = [];
-    const seenCodes = new Set();
-    
-    accountBalanceMap.forEach((balance, accountId) => {
-      const account = accounts.find(a => a.id === accountId);
-      if (account && !seenCodes.has(account.account_code) && (balance.debit > 0 || balance.credit > 0)) {
-        seenCodes.add(account.account_code);
-        accountBalances.push({
-          code: account.account_code,
-          name: account.account_name,
-          type: account.account_type,
-          group: accountGroups[account.account_type]?.title || 'Other',
-          debit: balance.debit,
-          credit: balance.credit
-        });
-      }
-    });
-
-    // Calculate vehicle inventory value (in_stock vehicles)
-    const periodVehicleInventoryValue = vehicles
-      .filter(v => v.status === 'in_stock')
-      .reduce((sum, v) => sum + (v.total_cost || v.purchase_price || 0), 0);
-
-    // Add vehicle inventory as an asset entry if there's value
-    if (periodVehicleInventoryValue > 0) {
-      // Check if Vehicle Inventory already exists from accounts
-      const existingVehicleInv = accountBalances.find(a => a.code === '1400' && a.name === 'Vehicle Inventory');
-      if (existingVehicleInv) {
-        existingVehicleInv.debit = periodVehicleInventoryValue;
-      } else {
-        accountBalances.push({
-          code: '1400',
-          name: 'Vehicle Inventory',
-          type: 'asset',
-          group: 'Assets',
-          debit: periodVehicleInventoryValue,
-          credit: 0
-        });
-      }
-    }
-
     const totalDebits = accountBalances.reduce((sum, a) => sum + a.debit, 0);
     const totalCredits = accountBalances.reduce((sum, a) => sum + a.credit, 0);
 
     return {
       period,
-      accounts: accountBalances,
+      accounts: accountBalances.sort((a, b) => a.code.localeCompare(b.code)),
       totalDebits,
       totalCredits,
       difference: totalDebits - totalCredits
