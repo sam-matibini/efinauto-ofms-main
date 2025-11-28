@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock, Plus, Check, X, Edit } from "lucide-react";
+import { Calendar, Clock, Plus, Check, X, Edit, Users, List, ChevronDown, ChevronRight } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
@@ -17,6 +17,8 @@ export default function TimesheetManagement({ company, employees, timeEntries, q
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [editingEntry, setEditingEntry] = useState(null);
+  const [viewMode, setViewMode] = useState("grouped"); // "grouped" or "list"
+  const [expandedEmployees, setExpandedEmployees] = useState(new Set());
   const [formData, setFormData] = useState({
     employee_id: "",
     date: new Date().toISOString().split('T')[0],
