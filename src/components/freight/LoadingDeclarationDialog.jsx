@@ -174,15 +174,25 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
 
       const exportVehicles = (exportOrder.items || [])
         .filter(item => item.description && item.value)
-        .map(item => ({
-          year: extractYearFromDescription(item.description) || "",
-          make_model: item.description || "",
-          vin: item.vin || "",
-          weight: item.weight || 0,
-          value: item.value || 0,
-          saved: false,
-          export_id: exportId
-        }));
+        .map(item => {
+          // Extract VIN from description if stored there (legacy format: "2013 NISSAN ROGUE (VIN: xxx)")
+          let vin = item.vin || "";
+          if (!vin && item.description) {
+            const vinMatch = item.description.match(/\(VIN:\s*([^)]+)\)/i);
+            if (vinMatch) {
+              vin = vinMatch[1].trim();
+            }
+          }
+          return {
+            year: extractYearFromDescription(item.description) || "",
+            make_model: item.description?.replace(/\s*\(VIN:[^)]+\)/i, '') || "",
+            vin: vin,
+            weight: item.weight || 0,
+            value: item.value || 0,
+            saved: false,
+            export_id: exportId
+          };
+        });
 
       const updatedVehicles = [...formData.vehicles, ...exportVehicles];
       const totalWeight = updatedVehicles.reduce((sum, v) => sum + (parseFloat(v.weight) || 0), 0);
