@@ -1294,19 +1294,27 @@ This is an automated message from eFinAuto Center Freight Management System.
                 <h3 className="font-semibold mb-4">Consignee</h3>
                 <div className="space-y-3">
                   <div className="space-y-2">
-                    <Label>Select Customer</Label>
+                    <Label>Select Consignee</Label>
                     <Select onValueChange={handleCustomerSelect} value={selectedCustomer?.id}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Choose customer..." />
+                        <SelectValue placeholder="Choose consignee..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {customers.map(customer => (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            {customer.full_name}
-                          </SelectItem>
-                        ))}
+                        {customers
+                          .filter(c => c.is_consignee || c.consignee_only)
+                          .map(customer => (
+                            <SelectItem key={customer.id} value={customer.id}>
+                              {customer.full_name} {customer.consignee_only ? '(Consignee Only)' : ''}
+                            </SelectItem>
+                          ))}
+                        {customers.filter(c => c.is_consignee || c.consignee_only).length === 0 && (
+                          <div className="px-2 py-1.5 text-sm text-gray-500">
+                            No consignees found. Mark customers as consignees in Customer Management.
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-gray-500">Only customers marked as consignees are shown</p>
                   </div>
                   <div className="space-y-2">
                     <Label>Consignee Name</Label>

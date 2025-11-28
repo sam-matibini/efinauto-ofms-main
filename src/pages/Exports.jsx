@@ -36,6 +36,9 @@ export default function Exports() {
     initialData: [],
   });
 
+  // Filter consignees for export selection
+  const consignees = customers.filter(c => c.is_consignee || c.consignee_only);
+
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles', selectedCompanyId],
     queryFn: () => base44.entities.Vehicle.filter({ company_id: selectedCompanyId }),
@@ -384,6 +387,7 @@ export default function Exports() {
         exportOrder={editingExport}
         onSave={handleSave}
         customers={customers}
+        consignees={consignees}
         vehicles={vehicles}
         parts={parts}
         sales={sales}
@@ -393,7 +397,7 @@ export default function Exports() {
   );
 }
 
-function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles, parts, sales }) {
+function ExportDialog({ open, onClose, exportOrder, onSave, customers, consignees, vehicles, parts, sales }) {
   const [formData, setFormData] = useState({
     export_number: `EXP-${Date.now()}`,
     export_type: "vehicle",
@@ -607,13 +611,37 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Customer *</Label>
-                <CustomerSelector
-                  customers={customers}
-                  selectedCustomer={selectedCustomer}
-                  onSelect={handleCustomerSelect}
-                />
-              </div>
+                                    <Label>Consignee / Customer *</Label>
+                                    <Select 
+                                      value={selectedCustomer?.id || ""} 
+                                      onValueChange={(id) => {
+                                        const customer = [...consignees, ...customers].find(c => c.id === id);
+                                        if (customer) handleCustomerSelect(customer);
+                                      }}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select consignee or customer..." />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {consignees.length > 0 && (
+                                          <>
+                                            <div className="px-2 py-1 text-xs font-semibold text-blue-600 bg-blue-50">Consignees</div>
+                                            {consignees.map(c => (
+                                              <SelectItem key={c.id} value={c.id}>
+                                                {c.full_name} {c.consignee_only ? '(Consignee Only)' : ''}
+                                              </SelectItem>
+                                            ))}
+                                          </>
+                                        )}
+                                        <div className="px-2 py-1 text-xs font-semibold text-gray-600 bg-gray-50">All Customers</div>
+                                        {customers.filter(c => !c.is_consignee && !c.consignee_only).map(c => (
+                                          <SelectItem key={c.id} value={c.id}>
+                                            {c.full_name}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
               <div className="space-y-2">
                 <Label>Customer Phone</Label>
                 <Input value={formData.customer_phone} onChange={(e) => setFormData({...formData, customer_phone: e.target.value})} />
