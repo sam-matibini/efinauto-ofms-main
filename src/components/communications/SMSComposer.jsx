@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, MessageSquare, Loader2, Plane, Package } from "lucide-react";
+import { Sparkles, MessageSquare, Loader2, Plane, Package, FileText, Link2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
@@ -17,6 +17,8 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
   const [template, setTemplate] = useState("");
   const [selectedExport, setSelectedExport] = useState("");
   const [selectedShipment, setSelectedShipment] = useState("");
+  const [selectedDeclaration, setSelectedDeclaration] = useState("");
+  const [includeDocLink, setIncludeDocLink] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [sending, setSending] = useState(false);
 
@@ -32,8 +34,11 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
     { value: "delivery", label: "Delivery Update", prompt: "Write a brief SMS about vehicle delivery status", category: "customer" },
     { value: "payment", label: "Payment Reminder", prompt: "Write a brief SMS payment reminder", category: "customer" },
     { value: "promo", label: "Quick Promotion", prompt: "Write a brief promotional SMS about vehicle deals", category: "customer" },
-    { value: "export_update", label: "Export Status", prompt: "Write a brief SMS about export status", category: "export" },
-    { value: "shipment_update", label: "Shipment Update", prompt: "Write a brief SMS about shipment tracking", category: "shipment" }
+    { value: "export_update", label: "Export Status", prompt: "Write a brief SMS about export status with document link", category: "export" },
+    { value: "export_docs", label: "Export Documents Ready", prompt: "Write a brief SMS notifying export documents are ready", category: "export" },
+    { value: "shipment_update", label: "Shipment Update", prompt: "Write a brief SMS about shipment tracking", category: "shipment" },
+    { value: "shipment_arrival", label: "Shipment Arrival", prompt: "Write a brief SMS about shipment arrival with tracking link", category: "shipment" },
+    { value: "loading_update", label: "Loading Update", prompt: "Write a brief SMS about loading declaration status", category: "declaration" }
   ];
 
   const charCount = message.length;
@@ -57,7 +62,12 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
       
       if (selectedShipment) {
         const ship = shipments?.find(s => s.id === selectedShipment);
-        if (ship) contextInfo += `\nShipment: ${ship.shipment_number}, ETA: ${ship.estimated_arrival}`;
+        if (ship) contextInfo += `\nShipment: ${ship.shipment_number}, ETA: ${ship.expected_arrival}`;
+      }
+
+      if (selectedDeclaration) {
+        const decl = loadingDeclarations?.find(d => d.id === selectedDeclaration);
+        if (decl) contextInfo += `\nLoading Declaration: ${decl.declaration_number}, Container: ${decl.container_number}`;
       }
       
       const companyName = company?.name || company?.display_name || "eFinAuto OFMS";
@@ -189,8 +199,8 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
         </div>
 
         {template && templates.find(t => t.value === template)?.category === 'export' && exports?.length > 0 && (
-          <div>
-            <Label>Select Export</Label>
+          <div className="space-y-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <Label>Select Export Order</Label>
             <Select value={selectedExport} onValueChange={setSelectedExport}>
               <SelectTrigger>
                 <SelectValue placeholder="Choose an export..." />
@@ -198,7 +208,10 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
               <SelectContent>
                 {exports.map(exp => (
                   <SelectItem key={exp.id} value={exp.id}>
-                    {exp.export_number} - {exp.status}
+                    <div className="flex items-center gap-2">
+                      <Plane className="w-3 h-3" />
+                      {exp.export_number} - {exp.customer_name}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -207,7 +220,7 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
         )}
 
         {template && templates.find(t => t.value === template)?.category === 'shipment' && shipments?.length > 0 && (
-          <div>
+          <div className="space-y-2 p-3 bg-green-50 rounded-lg border border-green-200">
             <Label>Select Shipment</Label>
             <Select value={selectedShipment} onValueChange={setSelectedShipment}>
               <SelectTrigger>
@@ -221,6 +234,33 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
                 ))}
               </SelectContent>
             </Select>
+          </div>
+        )}
+
+        {template && templates.find(t => t.value === template)?.category === 'declaration' && loadingDeclarations?.length > 0 && (
+          <div className="space-y-2 p-3 bg-purple-50 rounded-lg border border-purple-200">
+            <Label>Select Loading Declaration</Label>
+            <Select value={selectedDeclaration} onValueChange={setSelectedDeclaration}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose a declaration..." />
+              </SelectTrigger>
+              <SelectContent>
+                {loadingDeclarations.map(decl => (
+                  <SelectItem key={decl.id} value={decl.id}>
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-3 h-3" />
+                      {decl.declaration_number} - {decl.container_number}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedDeclaration && loadingDeclarations?.find(d => d.id === selectedDeclaration)?.document_url && (
+              <div className="flex items-center gap-2 text-xs text-purple-700">
+                <Link2 className="w-3 h-3" />
+                Document link will be included in SMS
+              </div>
+            )}
           </div>
         )}
 
