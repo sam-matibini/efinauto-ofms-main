@@ -23,28 +23,34 @@ export default function PeriodComparison({ onPeriodsChange, maxPeriods = 12 }) {
       let from, to, label;
       
       switch (compareType) {
-        case "previous_period":
+        case "previous_period": {
           const targetMonth = subMonths(today, i);
           from = startOfMonth(targetMonth);
           to = i === 0 ? today : endOfMonth(targetMonth);
           label = format(from, 'MMM yyyy');
           break;
-        case "previous_quarter":
+        }
+        case "previous_quarter": {
           const targetQuarter = subQuarters(today, i);
           from = startOfQuarter(targetQuarter);
           to = i === 0 ? today : endOfQuarter(targetQuarter);
-          label = `Q${Math.floor(from.getMonth() / 3) + 1} ${from.getFullYear()}`;
+          const quarterNum = Math.floor(from.getMonth() / 3) + 1;
+          label = `Q${quarterNum} ${from.getFullYear()}`;
           break;
-        case "previous_year":
+        }
+        case "previous_year": {
           const targetYear = subYears(today, i);
           from = startOfYear(targetYear);
           to = i === 0 ? today : endOfYear(targetYear);
           label = from.getFullYear().toString();
           break;
-        default:
-          from = startOfMonth(subMonths(today, i));
-          to = i === 0 ? today : endOfMonth(subMonths(today, i));
+        }
+        default: {
+          const defaultMonth = subMonths(today, i);
+          from = startOfMonth(defaultMonth);
+          to = i === 0 ? today : endOfMonth(defaultMonth);
           label = format(from, 'MMM yyyy');
+        }
       }
       
       periods.push({ label, from, to });
