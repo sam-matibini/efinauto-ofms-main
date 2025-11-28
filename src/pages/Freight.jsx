@@ -316,15 +316,15 @@ export default function Freight() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-white">Freight & Cargo Management</h1>
-            <p className="text-sm text-gray-300 mt-1">{shipments.length} shipments</p>
+            <p className="text-sm text-gray-300 mt-1">{shipments.length} shipments • {loadingDeclarations.length} declarations</p>
           </div>
           <div className="flex gap-3">
             <Button onClick={() => {
               setSelectedShipment(null);
               setLoadingDeclOpen(true);
-            }} variant="outline">
+            }} variant="outline" className="bg-white">
               <FileText className="w-4 h-4 mr-2" />
-              Loading Declaration
+              New Declaration
             </Button>
             <Button onClick={() => {
               setEditingShipment(null);
@@ -339,101 +339,317 @@ export default function Freight() {
 
       <div className="p-6 md:p-8 max-w-7xl mx-auto">
 
-      <div className="grid gap-4">
-        {shipments.map((shipment, index) => (
-          <motion.div
-            key={shipment.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-          >
-            <Card className="border-none shadow-md hover:shadow-lg transition-all">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div 
-                    className="space-y-2 flex-1 cursor-pointer"
-                    onClick={() => {
-                      setEditingShipment(shipment);
-                      setDialogOpen(true);
-                    }}
-                  >
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <Package className="w-5 h-5 text-blue-600" />
-                      <h3 className="font-bold text-lg">{shipment.shipment_number || 'Shipment'}</h3>
-                      <Badge className={statusColors[shipment.status]}>
-                        {shipment.status?.replace(/_/g, ' ')}
-                      </Badge>
-                      <Badge variant="outline">{shipment.shipment_type}</Badge>
-                      <Badge variant="outline">{shipment.cargo_type}</Badge>
-                      {shipment.export_id && <Badge className="bg-purple-100 text-purple-800">Linked to Export</Badge>}
-                    </div>
-                    <p className="text-gray-600">
-                      <strong>Customer:</strong> {shipment.customer_name}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      <strong>Route:</strong> {shipment.origin_country} → {shipment.destination_country}
-                    </p>
-                    {shipment.tracking_number && (
-                      <p className="text-sm text-gray-500">
-                        <strong>Tracking:</strong> {shipment.tracking_number}
-                      </p>
-                    )}
-                    {shipment.carrier_name && (
-                      <p className="text-sm text-gray-500">
-                        <strong>Carrier:</strong> {shipment.carrier_name}
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-right ml-4 space-y-2">
-                    <p className="text-2xl font-bold text-blue-600">
-                      ${shipment.total_cost?.toLocaleString() || '0'}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {shipment.payment_status === 'paid' ? '✓ Paid' : 'Pending'}
-                    </p>
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const linkedExport = exports.find(exp => exp.id === shipment.export_id);
-                        setSelectedShipment({ ...shipment, linkedExport });
-                        setDocGenOpen(true);
-                      }}
-                      size="sm"
-                      variant="outline"
-                      className="w-full text-green-600 hover:text-green-700 hover:bg-green-50"
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      Generate Docs
-                    </Button>
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedShipment(shipment);
-                        setLoadingDeclOpen(true);
-                      }}
-                      size="sm"
-                      variant="outline"
-                      className="w-full"
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      Loading Declaration
-                    </Button>
-                    <Button
-                      onClick={(e) => handleDelete(shipment.id, e)}
-                      size="sm"
-                      variant="outline"
-                      className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-6">
+          <TabsTrigger value="shipments" className="flex items-center gap-2">
+            <Ship className="w-4 h-4" />
+            Shipments ({shipments.length})
+          </TabsTrigger>
+          <TabsTrigger value="declarations" className="flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Loading Declarations ({loadingDeclarations.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="shipments">
+          <div className="flex justify-end mb-4">
+            <div className="flex gap-1 border rounded-lg p-1 bg-white">
+              <Button
+                variant={shipmentsViewMode === "cards" ? "default" : "ghost"}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setShipmentsViewMode("cards")}
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={shipmentsViewMode === "list" ? "default" : "ghost"}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setShipmentsViewMode("list")}
+              >
+                <List className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          {shipmentsViewMode === "list" ? (
+            <Card className="border-none shadow-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Shipment #</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Route</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Cost</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {shipments.map((shipment) => (
+                    <TableRow key={shipment.id} className="cursor-pointer hover:bg-gray-50" onClick={() => { setEditingShipment(shipment); setDialogOpen(true); }}>
+                      <TableCell className="font-medium">{shipment.shipment_number || '-'}</TableCell>
+                      <TableCell>{shipment.customer_name}</TableCell>
+                      <TableCell>{shipment.origin_country} → {shipment.destination_country}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{shipment.shipment_type}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={statusColors[shipment.status]}>{shipment.status?.replace(/_/g, ' ')}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-blue-600">${shipment.total_cost?.toLocaleString() || '0'}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setSelectedShipment(shipment); setLoadingDeclOpen(true); }}>
+                            <FileText className="w-4 h-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="text-red-600" onClick={(e) => handleDelete(shipment.id, e)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </Card>
-          </motion.div>
-        ))}
-      </div>
+          ) : (
+            <div className="grid gap-4">
+              {shipments.map((shipment, index) => (
+                <motion.div
+                  key={shipment.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Card className="border-none shadow-md hover:shadow-lg transition-all">
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start">
+                        <div 
+                          className="space-y-2 flex-1 cursor-pointer"
+                          onClick={() => {
+                            setEditingShipment(shipment);
+                            setDialogOpen(true);
+                          }}
+                        >
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <Package className="w-5 h-5 text-blue-600" />
+                            <h3 className="font-bold text-lg">{shipment.shipment_number || 'Shipment'}</h3>
+                            <Badge className={statusColors[shipment.status]}>
+                              {shipment.status?.replace(/_/g, ' ')}
+                            </Badge>
+                            <Badge variant="outline">{shipment.shipment_type}</Badge>
+                            <Badge variant="outline">{shipment.cargo_type}</Badge>
+                            {shipment.export_id && <Badge className="bg-purple-100 text-purple-800">Linked to Export</Badge>}
+                          </div>
+                          <p className="text-gray-600">
+                            <strong>Customer:</strong> {shipment.customer_name}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            <strong>Route:</strong> {shipment.origin_country} → {shipment.destination_country}
+                          </p>
+                          {shipment.tracking_number && (
+                            <p className="text-sm text-gray-500">
+                              <strong>Tracking:</strong> {shipment.tracking_number}
+                            </p>
+                          )}
+                          {shipment.carrier_name && (
+                            <p className="text-sm text-gray-500">
+                              <strong>Carrier:</strong> {shipment.carrier_name}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right ml-4 space-y-2">
+                          <p className="text-2xl font-bold text-blue-600">
+                            ${shipment.total_cost?.toLocaleString() || '0'}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {shipment.payment_status === 'paid' ? '✓ Paid' : 'Pending'}
+                          </p>
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const linkedExport = exports.find(exp => exp.id === shipment.export_id);
+                              setSelectedShipment({ ...shipment, linkedExport });
+                              setDocGenOpen(true);
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className="w-full text-green-600 hover:text-green-700 hover:bg-green-50"
+                          >
+                            <FileText className="w-4 h-4 mr-2" />
+                            Generate Docs
+                          </Button>
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedShipment(shipment);
+                              setLoadingDeclOpen(true);
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className="w-full"
+                          >
+                            <FileText className="w-4 h-4 mr-2" />
+                            Loading Declaration
+                          </Button>
+                          <Button
+                            onClick={(e) => handleDelete(shipment.id, e)}
+                            size="sm"
+                            variant="outline"
+                            className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="declarations">
+          <div className="flex justify-end mb-4">
+            <div className="flex gap-1 border rounded-lg p-1 bg-white">
+              <Button
+                variant={declarationsViewMode === "cards" ? "default" : "ghost"}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setDeclarationsViewMode("cards")}
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={declarationsViewMode === "list" ? "default" : "ghost"}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setDeclarationsViewMode("list")}
+              >
+                <List className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          {declarationsViewMode === "list" ? (
+            <Card className="border-none shadow-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Declaration #</TableHead>
+                    <TableHead>Booking #</TableHead>
+                    <TableHead>Consignee</TableHead>
+                    <TableHead>Container</TableHead>
+                    <TableHead>Vehicles</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Value</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loadingDeclarations.map((decl) => (
+                    <TableRow key={decl.id} className="cursor-pointer hover:bg-gray-50">
+                      <TableCell className="font-medium">{decl.declaration_number || '-'}</TableCell>
+                      <TableCell>{decl.booking_number || '-'}</TableCell>
+                      <TableCell>{decl.consignee?.name || '-'}</TableCell>
+                      <TableCell>{decl.container_number || '-'}</TableCell>
+                      <TableCell>{decl.vehicles?.length || 0}</TableCell>
+                      <TableCell>
+                        <Badge className={decl.status === 'approved' ? 'bg-green-100 text-green-800' : decl.status === 'submitted' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}>
+                          {decl.status || 'draft'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-blue-600">${decl.value?.toLocaleString() || '0'}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" onClick={() => setViewDeclaration(decl)}>
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="text-red-600" onClick={(e) => handleDeleteDeclaration(decl.id, e)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {loadingDeclarations.map((decl, index) => (
+                <motion.div
+                  key={decl.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Card className="border-none shadow-md hover:shadow-lg transition-all">
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-2 flex-1">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <FileText className="w-5 h-5 text-green-600" />
+                            <h3 className="font-bold text-lg">{decl.declaration_number || 'Loading Declaration'}</h3>
+                            <Badge className={decl.status === 'approved' ? 'bg-green-100 text-green-800' : decl.status === 'submitted' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}>
+                              {decl.status || 'draft'}
+                            </Badge>
+                          </div>
+                          <p className="text-gray-600">
+                            <strong>Consignee:</strong> {decl.consignee?.name || 'N/A'}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            <strong>Booking:</strong> {decl.booking_number || 'N/A'} | <strong>Container:</strong> {decl.container_number || 'N/A'}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            <strong>Vehicles:</strong> {decl.vehicles?.length || 0} | <strong>Weight:</strong> {decl.weight || 0} kg
+                          </p>
+                          {decl.commodity && (
+                            <p className="text-xs text-gray-400 truncate max-w-xl">
+                              {decl.commodity}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right ml-4 space-y-2">
+                          <p className="text-2xl font-bold text-green-600">
+                            ${decl.value?.toLocaleString() || '0'}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {decl.created_date ? format(new Date(decl.created_date), 'MMM d, yyyy') : ''}
+                          </p>
+                          <Button
+                            onClick={() => setViewDeclaration(decl)}
+                            size="sm"
+                            variant="outline"
+                            className="w-full"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View
+                          </Button>
+                          <Button
+                            onClick={(e) => handleDeleteDeclaration(decl.id, e)}
+                            size="sm"
+                            variant="outline"
+                            className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       <FreightDialog
         open={dialogOpen}
