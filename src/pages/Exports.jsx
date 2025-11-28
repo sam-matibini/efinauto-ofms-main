@@ -346,10 +346,21 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
   React.useEffect(() => {
     if (open) {
       if (exportOrder) {
-        const updatedItems = exportOrder.items?.map(item => ({
-          ...item,
-          weight: item.weight ?? 0
-        })) || [];
+        const updatedItems = exportOrder.items?.map(item => {
+          // Extract VIN from description if not already set (legacy format: "2013 NISSAN ROGUE (VIN: xxx)")
+          let vin = item.vin || "";
+          if (!vin && item.description) {
+            const vinMatch = item.description.match(/\(VIN:\s*([^)]+)\)/i);
+            if (vinMatch) {
+              vin = vinMatch[1].trim();
+            }
+          }
+          return {
+            ...item,
+            vin: vin,
+            weight: item.weight ?? 0
+          };
+        }) || [];
 
         setFormData({ ...exportOrder, items: updatedItems });
         const customer = customers.find(c => c.full_name === exportOrder.customer_name);
