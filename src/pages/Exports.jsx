@@ -50,6 +50,13 @@ export default function Exports() {
     initialData: [],
   });
 
+  const { data: sales = [] } = useQuery({
+    queryKey: ['sales', selectedCompanyId],
+    queryFn: () => base44.entities.Sale.filter({ company_id: selectedCompanyId, sale_type: 'export' }, '-created_date'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
   const createMutation = useMutation({
     mutationFn: async (data) => {
       const exportOrder = await base44.entities.Export.create({...data, company_id: selectedCompanyId});
