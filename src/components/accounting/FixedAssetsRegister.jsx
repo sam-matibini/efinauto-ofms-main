@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Package, Plus, Edit, Trash2, Download, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import AIDepreciationCalculator from "./AIDepreciationCalculator";
 
 export default function FixedAssetsRegister({ comparativePeriods = [] }) {
@@ -19,6 +20,7 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
   const [aiCalcOpen, setAiCalcOpen] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [aiDepreciations, setAiDepreciations] = useState({});
+  const [drilldown, setDrilldown] = useState(null);
   const queryClient = useQueryClient();
 
   const currentPeriod = comparativePeriods.length > 0 ? comparativePeriods[0] : null;
@@ -112,6 +114,52 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
   }, 0);
   const totalNetValue = totalCost - totalDepreciation;
 
+  // Handle drilldown on summary cards
+  const handleDrilldown = (category) => {
+    let title = '';
+    let items = [];
+
+    switch (category) {
+      case 'totalCost':
+        title = 'Total Asset Cost';
+        items = fixedAssets.map(a => ({
+          date: a.purchaseDate,
+          description: a.description,
+          reference: a.serialNumber,
+          amount: a.purchasePrice || 0
+        }));
+        break;
+      case 'totalDepreciation':
+        title = 'Accumulated Depreciation';
+        items = fixedAssets.map(a => {
+          const dep = calculateDepreciation(a);
+          return {
+            date: a.purchaseDate,
+            description: a.description,
+            reference: `${dep.method}`,
+            amount: dep.accumulatedDepreciation
+          };
+        }).filter(i => i.amount > 0);
+        break;
+      case 'netBookValue':
+        title = 'Net Book Value';
+        items = fixedAssets.map(a => {
+          const dep = calculateDepreciation(a);
+          return {
+            date: a.purchaseDate,
+            description: a.description,
+            reference: a.serialNumber,
+            amount: dep.netBookValue
+          };
+        });
+        break;
+      default:
+        items = [];
+    }
+
+    setDrilldown({ title, items, period: currentPeriod });
+  };
+
   const handleExport = () => {
     const csv = [
       ['Fixed Assets Register'],
@@ -166,19 +214,31 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
       <CardContent>
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card>
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onDoubleClick={() => handleDrilldown('totalCost')}
+            title="Double-click to view details"
+          >
             <CardContent className="p-4">
               <p className="text-sm text-gray-600">Total Cost</p>
               <p className="text-2xl font-bold text-blue-600">${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onDoubleClick={() => handleDrilldown('totalDepreciation')}
+            title="Double-click to view details"
+          >
             <CardContent className="p-4">
               <p className="text-sm text-gray-600">Accumulated Depreciation</p>
               <p className="text-2xl font-bold text-red-600">${totalDepreciation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onDoubleClick={() => handleDrilldown('netBookValue')}
+            title="Double-click to view details"
+          >
             <CardContent className="p-4">
               <p className="text-sm text-gray-600">Net Book Value</p>
               <p className="text-2xl font-bold text-green-600">${totalNetValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
@@ -293,6 +353,49 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
         onClose={() => setAiCalcOpen(false)}
         onCalculated={handleAICalculated}
       />
+
+      {/* Drilldown Dialog */}
+      <Dialog open={!!drilldown} onOpenChange={() => setDrilldown(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{drilldown?.title}</DialogTitle>
+          </DialogHeader>
+          {drilldown && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <p className="text-sm text-gray-600">Total</p>
+                <p className="text-xl font-bold text-blue-600">
+                  ${drilldown.items.reduce((sum, i) => sum + i.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b-2 bg-gray-100">
+                    <th className="text-left py-2 px-3">Date</th>
+                    <th className="text-left py-2 px-3">Description</th>
+                    <th className="text-left py-2 px-3">Reference</th>
+                    <th className="text-right py-2 px-3">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {drilldown.items.length === 0 ? (
+                    <tr><td colSpan={4} className="text-center py-4 text-gray-500">No items found</td></tr>
+                  ) : (
+                    drilldown.items.map((item, idx) => (
+                      <tr key={idx} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-3">{format(new Date(item.date), 'MMM d, yyyy')}</td>
+                        <td className="py-2 px-3">{item.description}</td>
+                        <td className="py-2 px-3 text-gray-600">{item.reference || '-'}</td>
+                        <td className="py-2 px-3 text-right font-medium">${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
