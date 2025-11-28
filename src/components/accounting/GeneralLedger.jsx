@@ -754,26 +754,63 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
 
         {ledgerEntries.length > 0 && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="text-gray-600">Total Debits</p>
-                <p className="text-lg font-bold text-blue-600">
-                  ${ledgerEntries.reduce((sum, e) => sum + e.debit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-600">Total Credits</p>
-                <p className="text-lg font-bold text-green-600">
-                  ${ledgerEntries.reduce((sum, e) => sum + e.credit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-600">Ending Balance</p>
-                <p className={`text-lg font-bold ${runningBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                  ${Math.abs(runningBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </p>
-              </div>
-            </div>
+            <table className="w-full text-sm">
+              <tbody>
+                <tr>
+                  {viewMode === "grouped" ? (
+                    <>
+                      <td className="w-8"></td>
+                      <td className="py-2 px-4"></td>
+                      <td className="text-right py-2 px-4"></td>
+                      <td className="text-right py-2 px-4">
+                        <p className="text-gray-600 text-xs">Total Debits</p>
+                        <p className="text-lg font-bold text-blue-600">
+                          ${ledgerEntries.reduce((sum, e) => sum + e.debit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </p>
+                      </td>
+                      <td className="text-right py-2 px-4">
+                        <p className="text-gray-600 text-xs">Total Credits</p>
+                        <p className="text-lg font-bold text-green-600">
+                          ${ledgerEntries.reduce((sum, e) => sum + e.credit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </p>
+                      </td>
+                      <td className="text-right py-2 px-4">
+                        <p className="text-gray-600 text-xs">Ending Balance</p>
+                        <p className={`text-lg font-bold ${runningBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                          ${Math.abs(runningBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </p>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="py-2 px-4"></td>
+                      <td className="py-2 px-4"></td>
+                      <td className="py-2 px-4"></td>
+                      <td className="py-2 px-4"></td>
+                      <td className="py-2 px-4"></td>
+                      <td className="text-right py-2 px-4">
+                        <p className="text-gray-600 text-xs">Total Debits</p>
+                        <p className="text-lg font-bold text-blue-600">
+                          ${ledgerEntries.reduce((sum, e) => sum + e.debit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </p>
+                      </td>
+                      <td className="text-right py-2 px-4">
+                        <p className="text-gray-600 text-xs">Total Credits</p>
+                        <p className="text-lg font-bold text-green-600">
+                          ${ledgerEntries.reduce((sum, e) => sum + e.credit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </p>
+                      </td>
+                      <td className="text-right py-2 px-4">
+                        <p className="text-gray-600 text-xs">Ending Balance</p>
+                        <p className={`text-lg font-bold ${runningBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                          ${Math.abs(runningBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </p>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              </tbody>
+            </table>
           </div>
         )}
 
