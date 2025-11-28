@@ -88,14 +88,48 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
   });
 
   const [selectedExportIds, setSelectedExportIds] = useState([]);
+  const [existingDeclaration, setExistingDeclaration] = useState(null);
+
+  // Check for existing declaration when shipment is selected
+  React.useEffect(() => {
+    const checkExistingDeclaration = async () => {
+      if (open && shipment?.id) {
+        try {
+          const existing = await base44.entities.LoadingDeclaration.filter({ 
+            shipment_id: shipment.id 
+          });
+          if (existing && existing.length > 0) {
+            setExistingDeclaration(existing[0]);
+            // Load existing declaration data
+            const decl = existing[0];
+            setFormData({
+              ...decl,
+              company_id: selectedCompanyId
+            });
+            setSelectedExportIds(decl.export_ids || (decl.export_id ? [decl.export_id] : []));
+            setSavedData(decl);
+            setViewMode(true);
+            toast.info("Existing loading declaration found for this shipment");
+            return;
+          }
+        } catch (error) {
+          console.error("Error checking existing declaration:", error);
+        }
+        setExistingDeclaration(null);
+      }
+    };
+    
+    checkExistingDeclaration();
+  }, [open, shipment?.id, selectedCompanyId]);
 
   React.useEffect(() => {
-    if (open && shipment) {
+    if (open && shipment && !existingDeclaration) {
       setFormData({
         company_id: selectedCompanyId,
         export_id: shipment.export_id || "",
-        export_ids: [],
+        export_ids: shipment.export_id ? [shipment.export_id] : [],
         shipment_id: shipment.id || "",
+        shipment_number: shipment.shipment_number || "",
         booking_number: shipment.tracking_number || "",
         container_number: shipment.container_number || "",
         seal_number: shipment.seal_number || "",
@@ -115,11 +149,21 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
         vehicles: [],
         status: "draft"
       });
-      setSelectedExportIds([]);
+      // Auto-add export if shipment has one
+      if (shipment.export_id) {
+        setSelectedExportIds([shipment.export_id]);
+        // Auto-populate from linked export
+        const linkedExport = exports?.find(e => e.id === shipment.export_id);
+        if (linkedExport) {
+          setTimeout(() => handleAddExportOrder(shipment.export_id), 100);
+        }
+      } else {
+        setSelectedExportIds([]);
+      }
       setViewMode(false);
       setSavedData(null);
     }
-  }, [open, shipment, selectedCompanyId]);
+  }, [open, shipment, selectedCompanyId, existingDeclaration]);
 
   // Auto-populate exporter from selected company
   React.useEffect(() => {
