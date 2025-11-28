@@ -150,7 +150,13 @@ export default function CustomersTab({ customers, selectedCompanyId }) {
               {filteredCustomers.map((customer) => (
                 <TableRow key={customer.id}>
                   <TableCell className="font-medium">{customer.full_name}</TableCell>
-                  <TableCell><Badge variant="outline">{customer.customer_type}</Badge></TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      <Badge variant="outline">{customer.customer_type}</Badge>
+                      {customer.is_consignee && <Badge className="bg-blue-100 text-blue-700">Consignee</Badge>}
+                      {customer.consignee_only && <Badge className="bg-purple-100 text-purple-700">Consignee Only</Badge>}
+                    </div>
+                  </TableCell>
                   <TableCell>{customer.email || "-"}</TableCell>
                   <TableCell>{customer.phone || "-"}</TableCell>
                   <TableCell>{customer.city ? `${customer.city}, ${customer.country}` : "-"}</TableCell>
@@ -172,7 +178,11 @@ export default function CustomersTab({ customers, selectedCompanyId }) {
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-3">
                   <h3 className="font-bold text-lg">{customer.full_name}</h3>
-                  <Badge variant="outline">{customer.customer_type}</Badge>
+                  <div className="flex flex-wrap gap-1">
+                    <Badge variant="outline">{customer.customer_type}</Badge>
+                    {customer.is_consignee && <Badge className="bg-blue-100 text-blue-700 text-xs">Consignee</Badge>}
+                    {customer.consignee_only && <Badge className="bg-purple-100 text-purple-700 text-xs">Only</Badge>}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   {customer.email && (
