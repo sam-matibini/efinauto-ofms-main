@@ -463,7 +463,7 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
           
           <div className="mb-4">
             <h4 className="font-semibold text-sm mb-2 px-4 text-gray-700">Current Liabilities</h4>
-            {renderLine('Accounts Payable', periodData.map(d => d.accountsPayable), false, false, 1)}
+            {renderLine('Accounts Payable', periodData.map(d => d.accountsPayable), false, false, 1, 'accountsPayable')}
             {renderLine('Payroll Liabilities', periodData.map(d => d.payrollLiabilities), false, false, 1)}
             {renderLine('Short-term Debt', periodData.map(d => d.shortTermDebt), false, false, 1)}
             {renderLine('Total Current Liabilities', periodData.map(d => d.totalCurrentLiabilities), true, false, 1)}
