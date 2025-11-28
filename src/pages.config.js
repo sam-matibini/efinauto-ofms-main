@@ -29,6 +29,7 @@ import EmployeePortal from './pages/EmployeePortal';
 import Banking from './pages/Banking';
 import FinancialAssistant from './pages/FinancialAssistant';
 import BankingMobile from './pages/BankingMobile';
+import Landing from './pages/Landing';
 import __Layout from './Layout.jsx';
 
 
@@ -64,6 +65,7 @@ export const PAGES = {
     "Banking": Banking,
     "FinancialAssistant": FinancialAssistant,
     "BankingMobile": BankingMobile,
+    "Landing": Landing,
 }
 
 export const pagesConfig = {
