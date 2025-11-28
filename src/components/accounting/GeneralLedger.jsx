@@ -77,6 +77,53 @@ export default function GeneralLedger({ transactions, comparativePeriods = [] })
     };
   });
 
+  // Group transactions by account
+  const groupedByAccount = {};
+  filteredTransactions.forEach(t => {
+    const accountKey = t.account_id || t.account_code || 'unassigned';
+    const accountLabel = t.account_code ? `${t.account_code} - ${t.account_name}` : (t.account_name || 'Unassigned');
+    
+    if (!groupedByAccount[accountKey]) {
+      groupedByAccount[accountKey] = {
+        accountKey,
+        accountCode: t.account_code || '0000',
+        accountName: t.account_name || 'Unassigned',
+        accountLabel,
+        accountType: t.account_type || t.category,
+        transactions: [],
+        totalDebit: 0,
+        totalCredit: 0
+      };
+    }
+    
+    const isDebit = t.category === 'expense' || t.category === 'asset';
+    const isCredit = t.category === 'revenue' || t.category === 'liability';
+    const debit = isDebit ? t.amount : 0;
+    const credit = isCredit ? t.amount : 0;
+    
+    groupedByAccount[accountKey].transactions.push({ ...t, debit, credit });
+    groupedByAccount[accountKey].totalDebit += debit;
+    groupedByAccount[accountKey].totalCredit += credit;
+  });
+
+  const accountGroups = Object.values(groupedByAccount).sort((a, b) => 
+    (a.accountCode || '').localeCompare(b.accountCode || '')
+  );
+
+  const toggleAccountExpand = (accountKey) => {
+    const newExpanded = new Set(expandedAccounts);
+    if (newExpanded.has(accountKey)) {
+      newExpanded.delete(accountKey);
+    } else {
+      newExpanded.add(accountKey);
+    }
+    setExpandedAccounts(newExpanded);
+  };
+
+  const handleAccountDoubleClick = (group) => {
+    setDrilldownAccount(group);
+  };
+
   const exportToCSV = () => {
     const accountLabel = accounts.find(a => a.value === selectedAccount)?.label || 'All Accounts';
     const headers = ['Date', 'Transaction #', 'Account', 'Description', 'Reference', 'Debit', 'Credit', 'Balance'];
