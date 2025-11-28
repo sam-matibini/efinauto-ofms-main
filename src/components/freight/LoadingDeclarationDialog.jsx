@@ -28,11 +28,14 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
   const [viewMode, setViewMode] = useState(false);
   const [savedData, setSavedData] = useState(null);
 
-  const { data: companies = [] } = useQuery({
-    queryKey: ['companies'],
-    queryFn: () => base44.entities.Company.list(),
-    enabled: open,
-    initialData: [],
+  const { data: selectedCompanyData } = useQuery({
+    queryKey: ['company', selectedCompanyId],
+    queryFn: async () => {
+      if (!selectedCompanyId) return null;
+      const companies = await base44.entities.Company.filter({ id: selectedCompanyId });
+      return companies[0] || null;
+    },
+    enabled: open && !!selectedCompanyId,
   });
 
   const { data: customers = [] } = useQuery({
@@ -118,23 +121,22 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     }
   }, [open, shipment, selectedCompanyId]);
 
-  const handleCompanySelect = (companyId) => {
-    const company = companies.find(c => c.id === companyId);
-    setSelectedCompany(company);
-    if (company) {
-      setFormData({
-        ...formData,
+  // Auto-populate exporter from selected company
+  React.useEffect(() => {
+    if (open && selectedCompanyData) {
+      setFormData(prev => ({
+        ...prev,
         exporter: {
-          name: company.name || "",
-          tax_id: company.tax_id || "",
-          address_postal: company.address || "",
-          city_province: `${company.city || ""}, ${company.province || ""}, ${company.country || ""}`,
-          telephone: company.phone || "",
-          email: company.email || ""
+          name: selectedCompanyData.name || "",
+          tax_id: selectedCompanyData.tax_id || selectedCompanyData.gst_number || "",
+          address_postal: selectedCompanyData.address || "",
+          city_province: `${selectedCompanyData.city || ""}, ${selectedCompanyData.province || ""}, ${selectedCompanyData.country || ""}`.replace(/^, |, $/g, ''),
+          telephone: selectedCompanyData.phone || "",
+          email: selectedCompanyData.email || ""
         }
-      });
+      }));
     }
-  };
+  }, [open, selectedCompanyData]);
 
   const handleCustomerSelect = (customerId) => {
     const customer = customers.find(c => c.id === customerId);
@@ -873,21 +875,12 @@ This is an automated message from eFinAuto Center Freight Management System.
               <CardContent className="p-4">
                 <h3 className="font-semibold mb-4">Exporter</h3>
                 <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label>Select Company</Label>
-                    <Select onValueChange={handleCompanySelect} value={selectedCompany?.id}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose company..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {companies.map(company => (
-                          <SelectItem key={company.id} value={company.id}>
-                            {company.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {selectedCompanyData && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                      <p className="text-sm text-blue-700 font-medium">{selectedCompanyData.name}</p>
+                      <p className="text-xs text-blue-600">Selected Company (Auto-populated)</p>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label>Exporter Name</Label>
                     <Input
