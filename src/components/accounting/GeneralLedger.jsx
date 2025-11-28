@@ -3,15 +3,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Download, Printer, BookOpen } from "lucide-react";
+import { Download, Printer, BookOpen, ChevronDown, ChevronRight, X } from "lucide-react";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useCompany } from "@/components/shared/CompanyContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function GeneralLedger({ transactions, comparativePeriods = [] }) {
   const { selectedCompanyId } = useCompany();
   const [selectedAccount, setSelectedAccount] = useState("all");
+  const [viewMode, setViewMode] = useState("grouped"); // "grouped" or "detailed"
+  const [expandedAccounts, setExpandedAccounts] = useState(new Set());
+  const [drilldownAccount, setDrilldownAccount] = useState(null);
 
   const periods = comparativePeriods.length > 0 ? comparativePeriods : [{ 
     from: new Date(new Date().getFullYear(), 0, 1), 
