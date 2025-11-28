@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useCompany } from "@/components/shared/CompanyContext";
 
-export default function TrialBalance({ transactions, comparativePeriods = [] }) {
+export default function TrialBalance({ comparativePeriods = [] }) {
   const { selectedCompanyId } = useCompany();
 
   const cleanAccountName = (name) => {
@@ -15,6 +15,13 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
     // Replace black diamonds and other special characters with spaces
     return name.replace(/[�♦◆▶]/g, ' ').replace(/\s+/g, ' ').trim();
   };
+
+  const { data: transactions = [] } = useQuery({
+    queryKey: ['transactions', selectedCompanyId],
+    queryFn: () => base44.entities.Transaction.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
 
   const { data: accounts = [] } = useQuery({
     queryKey: ['accounts', selectedCompanyId],
