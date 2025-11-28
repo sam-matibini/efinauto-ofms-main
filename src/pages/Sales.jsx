@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, DollarSign, TrendingUp, ChevronDown, ChevronUp, FileText, Users, FileCheck, Receipt, RefreshCw, CreditCard, FileX } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, ChevronDown, ChevronUp, FileText, Users, FileCheck, Receipt, RefreshCw, CreditCard, FileX, Mail } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -21,6 +21,7 @@ import TradeInForm from "../components/sales/TradeInForm";
 import FinancingForm from "../components/sales/FinancingForm";
 import CanadianTaxCalculator, { calculateCanadianTax } from "../components/sales/CanadianTaxCalculator";
 import BillOfSale from "../components/sales/BillOfSale";
+import BillOfSaleShare from "../components/sales/BillOfSaleShare";
 import { useCompany } from "../components/shared/CompanyContext";
 import CustomersTab from "../components/sales/CustomersTab";
 import QuotesTab from "../components/sales/QuotesTab";
@@ -39,6 +40,7 @@ export default function Sales() {
   const [expandedSaleId, setExpandedSaleId] = useState(null);
   const [billOfSaleOpen, setBillOfSaleOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [dateRange, setDateRange] = useState("all");
   const [compareWith, setCompareWith] = useState(null);
   const { selectedCompanyId } = useCompany();
@@ -574,11 +576,35 @@ export default function Sales() {
           <BillOfSale sale={selectedSale} company={company} />
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button variant="outline" onClick={() => setBillOfSaleOpen(false)}>Close</Button>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setBillOfSaleOpen(false);
+                setShareDialogOpen(true);
+              }}
+              className="border-green-600 text-green-600 hover:bg-green-50"
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              Share
+            </Button>
             <Button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700">
               Print
             </Button>
             </div>
             </DialogContent>
+            </Dialog>
+
+            <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Share Bill of Sale</DialogTitle>
+                </DialogHeader>
+                <BillOfSaleShare 
+                  sale={selectedSale} 
+                  company={company} 
+                  onClose={() => setShareDialogOpen(false)} 
+                />
+              </DialogContent>
             </Dialog>
             </div>
             </div>
