@@ -125,13 +125,160 @@ export default function Accounting() {
     initialData: [],
   });
 
+  const { data: exports = [] } = useQuery({
+    queryKey: ['exports', selectedCompanyId],
+    queryFn: () => base44.entities.Export.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: shipments = [] } = useQuery({
+    queryKey: ['shipments', selectedCompanyId],
+    queryFn: () => base44.entities.FreightShipment.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  // Combine all transactions from various sources for comprehensive financial reporting
+  const allTransactions = React.useMemo(() => {
+    const combined = [...transactions];
+    const existingRefs = new Set(transactions.map(t => `${t.reference_type}-${t.reference_id}`));
+
+    // Add sales not yet in transactions
+    sales.forEach(sale => {
+      if (!existingRefs.has(`Sale-${sale.id}`)) {
+        combined.push({
+          id: `sale-${sale.id}`,
+          company_id: selectedCompanyId,
+          transaction_type: 'sale_revenue',
+          category: 'revenue',
+          amount: sale.grand_total || sale.sale_price || 0,
+          transaction_date: sale.sale_date || sale.created_date,
+          customer_name: sale.customer_name,
+          description: `Vehicle Sale: ${sale.vehicle_details || sale.vehicle_make_model || 'Vehicle'}`,
+          reference_type: 'Sale',
+          reference_id: sale.id,
+          reference_number: sale.sale_number,
+          status: sale.payment_status === 'paid' ? 'completed' : 'pending',
+          tax_amount: sale.tax_total || 0,
+          tax_gst: sale.tax_gst || 0,
+          tax_pst: sale.tax_pst || 0,
+          tax_hst: sale.tax_hst || 0
+        });
+      }
+    });
+
+    // Add purchases not yet in transactions
+    purchases.forEach(purchase => {
+      if (!existingRefs.has(`Purchase-${purchase.id}`)) {
+        combined.push({
+          id: `purchase-${purchase.id}`,
+          company_id: selectedCompanyId,
+          transaction_type: purchase.purchase_type === 'vehicle' ? 'vehicle_purchase' : 'parts_purchase',
+          category: 'expense',
+          amount: purchase.total_amount || 0,
+          transaction_date: purchase.order_date || purchase.created_date,
+          customer_name: purchase.supplier_name,
+          description: `Purchase: ${purchase.purchase_type} from ${purchase.supplier_name}`,
+          reference_type: 'Purchase',
+          reference_id: purchase.id,
+          reference_number: purchase.purchase_number,
+          status: purchase.payment_status === 'paid' ? 'completed' : 'pending',
+          tax_amount: purchase.tax_amount || 0
+        });
+      }
+    });
+
+    // Add repair order revenue not yet in transactions
+    repairs.forEach(repair => {
+      if (!existingRefs.has(`RepairOrder-${repair.id}`) && repair.status === 'completed') {
+        combined.push({
+          id: `repair-${repair.id}`,
+          company_id: selectedCompanyId,
+          transaction_type: 'service_revenue',
+          category: 'revenue',
+          amount: repair.total_cost || 0,
+          transaction_date: repair.completion_date || repair.created_date,
+          customer_name: repair.customer_name,
+          description: `Service: ${repair.service_type?.replace(/_/g, ' ')} - ${repair.order_number}`,
+          reference_type: 'RepairOrder',
+          reference_id: repair.id,
+          reference_number: repair.order_number,
+          status: repair.payment_status === 'paid' ? 'completed' : 'pending',
+          tax_amount: repair.tax_amount || 0
+        });
+      }
+    });
+
+    // Add export revenue not yet in transactions
+    exports.forEach(exp => {
+      if (!existingRefs.has(`Export-${exp.id}`)) {
+        combined.push({
+          id: `export-${exp.id}`,
+          company_id: selectedCompanyId,
+          transaction_type: 'sale_revenue',
+          category: 'revenue',
+          amount: exp.total_value || 0,
+          transaction_date: exp.shipment_date || exp.created_date,
+          customer_name: exp.customer_name,
+          description: `Export: ${exp.export_number} to ${exp.destination_country}`,
+          reference_type: 'Export',
+          reference_id: exp.id,
+          reference_number: exp.export_number,
+          status: exp.payment_status === 'paid' ? 'completed' : 'pending',
+          tax_amount: 0 // Exports are typically zero-rated
+        });
+
+        // Add freight cost as expense
+        if (exp.freight_cost > 0) {
+          combined.push({
+            id: `export-freight-${exp.id}`,
+            company_id: selectedCompanyId,
+            transaction_type: 'overhead_expense',
+            category: 'expense',
+            amount: exp.freight_cost,
+            transaction_date: exp.shipment_date || exp.created_date,
+            description: `Freight Cost: ${exp.export_number}`,
+            reference_type: 'Export',
+            reference_id: exp.id,
+            status: 'completed'
+          });
+        }
+      }
+    });
+
+    // Add shipment costs not yet in transactions
+    shipments.forEach(ship => {
+      if (!existingRefs.has(`FreightShipment-${ship.id}`)) {
+        if (ship.freight_cost > 0) {
+          combined.push({
+            id: `shipment-${ship.id}`,
+            company_id: selectedCompanyId,
+            transaction_type: 'overhead_expense',
+            category: 'expense',
+            amount: ship.freight_cost + (ship.handling_fees || 0) + (ship.customs_fees || 0),
+            transaction_date: ship.pickup_date || ship.created_date,
+            customer_name: ship.customer_name,
+            description: `Shipment Cost: ${ship.shipment_number}`,
+            reference_type: 'FreightShipment',
+            reference_id: ship.id,
+            reference_number: ship.shipment_number,
+            status: ship.payment_status === 'paid' ? 'completed' : 'pending'
+          });
+        }
+      }
+    });
+
+    return combined.sort((a, b) => new Date(b.transaction_date) - new Date(a.transaction_date));
+  }, [transactions, sales, purchases, repairs, exports, shipments, selectedCompanyId]);
+
   // Use comparative periods if active, otherwise use date range filter
   const selectedDateRange = getDateRangeFromPreset(dateRange);
   const effectivePeriods = activePeriods.length > 0 
     ? activePeriods 
     : [{ from: selectedDateRange.from, to: selectedDateRange.to, label: 'Current Period' }];
   
-  const filteredTransactions = transactions.filter(t => {
+  const filteredTransactions = allTransactions.filter(t => {
     const transDate = new Date(t.transaction_date);
     // Filter by the union of all active periods or by selected date range
     if (activePeriods.length > 0) {
@@ -144,7 +291,7 @@ export default function Accounting() {
 
   // Calculate metrics for all comparative periods
   const periodMetrics = effectivePeriods.map((period) => {
-    const periodTransactions = transactions.filter(t => {
+    const periodTransactions = allTransactions.filter(t => {
       const transDate = new Date(t.transaction_date);
       return transDate >= period.from && transDate <= period.to;
     });
@@ -409,7 +556,7 @@ export default function Accounting() {
 
           <TabsContent value="profit-loss">
             <ProfitLossStatement 
-              transactions={transactions}
+              transactions={allTransactions}
               comparativePeriods={effectivePeriods}
             />
           </TabsContent>
@@ -420,14 +567,14 @@ export default function Accounting() {
 
           <TabsContent value="trial-balance">
             <TrialBalance 
-              transactions={transactions}
+              transactions={allTransactions}
               comparativePeriods={effectivePeriods}
             />
           </TabsContent>
 
           <TabsContent value="general-ledger">
             <GeneralLedger 
-              transactions={transactions}
+              transactions={allTransactions}
               comparativePeriods={effectivePeriods}
             />
           </TabsContent>
