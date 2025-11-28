@@ -820,9 +820,9 @@ function FreightDialog({ open, onClose, shipment, onSave, customers, vehicles, p
         setSelectedCustomer(customer || null);
       } else {
         setFormData({
-          shipment_number: `FRT-${Date.now()}`,
+          shipment_number: generateShipmentNumber ? generateShipmentNumber() : `SHP${Date.now()}`,
           deal_number: "",
-          seal_number: "", // Added seal_number
+          seal_number: "",
           export_id: "",
           customer_name: "",
           customer_phone: "",
