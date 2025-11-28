@@ -3,7 +3,18 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, DollarSign, TrendingUp, ChevronDown, ChevronUp, FileText, Users, FileCheck, Receipt, RefreshCw, CreditCard, FileX, Mail } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, ChevronDown, ChevronUp, FileText, Users, FileCheck, Receipt, RefreshCw, CreditCard, FileX, Mail, Edit, Trash2, LayoutGrid, List } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -41,6 +52,9 @@ export default function Sales() {
   const [billOfSaleOpen, setBillOfSaleOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [editingSale, setEditingSale] = useState(null);
+  const [deletingSale, setDeletingSale] = useState(null);
+  const [salesViewMode, setSalesViewMode] = useState("cards");
   const [dateRange, setDateRange] = useState("all");
   const [compareWith, setCompareWith] = useState(null);
   const { selectedCompanyId } = useCompany();
@@ -119,6 +133,29 @@ export default function Sales() {
     },
     enabled: !!selectedCompanyId,
     select: (data) => data?.[0], // Select the first (and only) company object
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }) => {
+      return await base44.entities.Sale.update(id, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      setDialogOpen(false);
+      setEditingSale(null);
+      toast.success("Sale updated successfully!");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      return await base44.entities.Sale.delete(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      setDeletingSale(null);
+      toast.success("Sale deleted successfully!");
+    },
   });
 
   const createMutation = useMutation({
@@ -296,10 +333,30 @@ export default function Sales() {
 
             <div className="flex flex-col md:flex-row justify-between md:items-center gap-3 mb-4">
               <h2 className="text-lg md:text-xl font-bold">Bills of Sale</h2>
-              <Button onClick={() => setDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700" size="sm">
-                <Plus className="w-4 h-4 mr-2" />
-                <span className="text-xs md:text-sm">New Bill of Sale</span>
-              </Button>
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1 border rounded-lg p-1">
+                  <Button
+                    variant={salesViewMode === "cards" ? "default" : "ghost"}
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setSalesViewMode("cards")}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant={salesViewMode === "list" ? "default" : "ghost"}
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setSalesViewMode("list")}
+                  >
+                    <List className="w-4 h-4" />
+                  </Button>
+                </div>
+                <Button onClick={() => { setEditingSale(null); setDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700" size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  <span className="text-xs md:text-sm">New Bill of Sale</span>
+                </Button>
+              </div>
             </div>
 
             <Card className="mb-6">
@@ -355,7 +412,67 @@ export default function Sales() {
         </Card>
       </div>
 
-      <div className="space-y-4">
+      {salesViewMode === "list" ? (
+              <Card>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Sale #</TableHead>
+                      <TableHead>Vehicle</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSales.map((sale) => (
+                      <TableRow key={sale.id}>
+                        <TableCell className="font-medium">{sale.sale_number}</TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{sale.vehicle_details}</p>
+                            {sale.vehicle_vin && <p className="text-xs text-gray-500">{sale.vehicle_vin}</p>}
+                          </div>
+                        </TableCell>
+                        <TableCell>{sale.customer_name}</TableCell>
+                        <TableCell>{sale.sale_date ? format(new Date(sale.sale_date), 'MMM d, yyyy') : '-'}</TableCell>
+                        <TableCell>
+                          <Badge className={sale.sale_type === 'export' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}>
+                            {sale.sale_type || 'domestic'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Badge className={statusColors[sale.status]}>{sale.status}</Badge>
+                            <Badge className={paymentStatusColors[sale.payment_status]}>{sale.payment_status}</Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-green-600">
+                          ${(sale.grand_total || sale.sale_price)?.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button size="icon" variant="ghost" onClick={() => handleViewBillOfSale(sale)}>
+                              <FileText className="w-4 h-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => { setEditingSale(sale); setDialogOpen(true); }}>
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="text-red-600" onClick={() => setDeletingSale(sale)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Card>
+            ) : (
+              <div className="space-y-4">
         {filteredSales.map((sale, index) => {
           const isExpanded = expandedSaleId === sale.id;
           const totalPaid = sale.total_paid || 0;
@@ -408,15 +525,33 @@ export default function Sales() {
                         <p className="text-sm text-gray-500">
                           Sale Date: {sale.sale_date ? format(new Date(sale.sale_date), 'MMM d, yyyy') : 'N/A'}
                         </p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewBillOfSale(sale)}
-                          className="mt-2"
-                        >
-                          <FileText className="w-4 h-4 mr-2" />
-                          View Bill of Sale
-                        </Button>
+                        <div className="flex gap-2 mt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewBillOfSale(sale)}
+                          >
+                            <FileText className="w-4 h-4 mr-2" />
+                            View
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { setEditingSale(sale); setDialogOpen(true); }}
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => setDeletingSale(sale)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </Button>
+                        </div>
                       </div>
                       <div className="text-right ml-4">
                         <p className="text-2xl font-bold text-green-600">
@@ -523,7 +658,8 @@ export default function Sales() {
             </motion.div>
           );
         })}
-            </div>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="customers" className="space-y-6">
@@ -557,10 +693,37 @@ export default function Sales() {
 
       <SaleDialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        onSave={(data) => createMutation.mutate(data)}
+        onClose={() => { setDialogOpen(false); setEditingSale(null); }}
+        onSave={(data) => {
+          if (editingSale) {
+            updateMutation.mutate({ id: editingSale.id, data });
+          } else {
+            createMutation.mutate(data);
+          }
+        }}
         onCreateCustomer={() => setCustomerDialogOpen(true)}
+        editingSale={editingSale}
       />
+
+      <AlertDialog open={!!deletingSale} onOpenChange={() => setDeletingSale(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Bill of Sale</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this sale for "{deletingSale?.vehicle_details}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate(deletingSale.id)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <QuickCustomerDialog
         open={customerDialogOpen}
@@ -611,7 +774,7 @@ export default function Sales() {
             );
             }
 
-function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
+function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
   const [activeTab, setActiveTab] = useState("basic");
   const [formData, setFormData] = useState({
     sale_number: `SALE-${Date.now()}`,
@@ -642,6 +805,71 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
     trade_in: { has_trade_in: false },
     notes: ""
   });
+
+  // Load editing sale data
+  React.useEffect(() => {
+    if (open && editingSale) {
+      setFormData({
+        sale_number: editingSale.sale_number || `SALE-${Date.now()}`,
+        sale_type: editingSale.sale_type || "domestic",
+        customer_id: editingSale.customer_id || null,
+        customer_name: editingSale.customer_name || "",
+        customer_phone: editingSale.customer_phone || "",
+        customer_email: editingSale.customer_email || "",
+        vehicle_id: editingSale.vehicle_id || null,
+        vehicle_vin: editingSale.vehicle_vin || "",
+        vehicle_details: editingSale.vehicle_details || "",
+        sale_price: editingSale.sale_price || 0,
+        province: editingSale.province || "ON",
+        tax_status: editingSale.tax_status || "taxable",
+        tax_gst: editingSale.tax_gst || 0,
+        tax_pst: editingSale.tax_pst || 0,
+        tax_hst: editingSale.tax_hst || 0,
+        tax_total: editingSale.tax_total || 0,
+        grand_total: editingSale.grand_total || 0,
+        payments: editingSale.payments || [],
+        total_paid: editingSale.total_paid || 0,
+        balance_due: editingSale.balance_due || 0,
+        payment_status: editingSale.payment_status || "pending",
+        sale_date: editingSale.sale_date || new Date().toISOString().split('T')[0],
+        delivery_date: editingSale.delivery_date || "",
+        status: editingSale.status || "pending",
+        financing: editingSale.financing || { enabled: false },
+        trade_in: editingSale.trade_in || { has_trade_in: false },
+        notes: editingSale.notes || ""
+      });
+    } else if (open && !editingSale) {
+      setFormData({
+        sale_number: `SALE-${Date.now()}`,
+        sale_type: "domestic",
+        customer_id: null,
+        customer_name: "",
+        customer_phone: "",
+        customer_email: "",
+        vehicle_id: null,
+        vehicle_vin: "",
+        vehicle_details: "",
+        sale_price: 0,
+        province: "ON",
+        tax_status: "taxable",
+        tax_gst: 0,
+        tax_pst: 0,
+        tax_hst: 0,
+        tax_total: 0,
+        grand_total: 0,
+        payments: [],
+        total_paid: 0,
+        balance_due: 0,
+        payment_status: "pending",
+        sale_date: new Date().toISOString().split('T')[0],
+        delivery_date: "",
+        status: "pending",
+        financing: { enabled: false },
+        trade_in: { has_trade_in: false },
+        notes: ""
+      });
+    }
+  }, [open, editingSale]);
 
   // Auto-set tax_status to zero_rated when sale_type is export
   const handleSaleTypeChange = (isExport) => {
@@ -718,7 +946,7 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Bill of Sale</DialogTitle>
+          <DialogTitle>{editingSale ? 'Edit Bill of Sale' : 'New Bill of Sale'}</DialogTitle>
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -851,7 +1079,7 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer }) {
         <div className="flex justify-end gap-3 pt-4 border-t">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700">
-            Record Sale
+            {editingSale ? 'Update Sale' : 'Record Sale'}
           </Button>
         </div>
       </DialogContent>
