@@ -18,7 +18,7 @@ const PROVINCE_NAMES = {
   QC: 'Quebec', SK: 'Saskatchewan', YT: 'Yukon'
 };
 
-export default function SalesTaxReport({ sales, comparativePeriods = [] }) {
+export default function SalesTaxReport({ sales, vehicles = [], parts = [], purchases = [], comparativePeriods = [] }) {
   const currentPeriod = comparativePeriods[0] || { from: new Date(), to: new Date(), label: "Current Period" };
 
   // Filter sales by current period
@@ -27,7 +27,25 @@ export default function SalesTaxReport({ sales, comparativePeriods = [] }) {
     return saleDate >= currentPeriod.from && saleDate <= currentPeriod.to;
   });
 
-  // Calculate tax totals by type
+  // Filter vehicles by current period (for ITC)
+  const filteredVehicles = vehicles.filter(v => {
+    const vDate = v.transaction_date ? new Date(v.transaction_date) : new Date(v.created_date);
+    return vDate >= currentPeriod.from && vDate <= currentPeriod.to;
+  });
+
+  // Filter parts by current period (for ITC)
+  const filteredParts = parts.filter(p => {
+    const pDate = p.purchase_date ? new Date(p.purchase_date) : new Date(p.created_date);
+    return pDate >= currentPeriod.from && pDate <= currentPeriod.to;
+  });
+
+  // Filter purchases by current period (for ITC)
+  const filteredPurchases = purchases.filter(p => {
+    const pDate = p.order_date ? new Date(p.order_date) : new Date(p.created_date);
+    return pDate >= currentPeriod.from && pDate <= currentPeriod.to;
+  });
+
+  // Calculate tax collected (output tax)
   const taxByType = {
     GST: filteredSales.reduce((sum, s) => sum + (s.tax_gst || 0), 0),
     PST: filteredSales.reduce((sum, s) => sum + (s.tax_pst || 0), 0),
@@ -35,6 +53,39 @@ export default function SalesTaxReport({ sales, comparativePeriods = [] }) {
   };
 
   const totalTaxCollected = taxByType.GST + taxByType.PST + taxByType.HST;
+
+  // Calculate Input Tax Credits (ITC) from purchases
+  const vehicleITC = {
+    GST: filteredVehicles.filter(v => v.tax_status !== 'exempt').reduce((sum, v) => sum + (v.tax_gst || 0), 0),
+    PST: 0, // PST is generally not recoverable as ITC
+    HST: filteredVehicles.filter(v => v.tax_status !== 'exempt').reduce((sum, v) => sum + (v.tax_hst || 0), 0),
+  };
+
+  const partsITC = {
+    GST: filteredParts.filter(p => p.tax_status !== 'exempt').reduce((sum, p) => sum + (p.tax_gst || 0), 0),
+    PST: 0,
+    HST: filteredParts.filter(p => p.tax_status !== 'exempt').reduce((sum, p) => sum + (p.tax_hst || 0), 0),
+  };
+
+  const purchasesITC = {
+    GST: filteredPurchases.reduce((sum, p) => sum + ((p.tax_amount || 0) * 0.5), 0), // Approximate GST portion
+    PST: 0,
+    HST: filteredPurchases.reduce((sum, p) => sum + ((p.tax_amount || 0) * 0.5), 0), // Approximate HST portion
+  };
+
+  const totalITC = {
+    GST: vehicleITC.GST + partsITC.GST + purchasesITC.GST,
+    HST: vehicleITC.HST + partsITC.HST + purchasesITC.HST,
+    total: vehicleITC.GST + partsITC.GST + purchasesITC.GST + vehicleITC.HST + partsITC.HST + purchasesITC.HST
+  };
+
+  // Net tax payable
+  const netTaxPayable = {
+    GST: taxByType.GST - totalITC.GST,
+    HST: taxByType.HST - totalITC.HST,
+    PST: taxByType.PST, // PST is not offset by ITC
+    total: totalTaxCollected - totalITC.total
+  };
 
   // Calculate tax by province
   const taxByProvince = {};
@@ -328,6 +379,88 @@ export default function SalesTaxReport({ sales, comparativePeriods = [] }) {
               <h3 className="text-2xl font-bold text-gray-600">${taxByStatus.exempt.toLocaleString()}</h3>
               <p className="text-xs text-gray-500 mt-1">No tax, no ITC</p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Input Tax Credits (ITC) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Input Tax Credits (ITC) from Purchases</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="border rounded-lg p-4">
+              <p className="text-sm text-gray-600 mb-1">Vehicle Purchases ITC</p>
+              <h3 className="text-xl font-bold text-blue-600">${(vehicleITC.GST + vehicleITC.HST).toLocaleString()}</h3>
+              <p className="text-xs text-gray-500 mt-1">GST: ${vehicleITC.GST.toFixed(2)} | HST: ${vehicleITC.HST.toFixed(2)}</p>
+            </div>
+            <div className="border rounded-lg p-4">
+              <p className="text-sm text-gray-600 mb-1">Parts Purchases ITC</p>
+              <h3 className="text-xl font-bold text-green-600">${(partsITC.GST + partsITC.HST).toLocaleString()}</h3>
+              <p className="text-xs text-gray-500 mt-1">GST: ${partsITC.GST.toFixed(2)} | HST: ${partsITC.HST.toFixed(2)}</p>
+            </div>
+            <div className="border rounded-lg p-4">
+              <p className="text-sm text-gray-600 mb-1">Other Purchases ITC</p>
+              <h3 className="text-xl font-bold text-purple-600">${(purchasesITC.GST + purchasesITC.HST).toLocaleString()}</h3>
+              <p className="text-xs text-gray-500 mt-1">Estimated from purchase orders</p>
+            </div>
+            <div className="border rounded-lg p-4 bg-blue-50">
+              <p className="text-sm text-gray-600 mb-1">Total ITC Claimable</p>
+              <h3 className="text-xl font-bold text-blue-700">${totalITC.total.toLocaleString()}</h3>
+              <p className="text-xs text-gray-500 mt-1">GST/HST recoverable</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Net Tax Payable */}
+      <Card className="border-2 border-blue-200">
+        <CardHeader>
+          <CardTitle>Net Tax Payable Summary</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-left p-3 font-semibold">Description</th>
+                  <th className="text-right p-3 font-semibold">GST</th>
+                  <th className="text-right p-3 font-semibold">HST</th>
+                  <th className="text-right p-3 font-semibold">PST</th>
+                  <th className="text-right p-3 font-semibold">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b">
+                  <td className="p-3">Tax Collected (Output Tax)</td>
+                  <td className="text-right p-3">${taxByType.GST.toLocaleString()}</td>
+                  <td className="text-right p-3">${taxByType.HST.toLocaleString()}</td>
+                  <td className="text-right p-3">${taxByType.PST.toLocaleString()}</td>
+                  <td className="text-right p-3 font-semibold">${totalTaxCollected.toLocaleString()}</td>
+                </tr>
+                <tr className="border-b text-red-600">
+                  <td className="p-3">Less: Input Tax Credits</td>
+                  <td className="text-right p-3">-${totalITC.GST.toLocaleString()}</td>
+                  <td className="text-right p-3">-${totalITC.HST.toLocaleString()}</td>
+                  <td className="text-right p-3">$0</td>
+                  <td className="text-right p-3 font-semibold">-${totalITC.total.toLocaleString()}</td>
+                </tr>
+                <tr className="font-bold bg-blue-50">
+                  <td className="p-3">Net Tax Payable</td>
+                  <td className="text-right p-3">${netTaxPayable.GST.toLocaleString()}</td>
+                  <td className="text-right p-3">${netTaxPayable.HST.toLocaleString()}</td>
+                  <td className="text-right p-3">${netTaxPayable.PST.toLocaleString()}</td>
+                  <td className="text-right p-3 text-lg">${netTaxPayable.total.toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800">
+              <strong>Note:</strong> PST paid on purchases is generally not recoverable as Input Tax Credit. 
+              The Net Tax Payable shown is an estimate for GST/HST filing purposes. Consult your accountant for accurate filings.
+            </p>
           </div>
         </CardContent>
       </Card>
