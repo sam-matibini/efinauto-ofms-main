@@ -290,6 +290,11 @@ export default function Accounting() {
     previous_year: 'Previous Year'
   };
   
+  // When date range filter changes, reset activePeriods so reports use the new filter
+  React.useEffect(() => {
+    setActivePeriods([]);
+  }, [dateRange]);
+
   const effectivePeriods = activePeriods.length > 0 
     ? activePeriods 
     : [{ from: selectedDateRange.from, to: selectedDateRange.to, label: dateRangeLabels[dateRange] || 'Current Period' }];
