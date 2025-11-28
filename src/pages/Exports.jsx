@@ -399,7 +399,7 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
   const addItem = () => {
     setFormData({
       ...formData,
-      items: [...(formData.items || []), { description: "", quantity: 1, weight: 0, value: 0 }]
+      items: [...(formData.items || []), { description: "", vin: "", quantity: 1, weight: 0, value: 0 }]
     });
   };
 
@@ -419,11 +419,12 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
   const addVehicleItem = (vehicleId) => {
     const vehicle = vehicles.find(v => v.id === vehicleId);
     if (vehicle) {
-      const description = `${vehicle.year} ${vehicle.make} ${vehicle.model} (VIN: ${vehicle.vin})`;
+      const description = `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
       setFormData({
         ...formData,
         items: [...(formData.items || []), { 
           description, 
+          vin: vehicle.vin || "",
           quantity: 1, 
           weight: vehicle.weight || 0,
           value: vehicle.selling_price || 0,
@@ -696,7 +697,7 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
               {(formData.items || []).map((item, index) => (
                 <Card key={index} className="p-4">
                   <div className="grid grid-cols-12 gap-3">
-                    <div className="col-span-4">
+                    <div className="col-span-3">
                       <Label className="text-xs">Description</Label>
                       <Input
                         value={item.description}
@@ -705,7 +706,15 @@ function ExportDialog({ open, onClose, exportOrder, onSave, customers, vehicles,
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label className="text-xs">Quantity</Label>
+                      <Label className="text-xs">VIN Number</Label>
+                      <Input
+                        value={item.vin || ""}
+                        onChange={(e) => updateItem(index, 'vin', e.target.value)}
+                        placeholder="VIN"
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <Label className="text-xs">Qty</Label>
                       <Input
                         type="number"
                         value={item.quantity}
