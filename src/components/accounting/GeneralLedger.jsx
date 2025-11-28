@@ -430,16 +430,30 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
   // Group transactions by account
   const groupedByAccount = {};
   filteredTransactions.forEach(t => {
-    const accountKey = t.account_id || t.account_code || 'unassigned';
-    const accountLabel = t.account_code ? `${t.account_code} - ${t.account_name}` : (t.account_name || 'Unassigned');
+    // Auto-assign account code if missing
+    let accountCode = t.account_code;
+    let accountName = t.account_name;
+    let accountType = t.account_type || t.category;
+    
+    if (!accountCode || accountCode === '0000') {
+      const assigned = assignAccountCode(t);
+      if (assigned) {
+        accountCode = assigned.account_code;
+        accountName = assigned.account_name;
+        accountType = assigned.account_type;
+      }
+    }
+    
+    const accountKey = t.account_id || accountCode || 'unassigned';
+    const accountLabel = accountCode ? `${accountCode} - ${accountName}` : (accountName || 'Unassigned');
     
     if (!groupedByAccount[accountKey]) {
       groupedByAccount[accountKey] = {
         accountKey,
-        accountCode: t.account_code || '0000',
-        accountName: t.account_name || 'Unassigned',
+        accountCode: accountCode || '0000',
+        accountName: accountName || 'Unassigned',
         accountLabel,
-        accountType: t.account_type || t.category,
+        accountType: accountType,
         transactions: [],
         totalDebit: 0,
         totalCredit: 0
@@ -451,7 +465,7 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
     const debit = isDebit ? t.amount : 0;
     const credit = isCredit ? t.amount : 0;
     
-    groupedByAccount[accountKey].transactions.push({ ...t, debit, credit });
+    groupedByAccount[accountKey].transactions.push({ ...t, debit, credit, account_code: accountCode, account_name: accountName });
     groupedByAccount[accountKey].totalDebit += debit;
     groupedByAccount[accountKey].totalCredit += credit;
   });
