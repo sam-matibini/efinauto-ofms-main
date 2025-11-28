@@ -89,17 +89,103 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
 
   const currentPeriod = periods[0];
 
+  // Helper function to assign account codes based on transaction type/description
+  const assignAccountCode = (entry) => {
+    const desc = (entry.description || '').toLowerCase();
+    const type = entry.transaction_type || '';
+    const refType = entry.reference_type || '';
+    
+    // Freight/Shipping revenue
+    if (desc.includes('freight') && (desc.includes('revenue') || desc.includes('service'))) {
+      return { account_code: '4200', account_name: 'Freight Service Revenue', account_type: 'revenue' };
+    }
+    // Export sale revenue
+    if (desc.includes('export') && (desc.includes('sale') || desc.includes('revenue'))) {
+      return { account_code: '4000', account_name: 'Vehicle Sales Revenue', account_type: 'revenue' };
+    }
+    // Vehicle sales
+    if (type === 'sale_revenue' || refType === 'Sale' || desc.includes('vehicle sale')) {
+      return { account_code: '4000', account_name: 'Vehicle Sales Revenue', account_type: 'revenue' };
+    }
+    // Service revenue
+    if (type === 'service_revenue' || refType === 'RepairOrder' || desc.includes('service')) {
+      return { account_code: '4100', account_name: 'Service Revenue', account_type: 'revenue' };
+    }
+    // Vehicle purchase/inventory
+    if (type === 'vehicle_purchase' || desc.includes('vehicle purchase')) {
+      return { account_code: '1200', account_name: 'Vehicle Inventory', account_type: 'asset' };
+    }
+    // Parts purchase
+    if (type === 'parts_purchase' || desc.includes('parts purchase')) {
+      return { account_code: '1210', account_name: 'Parts Inventory', account_type: 'asset' };
+    }
+    // COGS
+    if (desc.includes('cogs') || desc.includes('cost of goods')) {
+      return { account_code: '5000', account_name: 'Cost of Goods Sold', account_type: 'expense' };
+    }
+    // Accounts Receivable
+    if (desc.includes('ar:') || desc.includes('accounts receivable')) {
+      return { account_code: '1100', account_name: 'Accounts Receivable', account_type: 'asset' };
+    }
+    // Accounts Payable
+    if (desc.includes('ap:') || desc.includes('accounts payable')) {
+      return { account_code: '2000', account_name: 'Accounts Payable', account_type: 'liability' };
+    }
+    // Cash
+    if (desc.includes('cash received') || desc.includes('cash payment')) {
+      return { account_code: '1000', account_name: 'Cash and Bank', account_type: 'asset' };
+    }
+    // Freight expense
+    if (desc.includes('freight cost') || desc.includes('shipment cost')) {
+      return { account_code: '5400', account_name: 'Freight & Shipping Expense', account_type: 'expense' };
+    }
+    // Parts expense
+    if (desc.includes('parts used') || desc.includes('parts expense')) {
+      return { account_code: '5100', account_name: 'Parts Expense', account_type: 'expense' };
+    }
+    // Labor expense
+    if (desc.includes('labor')) {
+      return { account_code: '5200', account_name: 'Labor Expense', account_type: 'expense' };
+    }
+    // Payroll
+    if (type === 'payroll_expense' || desc.includes('payroll')) {
+      return { account_code: '5300', account_name: 'Payroll Expense', account_type: 'expense' };
+    }
+    // Default based on category
+    if (entry.category === 'revenue') {
+      return { account_code: '4900', account_name: 'Other Revenue', account_type: 'revenue' };
+    }
+    if (entry.category === 'expense') {
+      return { account_code: '5900', account_name: 'Other Expense', account_type: 'expense' };
+    }
+    if (entry.category === 'asset') {
+      return { account_code: '1900', account_name: 'Other Assets', account_type: 'asset' };
+    }
+    if (entry.category === 'liability') {
+      return { account_code: '2900', account_name: 'Other Liabilities', account_type: 'liability' };
+    }
+    
+    return null;
+  };
+
   // Build comprehensive ledger entries from all data sources
   const allLedgerEntries = React.useMemo(() => {
     const entries = [];
     const existingRefs = new Set(transactions.map(t => `${t.reference_type}-${t.reference_id}`));
 
-    // Add existing transactions
+    // Add existing transactions with auto-assigned account codes if missing
     transactions.forEach(t => {
-      entries.push({
-        ...t,
-        source: 'transaction'
-      });
+      let entry = { ...t, source: 'transaction' };
+      
+      // If no account code assigned, auto-assign based on type/description
+      if (!entry.account_code || entry.account_code === '0000') {
+        const assigned = assignAccountCode(entry);
+        if (assigned) {
+          entry = { ...entry, ...assigned };
+        }
+      }
+      
+      entries.push(entry);
     });
 
     // Add vehicle purchases (Dr: Vehicle Inventory, Cr: Cash/AP)
