@@ -50,6 +50,20 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
     }
   });
 
+  // Add Vehicle Inventory as a virtual account in Assets group
+  const vehicleInventoryValue = vehicles
+    .filter(v => v.status === 'in_stock')
+    .reduce((sum, v) => sum + (v.total_cost || v.purchase_price || 0), 0);
+
+  if (vehicleInventoryValue > 0) {
+    accountGroups.asset.accounts.push({
+      id: 'vehicle-inventory',
+      account_code: '1400',
+      account_name: 'Vehicle Inventory',
+      account_type: 'asset'
+    });
+  }
+
   // Calculate balances for each period
   const periodData = periods.map(period => {
     const periodTransactions = transactions.filter(t => {
