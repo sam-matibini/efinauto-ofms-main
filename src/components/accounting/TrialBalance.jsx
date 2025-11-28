@@ -154,20 +154,26 @@ export default function TrialBalance({ transactions, comparativePeriods = [] }) 
     });
 
     // Calculate vehicle inventory value (in_stock vehicles)
-    const vehicleInventoryValue = vehicles
+    const periodVehicleInventoryValue = vehicles
       .filter(v => v.status === 'in_stock')
       .reduce((sum, v) => sum + (v.total_cost || v.purchase_price || 0), 0);
 
     // Add vehicle inventory as an asset entry if there's value
-    if (vehicleInventoryValue > 0) {
-      accountBalances.push({
-        code: '1400',
-        name: 'Vehicle Inventory',
-        type: 'asset',
-        group: 'Assets',
-        debit: vehicleInventoryValue,
-        credit: 0
-      });
+    if (periodVehicleInventoryValue > 0) {
+      // Check if Vehicle Inventory already exists from accounts
+      const existingVehicleInv = accountBalances.find(a => a.code === '1400' && a.name === 'Vehicle Inventory');
+      if (existingVehicleInv) {
+        existingVehicleInv.debit = periodVehicleInventoryValue;
+      } else {
+        accountBalances.push({
+          code: '1400',
+          name: 'Vehicle Inventory',
+          type: 'asset',
+          group: 'Assets',
+          debit: periodVehicleInventoryValue,
+          credit: 0
+        });
+      }
     }
 
     const totalDebits = accountBalances.reduce((sum, a) => sum + a.debit, 0);
