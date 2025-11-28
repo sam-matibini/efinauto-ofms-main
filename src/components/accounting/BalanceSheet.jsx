@@ -489,6 +489,49 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
         <div className="mt-6">
           {renderLine('TOTAL LIABILITIES & EQUITY', periodData.map(d => d.totalLiabilitiesAndEquity), false, true)}
         </div>
+
+        {/* Drilldown Dialog */}
+        <Dialog open={!!drilldown} onOpenChange={() => setDrilldown(null)}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{drilldown?.title} - {drilldown?.period?.label}</DialogTitle>
+            </DialogHeader>
+            {drilldown && (
+              <div className="space-y-4">
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-sm text-gray-600">Total</p>
+                  <p className="text-xl font-bold text-blue-600">
+                    ${drilldown.items.reduce((sum, i) => sum + i.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 bg-gray-100">
+                      <th className="text-left py-2 px-3">Date</th>
+                      <th className="text-left py-2 px-3">Description</th>
+                      <th className="text-left py-2 px-3">Reference</th>
+                      <th className="text-right py-2 px-3">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {drilldown.items.length === 0 ? (
+                      <tr><td colSpan={4} className="text-center py-4 text-gray-500">No items found</td></tr>
+                    ) : (
+                      drilldown.items.map((item, idx) => (
+                        <tr key={idx} className="border-b hover:bg-gray-50">
+                          <td className="py-2 px-3">{format(new Date(item.date), 'MMM d, yyyy')}</td>
+                          <td className="py-2 px-3">{item.description}</td>
+                          <td className="py-2 px-3 text-gray-600">{item.reference || '-'}</td>
+                          <td className="py-2 px-3 text-right font-medium">${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
