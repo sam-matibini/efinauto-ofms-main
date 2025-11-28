@@ -10,7 +10,7 @@ import { Sparkles, MessageSquare, Loader2, Plane, Package, FileText, Link2 } fro
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
-export default function SMSComposer({ customer, customers, exports, shipments, loadingDeclarations, draft, company }) {
+export default function SMSComposer({ customer, customers, exports, shipments, loadingDeclarations, draft, company, invoices, payrollEntries }) {
   const isSMSConfigured = company?.sms_provider && company?.sms_provider !== 'none';
   const [to, setTo] = useState(customer?.phone || "");
   const [message, setMessage] = useState("");
@@ -18,9 +18,30 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
   const [selectedExport, setSelectedExport] = useState("");
   const [selectedShipment, setSelectedShipment] = useState("");
   const [selectedDeclaration, setSelectedDeclaration] = useState("");
+  const [selectedDocument, setSelectedDocument] = useState("");
+  const [documentLink, setDocumentLink] = useState("");
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [includeDocLink, setIncludeDocLink] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [sending, setSending] = useState(false);
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingFile(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setDocumentLink(file_url);
+      setMessage(prev => prev + `\n\nDocument: ${file_url}`);
+      toast.success(`File "${file.name}" attached!`);
+    } catch (error) {
+      toast.error("Failed to upload file");
+    } finally {
+      setUploadingFile(false);
+      e.target.value = '';
+    }
+  };
 
   React.useEffect(() => {
     if (draft) {
@@ -263,6 +284,32 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
             )}
           </div>
         )}
+
+        {/* Document Attachment for SMS */}
+        <div className="space-y-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <Label className="flex items-center gap-2">
+            <Link2 className="w-4 h-4" />
+            Attach Document Link
+          </Label>
+          <div className="flex gap-2">
+            <label className="cursor-pointer">
+              <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploadingFile} />
+              <Button type="button" variant="outline" size="sm" disabled={uploadingFile} asChild>
+                <span>
+                  {uploadingFile ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />}
+                  Upload & Get Link
+                </span>
+              </Button>
+            </label>
+          </div>
+          {documentLink && (
+            <div className="text-xs text-green-700 bg-green-50 p-2 rounded">
+              <Link2 className="w-3 h-3 inline mr-1" />
+              Link attached: {documentLink.slice(0, 50)}...
+            </div>
+          )}
+          <p className="text-xs text-gray-500">Upload invoices, declarations, or other documents to include a shareable link in the SMS.</p>
+        </div>
 
         <div>
           <div className="flex justify-between items-center mb-2">
