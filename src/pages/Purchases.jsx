@@ -131,7 +131,10 @@ export default function Purchases() {
           transaction_date: purchase.received_date || new Date().toISOString().split('T')[0],
           payment_method: purchase.payment_method || 'other',
           status: purchase.payment_status === 'paid' ? 'completed' : 'pending',
-          tax_amount: purchase.tax_amount || 0
+          tax_amount: purchase.tax_amount || 0,
+          tax_gst: data.tax_gst || 0,
+          tax_pst: data.tax_pst || 0,
+          tax_hst: data.tax_hst || 0
         });
       }
       
