@@ -294,12 +294,89 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
     };
   });
 
-  const renderLine = (label, values, isSubtotal = false, isTotal = false, indent = 0) => (
+  // Helper to get drilldown data for a specific account type
+  const getDrilldownData = (accountKey, periodIdx) => {
+    const period = periods[periodIdx];
+    const data = periodData[periodIdx];
+    
+    switch (accountKey) {
+      case 'vehicleInventory':
+        const vehiclesPurchased = vehicles.filter(v => {
+          const acquisitionDate = new Date(v.transaction_date || v.created_date);
+          return acquisitionDate <= period.to;
+        });
+        const soldIds = new Set(sales.filter(s => {
+          const saleDate = new Date(s.sale_date || s.created_date);
+          return saleDate <= period.to && s.vehicle_id;
+        }).map(s => s.vehicle_id));
+        return {
+          title: 'Vehicle Inventory',
+          items: vehiclesPurchased.filter(v => !soldIds.has(v.id)).map(v => ({
+            date: v.transaction_date || v.created_date,
+            description: `${v.year} ${v.make} ${v.model}`,
+            reference: v.stock_number || v.vin,
+            amount: v.total_cost || v.purchase_price || 0
+          }))
+        };
+      case 'accountsReceivable':
+        const arItems = [];
+        sales.filter(s => {
+          const saleDate = new Date(s.sale_date || s.created_date);
+          return saleDate <= period.to && (s.payment_status === 'pending' || s.payment_status === 'partial');
+        }).forEach(s => {
+          arItems.push({
+            date: s.sale_date || s.created_date,
+            description: `Sale: ${s.customer_name}`,
+            reference: s.sale_number,
+            amount: (s.grand_total || s.sale_price || 0) - (s.total_paid || 0)
+          });
+        });
+        repairs.filter(r => {
+          const repairDate = new Date(r.completion_date || r.created_date);
+          return repairDate <= period.to && r.status === 'completed' && (r.payment_status === 'pending' || r.payment_status === 'partial');
+        }).forEach(r => {
+          arItems.push({
+            date: r.completion_date || r.created_date,
+            description: `Service: ${r.customer_name}`,
+            reference: r.order_number,
+            amount: (r.total_cost || 0) - (r.amount_paid || 0)
+          });
+        });
+        return { title: 'Accounts Receivable', items: arItems };
+      case 'accountsPayable':
+        return {
+          title: 'Accounts Payable',
+          items: purchases.filter(p => {
+            const purchaseDate = new Date(p.order_date || p.created_date);
+            return purchaseDate <= period.to && (p.payment_status === 'pending' || p.payment_status === 'partial');
+          }).map(p => ({
+            date: p.order_date || p.created_date,
+            description: `Purchase: ${p.supplier_name}`,
+            reference: p.purchase_number,
+            amount: (p.total_amount || 0) - (p.amount_paid || 0)
+          }))
+        };
+      default:
+        return { title: accountKey, items: [] };
+    }
+  };
+
+  const handleDrilldown = (accountKey, periodIdx) => {
+    const data = getDrilldownData(accountKey, periodIdx);
+    setDrilldown({ ...data, period: periods[periodIdx] });
+  };
+
+  const renderLine = (label, values, isSubtotal = false, isTotal = false, indent = 0, accountKey = null) => (
     <div className={`grid gap-4 py-2 px-4 ${isSubtotal || isTotal ? 'border-t border-gray-300 font-semibold' : ''} ${isTotal ? 'bg-blue-50 text-blue-900' : ''}`}
          style={{ gridTemplateColumns: `300px repeat(${periods.length}, 1fr)` }}>
       <span style={{ paddingLeft: `${indent * 20}px` }}>{label}</span>
       {values.map((value, idx) => (
-        <span key={idx} className="text-right">
+        <span 
+          key={idx} 
+          className={`text-right ${accountKey ? 'cursor-pointer hover:text-blue-600 hover:underline' : ''}`}
+          onDoubleClick={() => accountKey && handleDrilldown(accountKey, idx)}
+          title={accountKey ? 'Double-click to view details' : ''}
+        >
           ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       ))}
