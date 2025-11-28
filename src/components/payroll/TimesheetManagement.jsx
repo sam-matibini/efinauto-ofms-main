@@ -127,6 +127,53 @@ export default function TimesheetManagement({ company, employees, timeEntries, q
     return matchesEmployee && matchesStartDate && matchesEndDate;
   });
 
+  // Group entries by employee
+  const groupedEntries = filteredEntries.reduce((acc, entry) => {
+    const empId = entry.employee_id;
+    if (!acc[empId]) {
+      acc[empId] = {
+        employeeId: empId,
+        employeeName: entry.employee_name,
+        entries: [],
+        totalRegular: 0,
+        totalOvertime: 0,
+        pendingCount: 0,
+        approvedCount: 0
+      };
+    }
+    acc[empId].entries.push(entry);
+    acc[empId].totalRegular += entry.regular_hours || 0;
+    acc[empId].totalOvertime += entry.overtime_hours || 0;
+    if (entry.approved) {
+      acc[empId].approvedCount++;
+    } else {
+      acc[empId].pendingCount++;
+    }
+    return acc;
+  }, {});
+
+  const employeeGroups = Object.values(groupedEntries).sort((a, b) => 
+    a.employeeName.localeCompare(b.employeeName)
+  );
+
+  const toggleEmployeeExpand = (empId) => {
+    const newExpanded = new Set(expandedEmployees);
+    if (newExpanded.has(empId)) {
+      newExpanded.delete(empId);
+    } else {
+      newExpanded.add(empId);
+    }
+    setExpandedEmployees(newExpanded);
+  };
+
+  const expandAll = () => {
+    setExpandedEmployees(new Set(employeeGroups.map(g => g.employeeId)));
+  };
+
+  const collapseAll = () => {
+    setExpandedEmployees(new Set());
+  };
+
   const getEntryTypeColor = (type) => {
     switch (type) {
       case 'regular': return 'bg-blue-100 text-blue-800';
