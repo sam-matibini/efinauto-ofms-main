@@ -91,6 +91,33 @@ export default function PaymentTracker({ payments = [], onChange, salePrice = 0 
         </div>
       )}
 
+      <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+        <input
+          type="checkbox"
+          id="paid_in_full"
+          checked={balanceDue === 0 && totalPaid === salePrice && salePrice > 0}
+          onChange={(e) => {
+            if (e.target.checked && salePrice > 0) {
+              // Add a single payment for the full amount
+              onChange([{
+                date: new Date().toISOString().split('T')[0],
+                amount: salePrice,
+                method: "cash",
+                reference: "Paid in Full",
+                notes: ""
+              }]);
+            } else {
+              // Clear all payments
+              onChange([]);
+            }
+          }}
+          className="h-5 w-5 rounded border-green-400 text-green-600"
+        />
+        <Label htmlFor="paid_in_full" className="cursor-pointer font-medium text-green-800">
+          Paid in Full (${salePrice.toLocaleString()})
+        </Label>
+      </div>
+
       <Card className="border-2 border-dashed border-gray-300 bg-gray-50">
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center gap-2 mb-2">
