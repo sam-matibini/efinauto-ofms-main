@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
-export default function EmailComposer({ customer, customers, exports, shipments, loadingDeclarations, draft, company }) {
+export default function EmailComposer({ customer, customers, exports, shipments, loadingDeclarations, draft, company, invoices, paystubs, payrollEntries, salesInvoices }) {
   const [to, setTo] = useState(customer?.email || "");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -19,13 +19,18 @@ export default function EmailComposer({ customer, customers, exports, shipments,
   const [selectedExport, setSelectedExport] = useState("");
   const [selectedShipment, setSelectedShipment] = useState("");
   const [selectedDeclaration, setSelectedDeclaration] = useState("");
+  const [selectedInvoice, setSelectedInvoice] = useState("");
+  const [selectedPaystub, setSelectedPaystub] = useState("");
   const [attachExportDoc, setAttachExportDoc] = useState(false);
   const [attachShipmentDoc, setAttachShipmentDoc] = useState(false);
   const [attachDeclarationDoc, setAttachDeclarationDoc] = useState(false);
+  const [attachInvoiceDoc, setAttachInvoiceDoc] = useState(false);
+  const [attachPaystubDoc, setAttachPaystubDoc] = useState(false);
   const [generatingDocs, setGeneratingDocs] = useState(false);
   const [attachedLinks, setAttachedLinks] = useState([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   React.useEffect(() => {
     if (draft) {
@@ -48,8 +53,30 @@ export default function EmailComposer({ customer, customers, exports, shipments,
     { value: "shipment_arrival", label: "Shipment Arrival Notice", prompt: "Write an email notifying about shipment arrival", category: "shipment" },
     { value: "shipment_docs", label: "Shipment Documents", prompt: "Write an email attaching shipment documents like bill of lading", category: "shipment" },
     { value: "loading_confirmation", label: "Loading Confirmation", prompt: "Write an email confirming vehicle loading details with declaration attached", category: "declaration" },
-    { value: "loading_docs", label: "Loading Declaration Docs", prompt: "Write an email sending loading declaration documents for review", category: "declaration" }
+    { value: "loading_docs", label: "Loading Declaration Docs", prompt: "Write an email sending loading declaration documents for review", category: "declaration" },
+    { value: "invoice_send", label: "Invoice / Bill", prompt: "Write an email sending an invoice for services or products", category: "finance" },
+    { value: "paystub_send", label: "Paystub / T4", prompt: "Write an email sending employee paystub or T4 tax document", category: "finance" },
+    { value: "payment_receipt", label: "Payment Receipt", prompt: "Write an email confirming payment received with receipt attached", category: "finance" }
   ];
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingFile(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setAttachedLinks(prev => [...prev, { url: file_url, name: file.name, type: "uploaded" }]);
+      const linkText = `\n📎 ${file.name}: ${file_url}`;
+      setBody(prev => prev ? prev + "\n\n--- Attached Documents ---" + linkText : linkText);
+      toast.success(`File "${file.name}" attached!`);
+    } catch (error) {
+      toast.error("Failed to upload file");
+    } finally {
+      setUploadingFile(false);
+      e.target.value = '';
+    }
+  };
 
   const generateDocumentLink = async (type, data) => {
     try {
@@ -569,6 +596,93 @@ export default function EmailComposer({ customer, customers, exports, shipments,
             )}
           </div>
         )}
+
+        {template && templates.find(t => t.value === template)?.category === 'finance' && (
+          <div className="space-y-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+            <div className="grid grid-cols-2 gap-4">
+              {(invoices?.length > 0 || salesInvoices?.length > 0) && (
+                <div className="space-y-2">
+                  <Label>Select Invoice</Label>
+                  <Select value={selectedInvoice} onValueChange={setSelectedInvoice}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose invoice..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {invoices?.map(inv => (
+                        <SelectItem key={inv.id} value={inv.id}>
+                          {inv.invoice_number} - {inv.customer_name} (${inv.total_amount?.toLocaleString()})
+                        </SelectItem>
+                      ))}
+                      {salesInvoices?.map(inv => (
+                        <SelectItem key={inv.id} value={inv.id}>
+                          {inv.invoice_number} - {inv.customer_name} (${inv.total_amount?.toLocaleString()})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedInvoice && (
+                    <div className="flex items-center gap-2">
+                      <Checkbox id="attachInvoice" checked={attachInvoiceDoc} onCheckedChange={setAttachInvoiceDoc} />
+                      <label htmlFor="attachInvoice" className="text-sm text-amber-800 cursor-pointer">
+                        <Paperclip className="w-3 h-3 inline mr-1" />Attach Invoice
+                      </label>
+                    </div>
+                  )}
+                </div>
+              )}
+              {(paystubs?.length > 0 || payrollEntries?.length > 0) && (
+                <div className="space-y-2">
+                  <Label>Select Paystub / T4</Label>
+                  <Select value={selectedPaystub} onValueChange={setSelectedPaystub}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose paystub..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paystubs?.map(ps => (
+                        <SelectItem key={ps.id} value={ps.id}>
+                          {ps.employee_name} - {ps.pay_period}
+                        </SelectItem>
+                      ))}
+                      {payrollEntries?.map(pe => (
+                        <SelectItem key={pe.id} value={pe.id}>
+                          {pe.employee_name} - {pe.pay_date}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedPaystub && (
+                    <div className="flex items-center gap-2">
+                      <Checkbox id="attachPaystub" checked={attachPaystubDoc} onCheckedChange={setAttachPaystubDoc} />
+                      <label htmlFor="attachPaystub" className="text-sm text-amber-800 cursor-pointer">
+                        <Paperclip className="w-3 h-3 inline mr-1" />Attach Paystub
+                      </label>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Universal Document Attachment */}
+        <div className="space-y-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <Label className="flex items-center gap-2">
+            <Paperclip className="w-4 h-4" />
+            Attach Documents
+          </Label>
+          <div className="flex gap-2 flex-wrap">
+            <label className="cursor-pointer">
+              <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploadingFile} />
+              <Button type="button" variant="outline" size="sm" disabled={uploadingFile} asChild>
+                <span>
+                  {uploadingFile ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Paperclip className="w-4 h-4 mr-2" />}
+                  Upload File
+                </span>
+              </Button>
+            </label>
+          </div>
+          <p className="text-xs text-gray-500">Upload invoices, loading declarations, paystubs, T4s, bills of sale, or any document to attach.</p>
+        </div>
 
         {(attachExportDoc || attachShipmentDoc || attachDeclarationDoc) && (
           <Button 
