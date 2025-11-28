@@ -59,6 +59,8 @@ export default function Vehicles() {
   const [sortOrder, setSortOrder] = useState("desc");
   const [deletingVehicle, setDeletingVehicle] = useState(null);
   const [dateRange, setDateRange] = useState("all");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   const [compareWith, setCompareWith] = useState(null);
   const { selectedCompanyId } = useCompany();
 
@@ -137,7 +139,12 @@ export default function Vehicles() {
     
     // Date range filter
     let matchesDateRange = true;
-    if (dateRange !== "all") {
+    if (dateRange === "custom" && customStartDate && customEndDate) {
+      const vehicleDate = v.transaction_date ? new Date(v.transaction_date) : new Date(v.created_date);
+      const start = new Date(customStartDate);
+      const end = new Date(customEndDate);
+      matchesDateRange = vehicleDate >= start && vehicleDate <= new Date(end.getTime() + 86400000);
+    } else if (dateRange !== "all" && dateRange !== "custom") {
       const { start, end } = getDateRangeValues(dateRange);
       if (start && end) {
         const vehicleDate = v.transaction_date ? new Date(v.transaction_date) : new Date(v.created_date);
@@ -409,7 +416,16 @@ export default function Vehicles() {
           </Select>
         </div>
         <div className="flex flex-wrap items-center gap-4">
-          <DateRangeFilter value={dateRange} onChange={setDateRange} />
+          <DateRangeFilter 
+                  value={dateRange} 
+                  onChange={setDateRange} 
+                  customStart={customStartDate}
+                  customEnd={customEndDate}
+                  onCustomChange={(start, end) => {
+                    setCustomStartDate(start);
+                    setCustomEndDate(end);
+                  }}
+                />
           <CompareWithFilter value={compareWith} onChange={setCompareWith} />
           <div className="flex gap-1 ml-auto">
             <Button

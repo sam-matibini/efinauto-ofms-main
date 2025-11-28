@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "lucide-react";
+import { Calendar, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -8,6 +8,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const DATE_RANGES = [
   { value: "all", label: "All Time" },
@@ -22,6 +29,7 @@ const DATE_RANGES = [
   { value: "previous_month", label: "Previous Month" },
   { value: "previous_quarter", label: "Previous Quarter" },
   { value: "previous_year", label: "Previous Year" },
+  { value: "custom", label: "Custom Range" },
 ];
 
 export function getDateRangeValues(rangeKey) {
@@ -86,25 +94,85 @@ export function getDateRangeValues(rangeKey) {
   }
 }
 
-export default function DateRangeFilter({ value, onChange }) {
-  const selectedLabel = DATE_RANGES.find(r => r.value === value)?.label || "All Time";
+export default function DateRangeFilter({ value, onChange, customStart, customEnd, onCustomChange }) {
+  const [customOpen, setCustomOpen] = useState(false);
+  const [tempStart, setTempStart] = useState(customStart || "");
+  const [tempEnd, setTempEnd] = useState(customEnd || "");
+
+  const isCustom = value === "custom";
+  const selectedLabel = isCustom && customStart && customEnd 
+    ? `${customStart} - ${customEnd}`
+    : DATE_RANGES.find(r => r.value === value)?.label || "All Time";
+
+  const handleSelectChange = (newValue) => {
+    if (newValue === "custom") {
+      setCustomOpen(true);
+    } else {
+      onChange(newValue);
+    }
+  };
+
+  const handleApplyCustom = () => {
+    if (tempStart && tempEnd) {
+      onChange("custom");
+      onCustomChange?.(tempStart, tempEnd);
+      setCustomOpen(false);
+    }
+  };
 
   return (
     <div className="flex items-center gap-2">
       <Calendar className="w-4 h-4 text-gray-500" />
       <span className="text-sm text-gray-600">Date Range:</span>
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="w-[160px]">
-          <SelectValue>{selectedLabel}</SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {DATE_RANGES.map((range) => (
-            <SelectItem key={range.value} value={range.value}>
-              {range.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <Popover open={customOpen} onOpenChange={setCustomOpen}>
+        <PopoverTrigger asChild>
+          <div>
+            <Select value={value} onValueChange={handleSelectChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue>{selectedLabel}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {DATE_RANGES.map((range) => (
+                  <SelectItem key={range.value} value={range.value}>
+                    {range.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </PopoverTrigger>
+        <PopoverContent className="w-80" align="start">
+          <div className="space-y-4">
+            <div className="font-medium text-sm border-b pb-2">Custom Date Range</div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm">Start Date</Label>
+                <Input 
+                  type="date" 
+                  value={tempStart} 
+                  onChange={(e) => setTempStart(e.target.value)} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">End Date</Label>
+                <Input 
+                  type="date" 
+                  value={tempEnd} 
+                  onChange={(e) => setTempEnd(e.target.value)} 
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2 border-t">
+              <Button onClick={handleApplyCustom} size="sm" className="bg-blue-600 hover:bg-blue-700" disabled={!tempStart || !tempEnd}>
+                Apply
+              </Button>
+              <Button onClick={() => setCustomOpen(false)} variant="outline" size="sm">
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
