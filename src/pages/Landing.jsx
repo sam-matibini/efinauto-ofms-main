@@ -131,8 +131,10 @@ export default function Landing() {
           prompt: `Provide current financial market data as of today. Include:
 1. Major currency exchange rates (USD to CAD, EUR, GBP, JPY)
 2. Current inflation rates for US and Canada
-3. 3 brief recent financial/automotive industry news headlines
-4. 2 brief market trends relevant to auto dealerships
+3. Current interest rates (Bank of Canada rate, US Federal Reserve rate, prime lending rates)
+4. 3 brief recent financial/automotive industry news headlines
+5. 2 brief market trends relevant to auto dealerships
+6. 2-3 recent news items about AI impact on the automotive industry (autonomous vehicles, AI in manufacturing, AI in dealerships, etc.)
 
 Keep each item concise.`,
           add_context_from_internet: true,
@@ -160,7 +162,28 @@ Keep each item concise.`,
                   }
                 }
               },
+              interest_rates: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string" },
+                    rate: { type: "number" },
+                    change: { type: "string" }
+                  }
+                }
+              },
               news: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    headline: { type: "string" },
+                    summary: { type: "string" }
+                  }
+                }
+              },
+              ai_automotive_news: {
                 type: "array",
                 items: {
                   type: "object",
