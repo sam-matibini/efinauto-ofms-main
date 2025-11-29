@@ -390,13 +390,21 @@ Keep each item concise.`,
                 </div>
               </div>
 
-              {/* Market Trends */}
+              {/* Interest Rates */}
               <div>
                 <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" /> Market Trends
+                  <Percent className="w-3 h-3" /> Interest Rates
                 </h4>
-                <div className="text-sm text-gray-300 truncate">
-                  {financialNews.trends?.[0]}
+                <div className="flex flex-wrap gap-3">
+                  {financialNews.interest_rates?.slice(0, 3).map((rate, i) => (
+                    <div key={i} className="text-sm">
+                      <span className="text-gray-300">{rate.name}:</span>
+                      <span className="text-white font-medium ml-1">{rate.rate}%</span>
+                      {rate.change && (
+                        <span className="text-gray-500 text-xs ml-1">({rate.change})</span>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
