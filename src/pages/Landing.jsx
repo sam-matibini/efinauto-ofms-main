@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Car, Wrench, Package, Plane, DollarSign, Users, BarChart3, 
   Check, ArrowRight, TrendingUp, TrendingDown, Newspaper, 
-  CreditCard, Shield, Zap, Globe, Building2, Loader2
+  CreditCard, Shield, Zap, Globe, Building2, Loader2, Percent, Bot
 } from "lucide-react";
 import { motion } from "framer-motion";
 
