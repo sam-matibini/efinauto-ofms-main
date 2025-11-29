@@ -434,6 +434,29 @@ Keep each item concise.`,
         </section>
       )}
 
+      {/* AI in Automotive Industry News Section */}
+      {financialNews?.ai_automotive_news && financialNews.ai_automotive_news.length > 0 && (
+        <section className="py-12 bg-gradient-to-r from-purple-900/30 to-blue-900/30">
+          <div className="max-w-7xl mx-auto px-6">
+            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+              <Bot className="w-6 h-6 text-purple-400" />
+              AI Impact on Automotive Industry
+            </h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              {financialNews.ai_automotive_news.map((item, i) => (
+                <Card key={i} className="bg-slate-700/80 border-purple-500/30 hover:border-purple-500/50 transition-colors">
+                  <CardContent className="p-4">
+                    <Badge className="bg-purple-600 text-white mb-2">AI News</Badge>
+                    <h3 className="font-semibold text-white mb-2">{item.headline}</h3>
+                    <p className="text-sm text-gray-400">{item.summary}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Subscription Plans */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-6">
