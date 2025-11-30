@@ -1229,6 +1229,18 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                       .paystub-print-container .text-gray-600 {
                         color: #4b5563 !important;
                       }
+                      .paystub-print-container .paystub-company-name {
+                        font-size: 18pt !important;
+                        font-weight: bold !important;
+                        color: black !important;
+                        display: block !important;
+                      }
+                      .paystub-print-container .paystub-employee-name {
+                        font-size: 12pt !important;
+                        font-weight: 600 !important;
+                        color: black !important;
+                        display: block !important;
+                      }
                       .print-button {
                         display: none !important;
                       }
@@ -1271,14 +1283,14 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                         <div className="space-y-3">
                           {/* Header */}
                           <div className="text-center border-b pb-3">
-                            <h2 className="text-xl font-bold">{company?.name || 'Company Name'}</h2>
+                            <h2 className="text-xl font-bold paystub-company-name">{company?.name || company?.display_name || 'Company Name'}</h2>
                             <p className="text-sm text-gray-600">Pay Statement</p>
                           </div>
 
                           {/* Employee & Period Info */}
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                              <p className="font-semibold">{entry.employee_name || 'Employee Name'}</p>
+                              <p className="font-semibold paystub-employee-name">{entry.employee_name || 'Employee Name'}</p>
                               <p className="text-gray-600">{entry.employee_number || 'EMP-000'}</p>
                             </div>
                             <div className="text-right">
