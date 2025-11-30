@@ -1320,29 +1320,29 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                             <div className="space-y-1 text-sm">
                               <div className="flex justify-between">
                                 <span>CPP (Employee)</span>
-                                <span>-${entry.cpp_employee?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>(${entry.cpp_employee?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>EI (Employee)</span>
-                                <span>-${entry.ei_employee?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>(${entry.ei_employee?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Federal Tax</span>
-                                <span>-${entry.federal_tax?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>(${entry.federal_tax?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Provincial Tax</span>
-                                <span>-${entry.provincial_tax?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>(${entry.provincial_tax?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
                               </div>
                               {entry.other_deductions > 0 && (
                                 <div className="flex justify-between">
                                   <span>Other Deductions</span>
-                                  <span>-${entry.other_deductions?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                  <span>(${entry.other_deductions?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
                                 </div>
                               )}
                               <div className="flex justify-between font-semibold pt-1 border-t">
                                 <span>Total Deductions</span>
-                                <span>-${entry.total_deductions?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>(${entry.total_deductions?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
                               </div>
                             </div>
                           </div>
