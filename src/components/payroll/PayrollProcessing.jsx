@@ -1101,19 +1101,30 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                   <style>{`
                     @media print {
                       @page {
-                        size: A4;
-                        margin: 10mm;
+                        size: A4 portrait;
+                        margin: 15mm 15mm 15mm 15mm;
+                      }
+                      html, body {
+                        width: 210mm;
+                        height: 297mm;
+                        margin: 0;
+                        padding: 0;
                       }
                       body * {
                         visibility: hidden;
                       }
                       .paystub-print-container {
                         visibility: visible !important;
-                        position: absolute;
+                        position: fixed;
                         left: 0;
                         top: 0;
-                        width: 100%;
-                        font-size: 11px;
+                        width: 180mm;
+                        height: auto;
+                        max-height: 267mm;
+                        overflow: hidden;
+                        background: white;
+                        padding: 10mm;
+                        box-sizing: border-box;
                       }
                       .paystub-print-container * {
                         visibility: visible !important;
@@ -1126,59 +1137,106 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                         color: black !important;
                         opacity: 1 !important;
                       }
+                      .paystub-print-container .paystub-content {
+                        width: 100%;
+                        max-width: 180mm;
+                      }
                       .paystub-print-container h2 {
                         color: black !important;
+                        font-size: 16pt !important;
+                        margin-bottom: 3mm !important;
+                      }
+                      .paystub-print-container h3 {
+                        font-size: 11pt !important;
+                        margin-bottom: 2mm !important;
+                        padding-bottom: 1mm !important;
+                        font-weight: 600 !important;
+                      }
+                      .paystub-print-container p,
+                      .paystub-print-container span {
+                        font-size: 9pt !important;
+                        line-height: 1.3 !important;
+                      }
+                      .paystub-print-container .text-2xl {
+                        font-size: 14pt !important;
+                      }
+                      .paystub-print-container .text-lg {
+                        font-size: 11pt !important;
+                      }
+                      .paystub-print-container .text-sm {
+                        font-size: 9pt !important;
+                      }
+                      .paystub-print-container .text-xs {
+                        font-size: 8pt !important;
+                      }
+                      .paystub-print-container .space-y-4 > * + * {
+                        margin-top: 4mm !important;
+                      }
+                      .paystub-print-container .space-y-3 > * + * {
+                        margin-top: 3mm !important;
+                      }
+                      .paystub-print-container .space-y-2 > * + * {
+                        margin-top: 2mm !important;
+                      }
+                      .paystub-print-container .space-y-1 > * + * {
+                        margin-top: 1mm !important;
+                      }
+                      .paystub-print-container .p-6 {
+                        padding: 5mm !important;
+                      }
+                      .paystub-print-container .p-3 {
+                        padding: 3mm !important;
+                      }
+                      .paystub-print-container .gap-4 {
+                        gap: 3mm !important;
+                      }
+                      .paystub-print-container .gap-2 {
+                        gap: 2mm !important;
+                      }
+                      .paystub-print-container .pb-4 {
+                        padding-bottom: 3mm !important;
+                      }
+                      .paystub-print-container .pt-4 {
+                        padding-top: 3mm !important;
+                      }
+                      .paystub-print-container .mb-2 {
+                        margin-bottom: 2mm !important;
+                      }
+                      .paystub-print-container .mt-2 {
+                        margin-top: 2mm !important;
+                      }
+                      .paystub-print-container .rounded-lg {
+                        border-radius: 2mm !important;
+                      }
+                      .paystub-print-container .border-b {
+                        border-bottom: 0.5pt solid #ccc !important;
+                      }
+                      .paystub-print-container .border-t {
+                        border-top: 0.5pt solid #ccc !important;
+                      }
+                      .paystub-print-container .bg-blue-50 {
+                        background-color: #f0f7ff !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                      }
+                      .paystub-print-container .text-blue-600 {
+                        color: #2563eb !important;
                       }
                       .paystub-print-container .font-semibold,
                       .paystub-print-container .font-bold {
                         color: black !important;
                       }
                       .paystub-print-container .text-gray-600 {
-                        color: black !important;
-                      }
-                      .paystub-print-container h2.text-2xl {
-                        color: black !important;
-                        font-weight: bold !important;
-                      }
-                      .paystub-print-container h2 {
-                        font-size: 18px;
-                        margin-bottom: 4px;
-                      }
-                      .paystub-print-container h3 {
-                        font-size: 13px;
-                        margin-bottom: 6px;
-                        padding-bottom: 3px;
-                      }
-                      .paystub-print-container p {
-                        margin: 2px 0;
-                        font-size: 11px;
-                      }
-                      .paystub-print-container .space-y-4 > * + * {
-                        margin-top: 10px !important;
-                      }
-                      .paystub-print-container .space-y-1 > * + * {
-                        margin-top: 2px !important;
-                      }
-                      .paystub-print-container .p-6 {
-                        padding: 12px !important;
-                      }
-                      .paystub-print-container .p-3 {
-                        padding: 8px !important;
-                      }
-                      .paystub-print-container .gap-4 {
-                        gap: 8px !important;
-                      }
-                      .paystub-print-container .pb-4 {
-                        padding-bottom: 8px !important;
-                      }
-                      .paystub-print-container .pt-4 {
-                        padding-top: 8px !important;
-                      }
-                      .paystub-print-container {
-                        page-break-inside: avoid;
+                        color: #4b5563 !important;
                       }
                       .print-button {
                         display: none !important;
+                      }
+                      .paystub-card {
+                        border: 1pt solid #e5e7eb !important;
+                        border-radius: 2mm !important;
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
                       }
                     }
                   `}</style>
@@ -1208,12 +1266,12 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
 
                     return (
                     <div key={entry.id} className="paystub-print-container">
-                    <Card>
-                      <CardContent className="p-6">
-                        <div className="space-y-4">
+                    <Card className="paystub-card">
+                      <CardContent className="p-6 paystub-content">
+                        <div className="space-y-3">
                           {/* Header */}
-                          <div className="text-center border-b pb-4">
-                            <h2 className="text-2xl font-bold">{company?.name || 'Company Name'}</h2>
+                          <div className="text-center border-b pb-3">
+                            <h2 className="text-xl font-bold">{company?.name || 'Company Name'}</h2>
                             <p className="text-sm text-gray-600">Pay Statement</p>
                           </div>
 
@@ -1301,8 +1359,8 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
 
                           {/* YTD Summary */}
                           <div>
-                            <h3 className="font-semibold mb-2 pb-1 border-b">Year-to-Date</h3>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
+                            <h3 className="font-semibold mb-1 pb-1 border-b text-sm">Year-to-Date</h3>
+                            <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-xs">
                               <div className="flex justify-between">
                                 <span>Gross:</span>
                                 <span>${displayYTDGross.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -1316,19 +1374,19 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                                 <span>${displayYTDEI.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span>Federal Tax:</span>
+                                <span>Fed Tax:</span>
                                 <span>${displayYTDFederal.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span>Provincial Tax:</span>
+                                <span>Prov Tax:</span>
                                 <span>${displayYTDProvincial.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                               </div>
                             </div>
                           </div>
 
                           {/* Print Button */}
-                          <div className="text-center pt-4 border-t print-button">
-                            <Button variant="outline" onClick={() => window.print()}>
+                          <div className="text-center pt-3 border-t print-button">
+                            <Button variant="outline" size="sm" onClick={() => window.print()}>
                               <Download className="w-4 h-4 mr-2" />
                               Print/Download Paystub
                             </Button>
