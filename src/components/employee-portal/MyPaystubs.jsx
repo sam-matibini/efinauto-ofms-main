@@ -108,25 +108,25 @@ export default function MyPaystubs({ employee }) {
             <div className="bg-blue-50 rounded-lg p-3">
               <p className="text-sm text-gray-600">YTD Gross</p>
               <p className="text-xl font-bold">
-                ${payrollEntries.reduce((sum, e) => sum + (e.gross_pay || 0), 0).toLocaleString('en-CA')}
+                ${payrollEntries.reduce((sum, e) => sum + (e.gross_pay || 0), 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
             <div className="bg-red-50 rounded-lg p-3">
               <p className="text-sm text-gray-600">YTD CPP</p>
               <p className="text-xl font-bold">
-                ${payrollEntries.reduce((sum, e) => sum + (e.cpp_employee || 0), 0).toLocaleString('en-CA')}
+                ${payrollEntries.reduce((sum, e) => sum + (e.cpp_employee || 0), 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
             <div className="bg-purple-50 rounded-lg p-3">
               <p className="text-sm text-gray-600">YTD EI</p>
               <p className="text-xl font-bold">
-                ${payrollEntries.reduce((sum, e) => sum + (e.ei_employee || 0), 0).toLocaleString('en-CA')}
+                ${payrollEntries.reduce((sum, e) => sum + (e.ei_employee || 0), 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
             <div className="bg-green-50 rounded-lg p-3">
               <p className="text-sm text-gray-600">YTD Net</p>
               <p className="text-xl font-bold">
-                ${payrollEntries.reduce((sum, e) => sum + (e.net_pay || 0), 0).toLocaleString('en-CA')}
+                ${payrollEntries.reduce((sum, e) => sum + (e.net_pay || 0), 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
           </div>

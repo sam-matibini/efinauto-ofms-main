@@ -175,7 +175,7 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold">${run.total_gross?.toLocaleString('en-CA')}</p>
+                            <p className="font-semibold">${run.total_gross?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                             <Badge>{run.status}</Badge>
                           </div>
                         </div>
@@ -246,12 +246,12 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
                         <td className="text-right p-2">${entry.gross_pay / (entry.regular_hours || 1)}</td>
                         <td className="text-right p-2">{entry.regular_hours}</td>
                         <td className="text-right p-2">{entry.overtime_hours}</td>
-                        <td className="text-right p-2">${entry.gross_pay?.toLocaleString('en-CA')}</td>
-                        <td className="text-right p-2">${entry.cpp_employee?.toLocaleString('en-CA')}</td>
-                        <td className="text-right p-2">${entry.ei_employee?.toLocaleString('en-CA')}</td>
-                        <td className="text-right p-2">${entry.federal_tax?.toLocaleString('en-CA')}</td>
-                        <td className="text-right p-2">${entry.provincial_tax?.toLocaleString('en-CA')}</td>
-                        <td className="text-right p-2 font-semibold">${entry.net_pay?.toLocaleString('en-CA')}</td>
+                        <td className="text-right p-2">${entry.gross_pay?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td className="text-right p-2">${entry.cpp_employee?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td className="text-right p-2">${entry.ei_employee?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td className="text-right p-2">${entry.federal_tax?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td className="text-right p-2">${entry.provincial_tax?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td className="text-right p-2 font-semibold">${entry.net_pay?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -278,19 +278,19 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-red-50 rounded-lg p-4">
                     <p className="text-sm text-gray-600">Federal Tax</p>
-                    <p className="text-xl font-bold">${totals.federalTax.toLocaleString('en-CA')}</p>
+                    <p className="text-xl font-bold">${totals.federalTax.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   </div>
                   <div className="bg-orange-50 rounded-lg p-4">
                     <p className="text-sm text-gray-600">Provincial Tax</p>
-                    <p className="text-xl font-bold">${totals.provincialTax.toLocaleString('en-CA')}</p>
+                    <p className="text-xl font-bold">${totals.provincialTax.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   </div>
                   <div className="bg-purple-50 rounded-lg p-4">
                     <p className="text-sm text-gray-600">CPP Employee</p>
-                    <p className="text-xl font-bold">${totals.employeeCPP.toLocaleString('en-CA')}</p>
+                    <p className="text-xl font-bold">${totals.employeeCPP.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   </div>
                   <div className="bg-blue-50 rounded-lg p-4">
                     <p className="text-sm text-gray-600">EI Employee</p>
-                    <p className="text-xl font-bold">${totals.employeeEI.toLocaleString('en-CA')}</p>
+                    <p className="text-xl font-bold">${totals.employeeEI.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   </div>
                 </div>
 
@@ -304,7 +304,7 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
                           <p className="text-sm text-gray-600">{ded.description}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold">${ded.amount_deducted_to_date?.toLocaleString('en-CA')}</p>
+                          <p className="font-semibold">${ded.amount_deducted_to_date?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                           <Badge>{ded.deduction_type}</Badge>
                         </div>
                       </div>
@@ -361,10 +361,10 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
                         {filteredEntries.map(entry => (
                           <tr key={entry.id} className="border-b">
                             <td className="p-2">{entry.employee_name}</td>
-                            <td className="text-right p-2">${entry.cpp_employer?.toLocaleString('en-CA')}</td>
-                            <td className="text-right p-2">${entry.ei_employer?.toLocaleString('en-CA')}</td>
+                            <td className="text-right p-2">${entry.cpp_employer?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td className="text-right p-2">${entry.ei_employer?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             <td className="text-right p-2 font-semibold">
-                              ${((entry.cpp_employer || 0) + (entry.ei_employer || 0)).toLocaleString('en-CA')}
+                              ${((entry.cpp_employer || 0) + (entry.ei_employer || 0)).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
                           </tr>
                         ))}
@@ -423,7 +423,7 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
                             <p className="text-xs text-gray-600">Regular Hours</p>
                             <p className="text-lg font-bold">{earnings.regularHours.toFixed(2)}</p>
                             <p className="text-xs text-gray-600 mt-1">
-                              ${earnings.regularPay.toLocaleString('en-CA')}
+                              ${earnings.regularPay.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
                           </div>
 
@@ -431,25 +431,25 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
                             <p className="text-xs text-gray-600">Overtime Hours</p>
                             <p className="text-lg font-bold">{earnings.overtimeHours.toFixed(2)}</p>
                             <p className="text-xs text-gray-600 mt-1">
-                              ${earnings.overtimePay.toLocaleString('en-CA')}
+                              ${earnings.overtimePay.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
                           </div>
 
                           <div className="bg-purple-50 rounded-lg p-3">
                             <p className="text-xs text-gray-600">Bonuses/Commission</p>
                             <p className="text-lg font-bold">
-                              ${(earnings.bonus + earnings.commission).toLocaleString('en-CA')}
+                              ${(earnings.bonus + earnings.commission).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
                             <p className="text-xs text-gray-600 mt-1">
-                              {earnings.bonus > 0 && `Bonus: $${earnings.bonus.toLocaleString('en-CA')}`}
-                              {earnings.commission > 0 && ` Comm: $${earnings.commission.toLocaleString('en-CA')}`}
+                              {earnings.bonus > 0 && `Bonus: $${earnings.bonus.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                              {earnings.commission > 0 && ` Comm: $${earnings.commission.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                             </p>
                           </div>
 
                           <div className="bg-green-50 rounded-lg p-3">
                             <p className="text-xs text-gray-600">Vacation Pay</p>
                             <p className="text-lg font-bold">
-                              ${earnings.vacationPay.toLocaleString('en-CA')}
+                              ${earnings.vacationPay.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
                           </div>
                         </div>
@@ -683,12 +683,12 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
                       return (
                         <tr key={emp.id} className="border-b hover:bg-gray-50">
                           <td className="p-2">{emp.first_name} {emp.last_name}</td>
-                          <td className="text-right p-2">${ytd.gross.toLocaleString('en-CA')}</td>
-                          <td className="text-right p-2">${ytd.cpp.toLocaleString('en-CA')}</td>
-                          <td className="text-right p-2">${ytd.ei.toLocaleString('en-CA')}</td>
-                          <td className="text-right p-2">${ytd.fedTax.toLocaleString('en-CA')}</td>
-                          <td className="text-right p-2">${ytd.provTax.toLocaleString('en-CA')}</td>
-                          <td className="text-right p-2 font-semibold">${ytd.net.toLocaleString('en-CA')}</td>
+                          <td className="text-right p-2">${ytd.gross.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td className="text-right p-2">${ytd.cpp.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td className="text-right p-2">${ytd.ei.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td className="text-right p-2">${ytd.fedTax.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td className="text-right p-2">${ytd.provTax.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td className="text-right p-2 font-semibold">${ytd.net.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                       );
                     })}
