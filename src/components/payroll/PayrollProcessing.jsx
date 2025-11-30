@@ -1080,15 +1080,15 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                           <div className="text-right">
                             <p className="text-xs text-gray-500">Gross Pay</p>
                             <p className="text-lg font-bold text-green-600">
-                              ${entry.gross_pay?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+                              ${entry.gross_pay?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
                             <p className="text-xs text-gray-500 mt-1">Deductions</p>
                             <p className="text-sm text-red-600">
-                              -${entry.total_deductions?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+                              (${entry.total_deductions?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                             </p>
                             <p className="text-xs text-gray-500 mt-1">Net Pay</p>
                             <p className="text-lg font-bold text-blue-600">
-                              ${entry.net_pay?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+                              ${entry.net_pay?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
                           </div>
                         </div>
