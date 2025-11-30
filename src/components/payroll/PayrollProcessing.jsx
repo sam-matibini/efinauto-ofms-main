@@ -1035,19 +1035,19 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                 <div>
                   <Label className="text-xs text-gray-500">Total Gross</Label>
                   <p className="text-lg font-bold text-green-600">
-                    ${selectedRun.total_gross?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+                    ${selectedRun.total_gross?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div>
                   <Label className="text-xs text-gray-500">Total Deductions</Label>
                   <p className="text-lg font-bold text-red-600">
-                    ${selectedRun.total_deductions?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+                    (${selectedRun.total_deductions?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                   </p>
                 </div>
                 <div>
                   <Label className="text-xs text-gray-500">Total Net</Label>
                   <p className="text-lg font-bold text-blue-600">
-                    ${selectedRun.total_net?.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+                    ${selectedRun.total_net?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div>
