@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Edit, UserPlus, FileText, Sparkles, Loader2 } from "lucide-react";
+import { Plus, Search, Edit, UserPlus, FileText, Sparkles, Loader2, ShieldOff } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
@@ -38,7 +39,9 @@ export default function EmployeeManagement({ company, employees, queryClient }) 
     pay_type: "hourly",
     pay_rate: "",
     pay_frequency: "bi_weekly",
-    hire_date: new Date().toISOString().split('T')[0]
+    hire_date: new Date().toISOString().split('T')[0],
+    ei_exempt: false,
+    cpp_exempt: false
   });
 
   const createEmployeeMutation = useMutation({
@@ -132,7 +135,9 @@ ${company?.name || "eFinAuto OFMS"} HR Team`
       pay_type: "hourly",
       pay_rate: "",
       pay_frequency: "bi_weekly",
-      hire_date: new Date().toISOString().split('T')[0]
+      hire_date: new Date().toISOString().split('T')[0],
+      ei_exempt: false,
+      cpp_exempt: false
     });
     setSelectedEmployee(null);
     setTd1DialogOpen(false);
@@ -175,7 +180,9 @@ ${company?.name || "eFinAuto OFMS"} HR Team`
       pay_type: employee.pay_type || "hourly",
       pay_rate: employee.pay_rate?.toString() || "",
       pay_frequency: employee.pay_frequency || "bi_weekly",
-      hire_date: employee.hire_date || new Date().toISOString().split('T')[0]
+      hire_date: employee.hire_date || new Date().toISOString().split('T')[0],
+      ei_exempt: employee.ei_exempt || false,
+      cpp_exempt: employee.cpp_exempt || false
     });
     setDialogOpen(true);
   };
@@ -502,6 +509,38 @@ Provide the exact amounts in Canadian dollars.`,
                 value={formData.hire_date}
                 onChange={(e) => setFormData({...formData, hire_date: e.target.value})}
               />
+            </div>
+
+            {/* Tax Exemptions */}
+            <div className="border rounded-lg p-4 bg-gray-50">
+              <div className="flex items-center gap-2 mb-3">
+                <ShieldOff className="w-4 h-4 text-orange-600" />
+                <Label className="font-semibold text-gray-700">Tax Exemptions</Label>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="ei_exempt"
+                    checked={formData.ei_exempt}
+                    onCheckedChange={(checked) => setFormData({...formData, ei_exempt: checked})}
+                  />
+                  <div>
+                    <Label htmlFor="ei_exempt" className="cursor-pointer font-medium">EI Exempt</Label>
+                    <p className="text-xs text-gray-500">Employee is exempt from Employment Insurance premiums (e.g., owner/major shareholder)</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="cpp_exempt"
+                    checked={formData.cpp_exempt}
+                    onCheckedChange={(checked) => setFormData({...formData, cpp_exempt: checked})}
+                  />
+                  <div>
+                    <Label htmlFor="cpp_exempt" className="cursor-pointer font-medium">CPP Exempt</Label>
+                    <p className="text-xs text-gray-500">Employee is exempt from Canada Pension Plan contributions</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
