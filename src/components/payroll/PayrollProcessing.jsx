@@ -521,10 +521,10 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
     const cppEmployee = Math.max(0, (grossPay * cppRate));
     const cppEmployer = cppEmployee;
 
-    // Calculate EI (simplified)
+    // Calculate EI (simplified) - check for EI exemption
     const eiRate = 0.0163;
-    const eiEmployee = grossPay * eiRate;
-    const eiEmployer = eiEmployee * 1.4;
+    const eiEmployee = employee.ei_exempt ? 0 : grossPay * eiRate;
+    const eiEmployer = employee.ei_exempt ? 0 : eiEmployee * 1.4;
 
     // Calculate federal tax using progressive brackets (2024)
     const annualizedGross = grossPay * (employee.pay_frequency === 'weekly' ? 52 : 
