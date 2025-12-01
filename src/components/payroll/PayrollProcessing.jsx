@@ -515,11 +515,11 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       grossPay = regularPay + overtimePay;
     }
 
-    // Calculate CPP (simplified)
+    // Calculate CPP (simplified) - check for CPP exemption
     const cppRate = 0.0595;
     const cppExemption = 3500;
-    const cppEmployee = Math.max(0, (grossPay * cppRate));
-    const cppEmployer = cppEmployee;
+    const cppEmployee = employee.cpp_exempt ? 0 : Math.max(0, (grossPay * cppRate));
+    const cppEmployer = employee.cpp_exempt ? 0 : cppEmployee;
 
     // Calculate EI (simplified) - check for EI exemption
     const eiRate = 0.0163;
