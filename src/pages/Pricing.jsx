@@ -178,6 +178,44 @@ export default function Pricing() {
   };
 
   const currentPlan = user?.data?.subscription_plan;
+  const isAdmin = user?.role === 'admin';
+
+  const updatePlanPrice = (planId, newPrice) => {
+    setSubscriptionPlans(prev => prev.map(plan => 
+      plan.id === planId ? { ...plan, price: parseFloat(newPrice) || 0 } : plan
+    ));
+  };
+
+  const updateModulePrice = (categoryIndex, moduleId, newPrice) => {
+    setModuleCategories(prev => prev.map((cat, idx) => {
+      if (idx === categoryIndex) {
+        return {
+          ...cat,
+          modules: cat.modules.map(mod => 
+            mod.id === moduleId ? { ...mod, price: parseFloat(newPrice) || 0 } : mod
+          )
+        };
+      }
+      return cat;
+    }));
+  };
+
+  const savePricing = () => {
+    // Save to localStorage for persistence
+    localStorage.setItem('customPricing', JSON.stringify({ subscriptionPlans, moduleCategories }));
+    setEditMode(false);
+    toast.success("Pricing updated successfully");
+  };
+
+  // Load custom pricing from localStorage on mount
+  React.useEffect(() => {
+    const saved = localStorage.getItem('customPricing');
+    if (saved) {
+      const { subscriptionPlans: savedPlans, moduleCategories: savedModules } = JSON.parse(saved);
+      if (savedPlans) setSubscriptionPlans(savedPlans);
+      if (savedModules) setModuleCategories(savedModules);
+    }
+  }, []);
 
   const getColorClasses = (color) => {
     const colors = {
