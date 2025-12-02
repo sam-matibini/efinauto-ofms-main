@@ -292,6 +292,23 @@ export default function Companies() {
                         {company.status}
                       </Badge>
                     </td>
+                    <td className="p-4">
+                      {company.subscription_plan && company.subscription_plan !== 'none' ? (
+                        <Badge className={
+                          company.subscription_plan === 'enterprise' ? 'bg-amber-100 text-amber-800' :
+                          company.subscription_plan === 'professional' ? 'bg-purple-100 text-purple-800' :
+                          company.subscription_plan === 'starter' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                        }>
+                          {company.subscription_plan === 'enterprise' && <Crown className="w-3 h-3 mr-1" />}
+                          {company.subscription_plan === 'professional' && <Building2 className="w-3 h-3 mr-1" />}
+                          {company.subscription_plan === 'starter' && <Zap className="w-3 h-3 mr-1" />}
+                          {company.subscription_plan.charAt(0).toUpperCase() + company.subscription_plan.slice(1)}
+                        </Badge>
+                      ) : (
+                        <span className="text-gray-400 text-sm">No subscription</span>
+                      )}
+                    </td>
                     <td className="p-4 text-right">
                       <div className="flex gap-1 justify-end">
                         <Button 
