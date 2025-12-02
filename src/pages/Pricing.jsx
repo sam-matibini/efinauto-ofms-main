@@ -251,7 +251,7 @@ export default function Pricing() {
                     Save Prices
                   </Button>
                   <Button variant="outline" onClick={() => setEditMode(false)}>
-                    <X className="w-4 h-4 mr-2" />
+                    <XCircle className="w-4 h-4 mr-2" />
                     Cancel
                   </Button>
                 </div>
