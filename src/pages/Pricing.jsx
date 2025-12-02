@@ -110,31 +110,11 @@ export default function Pricing() {
   };
 
   const savePricing = () => {
-    // Save to localStorage for persistence
-    localStorage.setItem('customPricing', JSON.stringify({ subscriptionPlans, moduleCategories }));
+    // Save to localStorage for persistence using shared function
+    savePricingToStorage(subscriptionPlans, moduleCategories);
     setEditMode(false);
     toast.success("Pricing updated successfully");
   };
-
-  // Icon mapping for restoring from localStorage
-  const iconMap = { Zap, Building2, Crown };
-
-  // Load custom pricing from localStorage on mount
-  React.useEffect(() => {
-    const saved = localStorage.getItem('customPricing');
-    if (saved) {
-      const { subscriptionPlans: savedPlans, moduleCategories: savedModules } = JSON.parse(saved);
-      if (savedPlans) {
-        // Restore icon components from the icon map
-        const restoredPlans = savedPlans.map((plan, idx) => ({
-          ...plan,
-          icon: defaultSubscriptionPlans[idx]?.icon || Zap
-        }));
-        setSubscriptionPlans(restoredPlans);
-      }
-      if (savedModules) setModuleCategories(savedModules);
-    }
-  }, []);
 
   const getColorClasses = (color) => {
     const colors = {
