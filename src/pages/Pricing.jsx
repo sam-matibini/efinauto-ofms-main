@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, Loader2, CreditCard, Zap, Building2, Crown, Settings, Edit, Save, X } from "lucide-react";
+import { Check, Loader2, CreditCard, Zap, Building2, Crown, Settings, Pencil, Save, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
