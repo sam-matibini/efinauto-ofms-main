@@ -328,8 +328,23 @@ export default function Pricing() {
                     <CardTitle className="text-2xl">{plan.name}</CardTitle>
                     <CardDescription>{plan.description}</CardDescription>
                     <div className="mt-4">
-                      <span className="text-4xl font-bold">${price}</span>
-                      <span className="text-gray-500">/{billingInterval}</span>
+                      {editMode ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="text-2xl">$</span>
+                          <Input
+                            type="number"
+                            value={plan.price}
+                            onChange={(e) => updatePlanPrice(plan.id, e.target.value)}
+                            className="w-24 text-center text-2xl font-bold"
+                          />
+                          <span className="text-gray-500">/mo</span>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="text-4xl font-bold">${price}</span>
+                          <span className="text-gray-500">/{billingInterval}</span>
+                        </>
+                      )}
                     </div>
                   </CardHeader>
                   
