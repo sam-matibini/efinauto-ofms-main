@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, Building2, Edit, Mail, Phone, MapPin, Trash2, User, LayoutGrid, List, ArrowUpDown } from "lucide-react";
+import { Plus, Search, Building2, Edit, Mail, Phone, MapPin, Trash2, User, LayoutGrid, List, ArrowUpDown, CreditCard, Crown, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
