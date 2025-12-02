@@ -366,12 +366,27 @@ export default function Companies() {
                         <p className="text-sm text-gray-500">Code: {company.code}</p>
                       </div>
                     </div>
-                    <Badge className={company.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                      {company.status}
-                    </Badge>
-                  </div>
+                    <div className="flex items-center gap-2">
+                                          <Badge className={company.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                                            {company.status}
+                                          </Badge>
+                                          {company.subscription_plan && company.subscription_plan !== 'none' && (
+                                            <Badge className={
+                                              company.subscription_plan === 'enterprise' ? 'bg-amber-100 text-amber-800' :
+                                              company.subscription_plan === 'professional' ? 'bg-purple-100 text-purple-800' :
+                                              company.subscription_plan === 'starter' ? 'bg-blue-100 text-blue-800' :
+                                              'bg-gray-100 text-gray-800'
+                                            }>
+                                              {company.subscription_plan === 'enterprise' && <Crown className="w-3 h-3 mr-1" />}
+                                              {company.subscription_plan === 'professional' && <Building2 className="w-3 h-3 mr-1" />}
+                                              {company.subscription_plan === 'starter' && <Zap className="w-3 h-3 mr-1" />}
+                                              {company.subscription_plan.charAt(0).toUpperCase() + company.subscription_plan.slice(1)}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
 
-                  <div className="space-y-2">
+                                      <div className="space-y-2">
                     {company.email && (
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Mail className="w-4 h-4 text-gray-400" />
