@@ -4,11 +4,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Loader2, CreditCard, Zap, Building2, Crown, Settings } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Check, Loader2, CreditCard, Zap, Building2, Crown, Settings, Edit, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
-const subscriptionPlans = [
+const defaultSubscriptionPlans = [
   {
     id: "starter",
     name: "Starter",
