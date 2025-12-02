@@ -7,108 +7,27 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Car, Wrench, Package, Plane, DollarSign, Users, BarChart3, 
-  Check, ArrowRight, TrendingUp, TrendingDown, Newspaper, 
-  CreditCard, Shield, Zap, Globe, Building2, Loader2, Percent, Bot
+  BarChart3, Check, ArrowRight, TrendingUp, TrendingDown, Newspaper, 
+  CreditCard, Shield, Zap, Globe, Loader2, Percent, Bot
 } from "lucide-react";
 import { motion } from "framer-motion";
-
-const subscriptionPlans = [
-  {
-    id: "starter",
-    name: "Starter",
-    price: 49,
-    interval: "month",
-    description: "Perfect for small dealerships",
-    features: [
-      "Vehicle Inventory Management",
-      "Customer Management",
-      "Basic Sales Tracking",
-      "Up to 50 vehicles",
-      "Email Support"
-    ],
-    modules: ["Dashboard", "Vehicles", "Customers", "Sales"],
-    popular: false
-  },
-  {
-    id: "professional",
-    name: "Professional",
-    price: 149,
-    interval: "month",
-    description: "For growing dealerships",
-    features: [
-      "Everything in Starter",
-      "Auto Repair Shop",
-      "Parts Inventory",
-      "Exports & Freight",
-      "Financial Reports",
-      "Up to 200 vehicles",
-      "Priority Support"
-    ],
-    modules: ["Dashboard", "Vehicles", "Customers", "Sales", "Repairs", "Parts", "Exports", "Freight", "Reports"],
-    popular: true
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    price: 349,
-    interval: "month",
-    description: "Full-featured solution",
-    features: [
-      "Everything in Professional",
-      "Full Accounting Suite",
-      "Payroll & HR",
-      "Banking Integration",
-      "AI Assistant",
-      "Unlimited vehicles",
-      "Multi-company support",
-      "24/7 Phone Support"
-    ],
-    modules: ["Dashboard", "Vehicles", "Customers", "Sales", "Repairs", "Parts", "Exports", "Freight", "Reports", "Accounting", "Payroll", "Banking", "FinancialAssistant"],
-    popular: false
-  }
-];
-
-const moduleCategories = [
-  {
-    category: "Core Operations",
-    modules: [
-      { id: "Vehicles", name: "Vehicle Management", icon: Car, price: 19 },
-      { id: "Sales", name: "Sales & CRM", icon: DollarSign, price: 29 },
-      { id: "Customers", name: "Customer Management", icon: Users, price: 15 },
-    ]
-  },
-  {
-    category: "Service & Inventory",
-    modules: [
-      { id: "Repairs", name: "Auto Repair Shop", icon: Wrench, price: 25 },
-      { id: "Parts", name: "Parts Inventory", icon: Package, price: 19 },
-      { id: "Technicians", name: "Technician Management", icon: Users, price: 15 },
-    ]
-  },
-  {
-    category: "Export & Freight",
-    modules: [
-      { id: "Exports", name: "Export Management", icon: Plane, price: 35 },
-      { id: "Freight", name: "Freight & Cargo", icon: Package, price: 29 },
-    ]
-  },
-  {
-    category: "Finance & Accounting",
-    modules: [
-      { id: "Accounting", name: "Full Accounting Suite", icon: DollarSign, price: 49 },
-      { id: "Payroll", name: "Payroll & HR", icon: Users, price: 39 },
-      { id: "Banking", name: "Banking Integration", icon: Building2, price: 29 },
-      { id: "FinancialAssistant", name: "AI Financial Assistant", icon: Zap, price: 25 },
-    ]
-  }
-];
+import { loadSavedPricing } from "@/components/shared/PricingConfig";
 
 export default function Landing() {
   const [selectedModules, setSelectedModules] = useState([]);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [financialNews, setFinancialNews] = useState(null);
   const [loadingNews, setLoadingNews] = useState(true);
+  
+  // Load pricing from shared config (respects admin edits)
+  const [subscriptionPlans, setSubscriptionPlans] = useState([]);
+  const [moduleCategories, setModuleCategories] = useState([]);
+  
+  useEffect(() => {
+    const { subscriptionPlans: plans, moduleCategories: modules } = loadSavedPricing();
+    setSubscriptionPlans(plans);
+    setModuleCategories(modules);
+  }, []);
 
   // Check if user is authenticated
   const { data: user } = useQuery({
