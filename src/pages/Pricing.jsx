@@ -257,7 +257,7 @@ export default function Pricing() {
                 </div>
               ) : (
                 <Button variant="outline" onClick={() => setEditMode(true)}>
-                  <Edit className="w-4 h-4 mr-2" />
+                  <Pencil className="w-4 h-4 mr-2" />
                   Edit Prices
                 </Button>
               )}
