@@ -153,9 +153,9 @@ export default function Pricing() {
           )}
 
           {isAdmin && (
-            <div className="mt-4">
+            <div className="mt-4 flex gap-2 justify-center flex-wrap">
               {editMode ? (
-                <div className="flex gap-2 justify-center">
+                <>
                   <Button onClick={savePricing} className="bg-green-600 hover:bg-green-700">
                     <Save className="w-4 h-4 mr-2" />
                     Save Prices
@@ -164,12 +164,18 @@ export default function Pricing() {
                     <XCircle className="w-4 h-4 mr-2" />
                     Cancel
                   </Button>
-                </div>
+                </>
               ) : (
-                <Button variant="outline" onClick={() => setEditMode(true)}>
-                  <Pencil className="w-4 h-4 mr-2" />
-                  Edit Prices
-                </Button>
+                <>
+                  <Button variant="outline" onClick={() => setEditMode(true)}>
+                    <Pencil className="w-4 h-4 mr-2" />
+                    Edit Prices
+                  </Button>
+                  <Button variant="outline" onClick={() => setStripeDialogOpen(true)}>
+                    <Key className="w-4 h-4 mr-2" />
+                    Stripe Settings
+                  </Button>
+                </>
               )}
             </div>
           )}
