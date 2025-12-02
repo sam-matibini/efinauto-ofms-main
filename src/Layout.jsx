@@ -210,6 +210,12 @@ const allNavigationItems = [
     pageId: "Settings"
   },
   {
+    title: "Pricing",
+    url: createPageUrl("Pricing"),
+    icon: DollarSign,
+    pageId: "Pricing"
+  },
+  {
     title: "AI Assistant",
     url: createPageUrl("FinancialAssistant"),
     icon: MessageCircle,
