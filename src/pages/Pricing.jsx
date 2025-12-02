@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Check, Loader2, CreditCard, Zap, Building2, Settings, Pencil, Save, XCircle } from "lucide-react";
+import { Check, Loader2, CreditCard, Settings, Pencil, Save, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { defaultSubscriptionPlans, defaultModuleCategories, loadSavedPricing, savePricing as savePricingToStorage } from "@/components/shared/PricingConfig";
