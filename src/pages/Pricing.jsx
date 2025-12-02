@@ -207,12 +207,22 @@ export default function Pricing() {
     toast.success("Pricing updated successfully");
   };
 
+  // Icon mapping for restoring from localStorage
+  const iconMap = { Zap, Building2, Crown };
+
   // Load custom pricing from localStorage on mount
   React.useEffect(() => {
     const saved = localStorage.getItem('customPricing');
     if (saved) {
       const { subscriptionPlans: savedPlans, moduleCategories: savedModules } = JSON.parse(saved);
-      if (savedPlans) setSubscriptionPlans(savedPlans);
+      if (savedPlans) {
+        // Restore icon components from the icon map
+        const restoredPlans = savedPlans.map((plan, idx) => ({
+          ...plan,
+          icon: defaultSubscriptionPlans[idx]?.icon || Zap
+        }));
+        setSubscriptionPlans(restoredPlans);
+      }
       if (savedModules) setModuleCategories(savedModules);
     }
   }, []);
