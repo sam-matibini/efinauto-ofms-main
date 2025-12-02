@@ -424,7 +424,24 @@ export default function Pricing() {
                         </div>
                         <span className="font-medium text-gray-900">{module.name}</span>
                       </div>
-                      <span className="text-gray-600 font-medium">${module.price}/mo</span>
+                      {editMode ? (
+                        <div className="flex items-center gap-1">
+                          <span>$</span>
+                          <Input
+                            type="number"
+                            value={module.price}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              updateModulePrice(catIndex, module.id, e.target.value);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-16 text-center"
+                          />
+                          <span>/mo</span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-600 font-medium">${module.price}/mo</span>
+                      )}
                     </div>
                   ))}
                 </CardContent>
