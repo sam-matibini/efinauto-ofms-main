@@ -241,6 +241,28 @@ export default function Pricing() {
               Current Plan: {currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}
             </Badge>
           )}
+
+          {isAdmin && (
+            <div className="mt-4">
+              {editMode ? (
+                <div className="flex gap-2 justify-center">
+                  <Button onClick={savePricing} className="bg-green-600 hover:bg-green-700">
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Prices
+                  </Button>
+                  <Button variant="outline" onClick={() => setEditMode(false)}>
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" onClick={() => setEditMode(true)}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Prices
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Billing Toggle */}
