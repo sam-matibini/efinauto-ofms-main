@@ -424,6 +424,12 @@ export default function Pricing() {
           </div>
         </div>
       </div>
+
+      {/* Stripe Settings Dialog */}
+      <StripeSettingsDialog 
+        open={stripeDialogOpen} 
+        onClose={() => setStripeDialogOpen(false)} 
+      />
     </div>
   );
 }
