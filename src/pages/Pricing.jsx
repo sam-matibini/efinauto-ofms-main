@@ -73,7 +73,7 @@ const defaultSubscriptionPlans = [
   }
 ];
 
-const moduleCategories = [
+const defaultModuleCategories = [
   {
     category: "Core Operations",
     modules: [
@@ -111,6 +111,9 @@ const moduleCategories = [
 export default function Pricing() {
   const [selectedModules, setSelectedModules] = useState([]);
   const [billingInterval, setBillingInterval] = useState("month");
+  const [editMode, setEditMode] = useState(false);
+  const [subscriptionPlans, setSubscriptionPlans] = useState(defaultSubscriptionPlans);
+  const [moduleCategories, setModuleCategories] = useState(defaultModuleCategories);
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
