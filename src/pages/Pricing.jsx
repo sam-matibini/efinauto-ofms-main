@@ -1,120 +1,29 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Check, Loader2, CreditCard, Zap, Building2, Crown, Settings, Pencil, Save, XCircle } from "lucide-react";
+import { Check, Loader2, CreditCard, Zap, Building2, Settings, Pencil, Save, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-
-const defaultSubscriptionPlans = [
-  {
-    id: "starter",
-    name: "Starter",
-    price: 49,
-    interval: "month",
-    description: "Perfect for small dealerships",
-    icon: Zap,
-    color: "blue",
-    features: [
-      "Vehicle Inventory Management",
-      "Customer Management",
-      "Basic Sales Tracking",
-      "Up to 50 vehicles",
-      "Email Support"
-    ],
-    modules: ["Dashboard", "Vehicles", "Customers", "Sales"],
-    stripePriceId: "price_starter_monthly"
-  },
-  {
-    id: "professional",
-    name: "Professional",
-    price: 149,
-    interval: "month",
-    description: "For growing dealerships",
-    icon: Building2,
-    color: "purple",
-    features: [
-      "Everything in Starter",
-      "Auto Repair Shop",
-      "Parts Inventory",
-      "Exports & Freight",
-      "Financial Reports",
-      "Up to 200 vehicles",
-      "Priority Support"
-    ],
-    modules: ["Dashboard", "Vehicles", "Customers", "Sales", "Repairs", "Parts", "Exports", "Freight", "Reports"],
-    stripePriceId: "price_professional_monthly",
-    popular: true
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    price: 349,
-    interval: "month",
-    description: "Full-featured solution",
-    icon: Crown,
-    color: "amber",
-    features: [
-      "Everything in Professional",
-      "Full Accounting Suite",
-      "Payroll & HR",
-      "Banking Integration",
-      "AI Assistant",
-      "Unlimited vehicles",
-      "Multi-company support",
-      "24/7 Phone Support"
-    ],
-    modules: ["Dashboard", "Vehicles", "Customers", "Sales", "Repairs", "Parts", "Exports", "Freight", "Reports", "Accounting", "Payroll", "Banking", "FinancialAssistant"],
-    stripePriceId: "price_enterprise_monthly"
-  }
-];
-
-const defaultModuleCategories = [
-  {
-    category: "Core Operations",
-    modules: [
-      { id: "Vehicles", name: "Vehicle Management", price: 19 },
-      { id: "Sales", name: "Sales & CRM", price: 29 },
-      { id: "Customers", name: "Customer Management", price: 15 },
-    ]
-  },
-  {
-    category: "Service & Inventory",
-    modules: [
-      { id: "Repairs", name: "Auto Repair Shop", price: 25 },
-      { id: "Parts", name: "Parts Inventory", price: 19 },
-      { id: "Technicians", name: "Technician Management", price: 15 },
-    ]
-  },
-  {
-    category: "Export & Freight",
-    modules: [
-      { id: "Exports", name: "Export Management", price: 35 },
-      { id: "Freight", name: "Freight & Cargo", price: 29 },
-    ]
-  },
-  {
-    category: "Finance & Accounting",
-    modules: [
-      { id: "Accounting", name: "Full Accounting Suite", price: 49 },
-      { id: "Payroll", name: "Payroll & HR", price: 39 },
-      { id: "Banking", name: "Banking Integration", price: 29 },
-      { id: "FinancialAssistant", name: "AI Financial Assistant", price: 25 },
-    ]
-  }
-];
+import { defaultSubscriptionPlans, defaultModuleCategories, loadSavedPricing, savePricing as savePricingToStorage } from "@/components/shared/PricingConfig";
 
 export default function Pricing() {
   const [selectedModules, setSelectedModules] = useState([]);
   const [billingInterval, setBillingInterval] = useState("month");
   const [editMode, setEditMode] = useState(false);
-  const [subscriptionPlans, setSubscriptionPlans] = useState(defaultSubscriptionPlans);
-  const [moduleCategories, setModuleCategories] = useState(defaultModuleCategories);
+  const [subscriptionPlans, setSubscriptionPlans] = useState([]);
+  const [moduleCategories, setModuleCategories] = useState([]);
   const queryClient = useQueryClient();
+  
+  // Load pricing from shared config on mount
+  useEffect(() => {
+    const { subscriptionPlans: plans, moduleCategories: modules } = loadSavedPricing();
+    setSubscriptionPlans(plans);
+    setModuleCategories(modules);
+  }, []);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
