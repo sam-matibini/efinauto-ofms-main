@@ -125,6 +125,15 @@ export default function Pricing() {
     return colors[color] || colors.blue;
   };
 
+  // Don't render until pricing is loaded
+  if (subscriptionPlans.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
