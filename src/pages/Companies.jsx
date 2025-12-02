@@ -263,6 +263,9 @@ export default function Companies() {
                   <th className="text-left p-4 font-medium text-gray-600 cursor-pointer hover:bg-gray-100" onClick={() => { setSortBy("status"); setSortOrder(sortBy === "status" && sortOrder === "asc" ? "desc" : "asc"); }}>
                     <div className="flex items-center gap-1">Status {sortBy === "status" && <ArrowUpDown className="w-3 h-3" />}</div>
                   </th>
+                  <th className="text-left p-4 font-medium text-gray-600 cursor-pointer hover:bg-gray-100" onClick={() => { setSortBy("subscription_plan"); setSortOrder(sortBy === "subscription_plan" && sortOrder === "asc" ? "desc" : "asc"); }}>
+                    <div className="flex items-center gap-1">Subscription {sortBy === "subscription_plan" && <ArrowUpDown className="w-3 h-3" />}</div>
+                  </th>
                   <th className="text-right p-4 font-medium text-gray-600">Actions</th>
                 </tr>
               </thead>
