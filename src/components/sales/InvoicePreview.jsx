@@ -15,11 +15,21 @@ const formatCurrency = (amount) => {
   }).format(amount || 0);
 };
 
+const currencySymbols = {
+  CAD: "CA$",
+  USD: "$",
+  NGN: "₦"
+};
+
+const getCurrencySymbol = (currency) => currencySymbols[currency] || "$";
+
 export default function InvoicePreview({ open, onClose, invoice, company }) {
   const invoiceRef = useRef(null);
   const [sendingEmail, setSendingEmail] = useState(false);
 
   if (!invoice) return null;
+
+  const currencySymbol = getCurrencySymbol(invoice.currency);
 
   const handlePrint = () => {
     const printContent = invoiceRef.current;
@@ -87,7 +97,7 @@ export default function InvoicePreview({ open, onClose, invoice, company }) {
       const lineItemsText = invoice.line_items?.map(item => {
         const rate = item.unit_price || item.rate || (item.total || item.amount) / (item.quantity || 1);
         const amount = item.total || item.amount;
-        return `- ${item.description}: ${item.quantity} x $${formatCurrency(rate)} = $${formatCurrency(amount)}`;
+        return `- ${item.description}: ${item.quantity} x ${currencySymbol}${formatCurrency(rate)} = ${currencySymbol}${formatCurrency(amount)}`;
       }).join('\n') || '';
 
       const emailBody = `
@@ -101,18 +111,19 @@ INVOICE #${invoice.invoice_number}
 
 Invoice Date: ${invoice.invoice_date}
 Due Date: ${invoice.due_date || 'Upon Receipt'}
+Currency: ${invoice.currency || 'CAD'}
 
 LINE ITEMS:
 ${lineItemsText}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Subtotal: $${formatCurrency(invoice.subtotal)}
-Tax (${invoice.tax_rate || 0}%): $${formatCurrency(invoice.tax_amount)}
-TOTAL: $${formatCurrency(invoice.total_amount)}
+Subtotal: ${currencySymbol}${formatCurrency(invoice.subtotal)}
+Tax (${invoice.tax_rate || 0}%): ${currencySymbol}${formatCurrency(invoice.tax_amount)}
+TOTAL: ${currencySymbol}${formatCurrency(invoice.total_amount)}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Payment Status: ${invoice.payment_status?.toUpperCase() || 'PENDING'}
-${invoice.balance_due > 0 ? `Balance Due: $${formatCurrency(invoice.balance_due)}` : 'PAID IN FULL'}
+${invoice.balance_due > 0 ? `Balance Due: ${currencySymbol}${formatCurrency(invoice.balance_due)}` : 'PAID IN FULL'}
 
 ${invoice.notes ? `Notes: ${invoice.notes}\n` : ''}
 Thank you for your business!
@@ -149,16 +160,17 @@ From: ${company?.name || 'Our Company'}
 Customer: ${invoice.customer_name}
 Date: ${invoice.invoice_date}
 Due: ${invoice.due_date || 'Upon Receipt'}
+Currency: ${invoice.currency || 'CAD'}
 
 *Items:*
-${invoice.line_items?.map(item => `• ${item.description}: $${formatCurrency(item.amount)}`).join('\n')}
+${invoice.line_items?.map(item => `• ${item.description}: ${currencySymbol}${formatCurrency(item.total || item.amount)}`).join('\n')}
 
-*Subtotal:* $${formatCurrency(invoice.subtotal)}
-*Tax:* $${formatCurrency(invoice.tax_amount)}
-*Total:* $${formatCurrency(invoice.total_amount)}
+*Subtotal:* ${currencySymbol}${formatCurrency(invoice.subtotal)}
+*Tax:* ${currencySymbol}${formatCurrency(invoice.tax_amount)}
+*Total:* ${currencySymbol}${formatCurrency(invoice.total_amount)}
 
 Status: ${invoice.payment_status?.toUpperCase()}
-${invoice.balance_due > 0 ? `*Balance Due:* $${formatCurrency(invoice.balance_due)}` : ''}
+${invoice.balance_due > 0 ? `*Balance Due:* ${currencySymbol}${formatCurrency(invoice.balance_due)}` : ''}
 
 Thank you for your business!
     `.trim();
@@ -242,6 +254,10 @@ Thank you for your business!
                 <span className="text-gray-500 text-sm">Due Date:</span>
                 <span className="ml-2">{invoice.due_date || 'Upon Receipt'}</span>
               </div>
+              <div className="mb-2">
+                <span className="text-gray-500 text-sm">Currency:</span>
+                <span className="ml-2 font-medium">{invoice.currency || 'CAD'}</span>
+              </div>
               <div>
                 <span className="text-gray-500 text-sm">Status:</span>
                 <Badge className={`ml-2 ${getStatusBadge(invoice.payment_status)}`}>
@@ -266,8 +282,8 @@ Thank you for your business!
                 <tr key={index} className="border-b">
                   <td className="p-3">{item.description}</td>
                   <td className="p-3 text-center">{item.quantity}</td>
-                  <td className="p-3 text-right">${formatCurrency(item.unit_price || item.rate || (item.total || item.amount) / (item.quantity || 1))}</td>
-                  <td className="p-3 text-right font-medium">${formatCurrency(item.total || item.amount)}</td>
+                  <td className="p-3 text-right">{currencySymbol}{formatCurrency(item.unit_price || item.rate || (item.total || item.amount) / (item.quantity || 1))}</td>
+                  <td className="p-3 text-right font-medium">{currencySymbol}{formatCurrency(item.total || item.amount)}</td>
                 </tr>
               ))}
             </tbody>
@@ -278,25 +294,25 @@ Thank you for your business!
             <div className="w-64">
               <div className="flex justify-between py-2">
                 <span className="text-gray-600">Subtotal:</span>
-                <span className="font-medium">${formatCurrency(invoice.subtotal)}</span>
+                <span className="font-medium">{currencySymbol}{formatCurrency(invoice.subtotal)}</span>
               </div>
               <div className="flex justify-between py-2">
                 <span className="text-gray-600">Tax ({invoice.tax_rate || 0}%):</span>
-                <span className="font-medium">${formatCurrency(invoice.tax_amount)}</span>
+                <span className="font-medium">{currencySymbol}{formatCurrency(invoice.tax_amount)}</span>
               </div>
               <div className="flex justify-between py-3 border-t-2 border-gray-300">
                 <span className="text-lg font-bold">Total:</span>
-                <span className="text-lg font-bold text-blue-600">${formatCurrency(invoice.total_amount)}</span>
+                <span className="text-lg font-bold text-blue-600">{currencySymbol}{formatCurrency(invoice.total_amount)}</span>
               </div>
               {invoice.amount_paid > 0 && (
                 <>
                   <div className="flex justify-between py-2">
                     <span className="text-gray-600">Amount Paid:</span>
-                    <span className="font-medium text-green-600">${formatCurrency(invoice.amount_paid)}</span>
+                    <span className="font-medium text-green-600">{currencySymbol}{formatCurrency(invoice.amount_paid)}</span>
                   </div>
                   <div className="flex justify-between py-2 border-t">
                     <span className="font-semibold">Balance Due:</span>
-                    <span className="font-bold text-red-600">${formatCurrency(invoice.balance_due)}</span>
+                    <span className="font-bold text-red-600">{currencySymbol}{formatCurrency(invoice.balance_due)}</span>
                   </div>
                 </>
               )}

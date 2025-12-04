@@ -22,6 +22,7 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
     customer_address: "",
     invoice_date: new Date().toISOString().split('T')[0],
     due_date: "",
+    currency: "CAD",
     line_items: [],
     subtotal: 0,
     tax_rate: 13,
@@ -33,6 +34,12 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
     notes: "",
     terms: "Payment due upon receipt"
   });
+
+  const currencySymbols = {
+    CAD: "CA$",
+    USD: "$",
+    NGN: "₦"
+  };
 
   useEffect(() => {
     if (open) {
@@ -46,6 +53,7 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
           customer_address: editingInvoice.customer_address || "",
           invoice_date: editingInvoice.invoice_date || new Date().toISOString().split('T')[0],
           due_date: editingInvoice.due_date || "",
+          currency: editingInvoice.currency || "CAD",
           line_items: editingInvoice.line_items || [],
           subtotal: editingInvoice.subtotal || 0,
           tax_rate: editingInvoice.tax_rate || 13,
@@ -67,6 +75,7 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
           customer_address: "",
           invoice_date: new Date().toISOString().split('T')[0],
           due_date: "",
+          currency: "CAD",
           line_items: [],
           subtotal: 0,
           tax_rate: 13,
@@ -197,7 +206,7 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
           </div>
 
           {/* Invoice Details */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div>
               <Label>Invoice Number</Label>
               <Input 
@@ -220,6 +229,22 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
                 value={formData.due_date} 
                 onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))} 
               />
+            </div>
+            <div>
+              <Label>Currency</Label>
+              <Select 
+                value={formData.currency} 
+                onValueChange={(v) => setFormData(prev => ({ ...prev, currency: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
+                  <SelectItem value="USD">USD - US Dollar</SelectItem>
+                  <SelectItem value="NGN">NGN - Nigerian Naira</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -250,7 +275,7 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
                     <tr>
                       <th className="text-left p-2 text-sm font-medium">Description</th>
                       <th className="text-center p-2 text-sm font-medium w-20">Qty</th>
-                      <th className="text-center p-2 text-sm font-medium w-28">Rate ($)</th>
+                      <th className="text-center p-2 text-sm font-medium w-28">Rate ({currencySymbols[formData.currency]})</th>
                       <th className="text-right p-2 text-sm font-medium w-28">Amount</th>
                       <th className="w-10"></th>
                     </tr>
@@ -285,7 +310,7 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
                           />
                         </td>
                         <td className="p-2 text-right font-medium">
-                          ${(item.total || 0).toFixed(2)}
+                          {currencySymbols[formData.currency]}{(item.total || 0).toFixed(2)}
                         </td>
                         <td className="p-2">
                           <Button 
@@ -356,7 +381,7 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
                             )}
                           </div>
                           <Badge className="bg-green-100 text-green-800">
-                            ${service.price?.toFixed(2)}
+                            {currencySymbols[formData.currency]}{service.price?.toFixed(2)}
                           </Badge>
                         </div>
                       </CardContent>
@@ -378,7 +403,7 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
             <div className="w-72 space-y-2">
               <div className="flex justify-between">
                 <span className="text-gray-600">Subtotal:</span>
-                <span className="font-medium">${formData.subtotal.toFixed(2)}</span>
+                <span className="font-medium">{currencySymbols[formData.currency]}{formData.subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center gap-2">
                 <span className="text-gray-600">Tax Rate:</span>
@@ -392,6 +417,7 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
                   <SelectContent>
                     <SelectItem value="0">0%</SelectItem>
                     <SelectItem value="5">5% GST</SelectItem>
+                    <SelectItem value="7.5">7.5% VAT</SelectItem>
                     <SelectItem value="12">12%</SelectItem>
                     <SelectItem value="13">13% HST</SelectItem>
                     <SelectItem value="15">15% HST</SelectItem>
@@ -400,11 +426,11 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Tax:</span>
-                <span className="font-medium">${formData.tax_amount.toFixed(2)}</span>
+                <span className="font-medium">{currencySymbols[formData.currency]}{formData.tax_amount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between border-t pt-2">
                 <span className="font-semibold">Total:</span>
-                <span className="font-bold text-lg text-blue-600">${formData.total_amount.toFixed(2)}</span>
+                <span className="font-bold text-lg text-blue-600">{currencySymbols[formData.currency]}{formData.total_amount.toFixed(2)}</span>
               </div>
             </div>
           </div>
