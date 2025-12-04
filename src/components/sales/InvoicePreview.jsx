@@ -245,8 +245,8 @@ Thank you for your business!
                 <tr key={index} className="border-b">
                   <td className="p-3">{item.description}</td>
                   <td className="p-3 text-center">{item.quantity}</td>
-                  <td className="p-3 text-right">${formatCurrency(item.rate || item.unit_price || (item.total ? item.total / (item.quantity || 1) : item.amount / (item.quantity || 1)))}</td>
-                  <td className="p-3 text-right font-medium">${formatCurrency(item.amount || item.total)}</td>
+                  <td className="p-3 text-right">${formatCurrency(item.unit_price || item.rate || (item.total || item.amount) / (item.quantity || 1))}</td>
+                  <td className="p-3 text-right font-medium">${formatCurrency(item.total || item.amount)}</td>
                 </tr>
               ))}
             </tbody>

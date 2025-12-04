@@ -96,7 +96,7 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
   const addLineItem = () => {
     setFormData(prev => ({
       ...prev,
-      line_items: [...prev.line_items, { description: "", quantity: 1, rate: 0, amount: 0 }]
+      line_items: [...prev.line_items, { description: "", quantity: 1, unit_price: 0, total: 0 }]
     }));
   };
 
@@ -104,11 +104,11 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
     const newItems = [...formData.line_items];
     newItems[index][field] = value;
     
-    if (field === "quantity" || field === "rate") {
-      newItems[index].amount = (parseFloat(newItems[index].quantity) || 0) * (parseFloat(newItems[index].rate) || 0);
+    if (field === "quantity" || field === "unit_price") {
+      newItems[index].total = (parseFloat(newItems[index].quantity) || 0) * (parseFloat(newItems[index].unit_price) || 0);
     }
     
-    const subtotal = newItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const subtotal = newItems.reduce((sum, item) => sum + (item.total || 0), 0);
     const taxAmount = subtotal * (formData.tax_rate / 100);
     const totalAmount = subtotal + taxAmount;
     
@@ -124,7 +124,7 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
 
   const removeLineItem = (index) => {
     const newItems = formData.line_items.filter((_, i) => i !== index);
-    const subtotal = newItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const subtotal = newItems.reduce((sum, item) => sum + (item.total || 0), 0);
     const taxAmount = subtotal * (formData.tax_rate / 100);
     const totalAmount = subtotal + taxAmount;
     
@@ -279,13 +279,13 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
                             type="number"
                             min="0"
                             step="0.01"
-                            value={item.rate}
-                            onChange={(e) => updateLineItem(index, "rate", parseFloat(e.target.value) || 0)}
+                            value={item.unit_price || 0}
+                            onChange={(e) => updateLineItem(index, "unit_price", parseFloat(e.target.value) || 0)}
                             className="text-center"
                           />
                         </td>
                         <td className="p-2 text-right font-medium">
-                          ${item.amount?.toFixed(2)}
+                          ${(item.total || 0).toFixed(2)}
                         </td>
                         <td className="p-2">
                           <Button 
@@ -328,12 +328,12 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
                         const newItem = {
                           description: service.name,
                           quantity: 1,
-                          rate: service.price || 0,
-                          amount: service.price || 0,
+                          unit_price: service.price || 0,
+                          total: service.price || 0,
                           service_id: service.id
                         };
                         const newItems = [...formData.line_items, newItem];
-                        const subtotal = newItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+                        const subtotal = newItems.reduce((sum, item) => sum + (item.total || 0), 0);
                         const taxAmount = subtotal * (formData.tax_rate / 100);
                         const totalAmount = subtotal + taxAmount;
                         setFormData(prev => ({
