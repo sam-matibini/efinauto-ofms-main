@@ -1,8 +1,8 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Printer, Mail, MessageCircle, X, Download } from "lucide-react";
+import { Printer, Mail, MessageCircle, X, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import html2canvas from "html2canvas";
@@ -17,6 +17,7 @@ const formatCurrency = (amount) => {
 
 export default function InvoicePreview({ open, onClose, invoice, company }) {
   const invoiceRef = useRef(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   if (!invoice) return null;
 
@@ -81,31 +82,49 @@ export default function InvoicePreview({ open, onClose, invoice, company }) {
       return;
     }
 
+    setSendingEmail(true);
     try {
+      const lineItemsText = invoice.line_items?.map(item => {
+        const rate = item.unit_price || item.rate || (item.total || item.amount) / (item.quantity || 1);
+        const amount = item.total || item.amount;
+        return `- ${item.description}: ${item.quantity} x $${formatCurrency(rate)} = $${formatCurrency(amount)}`;
+      }).join('\n') || '';
+
       const emailBody = `
 Dear ${invoice.customer_name},
 
 Please find below your invoice details:
 
-Invoice Number: ${invoice.invoice_number}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INVOICE #${invoice.invoice_number}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 Invoice Date: ${invoice.invoice_date}
 Due Date: ${invoice.due_date || 'Upon Receipt'}
 
-Line Items:
-${invoice.line_items?.map(item => `- ${item.description}: ${item.quantity} x $${formatCurrency(item.rate)} = $${formatCurrency(item.amount)}`).join('\n')}
+LINE ITEMS:
+${lineItemsText}
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Subtotal: $${formatCurrency(invoice.subtotal)}
-Tax: $${formatCurrency(invoice.tax_amount)}
-Total: $${formatCurrency(invoice.total_amount)}
+Tax (${invoice.tax_rate || 0}%): $${formatCurrency(invoice.tax_amount)}
+TOTAL: $${formatCurrency(invoice.total_amount)}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Payment Status: ${invoice.payment_status?.toUpperCase()}
-${invoice.balance_due > 0 ? `Balance Due: $${formatCurrency(invoice.balance_due)}` : ''}
+Payment Status: ${invoice.payment_status?.toUpperCase() || 'PENDING'}
+${invoice.balance_due > 0 ? `Balance Due: $${formatCurrency(invoice.balance_due)}` : 'PAID IN FULL'}
 
+${invoice.notes ? `Notes: ${invoice.notes}\n` : ''}
 Thank you for your business!
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${company?.name || 'Our Company'}
-${company?.phone || ''}
+${company?.address ? company.address + '\n' : ''}${company?.city ? company.city + ', ' : ''}${company?.province || ''} ${company?.postal_code || ''}
+${company?.phone ? 'Tel: ' + company.phone : ''}
 ${company?.email || ''}
+${company?.gst_number ? 'GST #: ' + company.gst_number : ''}
+${company?.pst_number ? 'PST #: ' + company.pst_number : ''}
+${company?.dealer_permit_number ? 'Dealer Permit #: ' + company.dealer_permit_number : ''}
       `.trim();
 
       await base44.integrations.Core.SendEmail({
@@ -117,6 +136,8 @@ ${company?.email || ''}
       toast.success(`Invoice sent to ${invoice.customer_email}`);
     } catch (error) {
       toast.error("Failed to send email");
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -174,9 +195,9 @@ Thank you for your business!
                 <Download className="w-4 h-4 mr-1" />
                 PDF
               </Button>
-              <Button variant="outline" size="sm" onClick={handleEmailShare}>
-                <Mail className="w-4 h-4 mr-1" />
-                Email
+              <Button variant="outline" size="sm" onClick={handleEmailShare} disabled={sendingEmail}>
+                {sendingEmail ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Mail className="w-4 h-4 mr-1" />}
+                {sendingEmail ? "Sending..." : "Email"}
               </Button>
               <Button variant="outline" size="sm" className="bg-green-50 text-green-700 hover:bg-green-100" onClick={handleWhatsAppShare}>
                 <MessageCircle className="w-4 h-4 mr-1" />
