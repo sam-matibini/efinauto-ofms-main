@@ -211,10 +211,16 @@ export default function InvoicesTab({ invoices, selectedCompanyId }) {
                   <div className="text-right">
                     <p className="text-2xl font-bold text-blue-600">${invoice.total_amount?.toLocaleString()}</p>
                     <p className="text-sm text-gray-500">Paid: ${invoice.amount_paid?.toLocaleString()}</p>
-                    <Button variant="outline" size="sm" className="mt-2 text-red-600" onClick={() => deleteMutation.mutate(invoice.id)}>
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete
-                    </Button>
+                    <div className="flex gap-2 mt-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEditInvoice(invoice)}>
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(invoice.id)}>
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
