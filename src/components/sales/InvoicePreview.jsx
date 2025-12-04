@@ -293,7 +293,11 @@ Thank you for your business!
           {/* Footer */}
           <div className="mt-8 pt-6 border-t text-center text-gray-500 text-sm">
             <p>Thank you for your business!</p>
-            {company?.gst_number && <p className="mt-1">GST #: {company.gst_number}</p>}
+            <div className="mt-2 space-y-1">
+              {company?.gst_number && <p>GST #: {company.gst_number}</p>}
+              {company?.pst_number && <p>PST #: {company.pst_number}</p>}
+              {company?.dealer_permit_number && <p>Dealer Permit #: {company.dealer_permit_number}</p>}
+            </div>
           </div>
         </div>
       </DialogContent>
