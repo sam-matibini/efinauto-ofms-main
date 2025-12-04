@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, LayoutGrid, List, ArrowUpDown, Search, Edit } from "lucide-react";
+import { Plus, Trash2, LayoutGrid, List, ArrowUpDown, Search, Edit, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,6 +12,14 @@ import CompareWithFilter from "../shared/CompareWithFilter";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import InvoiceDialog from "./InvoiceDialog";
+import InvoicePreview from "./InvoicePreview";
+
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount || 0);
+};
 
 export default function InvoicesTab({ invoices, selectedCompanyId }) {
   const [dialogOpen, setDialogOpen] = useState(false);
