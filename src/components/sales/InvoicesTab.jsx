@@ -221,13 +221,17 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
                     <p className="text-sm text-gray-500">Invoice Date: {invoice.invoice_date}</p>
                     {invoice.due_date && <p className="text-sm text-gray-500">Due Date: {invoice.due_date}</p>}
                     {invoice.balance_due > 0 && (
-                      <p className="text-sm text-orange-600 font-semibold mt-2">Balance Due: ${invoice.balance_due.toLocaleString()}</p>
+                      <p className="text-sm text-orange-600 font-semibold mt-2">Balance Due: ${formatCurrency(invoice.balance_due)}</p>
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-blue-600">${invoice.total_amount?.toLocaleString()}</p>
-                    <p className="text-sm text-gray-500">Paid: ${invoice.amount_paid?.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-blue-600">${formatCurrency(invoice.total_amount)}</p>
+                    <p className="text-sm text-gray-500">Paid: ${formatCurrency(invoice.amount_paid)}</p>
                     <div className="flex gap-2 mt-2">
+                      <Button variant="outline" size="sm" onClick={() => handleViewInvoice(invoice)}>
+                        <Eye className="w-4 h-4 mr-1" />
+                        View
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => handleEditInvoice(invoice)}>
                         <Edit className="w-4 h-4 mr-1" />
                         Edit
