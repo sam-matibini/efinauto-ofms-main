@@ -21,9 +21,11 @@ const formatCurrency = (amount) => {
   }).format(amount || 0);
 };
 
-export default function InvoicesTab({ invoices, selectedCompanyId }) {
+export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
+  const [previewInvoice, setPreviewInvoice] = useState(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("list");
   const [sortBy, setSortBy] = useState("created_date");
@@ -31,6 +33,11 @@ export default function InvoicesTab({ invoices, selectedCompanyId }) {
   const [dateRange, setDateRange] = useState("all");
   const [compareWith, setCompareWith] = useState(null);
   const queryClient = useQueryClient();
+
+  const handleViewInvoice = (invoice) => {
+    setPreviewInvoice(invoice);
+    setPreviewOpen(true);
+  };
 
   const filteredInvoices = invoices.filter(i => {
     const matchesSearch = i.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
