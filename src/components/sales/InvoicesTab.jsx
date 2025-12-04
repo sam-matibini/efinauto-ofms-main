@@ -257,6 +257,13 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
         customers={customers}
         services={services}
       />
+
+      <InvoicePreview
+        open={previewOpen}
+        onClose={() => { setPreviewOpen(false); setPreviewInvoice(null); }}
+        invoice={previewInvoice}
+        company={company}
+      />
     </>
   );
 }
