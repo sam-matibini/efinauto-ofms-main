@@ -114,7 +114,7 @@ export default function InvoicesTab({ invoices, selectedCompanyId }) {
     <>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Sales Invoices</h2>
-        <Button onClick={() => setDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={() => { setEditingInvoice(null); setDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
           <Plus className="w-4 h-4 mr-2" />
           New Invoice
         </Button>
