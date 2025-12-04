@@ -223,82 +223,155 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
             </div>
           </div>
 
-          {/* Line Items */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <Label>Line Items</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addLineItem}>
-                <Plus className="w-4 h-4 mr-1" /> Add Item
-              </Button>
-            </div>
-            
-            <div className="border rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left p-2 text-sm font-medium">Description</th>
-                    <th className="text-center p-2 text-sm font-medium w-20">Qty</th>
-                    <th className="text-center p-2 text-sm font-medium w-28">Rate ($)</th>
-                    <th className="text-right p-2 text-sm font-medium w-28">Amount</th>
-                    <th className="w-10"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {formData.line_items.map((item, index) => (
-                    <tr key={index} className="border-t">
-                      <td className="p-2">
-                        <Input 
-                          placeholder="Description"
-                          value={item.description}
-                          onChange={(e) => updateLineItem(index, "description", e.target.value)}
-                        />
-                      </td>
-                      <td className="p-2">
-                        <Input 
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) => updateLineItem(index, "quantity", parseFloat(e.target.value) || 0)}
-                          className="text-center"
-                        />
-                      </td>
-                      <td className="p-2">
-                        <Input 
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.rate}
-                          onChange={(e) => updateLineItem(index, "rate", parseFloat(e.target.value) || 0)}
-                          className="text-center"
-                        />
-                      </td>
-                      <td className="p-2 text-right font-medium">
-                        ${item.amount?.toFixed(2)}
-                      </td>
-                      <td className="p-2">
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="icon"
-                          className="text-red-600 h-8 w-8"
-                          onClick={() => removeLineItem(index)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                  {formData.line_items.length === 0 && (
+          {/* Line Items with Services Tab */}
+          <Tabs defaultValue="items" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="items" className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Line Items
+              </TabsTrigger>
+              <TabsTrigger value="services" className="flex items-center gap-2">
+                <Wrench className="w-4 h-4" />
+                Services
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="items" className="mt-4">
+              <div className="flex justify-between items-center mb-2">
+                <Label>Line Items</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addLineItem}>
+                  <Plus className="w-4 h-4 mr-1" /> Add Item
+                </Button>
+              </div>
+              
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <td colSpan={5} className="p-4 text-center text-gray-500">
-                        No items added. Click "Add Item" to add line items.
-                      </td>
+                      <th className="text-left p-2 text-sm font-medium">Description</th>
+                      <th className="text-center p-2 text-sm font-medium w-20">Qty</th>
+                      <th className="text-center p-2 text-sm font-medium w-28">Rate ($)</th>
+                      <th className="text-right p-2 text-sm font-medium w-28">Amount</th>
+                      <th className="w-10"></th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                  </thead>
+                  <tbody>
+                    {formData.line_items.map((item, index) => (
+                      <tr key={index} className="border-t">
+                        <td className="p-2">
+                          <Input 
+                            placeholder="Description"
+                            value={item.description}
+                            onChange={(e) => updateLineItem(index, "description", e.target.value)}
+                          />
+                        </td>
+                        <td className="p-2">
+                          <Input 
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => updateLineItem(index, "quantity", parseFloat(e.target.value) || 0)}
+                            className="text-center"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <Input 
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.rate}
+                            onChange={(e) => updateLineItem(index, "rate", parseFloat(e.target.value) || 0)}
+                            className="text-center"
+                          />
+                        </td>
+                        <td className="p-2 text-right font-medium">
+                          ${item.amount?.toFixed(2)}
+                        </td>
+                        <td className="p-2">
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon"
+                            className="text-red-600 h-8 w-8"
+                            onClick={() => removeLineItem(index)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                    {formData.line_items.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="p-4 text-center text-gray-500">
+                          No items added. Click "Add Item" or select services from the Services tab.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="services" className="mt-4">
+              <div className="mb-2">
+                <Label>Select Services to Add</Label>
+                <p className="text-sm text-gray-500">Click on a service to add it as a line item</p>
+              </div>
+              
+              {services && services.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto">
+                  {services.map((service) => (
+                    <Card 
+                      key={service.id} 
+                      className="cursor-pointer hover:border-blue-500 hover:shadow-md transition-all"
+                      onClick={() => {
+                        const newItem = {
+                          description: service.name,
+                          quantity: 1,
+                          rate: service.price || 0,
+                          amount: service.price || 0,
+                          service_id: service.id
+                        };
+                        const newItems = [...formData.line_items, newItem];
+                        const subtotal = newItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+                        const taxAmount = subtotal * (formData.tax_rate / 100);
+                        const totalAmount = subtotal + taxAmount;
+                        setFormData(prev => ({
+                          ...prev,
+                          line_items: newItems,
+                          subtotal,
+                          tax_amount: taxAmount,
+                          total_amount: totalAmount,
+                          balance_due: totalAmount - prev.amount_paid
+                        }));
+                        toast.success(`Added "${service.name}" to invoice`);
+                      }}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium">{service.name}</h4>
+                            {service.description && (
+                              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{service.description}</p>
+                            )}
+                          </div>
+                          <Badge className="bg-green-100 text-green-800">
+                            ${service.price?.toFixed(2)}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500 border rounded-lg">
+                  <Wrench className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>No services available</p>
+                  <p className="text-sm">Add services in Products & Services page</p>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
 
           {/* Totals */}
           <div className="flex justify-end">
