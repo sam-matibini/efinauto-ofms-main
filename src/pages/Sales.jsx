@@ -673,7 +673,7 @@ export default function Sales() {
           </TabsContent>
 
           <TabsContent value="invoices" className="space-y-6">
-            <InvoicesTab invoices={invoices} selectedCompanyId={selectedCompanyId} />
+            <InvoicesTab invoices={invoices} selectedCompanyId={selectedCompanyId} company={company} />
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-6">
