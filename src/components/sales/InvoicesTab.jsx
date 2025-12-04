@@ -48,6 +48,38 @@ export default function InvoicesTab({ invoices, selectedCompanyId }) {
     return 0;
   });
 
+  const { data: customers = [] } = useQuery({
+    queryKey: ['customers', selectedCompanyId],
+    queryFn: () => base44.entities.Customer.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+  });
+
+  const { data: services = [] } = useQuery({
+    queryKey: ['services', selectedCompanyId],
+    queryFn: () => base44.entities.Service.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.SalesInvoice.create({ ...data, company_id: selectedCompanyId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      setDialogOpen(false);
+      setEditingInvoice(null);
+      toast.success("Invoice created!");
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.SalesInvoice.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      setDialogOpen(false);
+      setEditingInvoice(null);
+      toast.success("Invoice updated!");
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.SalesInvoice.delete(id),
     onSuccess: () => {
@@ -55,6 +87,19 @@ export default function InvoicesTab({ invoices, selectedCompanyId }) {
       toast.success("Invoice deleted!");
     },
   });
+
+  const handleSaveInvoice = (data) => {
+    if (editingInvoice) {
+      updateMutation.mutate({ id: editingInvoice.id, data });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  const handleEditInvoice = (invoice) => {
+    setEditingInvoice(invoice);
+    setDialogOpen(true);
+  };
 
   const statusColors = {
     draft: "bg-gray-100 text-gray-800",
