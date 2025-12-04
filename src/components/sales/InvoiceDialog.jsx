@@ -415,7 +415,7 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="0">0%</SelectItem>
+                    <SelectItem value="0">Zero Rated - 0% (Export)</SelectItem>
                     <SelectItem value="5">5% GST</SelectItem>
                     <SelectItem value="7.5">7.5% VAT</SelectItem>
                     <SelectItem value="12">12%</SelectItem>
