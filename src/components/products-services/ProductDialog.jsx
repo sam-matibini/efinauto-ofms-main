@@ -12,6 +12,7 @@ export default function ProductDialog({ open, onClose, product, onSave, isLoadin
     sku: "",
     description: "",
     category: "other",
+    currency: "CAD",
     quantity: 0,
     reorder_level: 10,
     unit_price: 0,
@@ -20,6 +21,12 @@ export default function ProductDialog({ open, onClose, product, onSave, isLoadin
     supplier: "",
     location: "",
   });
+
+  const currencySymbols = {
+    CAD: "CA$",
+    USD: "$",
+    NGN: "₦"
+  };
 
   useEffect(() => {
     if (product) {
@@ -30,6 +37,7 @@ export default function ProductDialog({ open, onClose, product, onSave, isLoadin
         sku: "",
         description: "",
         category: "other",
+        currency: "CAD",
         quantity: 0,
         reorder_level: 10,
         unit_price: 0,
@@ -82,7 +90,7 @@ export default function ProductDialog({ open, onClose, product, onSave, isLoadin
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Category</Label>
               <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
@@ -102,6 +110,20 @@ export default function ProductDialog({ open, onClose, product, onSave, isLoadin
                   <SelectItem value="automotive">Automotive</SelectItem>
                   <SelectItem value="office_supplies">Office Supplies</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Currency</Label>
+              <Select value={formData.currency} onValueChange={(value) => setFormData({ ...formData, currency: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
+                  <SelectItem value="USD">USD - US Dollar</SelectItem>
+                  <SelectItem value="NGN">NGN - Nigerian Naira</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -146,7 +168,7 @@ export default function ProductDialog({ open, onClose, product, onSave, isLoadin
 
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Cost Price ($)</Label>
+              <Label>Cost Price ({currencySymbols[formData.currency]})</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -176,7 +198,7 @@ export default function ProductDialog({ open, onClose, product, onSave, isLoadin
             </div>
 
             <div className="space-y-2">
-              <Label>Selling Price ($)</Label>
+              <Label>Selling Price ({currencySymbols[formData.currency]})</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -194,7 +216,7 @@ export default function ProductDialog({ open, onClose, product, onSave, isLoadin
           {formData.cost_price > 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-sm text-blue-800">
-                <span className="font-semibold">Profit:</span> ${((formData.unit_price || 0) - (formData.cost_price || 0)).toFixed(2)} 
+                <span className="font-semibold">Profit:</span> {currencySymbols[formData.currency]}{((formData.unit_price || 0) - (formData.cost_price || 0)).toFixed(2)} 
                 {formData.margin_percentage > 0 && ` (${formData.margin_percentage.toFixed(2)}% margin)`}
               </p>
             </div>

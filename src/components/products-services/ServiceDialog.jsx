@@ -13,6 +13,7 @@ export default function ServiceDialog({ open, onClose, service, onSave, isLoadin
     name: "",
     description: "",
     category: "maintenance",
+    currency: "CAD",
     price: 0,
     cost: 0,
     margin_percentage: 0,
@@ -20,6 +21,12 @@ export default function ServiceDialog({ open, onClose, service, onSave, isLoadin
     taxable: true,
     active: true,
   });
+
+  const currencySymbols = {
+    CAD: "CA$",
+    USD: "$",
+    NGN: "₦"
+  };
 
   useEffect(() => {
     if (service) {
@@ -30,6 +37,7 @@ export default function ServiceDialog({ open, onClose, service, onSave, isLoadin
         name: "",
         description: "",
         category: "maintenance",
+        currency: "CAD",
         price: 0,
         cost: 0,
         margin_percentage: 0,
@@ -81,28 +89,44 @@ export default function ServiceDialog({ open, onClose, service, onSave, isLoadin
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Category</Label>
-            <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="maintenance">Maintenance</SelectItem>
-                <SelectItem value="repair">Repair</SelectItem>
-                <SelectItem value="diagnostic">Diagnostic</SelectItem>
-                <SelectItem value="installation">Installation</SelectItem>
-                <SelectItem value="inspection">Inspection</SelectItem>
-                <SelectItem value="detailing">Detailing</SelectItem>
-                <SelectItem value="consultation">Consultation</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                  <SelectItem value="repair">Repair</SelectItem>
+                  <SelectItem value="diagnostic">Diagnostic</SelectItem>
+                  <SelectItem value="installation">Installation</SelectItem>
+                  <SelectItem value="inspection">Inspection</SelectItem>
+                  <SelectItem value="detailing">Detailing</SelectItem>
+                  <SelectItem value="consultation">Consultation</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Currency</Label>
+              <Select value={formData.currency} onValueChange={(value) => setFormData({ ...formData, currency: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
+                  <SelectItem value="USD">USD - US Dollar</SelectItem>
+                  <SelectItem value="NGN">NGN - Nigerian Naira</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="grid grid-cols-4 gap-4">
             <div className="space-y-2">
-              <Label>Cost ($)</Label>
+              <Label>Cost ({currencySymbols[formData.currency]})</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -132,7 +156,7 @@ export default function ServiceDialog({ open, onClose, service, onSave, isLoadin
             </div>
 
             <div className="space-y-2">
-              <Label>Price ($) *</Label>
+              <Label>Price ({currencySymbols[formData.currency]}) *</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -160,7 +184,7 @@ export default function ServiceDialog({ open, onClose, service, onSave, isLoadin
           {formData.cost > 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-sm text-blue-800">
-                <span className="font-semibold">Profit:</span> ${((formData.price || 0) - (formData.cost || 0)).toFixed(2)} 
+                <span className="font-semibold">Profit:</span> {currencySymbols[formData.currency]}{((formData.price || 0) - (formData.cost || 0)).toFixed(2)} 
                 {formData.margin_percentage > 0 && ` (${formData.margin_percentage.toFixed(2)}% margin)`}
               </p>
             </div>
