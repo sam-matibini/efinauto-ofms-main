@@ -180,7 +180,10 @@ export default function InvoicesTab({ invoices, selectedCompanyId }) {
                   <TableCell className="font-semibold text-blue-600">${invoice.total_amount?.toLocaleString()}</TableCell>
                   <TableCell className={invoice.balance_due > 0 ? "text-orange-600 font-semibold" : ""}>${invoice.balance_due?.toLocaleString() || 0}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(invoice.id)}><Trash2 className="w-4 h-4" /></Button>
+                    <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => handleEditInvoice(invoice)}><Edit className="w-4 h-4" /></Button>
+                      <Button variant="ghost" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(invoice.id)}><Trash2 className="w-4 h-4" /></Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
