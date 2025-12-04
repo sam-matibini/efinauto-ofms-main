@@ -228,6 +228,15 @@ export default function InvoicesTab({ invoices, selectedCompanyId }) {
           ))}
         </div>
       )}
+
+      <InvoiceDialog
+        open={dialogOpen}
+        onClose={() => { setDialogOpen(false); setEditingInvoice(null); }}
+        onSave={handleSaveInvoice}
+        editingInvoice={editingInvoice}
+        customers={customers}
+        services={services}
+      />
     </>
   );
 }
