@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Mail, Download, Loader2, Sparkles } from "lucide-react";
+import { FileText, Mail, Download, Loader2, Sparkles, Eye } from "lucide-react";
+import DocumentViewer from "../shared/DocumentViewer";
 import { toast } from "sonner";
 import { useCompany } from "@/components/shared/CompanyContext";
 
@@ -15,6 +16,7 @@ export default function InvoiceGenerator({ open, onClose, repairOrder }) {
   const { selectedCompanyId } = useCompany();
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: company } = useQuery({
@@ -432,14 +434,22 @@ ${company?.phone || ''}
                 </CardContent>
               </Card>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <Button 
                   onClick={handleDownloadPDF} 
                   variant="outline"
                   className="w-full"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Download/Print PDF
+                  Print
+                </Button>
+                <Button 
+                  onClick={() => setViewerOpen(true)} 
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  View & Share
                 </Button>
                 <Button 
                   onClick={handleSendEmail} 
@@ -454,7 +464,7 @@ ${company?.phone || ''}
                   ) : (
                     <>
                       <Mail className="w-4 h-4 mr-2" />
-                      Send via Email
+                      Email
                     </>
                   )}
                 </Button>
@@ -468,6 +478,16 @@ ${company?.phone || ''}
             {invoiceData ? 'Close' : 'Cancel'}
           </Button>
         </div>
+
+        {invoiceData && (
+          <DocumentViewer
+            open={viewerOpen}
+            onClose={() => setViewerOpen(false)}
+            documentType="repair_invoice"
+            documentData={invoiceData}
+            company={company}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
