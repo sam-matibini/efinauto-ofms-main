@@ -45,6 +45,7 @@ import ProfileDialog from "@/components/users/ProfileDialog";
 import ErrorBoundary from "@/components/shared/ErrorBoundary";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Globe } from "lucide-react";
 
 const allNavigationItems = [
   {
@@ -64,6 +65,12 @@ const allNavigationItems = [
     url: createPageUrl("Companies"),
     icon: Building2,
     pageId: "Companies"
+  },
+  {
+    title: "Global Shipping & Logistics",
+    url: createPageUrl("GlobalShipping"),
+    icon: Globe,
+    pageId: "GlobalShipping"
   },
   {
     title: "Customers",
@@ -120,16 +127,10 @@ const allNavigationItems = [
     pageId: "Salvage"
   },
   {
-    title: "Exports",
-    url: createPageUrl("Exports"),
+    title: "Global Shipping & Logistics",
+    url: createPageUrl("GlobalShipping"),
     icon: Plane,
-    pageId: "Exports"
-  },
-  {
-    title: "Freight & Cargo",
-    url: createPageUrl("Freight"),
-    icon: Package,
-    pageId: "Freight"
+    pageId: "GlobalShipping"
   },
   {
     title: "Reports",

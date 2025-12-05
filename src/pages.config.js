@@ -4,8 +4,6 @@ import AddProduct from './pages/AddProduct';
 import Vehicles from './pages/Vehicles';
 import Parts from './pages/Parts';
 import Repairs from './pages/Repairs';
-import Exports from './pages/Exports';
-import Freight from './pages/Freight';
 import Sales from './pages/Sales';
 import Customers from './pages/Customers';
 import Companies from './pages/Companies';
@@ -42,8 +40,6 @@ export const PAGES = {
     "Vehicles": Vehicles,
     "Parts": Parts,
     "Repairs": Repairs,
-    "Exports": Exports,
-    "Freight": Freight,
     "Sales": Sales,
     "Customers": Customers,
     "Companies": Companies,
