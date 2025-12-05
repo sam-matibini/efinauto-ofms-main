@@ -18,6 +18,8 @@ const modules = [
     borderColor: 'border-green-500',
     transactions: [
       { action: 'Create Sale', type: 'sale_revenue', debit: 'Accounts Receivable', credit: 'Vehicle Sales Revenue' },
+      { action: 'GST/HST Collected', type: 'tax_liability', debit: 'Accounts Receivable', credit: 'GST/HST Payable (2100/2120)' },
+      { action: 'PST/QST Collected', type: 'tax_liability', debit: 'Accounts Receivable', credit: 'PST Payable (2110)' },
       { action: 'Payment Received', type: 'payment_received', debit: 'Cash', credit: 'Accounts Receivable' },
       { action: 'COGS (if vehicle)', type: 'other_expense', debit: 'Cost of Vehicles Sold', credit: 'Vehicle Inventory' }
     ]
@@ -90,6 +92,9 @@ const glAccounts = [
   { code: '1200', name: 'Vehicle Inventory', type: 'Asset' },
   { code: '1210', name: 'Parts Inventory', type: 'Asset' },
   { code: '2000', name: 'Accounts Payable', type: 'Liability' },
+  { code: '2100', name: 'GST Payable', type: 'Liability' },
+  { code: '2110', name: 'PST/QST Payable', type: 'Liability' },
+  { code: '2120', name: 'HST Payable', type: 'Liability' },
   { code: '2400', name: 'Payroll Liabilities', type: 'Liability' },
   { code: '4000', name: 'Vehicle Sales Revenue', type: 'Revenue' },
   { code: '4200', name: 'Service Revenue', type: 'Revenue' },
@@ -100,6 +105,23 @@ const glAccounts = [
   { code: '5210', name: 'Customs & Duties Expense', type: 'Expense' },
   { code: '6100', name: 'Payroll Expense', type: 'Expense' }
 ];
+
+// Canadian Sales Tax Rates Reference
+const CANADIAN_TAX_RATES = {
+  AB: { name: "Alberta", gst: 5, pst: 0, hst: 0, total: 5, type: "GST" },
+  BC: { name: "British Columbia", gst: 5, pst: 7, hst: 0, total: 12, type: "GST+PST" },
+  MB: { name: "Manitoba", gst: 5, pst: 7, hst: 0, total: 12, type: "GST+PST" },
+  NB: { name: "New Brunswick", gst: 0, pst: 0, hst: 15, total: 15, type: "HST" },
+  NL: { name: "Newfoundland", gst: 0, pst: 0, hst: 15, total: 15, type: "HST" },
+  NT: { name: "NWT", gst: 5, pst: 0, hst: 0, total: 5, type: "GST" },
+  NS: { name: "Nova Scotia", gst: 0, pst: 0, hst: 15, total: 15, type: "HST" },
+  NU: { name: "Nunavut", gst: 5, pst: 0, hst: 0, total: 5, type: "GST" },
+  ON: { name: "Ontario", gst: 0, pst: 0, hst: 13, total: 13, type: "HST" },
+  PE: { name: "PEI", gst: 0, pst: 0, hst: 15, total: 15, type: "HST" },
+  QC: { name: "Quebec", gst: 5, pst: 9.975, hst: 0, total: 14.975, type: "GST+QST" },
+  SK: { name: "Saskatchewan", gst: 5, pst: 6, hst: 0, total: 11, type: "GST+PST" },
+  YT: { name: "Yukon", gst: 5, pst: 0, hst: 0, total: 5, type: "GST" },
+};
 
 export default function IntegrationDiagram() {
   const [selectedModule, setSelectedModule] = useState(null);
@@ -117,6 +139,7 @@ export default function IntegrationDiagram() {
             <TabsTrigger value="diagram">Flow Diagram</TabsTrigger>
             <TabsTrigger value="matrix">Transaction Matrix</TabsTrigger>
             <TabsTrigger value="accounts">GL Accounts</TabsTrigger>
+            <TabsTrigger value="taxes">Sales Tax Rates</TabsTrigger>
           </TabsList>
 
           <TabsContent value="diagram" className="space-y-6">
@@ -315,6 +338,97 @@ export default function IntegrationDiagram() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="taxes" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Canadian Sales Tax Rates by Province</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-gray-50">
+                        <th className="text-left p-3 font-semibold">Province</th>
+                        <th className="text-center p-3 font-semibold">GST</th>
+                        <th className="text-center p-3 font-semibold">PST/QST</th>
+                        <th className="text-center p-3 font-semibold">HST</th>
+                        <th className="text-center p-3 font-semibold">Total</th>
+                        <th className="text-center p-3 font-semibold">Type</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(CANADIAN_TAX_RATES).map(([code, rate]) => (
+                        <tr key={code} className="border-b hover:bg-gray-50">
+                          <td className="p-3 font-medium">{rate.name} ({code})</td>
+                          <td className="p-3 text-center">{rate.gst > 0 ? `${rate.gst}%` : '-'}</td>
+                          <td className="p-3 text-center">{rate.pst > 0 ? `${rate.pst}%` : '-'}</td>
+                          <td className="p-3 text-center">{rate.hst > 0 ? `${rate.hst}%` : '-'}</td>
+                          <td className="p-3 text-center font-bold text-blue-600">{rate.total}%</td>
+                          <td className="p-3 text-center">
+                            <Badge variant="outline">{rate.type}</Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Tax Status Types</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                    <h4 className="font-semibold text-green-800 mb-2">Taxable</h4>
+                    <p className="text-sm text-green-700">Standard sales with applicable GST/PST/HST based on province. Most domestic vehicle sales.</p>
+                  </div>
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-blue-800 mb-2">Zero-Rated (0%)</h4>
+                    <p className="text-sm text-blue-700">Export sales, basic groceries. Tax is 0% but seller can claim Input Tax Credits (ITC).</p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <h4 className="font-semibold text-gray-800 mb-2">Tax Exempt</h4>
+                    <p className="text-sm text-gray-700">No tax collected and no ITC can be claimed. Used for specific exempt goods/services.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Tax GL Account Mapping</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                    <div>
+                      <span className="font-mono text-sm">2100</span>
+                      <span className="ml-3">GST Payable</span>
+                    </div>
+                    <Badge>Liability - GST collected on sales</Badge>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                    <div>
+                      <span className="font-mono text-sm">2110</span>
+                      <span className="ml-3">PST/QST Payable</span>
+                    </div>
+                    <Badge>Liability - PST/QST collected</Badge>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                    <div>
+                      <span className="font-mono text-sm">2120</span>
+                      <span className="ml-3">HST Payable</span>
+                    </div>
+                    <Badge>Liability - HST collected (ON, Atlantic)</Badge>
+                  </div>
                 </div>
               </CardContent>
             </Card>
