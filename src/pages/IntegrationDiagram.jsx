@@ -175,6 +175,7 @@ const glAccounts = [
   { code: '4000', name: 'Vehicle Sales Revenue', type: 'Revenue' },
   { code: '4100', name: 'Service Revenue', type: 'Revenue' },
   { code: '4200', name: 'Freight Service Revenue', type: 'Revenue' },
+  { code: '4300', name: 'Project Revenue', type: 'Revenue' },
   { code: '4400', name: 'Salvage Revenue', type: 'Revenue' },
   { code: '4500', name: 'Interest Income', type: 'Revenue' },
   { code: '4600', name: 'Foreign Exchange Gain', type: 'Revenue' },
