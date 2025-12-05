@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MessageSquare, Mail, Shield, Save, Info, CheckCircle } from "lucide-react";
+import { MessageSquare, Mail, Shield, Save, Info, CheckCircle, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import LogoUpload from "@/components/settings/LogoUpload";
 
 export default function Settings() {
   const { selectedCompanyId } = useCompany();
@@ -99,8 +100,12 @@ export default function Settings() {
       </div>
 
       <div className="p-6 md:p-8 max-w-5xl mx-auto">
-        <Tabs defaultValue="sms" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="branding" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="branding">
+              <ImageIcon className="w-4 h-4 mr-2" />
+              Branding
+            </TabsTrigger>
             <TabsTrigger value="sms">
               <MessageSquare className="w-4 h-4 mr-2" />
               SMS Provider
@@ -110,6 +115,14 @@ export default function Settings() {
               Email Settings
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="branding" className="space-y-6">
+            <LogoUpload 
+              company={company} 
+              onUpdate={(data) => updateSettingsMutation.mutateAsync(data)}
+              isUpdating={updateSettingsMutation.isPending}
+            />
+          </TabsContent>
 
           <TabsContent value="sms" className="space-y-6">
             <Card>
