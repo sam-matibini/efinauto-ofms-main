@@ -21,7 +21,8 @@ import {
   DollarSign,
   MessageCircle,
   Send,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Shield
 } from "lucide-react";
 import {
   Sidebar,
@@ -215,7 +216,13 @@ const allNavigationItems = [
     icon: MessageCircle,
     pageId: "FinancialAssistant"
   },
-];
+  {
+    title: "Audit Logs",
+    url: createPageUrl("AuditLogs"),
+    icon: Shield,
+    pageId: "AuditLogs"
+  },
+  ];
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
