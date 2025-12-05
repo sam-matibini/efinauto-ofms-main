@@ -437,31 +437,71 @@ export default function Projects() {
 
                         {taskView === "kanban" ? (
                           <ProjectKanban
-                            tasks={selectedProjectTasks}
+                            tasks={parentTasks}
                             onTaskUpdate={(id, data) => updateTaskMutation.mutate({ id, data })}
-                            onTaskEdit={(task) => setTaskDialog({ open: true, task })}
+                            onTaskEdit={(task) => setTaskDetailDialog({ open: true, task })}
+                          />
+                        ) : taskView === "gantt" ? (
+                          <GanttChart
+                            tasks={selectedProjectTasks}
+                            projectStartDate={selectedProject.start_date}
+                            projectDueDate={selectedProject.due_date}
                           />
                         ) : (
                           <div className="space-y-2">
-                            {selectedProjectTasks.length === 0 ? (
+                            {parentTasks.length === 0 ? (
                               <p className="text-center text-gray-500 py-8">No tasks yet</p>
                             ) : (
-                              selectedProjectTasks.map((task) => (
-                                <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                  <div>
-                                    <p className="font-medium">{task.title}</p>
-                                    <div className="flex gap-2 mt-1">
-                                      <Badge variant="outline">{task.status}</Badge>
-                                      <Badge className={PRIORITY_CONFIG[task.priority]?.color} variant="secondary">
-                                        {task.priority}
-                                      </Badge>
+                              parentTasks.map((task) => {
+                                const subTasks = getSubTasks(task.id);
+                                return (
+                                  <div key={task.id}>
+                                    <div 
+                                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100"
+                                      onClick={() => setTaskDetailDialog({ open: true, task })}
+                                    >
+                                      <div>
+                                        <p className="font-medium">{task.title}</p>
+                                        <div className="flex gap-2 mt-1">
+                                          <Badge variant="outline">{task.status}</Badge>
+                                          <Badge className={PRIORITY_CONFIG[task.priority]?.color} variant="secondary">
+                                            {task.priority}
+                                          </Badge>
+                                          {subTasks.length > 0 && (
+                                            <Badge variant="secondary">{subTasks.length} sub-tasks</Badge>
+                                          )}
+                                          {(task.time_entries?.length || 0) > 0 && (
+                                            <Badge variant="outline" className="flex items-center gap-1">
+                                              <Clock className="w-3 h-3" />
+                                              {task.time_entries.reduce((s, e) => s + e.hours, 0).toFixed(1)}h
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setTaskDialog({ open: true, task, parentTaskId: null }); }}>
+                                        <Edit2 className="w-4 h-4" />
+                                      </Button>
                                     </div>
+                                    {subTasks.length > 0 && (
+                                      <div className="ml-6 mt-1 space-y-1">
+                                        {subTasks.map(st => (
+                                          <div 
+                                            key={st.id} 
+                                            className="flex items-center justify-between p-2 bg-white border rounded cursor-pointer hover:bg-gray-50"
+                                            onClick={() => setTaskDetailDialog({ open: true, task: st })}
+                                          >
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-gray-400">↳</span>
+                                              <span className={st.status === 'completed' ? 'line-through text-gray-400' : ''}>{st.title}</span>
+                                              <Badge variant="outline" className="text-xs">{st.status}</Badge>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
-                                  <Button variant="ghost" size="sm" onClick={() => setTaskDialog({ open: true, task })}>
-                                    <Edit2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              ))
+                                );
+                              })
                             )}
                           </div>
                         )}
