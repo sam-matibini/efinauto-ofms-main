@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Play, Download, Eye, Check, Loader2, X, StopCircle, Trash2, Edit } from "lucide-react";
+import { Play, Download, Eye, Check, Loader2, X, StopCircle, Trash2, Edit, FileText, Printer } from "lucide-react";
+import PaystubViewer from "./PaystubViewer";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
@@ -18,6 +19,8 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedRun, setSelectedRun] = useState(null);
   const [processing, setProcessing] = useState(false);
+  const [paystubViewerOpen, setPaystubViewerOpen] = useState(false);
+  const [selectedPaystubEntry, setSelectedPaystubEntry] = useState(null);
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
   const [payDate, setPayDate] = useState("");
@@ -696,6 +699,11 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
     setViewDialogOpen(true);
   };
 
+  const handleViewPaystub = (entry) => {
+    setSelectedPaystubEntry(entry);
+    setPaystubViewerOpen(true);
+  };
+
   const handleExportRun = (run) => {
     const entries = getRunEntries(run.id);
 
@@ -1090,6 +1098,15 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                             <p className="text-lg font-bold text-blue-600">
                               ${entry.net_pay?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="mt-2"
+                              onClick={() => handleViewPaystub(entry)}
+                            >
+                              <FileText className="w-4 h-4 mr-1" />
+                              View Paystub
+                            </Button>
                           </div>
                         </div>
                       </CardContent>
@@ -1385,10 +1402,18 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                           </div>
 
                           {/* Print Button */}
-                          <div className="text-center pt-3 border-t print-button">
+                          <div className="text-center pt-3 border-t print-button flex justify-center gap-2">
                             <Button variant="outline" size="sm" onClick={() => window.print()}>
-                              <Download className="w-4 h-4 mr-2" />
-                              Print/Download Paystub
+                              <Printer className="w-4 h-4 mr-2" />
+                              Print
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleViewPaystub(entry)}
+                            >
+                              <FileText className="w-4 h-4 mr-2" />
+                              View & Share
                             </Button>
                           </div>
                           </div>
@@ -1454,6 +1479,21 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Paystub Viewer Dialog */}
+      <PaystubViewer
+        open={paystubViewerOpen}
+        onClose={() => {
+          setPaystubViewerOpen(false);
+          setSelectedPaystubEntry(null);
+        }}
+        entry={selectedPaystubEntry}
+        payrollRun={selectedRun}
+        company={company}
+        employee={employees.find(e => e.id === selectedPaystubEntry?.employee_id)}
+        allPayrollEntries={payrollEntries}
+        allPayrollRuns={payrollRuns}
+      />
       </div>
       );
       }
