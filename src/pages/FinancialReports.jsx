@@ -473,6 +473,10 @@ export default function FinancialReports() {
               />
             </TabsContent>
 
+            <TabsContent value="custom">
+              <CustomReportBuilder />
+            </TabsContent>
+
             <TabsContent value="automated">
               <AutomatedReportingEngine />
             </TabsContent>
