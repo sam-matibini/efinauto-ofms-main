@@ -44,6 +44,7 @@ import AIPartsSearchCanada from "@/components/parts/AIPartsSearchCanada";
 import AIPartsSearchUSA from "@/components/parts/AIPartsSearchUSA";
 import AIPartsSearchLocal from "@/components/parts/AIPartsSearchLocal";
 import AIPartsSearchMarketplace from "@/components/parts/AIPartsSearchMarketplace";
+import AIPartsShopSearch from "@/components/parts/AIPartsShopSearch";
 import ImportPartsDialog from "@/components/parts/ImportPartsDialog";
 
 export default function Parts() {
@@ -360,6 +361,11 @@ export default function Parts() {
           </div>
           </CardContent>
           </Card>
+
+          {/* AI Parts Shop Search - Main Search Tool */}
+          <div className="mt-6">
+            <AIPartsShopSearch />
+          </div>
 
           {/* AI Parts Search - Local Near Me */}
           <div className="mt-6">
