@@ -1,12 +1,17 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, Eye } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import PaystubViewer from "@/components/payroll/PaystubViewer";
 
-export default function MyPaystubs({ employee }) {
+export default function MyPaystubs({ employee, company }) {
+  const [paystubViewerOpen, setPaystubViewerOpen] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState(null);
+  const [selectedRun, setSelectedRun] = useState(null);
+
   const { data: payrollEntries = [] } = useQuery({
     queryKey: ['myPayrollEntries', employee?.id],
     queryFn: () => base44.entities.PayrollEntry.filter({ employee_id: employee.id }, '-created_date'),
@@ -21,6 +26,12 @@ export default function MyPaystubs({ employee }) {
 
   const getPayrollRun = (entryRunId) => {
     return payrollRuns.find(run => run.id === entryRunId);
+  };
+
+  const handleViewPaystub = (entry, run) => {
+    setSelectedEntry(entry);
+    setSelectedRun(run);
+    setPaystubViewerOpen(true);
   };
 
   return (
@@ -62,10 +73,24 @@ export default function MyPaystubs({ employee }) {
                           </div>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm">
-                        <Download className="w-4 h-4 mr-1" />
-                        Download
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewPaystub(entry, run)}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewPaystub(entry, run)}
+                        >
+                          <Download className="w-4 h-4 mr-1" />
+                          Print/Share
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -132,6 +157,22 @@ export default function MyPaystubs({ employee }) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Paystub Viewer Dialog */}
+      <PaystubViewer
+        open={paystubViewerOpen}
+        onClose={() => {
+          setPaystubViewerOpen(false);
+          setSelectedEntry(null);
+          setSelectedRun(null);
+        }}
+        entry={selectedEntry}
+        payrollRun={selectedRun}
+        company={company}
+        employee={employee}
+        allPayrollEntries={payrollEntries}
+        allPayrollRuns={payrollRuns}
+      />
     </div>
   );
 }
