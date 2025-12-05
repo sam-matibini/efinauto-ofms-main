@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, Check, Pen, Upload, X } from "lucide-react";
+import { Loader2, Sparkles, Check, Pen, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import SignaturePad from "@/components/shared/SignaturePad";
