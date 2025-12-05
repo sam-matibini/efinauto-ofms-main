@@ -23,7 +23,7 @@ import { format } from "date-fns";
 import {
   FolderKanban, Plus, Search, MoreVertical, Calendar, Users,
   DollarSign, BarChart3, Kanban, List, Brain, Edit2, Trash2,
-  AlertTriangle, CheckCircle2, Clock, Pause
+  AlertTriangle, CheckCircle2, Clock, Pause, GanttChart as GanttIcon
 } from "lucide-react";
 
 import ProjectDialog from "@/components/projects/ProjectDialog";
@@ -31,6 +31,8 @@ import TaskDialog from "@/components/projects/TaskDialog";
 import ProjectKanban from "@/components/projects/ProjectKanban";
 import AIProjectAssistant from "@/components/projects/AIProjectAssistant";
 import ProjectProfitability from "@/components/projects/ProjectProfitability";
+import GanttChart from "@/components/projects/GanttChart";
+import TaskDetailDialog from "@/components/projects/TaskDetailDialog";
 
 const STATUS_CONFIG = {
   planning: { label: "Planning", color: "bg-gray-100 text-gray-700", icon: Clock },
