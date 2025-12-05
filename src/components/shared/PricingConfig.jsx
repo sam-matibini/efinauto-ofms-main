@@ -83,7 +83,14 @@ export const defaultModuleCategories = [
     category: "Global Operations",
     modules: [
       { id: "GlobalShipping", name: "Global Shipping & Logistics", icon: Globe, price: 79 },
-      { id: "Salvage", name: "Salvage & Dismantling", icon: Settings, price: 29 },
+      { id: "Salvage", name: "Salvage & Dismantling", icon: Trash2, price: 29 },
+      { id: "InventoryManagement", name: "Inventory Management", icon: Package, price: 35 },
+    ]
+  },
+  {
+    category: "Project Management",
+    modules: [
+      { id: "Projects", name: "Project Management", icon: FolderKanban, price: 39 },
     ]
   },
   {
