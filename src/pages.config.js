@@ -35,6 +35,7 @@ import AuditLogs from './pages/AuditLogs';
 import IntegrationDiagram from './pages/IntegrationDiagram';
 import InventoryManagement from './pages/InventoryManagement';
 import FinancialReports from './pages/FinancialReports';
+import Projects from './pages/Projects';
 import __Layout from './Layout.jsx';
 
 
@@ -76,6 +77,7 @@ export const PAGES = {
     "IntegrationDiagram": IntegrationDiagram,
     "InventoryManagement": InventoryManagement,
     "FinancialReports": FinancialReports,
+    "Projects": Projects,
 }
 
 export const pagesConfig = {
