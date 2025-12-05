@@ -138,10 +138,35 @@ export default function Sales() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
-      return await base44.entities.Sale.update(id, data);
+      const oldSale = sales.find(s => s.id === id);
+      const updatedSale = await base44.entities.Sale.update(id, data);
+      
+      // If payment status changed to paid and wasn't before, create payment transaction
+      if (data.payment_status === 'paid' && oldSale?.payment_status !== 'paid') {
+        await base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: `PMT-${id.slice(0, 8)}`,
+          transaction_type: 'payment_received',
+          category: 'asset',
+          amount: data.grand_total || data.sale_price || 0,
+          account_code: '1000',
+          account_name: 'Cash',
+          account_type: 'asset',
+          reference_type: 'Sale',
+          reference_id: id,
+          reference_number: data.sale_number,
+          customer_name: data.customer_name,
+          description: `Payment received for sale: ${data.vehicle_details}`,
+          transaction_date: new Date().toISOString().split('T')[0],
+          status: 'completed'
+        });
+      }
+      
+      return updatedSale;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setDialogOpen(false);
       setEditingSale(null);
       toast.success("Sale updated successfully!");

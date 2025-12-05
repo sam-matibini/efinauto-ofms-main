@@ -150,10 +150,61 @@ export default function Purchases() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Purchase.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const oldPurchase = purchases.find(p => p.id === id);
+      const updated = await base44.entities.Purchase.update(id, data);
+      
+      // If status changed to received and wasn't before, create expense transaction
+      if (data.status === 'received' && oldPurchase?.status !== 'received' && data.total_amount > 0) {
+        const transactionType = data.purchase_type === 'vehicle' ? 'vehicle_purchase' : 
+                               data.purchase_type === 'parts' ? 'parts_purchase' : 'overhead_expense';
+        
+        await base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: `RCV-${id.slice(0, 8)}`,
+          transaction_type: transactionType,
+          category: 'expense',
+          amount: data.total_amount,
+          account_code: data.purchase_type === 'vehicle' ? '1200' : data.purchase_type === 'parts' ? '1210' : '6000',
+          account_name: data.purchase_type === 'vehicle' ? 'Vehicle Inventory' : data.purchase_type === 'parts' ? 'Parts Inventory' : 'Operating Expense',
+          account_type: data.purchase_type === 'vehicle' || data.purchase_type === 'parts' ? 'asset' : 'expense',
+          reference_type: 'Purchase',
+          reference_id: id,
+          reference_number: data.purchase_number,
+          customer_name: data.supplier_name,
+          description: `Purchase received: ${data.purchase_type} from ${data.supplier_name}`,
+          transaction_date: data.received_date || new Date().toISOString().split('T')[0],
+          status: 'completed'
+        });
+      }
+      
+      // If payment status changed to paid, create payment transaction
+      if (data.payment_status === 'paid' && oldPurchase?.payment_status !== 'paid') {
+        await base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: `PMTOUT-${id.slice(0, 8)}`,
+          transaction_type: 'payment_made',
+          category: 'asset',
+          amount: data.total_amount,
+          account_code: '1000',
+          account_name: 'Cash',
+          account_type: 'asset',
+          reference_type: 'Purchase',
+          reference_id: id,
+          reference_number: data.purchase_number,
+          customer_name: data.supplier_name,
+          description: `Payment made for purchase: ${data.purchase_number}`,
+          transaction_date: new Date().toISOString().split('T')[0],
+          status: 'completed'
+        });
+      }
+      
+      return updated;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchases'] });
       queryClient.invalidateQueries({ queryKey: ['parts'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setDialogOpen(false);
       setEditingPurchase(null);
       toast.success("Purchase order updated successfully!");
