@@ -578,6 +578,9 @@ Important:
   <div class="declaration-number">${data.declaration_number || 'DRAFT'}</div>
   
   <div class="header">
+    ${data.exporter?.logo_url || selectedCompanyData?.logo_url
+      ? `<img src="${data.exporter?.logo_url || selectedCompanyData?.logo_url}" alt="Company Logo" style="max-height:60px;max-width:180px;object-fit:contain;margin-bottom:10px;" onerror="this.style.display='none'" />`
+      : ''}
     <h1>LOADING DECLARATION</h1>
     <p>Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
   </div>

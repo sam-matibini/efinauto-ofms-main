@@ -127,6 +127,13 @@ export default function DocumentViewer({
     printWindow.print();
   };
 
+  const getLogoHTML = () => {
+    if (company?.logo_url) {
+      return `<img src="${company.logo_url}" alt="${company?.name || 'Company'}" style="max-height: 60px; max-width: 180px; object-fit: contain;" onerror="this.style.display='none';this.nextElementSibling.style.display='block';" /><div class="company-name" style="display:none;">${company?.name || 'Company Name'}</div>`;
+    }
+    return `<div class="company-name">${company?.name || 'Company Name'}</div>`;
+  };
+
   const generatePrintHTML = () => {
     const lineItemsHTML = (documentData.line_items || []).map(item => `
       <tr>
@@ -209,7 +216,7 @@ export default function DocumentViewer({
           <div class="invoice-container">
             <div class="header">
               <div class="company-info">
-                <div class="company-name">${company?.name || 'Company Name'}</div>
+                ${getLogoHTML()}
                 <div class="company-details">
                   ${company?.address ? `${company.address}<br>` : ''}
                   ${company?.city ? `${company.city}, ${company?.province || ''} ${company?.postal_code || ''}<br>` : ''}

@@ -228,7 +228,9 @@ ${company?.phone || ''}
       <body>
         <div class="header">
           <div>
-            ${company?.logo_url ? `<img src="${company.logo_url}" alt="${company.name}" style="height: 60px; margin-bottom: 10px; object-fit: contain;" />` : ''}
+            ${company?.logo_url 
+              ? `<img src="${company.logo_url}" alt="${company?.name}" style="max-height:60px;max-width:180px;margin-bottom:10px;object-fit:contain;" onerror="this.style.display='none'" />`
+              : ''}
             <div class="company">${company?.name || 'Auto Repair Center'}</div>
             <div>${company?.address || ''}</div>
             <div>${company?.city || ''}, ${company?.province || ''} ${company?.postal_code || ''}</div>

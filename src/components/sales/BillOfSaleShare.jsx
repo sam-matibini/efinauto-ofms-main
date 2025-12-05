@@ -73,7 +73,9 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
       </head>
       <body>
         <div class="header">
-          ${company?.logo_url ? `<img src="${company.logo_url}" class="logo" alt="${company?.name}"/>` : ''}
+          ${company?.logo_url 
+            ? `<img src="${company.logo_url}" class="logo" alt="${company?.name}" style="max-height:80px;max-width:200px;object-fit:contain;" onerror="this.style.display='none'"/>`
+            : ''}
           <div class="company-name">${company?.name || 'Company Name'}</div>
           ${companyAddress ? `<div class="company-info">${companyAddress}</div>` : ''}
           <div class="company-info">
