@@ -85,26 +85,26 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
     ? purchases.filter(p => new Date(p.order_date) <= currentPeriod.to)
     : purchases;
 
-  // Combine vehicles and equipment into fixed assets
+  // Combine company-owned vehicles (not inventory for resale) and equipment into fixed assets
+  // Note: Vehicles with ownership_type="dealership_owned" are inventory for resale, NOT fixed assets
+  // Only company fleet/operational vehicles should be in fixed assets (if tracked separately)
+  // For now, we only include equipment purchases as fixed assets
   const fixedAssets = [
-    ...filteredVehicles.map(v => ({
-      id: v.id,
-      type: 'Vehicle',
-      description: `${v.year} ${v.make} ${v.model}`,
-      purchaseDate: v.created_date,
-      purchasePrice: v.purchase_price || 0,
-      serialNumber: v.vin,
-      status: v.status
-    })),
+    // Equipment purchases (actual fixed assets)
     ...filteredPurchases.filter(p => p.purchase_type === 'equipment').map(p => ({
       id: p.id,
       type: 'Equipment',
-      description: p.items?.[0]?.description || 'Equipment',
-      purchaseDate: p.order_date,
+      description: p.items?.[0]?.description || p.description || 'Equipment',
+      purchaseDate: p.order_date || p.created_date,
       purchasePrice: p.total_amount || 0,
       serialNumber: p.purchase_number,
-      status: p.status
-    }))
+      status: p.status || 'active',
+      usefulLife: p.useful_life_years || 5,
+      salvageValue: p.salvage_value || 0
+    })),
+    // Company fleet vehicles (not for resale) - filter by a flag or category if available
+    // Vehicles marked as "company_fleet" or similar would go here
+    // For dealership vehicles intended for resale, they belong in Inventory (1200), not Fixed Assets (1400)
   ];
 
   const totalCost = fixedAssets.reduce((sum, asset) => sum + (asset.purchasePrice || 0), 0);
