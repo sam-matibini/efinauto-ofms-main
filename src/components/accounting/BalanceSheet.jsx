@@ -246,16 +246,23 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
       })
       .reduce((sum, t) => sum + t.amount, 0);
 
-    // Expenses from purchases (paid)
-    const purchaseExpenses = purchases
-      .filter(p => {
-        const purchaseDate = new Date(p.order_date || p.created_date);
-        return purchaseDate <= period.to && p.payment_status === 'paid';
+    // Note: Vehicle/Parts purchases are NOT expenses - they become inventory (asset)
+    // Only operating expenses reduce retained earnings
+    // COGS = cost of vehicles/parts that were SOLD (not purchased)
+    
+    // Calculate COGS - cost of vehicles sold during period
+    const vehicleCogs = sales
+      .filter(s => {
+        const saleDate = new Date(s.sale_date || s.created_date);
+        return saleDate <= period.to && s.vehicle_id;
       })
-      .reduce((sum, p) => sum + (p.total_amount || 0), 0);
+      .reduce((sum, s) => {
+        const vehicle = vehicles.find(v => v.id === s.vehicle_id);
+        return sum + (vehicle?.total_cost || vehicle?.purchase_price || 0);
+      }, 0);
 
     const revenueTotal = revenueFromAccounts + salesRevenue + repairRevenue;
-    const expenseTotal = expenseFromAccounts + purchaseExpenses;
+    const expenseTotal = expenseFromAccounts + vehicleCogs; // COGS, not purchase amounts
 
     const retainedEarnings = revenueTotal - expenseTotal;
     const ownerEquity = periodTransactions
