@@ -154,10 +154,14 @@ export default function Projects() {
   };
 
   const handleSaveTask = (data) => {
+    const taskData = { ...data };
+    if (taskDialog.parentTaskId) {
+      taskData.parent_task_id = taskDialog.parentTaskId;
+    }
     if (taskDialog.task) {
-      updateTaskMutation.mutate({ id: taskDialog.task.id, data });
+      updateTaskMutation.mutate({ id: taskDialog.task.id, data: taskData });
     } else {
-      createTaskMutation.mutate(data);
+      createTaskMutation.mutate(taskData);
     }
   };
 
