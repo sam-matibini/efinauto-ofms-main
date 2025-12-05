@@ -18,14 +18,14 @@ import {
 } from "lucide-react";
 
 // Import sub-components
-import ShippingDashboard from "@/components/shipping/ShippingDashboard";
-import ShipmentsTab from "@/components/shipping/ShipmentsTab";
-import ContainersTab from "@/components/shipping/ContainersTab";
-import VehiclesInTransitTab from "@/components/shipping/VehiclesInTransitTab";
-import CargoTab from "@/components/shipping/CargoTab";
-import TrackingTab from "@/components/shipping/TrackingTab";
-import FeesChargesTab from "@/components/shipping/FeesChargesTab";
-import DocumentsTab from "@/components/shipping/DocumentsTab";
+import ShippingDashboard from "@/components/shipping/ShippingDashboard.jsx";
+import ShipmentsTab from "@/components/shipping/ShipmentsTab.jsx";
+import ContainersTab from "@/components/shipping/ContainersTab.jsx";
+import VehiclesInTransitTab from "@/components/shipping/VehiclesInTransitTab.jsx";
+import CargoTab from "@/components/shipping/CargoTab.jsx";
+import TrackingTab from "@/components/shipping/TrackingTab.jsx";
+import FeesChargesTab from "@/components/shipping/FeesChargesTab.jsx";
+import DocumentsTab from "@/components/shipping/DocumentsTab.jsx";
 
 export default function GlobalShipping() {
   const { selectedCompanyId } = useCompany();
