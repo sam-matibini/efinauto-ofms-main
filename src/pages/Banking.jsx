@@ -5,7 +5,7 @@ import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, CreditCard, Receipt, GitCompare, Settings, Building2 } from "lucide-react";
+import { Plus, CreditCard, Receipt, GitCompare, Settings, Building2, Brain } from "lucide-react";
 import { toast } from "sonner";
 import BankAccountDialog from "@/components/banking/BankAccountDialog.jsx";
 import BankAccountsList from "@/components/banking/BankAccountsList.jsx";
@@ -13,6 +13,7 @@ import TransactionsList from "@/components/banking/TransactionsList.jsx";
 import ReconciliationManager from "@/components/banking/ReconciliationManager.jsx";
 import TransactionRulesManager from "@/components/banking/TransactionRulesManager.jsx";
 import BankStatementImport from "@/components/banking/BankStatementImport.jsx";
+import AITransactionCategorizer from "@/components/accounting/AITransactionCategorizer.jsx";
 
 export default function BankingPage() {
   const { selectedCompanyId } = useCompany();
