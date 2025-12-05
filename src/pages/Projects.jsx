@@ -107,7 +107,7 @@ export default function Projects() {
     mutationFn: (data) => base44.entities.ProjectTask.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
-      setTaskDialog({ open: false, task: null });
+      setTaskDialog({ open: false, task: null, parentTaskId: null });
       toast.success("Task created");
     }
   });
@@ -116,10 +116,13 @@ export default function Projects() {
     mutationFn: ({ id, data }) => base44.entities.ProjectTask.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
-      setTaskDialog({ open: false, task: null });
-      toast.success("Task updated");
+      setTaskDialog({ open: false, task: null, parentTaskId: null });
     }
   });
+
+  const handleTaskUpdate = (taskId, data) => {
+    updateTaskMutation.mutate({ id: taskId, data });
+  };
 
   const filteredProjects = projects.filter(p => {
     const matchesSearch = p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
