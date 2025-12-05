@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { 
   FileText, Download, Printer, Calendar as CalendarIcon, 
   Filter, BarChart3, DollarSign, Wallet, Building2,
-  ChevronDown, RefreshCw, Settings2
+  ChevronDown, RefreshCw, Settings2, Mail
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from "date-fns";
 import { motion } from "framer-motion";
