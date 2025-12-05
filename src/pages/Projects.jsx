@@ -135,6 +135,9 @@ export default function Projects() {
     ? tasks.filter(t => t.project_id === selectedProject.id) 
     : [];
 
+  const parentTasks = selectedProjectTasks.filter(t => !t.parent_task_id);
+  const getSubTasks = (taskId) => selectedProjectTasks.filter(t => t.parent_task_id === taskId);
+
   const calculateProgress = (project) => {
     const projectTasks = tasks.filter(t => t.project_id === project.id);
     if (projectTasks.length === 0) return project.progress_percent || 0;
