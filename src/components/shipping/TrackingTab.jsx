@@ -4,10 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, Search, Ship, Package, Car, Clock, CheckCircle, Loader2, Sparkles } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MapPin, Search, Ship, Package, Car, Clock, CheckCircle, Loader2, Sparkles, Navigation, Globe } from "lucide-react";
 import { format } from "date-fns";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import AdvancedTrackingPanel from "./AdvancedTrackingPanel";
 
 export default function TrackingTab({ shipments = [], containers = [], vehicles = [] }) {
   const [searchType, setSearchType] = useState("vin");
@@ -15,6 +17,7 @@ export default function TrackingTab({ shipments = [], containers = [], vehicles 
   const [searchResult, setSearchResult] = useState(null);
   const [aiTracking, setAiTracking] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [advancedTrackingOpen, setAdvancedTrackingOpen] = useState(false);
 
   const statusColors = {
     booked: "bg-yellow-100 text-yellow-800",
@@ -350,6 +353,40 @@ Provide:
           </CardContent>
         </Card>
       )}
+
+      {/* Advanced Tracking Button */}
+      {searchResult?.shipment && (
+        <Card className="border-indigo-200 bg-gradient-to-r from-indigo-50 to-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Navigation className="w-6 h-6 text-indigo-600" />
+                <div>
+                  <h4 className="font-semibold text-indigo-800">Advanced AI Tracking</h4>
+                  <p className="text-sm text-indigo-600">GPS, ETA updates, delay predictions & customer portal</p>
+                </div>
+              </div>
+              <Button onClick={() => setAdvancedTrackingOpen(true)} className="bg-indigo-600 hover:bg-indigo-700">
+                <Globe className="w-4 h-4 mr-2" />
+                Open Advanced Tracking
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Advanced Tracking Dialog */}
+      <Dialog open={advancedTrackingOpen} onOpenChange={setAdvancedTrackingOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Navigation className="w-5 h-5" />
+              Advanced AI Tracking - {searchResult?.shipment?.shipment_number}
+            </DialogTitle>
+          </DialogHeader>
+          <AdvancedTrackingPanel shipment={searchResult?.shipment} onClose={() => setAdvancedTrackingOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -30,6 +30,7 @@ import BankingMobile from './pages/BankingMobile';
 import Landing from './pages/Landing';
 import Pricing from './pages/Pricing';
 import GlobalShipping from './pages/GlobalShipping';
+import CustomerTracking from './pages/CustomerTracking';
 import __Layout from './Layout.jsx';
 
 
@@ -66,6 +67,7 @@ export const PAGES = {
     "Landing": Landing,
     "Pricing": Pricing,
     "GlobalShipping": GlobalShipping,
+    "CustomerTracking": CustomerTracking,
 }
 
 export const pagesConfig = {
