@@ -21,8 +21,7 @@ import {
   DollarSign,
   MessageCircle,
   Send,
-  Settings as SettingsIcon,
-  Globe
+  Settings as SettingsIcon
 } from "lucide-react";
 import {
   Sidebar,
@@ -46,7 +45,6 @@ import ProfileDialog from "@/components/users/ProfileDialog";
 import ErrorBoundary from "@/components/shared/ErrorBoundary";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Globe } from "lucide-react";
 
 const allNavigationItems = [
   {
@@ -70,7 +68,7 @@ const allNavigationItems = [
   {
     title: "Global Shipping & Logistics",
     url: createPageUrl("GlobalShipping"),
-    icon: Globe,
+    icon: Plane,
     pageId: "GlobalShipping"
   },
   {

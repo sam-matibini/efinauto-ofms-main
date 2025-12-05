@@ -1,67 +1,61 @@
-import { Car, Wrench, Package, Plane, DollarSign, Users, Zap, Building2 } from "lucide-react";
+import { 
+  LayoutDashboard, Car, Wrench, DollarSign, Package, 
+  Plane, UserCog, BarChart3, Settings, Users, Send, MessageCircle, Bell, Globe
+} from "lucide-react";
 
 export const defaultSubscriptionPlans = [
   {
     id: "starter",
     name: "Starter",
+    description: "Perfect for small dealerships",
     price: 49,
     interval: "month",
-    description: "Perfect for small dealerships",
-    icon: Zap,
-    color: "blue",
+    popular: false,
     features: [
       "Vehicle Inventory Management",
-      "Customer Management",
-      "Basic Sales Tracking",
-      "Up to 50 vehicles",
+      "Sales Tracking",
+      "Customer Database",
+      "Basic Reports",
       "Email Support"
     ],
-    modules: ["Dashboard", "Vehicles", "Customers", "Sales"],
-    stripePriceId: "price_starter_monthly",
-    popular: false
+    modules: ["Dashboard", "Vehicles", "Sales", "Customers"]
   },
   {
     id: "professional",
     name: "Professional",
+    description: "For growing dealerships",
     price: 149,
     interval: "month",
-    description: "For growing dealerships",
-    icon: Building2,
-    color: "purple",
+    popular: true,
     features: [
-      "Everything in Starter",
-      "Auto Repair Shop",
-      "Parts Inventory",
-      "Exports & Freight",
+      "All Starter features",
+      "Advanced Inventory Management",
+      "Auto Repair Module",
+      "Global Shipping & Logistics",
       "Financial Reports",
-      "Up to 200 vehicles",
-      "Priority Support"
+      "Customer Communications Hub",
+      "Unlimited users"
     ],
-    modules: ["Dashboard", "Vehicles", "Customers", "Sales", "Repairs", "Parts", "Exports", "Freight", "Reports"],
-    stripePriceId: "price_professional_monthly",
-    popular: true
+    modules: ["Dashboard", "Vehicles", "Sales", "Parts", "Repairs", "GlobalShipping", "Customers", "Reports", "CustomerCommunications"]
   },
   {
     id: "enterprise",
     name: "Enterprise",
-    price: 349,
+    description: "For multi-location operations",
+    price: 299,
     interval: "month",
-    description: "Full-featured solution",
-    icon: DollarSign,
-    color: "amber",
+    popular: false,
     features: [
-      "Everything in Professional",
-      "Full Accounting Suite",
-      "Payroll & HR",
-      "Banking Integration",
-      "AI Assistant",
-      "Unlimited vehicles",
-      "Multi-company support",
-      "24/7 Phone Support"
+      "All Professional features",
+      "Multi-company Management",
+      "Payroll & HR Module",
+      "Banking & Reconciliation",
+      "AI Financial Assistant",
+      "Custom Integrations",
+      "Priority Support",
+      "Dedicated Account Manager"
     ],
-    modules: ["Dashboard", "Vehicles", "Customers", "Sales", "Repairs", "Parts", "Exports", "Freight", "Reports", "Accounting", "Payroll", "Banking", "FinancialAssistant"],
-    stripePriceId: "price_enterprise_monthly",
-    popular: false
+    modules: ["Dashboard", "Companies", "Vehicles", "Sales", "Parts", "Repairs", "GlobalShipping", "Salvage", "Customers", "Reports", "Analytics", "VehicleAnalytics", "Accounting", "Payroll", "Banking", "CustomerCommunications", "CustomerSupport", "Notifications", "UserManagement", "Settings", "FinancialAssistant"]
   }
 ];
 
@@ -69,8 +63,9 @@ export const defaultModuleCategories = [
   {
     category: "Core Operations",
     modules: [
+      { id: "Dashboard", name: "Dashboard", icon: LayoutDashboard, price: 0 },
       { id: "Vehicles", name: "Vehicle Management", icon: Car, price: 19 },
-      { id: "Sales", name: "Sales & CRM", icon: DollarSign, price: 29 },
+      { id: "Sales", name: "Sales & Invoicing", icon: DollarSign, price: 29 },
       { id: "Customers", name: "Customer Management", icon: Users, price: 15 },
     ]
   },
@@ -79,14 +74,15 @@ export const defaultModuleCategories = [
     modules: [
       { id: "Repairs", name: "Auto Repair Shop", icon: Wrench, price: 25 },
       { id: "Parts", name: "Parts Inventory", icon: Package, price: 19 },
-      { id: "Technicians", name: "Technician Management", icon: Users, price: 15 },
+      { id: "Technicians", name: "Technician Management", icon: UserCog, price: 15 },
+      { id: "ProductsServices", name: "Products & Services", icon: Package, price: 19 },
     ]
   },
   {
-    category: "Export & Freight",
+    category: "Global Operations",
     modules: [
-      { id: "Exports", name: "Export Management", icon: Plane, price: 35 },
-      { id: "Freight", name: "Freight & Cargo", icon: Package, price: 29 },
+      { id: "GlobalShipping", name: "Global Shipping & Logistics", icon: Globe, price: 79 },
+      { id: "Salvage", name: "Salvage & Dismantling", icon: Settings, price: 29 },
     ]
   },
   {
@@ -94,8 +90,18 @@ export const defaultModuleCategories = [
     modules: [
       { id: "Accounting", name: "Full Accounting Suite", icon: DollarSign, price: 49 },
       { id: "Payroll", name: "Payroll & HR", icon: Users, price: 39 },
-      { id: "Banking", name: "Banking Integration", icon: Building2, price: 29 },
-      { id: "FinancialAssistant", name: "AI Financial Assistant", icon: Zap, price: 25 },
+      { id: "Banking", name: "Banking Integration", icon: DollarSign, price: 29 },
+      { id: "FinancialAssistant", name: "AI Financial Assistant", icon: MessageCircle, price: 25 },
+    ]
+  },
+  {
+    category: "Communication & Analytics",
+    modules: [
+      { id: "CustomerCommunications", name: "Communications Hub", icon: Send, price: 19 },
+      { id: "CustomerSupport", name: "AI Support Chat", icon: MessageCircle, price: 29 },
+      { id: "Notifications", name: "Notifications", icon: Bell, price: 9 },
+      { id: "Reports", name: "Reports", icon: BarChart3, price: 15 },
+      { id: "Analytics", name: "Analytics", icon: BarChart3, price: 25 },
     ]
   }
 ];
@@ -110,16 +116,20 @@ export function loadSavedPricing() {
       // Restore icon components for subscription plans
       const restoredPlans = savedPlans ? savedPlans.map((plan, idx) => ({
         ...plan,
-        icon: defaultSubscriptionPlans[idx]?.icon || Zap
+        icon: defaultSubscriptionPlans[idx]?.icon || LayoutDashboard
       })) : defaultSubscriptionPlans;
       
       // Restore icon components for module categories
       const restoredModules = savedModules ? savedModules.map((cat, catIdx) => ({
         ...cat,
-        modules: cat.modules.map((mod, modIdx) => ({
-          ...mod,
-          icon: defaultModuleCategories[catIdx]?.modules[modIdx]?.icon || Package
-        }))
+        modules: cat.modules.map((mod, modIdx) => {
+          const defaultCat = defaultModuleCategories[catIdx];
+          const defaultMod = defaultCat?.modules.find(m => m.id === mod.id);
+          return {
+            ...mod,
+            icon: defaultMod?.icon || Package
+          };
+        })
       })) : defaultModuleCategories;
       
       return { subscriptionPlans: restoredPlans, moduleCategories: restoredModules };
