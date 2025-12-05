@@ -81,10 +81,18 @@ export default function CashFlowStatement({ comparativePeriods = [] }) {
 
     const netCashFromOperating = cashFromSales - cashPaidToSuppliers - operatingExpenses;
 
-    const vehiclePurchases = periodTransactions
-      .filter(t => t.transaction_type === 'vehicle_purchase')
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    // Vehicle inventory purchases are part of OPERATING activities (not investing)
+    // because inventory is purchased for resale in the normal course of business
+    const vehicleInventoryPurchases = purchases
+      .filter(p => {
+        const purchaseDate = new Date(p.order_date);
+        return purchaseDate >= period.from && purchaseDate <= period.to && 
+               (p.purchase_type === 'vehicle' || p.purchase_type === 'parts') && 
+               p.payment_status === 'paid';
+      })
+      .reduce((sum, p) => sum + (p.amount_paid || 0), 0);
 
+    // Equipment/Fixed Asset purchases are INVESTING activities
     const equipmentPurchases = purchases
       .filter(p => {
         const purchaseDate = new Date(p.order_date);
@@ -93,7 +101,9 @@ export default function CashFlowStatement({ comparativePeriods = [] }) {
       })
       .reduce((sum, p) => sum + (p.amount_paid || 0), 0);
 
-    const netCashFromInvesting = -(vehiclePurchases + equipmentPurchases);
+    // Recalculate operating cash flow including inventory purchases
+    const netCashFromOperating = cashFromSales - cashPaidToSuppliers - vehicleInventoryPurchases - operatingExpenses;
+    const netCashFromInvesting = -equipmentPurchases;
     const netCashFromFinancing = 0;
     const netChangeInCash = netCashFromOperating + netCashFromInvesting + netCashFromFinancing;
     const beginningCash = 0;
