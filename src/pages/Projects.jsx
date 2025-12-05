@@ -57,7 +57,8 @@ export default function Projects() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedProject, setSelectedProject] = useState(null);
   const [projectDialog, setProjectDialog] = useState({ open: false, project: null });
-  const [taskDialog, setTaskDialog] = useState({ open: false, task: null });
+  const [taskDialog, setTaskDialog] = useState({ open: false, task: null, parentTaskId: null });
+  const [taskDetailDialog, setTaskDetailDialog] = useState({ open: false, task: null });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, project: null });
   const [activeTab, setActiveTab] = useState("list");
   const [taskView, setTaskView] = useState("kanban");
