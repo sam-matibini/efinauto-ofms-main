@@ -263,6 +263,16 @@ export default function BankingPage() {
               companyId={selectedCompanyId}
             />
           </TabsContent>
+
+          <TabsContent value="ai-categorize">
+            <AITransactionCategorizer
+              uncategorizedTransactions={transactions.filter(t => !t.account_id && t.status !== 'matched')}
+              onCategorize={async (transactionId, data) => {
+                await base44.entities.BankTransaction.update(transactionId, data);
+                queryClient.invalidateQueries({ queryKey: ['bankTransactions'] });
+              }}
+            />
+          </TabsContent>
         </Tabs>
       </div>
 
