@@ -75,7 +75,7 @@ export const defaultModuleCategories = [
     modules: [
       { id: "Repairs", name: "Auto Repair Shop", icon: Wrench, price: 25 },
       { id: "Parts", name: "Parts Inventory", icon: Package, price: 19 },
-      { id: "Technicians", name: "Technician Management", icon: UserCog, price: 15 },
+      { id: "Technicians", name: "Technician Management", icon: HardHat, price: 15 },
       { id: "ProductsServices", name: "Products & Services", icon: Package, price: 19 },
     ]
   },
