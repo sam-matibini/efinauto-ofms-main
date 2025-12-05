@@ -367,7 +367,11 @@ export default function FinancialReports() {
         {/* Report Tabs */}
         <Tabs value={activeReport} onValueChange={setActiveReport}>
           <div className="flex justify-between items-center mb-4 print:hidden">
-            <TabsList className="grid grid-cols-4 w-auto">
+            <TabsList className="grid grid-cols-5 w-auto">
+              <TabsTrigger value="dashboard" className="flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                Dashboard
+              </TabsTrigger>
               <TabsTrigger value="income" className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4" />
                 Income Statement
