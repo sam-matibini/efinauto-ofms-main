@@ -297,14 +297,17 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
             transaction_date: s.sale_date || s.created_date,
             account_code: '1200',
             account_name: 'Vehicle Inventory',
-            account_type: 'liability', // Credit entry to reduce asset
-            category: 'liability',
+            account_type: 'asset',
+            category: 'asset',
             amount: vehicleCost,
+            credit_amount: vehicleCost, // Credit to reduce inventory asset
+            debit_amount: 0,
             description: `Inventory Reduction: ${s.vehicle_details || (soldVehicle ? soldVehicle.year + ' ' + soldVehicle.make + ' ' + soldVehicle.model : 'Vehicle')}`,
             reference_type: 'Sale',
             reference_id: s.id,
             reference_number: s.sale_number,
-            source: 'sale-inv-reduce'
+            source: 'sale-inv-reduce',
+            is_credit: true // Flag for credit entry
           });
         }
 
@@ -472,13 +475,20 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
   // Calculate running balance
   let runningBalance = 0;
   const ledgerEntries = filteredTransactions.map(t => {
-    const isDebit = t.category === 'expense' || t.category === 'asset';
-    const isCredit = t.category === 'revenue' || t.category === 'liability';
+    // Check if entry has explicit debit/credit amounts set
+    let debit = t.debit_amount || 0;
+    let credit = t.credit_amount || 0;
     
-    const debit = isDebit ? t.amount : 0;
-    const credit = isCredit ? t.amount : 0;
+    // If no explicit amounts, determine from category
+    if (debit === 0 && credit === 0) {
+      const isDebit = (t.category === 'expense' || t.category === 'asset') && !t.is_credit;
+      const isCredit = (t.category === 'revenue' || t.category === 'liability') || t.is_credit;
+      
+      debit = isDebit ? t.amount : 0;
+      credit = isCredit ? t.amount : 0;
+    }
     
-    runningBalance += (isDebit ? debit : -credit);
+    runningBalance += debit - credit;
     
     return {
       ...t,
@@ -521,10 +531,16 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
       };
     }
     
-    const isDebit = t.category === 'expense' || t.category === 'asset';
-    const isCredit = t.category === 'revenue' || t.category === 'liability';
-    const debit = isDebit ? t.amount : 0;
-    const credit = isCredit ? t.amount : 0;
+    // Check if entry has explicit debit/credit amounts
+    let debit = t.debit_amount || 0;
+    let credit = t.credit_amount || 0;
+    
+    if (debit === 0 && credit === 0) {
+      const isDebit = (t.category === 'expense' || t.category === 'asset') && !t.is_credit;
+      const isCredit = (t.category === 'revenue' || t.category === 'liability') || t.is_credit;
+      debit = isDebit ? t.amount : 0;
+      credit = isCredit ? t.amount : 0;
+    }
     
     groupedByAccount[accountKey].transactions.push({ ...t, debit, credit, account_code: accountCode, account_name: accountName });
     groupedByAccount[accountKey].totalDebit += debit;
