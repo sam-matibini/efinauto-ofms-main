@@ -215,6 +215,11 @@ export default function BankingPage() {
               <Settings className="w-3 h-3 md:w-4 md:h-4" />
               Rules
             </TabsTrigger>
+            <TabsTrigger value="ai-categorize" className="flex items-center gap-2 text-xs md:text-sm">
+              <Brain className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">AI Categorizer</span>
+              <span className="sm:hidden">AI</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="accounts">
