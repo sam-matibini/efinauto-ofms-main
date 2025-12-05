@@ -42,7 +42,7 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
     initialData: [],
   });
 
-  // Calculate depreciation (simple straight-line for demo or use AI if available)
+  // Calculate depreciation (straight-line method with proper accounting)
   const calculateDepreciation = (asset) => {
     const aiCalc = aiDepreciations[asset.id];
     if (aiCalc) {
@@ -54,14 +54,29 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
       };
     }
     
-    // Fallback to simple straight-line
+    // Straight-line depreciation formula:
+    // Annual Depreciation = (Cost - Salvage Value) / Useful Life
+    // Accumulated Depreciation = Annual Depreciation * Years in Service (capped at depreciable amount)
     const endDate = currentPeriod ? currentPeriod.to : new Date();
-    const yearsSincePurchase = (endDate - new Date(asset.purchaseDate)) / (365 * 24 * 60 * 60 * 1000);
-    const usefulLife = 5;
-    const annualDepreciation = asset.purchasePrice / usefulLife;
-    const accumulatedDepreciation = Math.min(annualDepreciation * yearsSincePurchase, asset.purchasePrice);
+    const purchaseDate = new Date(asset.purchaseDate);
+    const yearsSincePurchase = Math.max(0, (endDate - purchaseDate) / (365.25 * 24 * 60 * 60 * 1000));
+    
+    const usefulLife = asset.usefulLife || 5; // Default 5 years for equipment
+    const salvageValue = asset.salvageValue || 0;
+    const depreciableAmount = Math.max(0, asset.purchasePrice - salvageValue);
+    const annualDepreciation = usefulLife > 0 ? depreciableAmount / usefulLife : 0;
+    const accumulatedDepreciation = Math.min(annualDepreciation * yearsSincePurchase, depreciableAmount);
     const netBookValue = asset.purchasePrice - accumulatedDepreciation;
-    return { accumulatedDepreciation, netBookValue, annualDepreciation, method: 'Straight-Line' };
+    
+    return { 
+      accumulatedDepreciation, 
+      netBookValue, 
+      annualDepreciation, 
+      method: 'Straight-Line',
+      usefulLife,
+      salvageValue,
+      yearsSincePurchase: Math.round(yearsSincePurchase * 10) / 10
+    };
   };
 
   const handleAICalculation = (assetData) => {
