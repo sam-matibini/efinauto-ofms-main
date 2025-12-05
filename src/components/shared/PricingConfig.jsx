@@ -56,7 +56,7 @@ export const defaultSubscriptionPlans = [
       "Priority Support",
       "Dedicated Account Manager"
     ],
-    modules: ["Dashboard", "Companies", "Vehicles", "Sales", "Parts", "Repairs", "GlobalShipping", "Salvage", "Customers", "Reports", "Analytics", "VehicleAnalytics", "Accounting", "Payroll", "Banking", "CustomerCommunications", "CustomerSupport", "Notifications", "UserManagement", "Settings", "FinancialAssistant"]
+    modules: ["Dashboard", "Companies", "Vehicles", "Sales", "Parts", "Repairs", "GlobalShipping", "Salvage", "Customers", "Reports", "Analytics", "VehicleAnalytics", "Accounting", "FinancialReports", "Payroll", "Banking", "CustomerCommunications", "CustomerSupport", "Notifications", "UserManagement", "Settings", "FinancialAssistant", "Projects", "InventoryManagement", "ProductsServices", "Technicians", "AuditLogs"]
   }
 ];
 
