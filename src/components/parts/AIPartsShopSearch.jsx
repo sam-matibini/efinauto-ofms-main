@@ -79,6 +79,7 @@ const popularStores = [
   { id: "advance", name: "Advance Auto Parts", logo: "🔴" },
   { id: "partsource", name: "PartSource", logo: "⚙️" },
   { id: "princess_auto", name: "Princess Auto", logo: "👑" },
+  { id: "custom", name: "Other Store", logo: "🔍" },
 ];
 
 const yearRange = Array.from({ length: 35 }, (_, i) => (new Date().getFullYear() + 1 - i).toString());
@@ -97,6 +98,7 @@ export default function AIPartsShopSearch() {
   const [searchMode, setSearchMode] = useState("nearby"); // nearby, store
   const [postalCode, setPostalCode] = useState("");
   const [selectedStore, setSelectedStore] = useState("");
+  const [customStoreName, setCustomStoreName] = useState("");
   const [partName, setPartName] = useState("");
   const [partCategory, setPartCategory] = useState("");
   const [qualityType, setQualityType] = useState("");
@@ -122,7 +124,9 @@ export default function AIPartsShopSearch() {
     try {
       const vehicleInfo = [year, make, model, engine].filter(Boolean).join(" ");
       const locationInfo = searchMode === "nearby" ? postalCode : "";
-      const storeInfo = searchMode === "store" ? popularStores.find(s => s.id === selectedStore)?.name : "";
+      const storeInfo = searchMode === "store" 
+        ? (selectedStore === "custom" ? customStoreName : popularStores.find(s => s.id === selectedStore)?.name) 
+        : "";
 
       const result = await base44.integrations.Core.InvokeLLM({
         prompt: `Search for auto parts with the following criteria:
@@ -264,6 +268,7 @@ Return JSON with this structure:
     setEngine("");
     setPostalCode("");
     setSelectedStore("");
+    setCustomStoreName("");
     setSearchResults(null);
   };
 
@@ -576,7 +581,10 @@ View full report: efinauto.ca/parts
                   {popularStores.map(store => (
                     <button
                       key={store.id}
-                      onClick={() => setSelectedStore(store.id === selectedStore ? "" : store.id)}
+                      onClick={() => {
+                        setSelectedStore(store.id === selectedStore ? "" : store.id);
+                        if (store.id !== "custom") setCustomStoreName("");
+                      }}
                       className={`p-3 border rounded-lg flex items-center gap-2 transition-all ${
                         selectedStore === store.id 
                           ? "border-blue-500 bg-blue-50 text-blue-700" 
@@ -589,6 +597,25 @@ View full report: efinauto.ca/parts
                   ))}
                 </div>
               </div>
+              
+              {/* Custom Store Name Input */}
+              {selectedStore === "custom" && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <Label className="flex items-center gap-2 mb-2">
+                    <Sparkles className="w-4 h-4 text-purple-600" />
+                    Enter Auto Parts Store Name
+                  </Label>
+                  <Input
+                    placeholder="e.g., Rock Auto, CarQuest, Midas, UAP NAPA, etc."
+                    value={customStoreName}
+                    onChange={(e) => setCustomStoreName(e.target.value)}
+                    className="bg-white"
+                  />
+                  <p className="text-xs text-purple-600 mt-2">
+                    AI will search for parts availability at this store
+                  </p>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
 
