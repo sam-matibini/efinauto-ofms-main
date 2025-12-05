@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import AIInventoryInsights from "@/components/shared/AIInventoryInsights";
 
 export default function Salvage() {
   const { selectedCompanyId } = useCompany();
@@ -194,6 +195,16 @@ export default function Salvage() {
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      {/* AI Inventory Insights for Salvage */}
+      <div className="mb-6">
+        <AIInventoryInsights 
+          companyId={selectedCompanyId}
+          inventoryType="parts"
+          parts={parts}
+          vehicles={salvageVehicles}
+        />
       </div>
 
       <div className="grid gap-4">
