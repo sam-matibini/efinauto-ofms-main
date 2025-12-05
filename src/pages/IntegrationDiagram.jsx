@@ -156,6 +156,7 @@ const glAccounts = [
   { code: '1200', name: 'Vehicle Inventory', type: 'Asset' },
   { code: '1210', name: 'Parts Inventory', type: 'Asset' },
   { code: '1220', name: 'Product Inventory', type: 'Asset' },
+  { code: '1250', name: 'Work in Progress', type: 'Asset' },
   { code: '1300', name: 'Prepaid Expenses', type: 'Asset' },
   { code: '1400', name: 'Fixed Assets', type: 'Asset' },
   { code: '1410', name: 'Accumulated Depreciation', type: 'Asset' },
