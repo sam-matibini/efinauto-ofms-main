@@ -1,13 +1,87 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, Check } from "lucide-react";
+import { Loader2, Sparkles, Check, Pen, Upload, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import SignaturePad from "@/components/shared/SignaturePad";
 
-export default function BillOfSale({ sale, company }) {
+export default function BillOfSale({ sale, company, existingSignatures, onSignaturesUpdate }) {
   const [generatingSignature, setGeneratingSignature] = useState(false);
-  const [sellerSignature, setSellerSignature] = useState(null);
+  const [sellerSignature, setSellerSignature] = useState(existingSignatures?.seller_signature_url || null);
+  const [buyerSignature, setBuyerSignature] = useState(existingSignatures?.buyer_signature_url || null);
+  const [showBuyerSignaturePad, setShowBuyerSignaturePad] = useState(false);
+  const [showSellerSignaturePad, setShowSellerSignaturePad] = useState(false);
+  const [uploadingSignature, setUploadingSignature] = useState(null);
+  const [signatureMetadata, setSignatureMetadata] = useState({
+    buyer: existingSignatures?.buyer_signed_at ? {
+      name: existingSignatures.buyer_name,
+      signedAt: existingSignatures.buyer_signed_at,
+      method: existingSignatures.signature_method
+    } : null,
+    seller: existingSignatures?.seller_signed_at ? {
+      name: existingSignatures.seller_name,
+      signedAt: existingSignatures.seller_signed_at,
+      method: existingSignatures.signature_method
+    } : null
+  });
+
+  // Load existing signatures on mount
+  useEffect(() => {
+    if (existingSignatures) {
+      if (existingSignatures.buyer_signature_url) setBuyerSignature(existingSignatures.buyer_signature_url);
+      if (existingSignatures.seller_signature_url) setSellerSignature(existingSignatures.seller_signature_url);
+    }
+  }, [existingSignatures]);
+
+  const uploadSignatureImage = async (dataUrl, type) => {
+    setUploadingSignature(type);
+    try {
+      // Convert base64 to blob
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `signature_${type}_${Date.now()}.png`, { type: 'image/png' });
+      
+      // Upload to cloud
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      const timestamp = new Date().toISOString();
+      const signerName = type === 'buyer' ? sale.customer_name : (sale.salesman || company?.contact_person_name || 'Seller');
+      
+      if (type === 'buyer') {
+        setBuyerSignature(file_url);
+        setSignatureMetadata(prev => ({
+          ...prev,
+          buyer: { name: signerName, signedAt: timestamp, method: 'electronic_capture' }
+        }));
+      } else {
+        setSellerSignature(file_url);
+        setSignatureMetadata(prev => ({
+          ...prev,
+          seller: { name: signerName, signedAt: timestamp, method: 'electronic_capture' }
+        }));
+      }
+      
+      // Notify parent of signature update
+      onSignaturesUpdate?.({
+        [`${type}_signature_url`]: file_url,
+        [`${type}_name`]: signerName,
+        [`${type}_signed_at`]: timestamp,
+        signature_method: 'electronic_capture'
+      });
+      
+      toast.success(`${type === 'buyer' ? 'Buyer' : 'Seller'} signature saved!`);
+      
+      if (type === 'buyer') setShowBuyerSignaturePad(false);
+      else setShowSellerSignaturePad(false);
+      
+    } catch (error) {
+      console.error("Signature upload error:", error);
+      toast.error("Failed to save signature");
+    } finally {
+      setUploadingSignature(null);
+    }
+  };
 
   const generateAISignature = async () => {
     const sellerName = sale.salesman || company?.contact_person_name || company?.name || 'Seller';
@@ -28,22 +102,43 @@ export default function BillOfSale({ sale, company }) {
         }
       });
       
-      setSellerSignature({
-        name: sellerName,
-        pathData: result.path_data,
-        timestamp: new Date().toISOString()
-      });
-      toast.success("Digital signature generated!");
+      // Create SVG signature as data URL
+      const svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60">
+        <path d="${result.path_data || 'M10,30 Q30,10 50,30 T90,30 Q110,50 130,30 T170,30'}" fill="none" stroke="#1e3a8a" stroke-width="2" stroke-linecap="round"/>
+      </svg>`;
+      const svgDataUrl = `data:image/svg+xml;base64,${btoa(svgString)}`;
+      
+      // Upload the AI signature
+      await uploadSignatureImage(svgDataUrl, 'seller');
+      
+      setSignatureMetadata(prev => ({
+        ...prev,
+        seller: { name: sellerName, signedAt: new Date().toISOString(), method: 'ai_generated' }
+      }));
+      
+      toast.success("AI signature generated and saved!");
     } catch (error) {
       // Fallback to text-based signature
-      setSellerSignature({
-        name: sellerName,
-        textBased: true,
-        timestamp: new Date().toISOString()
-      });
+      const timestamp = new Date().toISOString();
+      setSellerSignature({ textBased: true, name: sellerName });
+      setSignatureMetadata(prev => ({
+        ...prev,
+        seller: { name: sellerName, signedAt: timestamp, method: 'ai_generated' }
+      }));
       toast.success("Signature applied!");
     }
     setGeneratingSignature(false);
+  };
+
+  const clearSignature = (type) => {
+    if (type === 'buyer') {
+      setBuyerSignature(null);
+      setSignatureMetadata(prev => ({ ...prev, buyer: null }));
+    } else {
+      setSellerSignature(null);
+      setSignatureMetadata(prev => ({ ...prev, seller: null }));
+    }
+    onSignaturesUpdate?.({ [`${type}_signature_url`]: null });
   };
 
   if (!sale) return null;
@@ -275,15 +370,77 @@ export default function BillOfSale({ sale, company }) {
       </div>
 
       <div className="grid grid-cols-2 gap-8 mt-12">
+        {/* Buyer Signature */}
         <div>
-          <p className="font-semibold mb-4">Purchaser's Signature:</p>
-          <div className="border-b border-gray-800 h-12"></div>
+          <p className="font-semibold mb-2">Purchaser's Signature:</p>
+          {buyerSignature ? (
+            <div className="border-2 border-green-200 bg-green-50 rounded-lg p-3 relative">
+              {typeof buyerSignature === 'string' && buyerSignature.startsWith('http') ? (
+                <img src={buyerSignature} alt="Buyer Signature" className="h-12 object-contain mx-auto" />
+              ) : (
+                <div className="text-center">
+                  <p className="font-signature text-2xl italic text-gray-800" style={{ fontFamily: 'cursive' }}>
+                    {sale.customer_name}
+                  </p>
+                </div>
+              )}
+              <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                <span className="flex items-center gap-1">
+                  <Check className="w-3 h-3 text-green-600" />
+                  Signed by {signatureMetadata.buyer?.name || sale.customer_name}
+                </span>
+                <span>{signatureMetadata.buyer?.signedAt ? format(new Date(signatureMetadata.buyer.signedAt), 'MMM d, yyyy h:mm a') : ''}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => clearSignature('buyer')}
+                className="absolute top-1 right-1 h-6 w-6 p-0 print:hidden"
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          ) : showBuyerSignaturePad ? (
+            <div className="print:hidden">
+              <SignaturePad
+                label=""
+                onSave={(dataUrl) => uploadSignatureImage(dataUrl, 'buyer')}
+                onClear={() => setShowBuyerSignaturePad(false)}
+              />
+              <div className="flex justify-end mt-2">
+                <Button variant="ghost" size="sm" onClick={() => setShowBuyerSignaturePad(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="border-2 border-dashed border-gray-300 rounded-lg h-20 flex items-center justify-center print:border-solid print:border-gray-800">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowBuyerSignaturePad(true)}
+                disabled={uploadingSignature === 'buyer'}
+                className="print:hidden"
+              >
+                {uploadingSignature === 'buyer' ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Pen className="w-4 h-4 mr-2" />
+                )}
+                Sign Here
+              </Button>
+            </div>
+          )}
         </div>
+
+        {/* Seller Signature */}
         <div>
           <p className="font-semibold mb-2">Salesman/Seller Signature:</p>
           {sellerSignature ? (
             <div className="border-2 border-green-200 bg-green-50 rounded-lg p-3 relative">
-              {sellerSignature.textBased ? (
+              {typeof sellerSignature === 'string' && sellerSignature.startsWith('http') ? (
+                <img src={sellerSignature} alt="Seller Signature" className="h-12 object-contain mx-auto" />
+              ) : sellerSignature.textBased ? (
                 <div className="text-center">
                   <p className="font-signature text-2xl italic text-gray-800" style={{ fontFamily: 'cursive' }}>
                     {sellerSignature.name}
@@ -303,36 +460,85 @@ export default function BillOfSale({ sale, company }) {
               <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
                 <span className="flex items-center gap-1">
                   <Check className="w-3 h-3 text-green-600" />
-                  Digitally Signed
+                  {signatureMetadata.seller?.method === 'ai_generated' ? 'AI Signed' : 'Signed'} by {signatureMetadata.seller?.name}
                 </span>
-                <span>{format(new Date(sellerSignature.timestamp), 'MMM d, yyyy h:mm a')}</span>
+                <span>{signatureMetadata.seller?.signedAt ? format(new Date(signatureMetadata.seller.signedAt), 'MMM d, yyyy h:mm a') : ''}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => clearSignature('seller')}
+                className="absolute top-1 right-1 h-6 w-6 p-0 print:hidden"
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          ) : showSellerSignaturePad ? (
+            <div className="print:hidden">
+              <SignaturePad
+                label=""
+                onSave={(dataUrl) => uploadSignatureImage(dataUrl, 'seller')}
+                onClear={() => setShowSellerSignaturePad(false)}
+              />
+              <div className="flex justify-end gap-2 mt-2">
+                <Button variant="ghost" size="sm" onClick={() => setShowSellerSignaturePad(false)}>
+                  Cancel
+                </Button>
               </div>
             </div>
           ) : (
-            <div className="border-b border-gray-800 h-12 flex items-end justify-center pb-2">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg h-20 flex items-center justify-center gap-2 print:border-solid print:border-gray-800">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowSellerSignaturePad(true)}
+                disabled={uploadingSignature === 'seller' || generatingSignature}
+                className="print:hidden"
+              >
+                <Pen className="w-4 h-4 mr-2" />
+                Sign
+              </Button>
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={generateAISignature}
-                disabled={generatingSignature}
-                className="text-blue-600 border-blue-300 hover:bg-blue-50 print:hidden"
+                disabled={generatingSignature || uploadingSignature === 'seller'}
+                className="text-purple-600 border-purple-300 hover:bg-purple-50 print:hidden"
               >
                 {generatingSignature ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generating...
-                  </>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    AI Sign
-                  </>
+                  <Sparkles className="w-4 h-4 mr-2" />
                 )}
+                AI Sign
               </Button>
             </div>
           )}
         </div>
       </div>
+
+      {/* Signature Audit Trail */}
+      {(signatureMetadata.buyer || signatureMetadata.seller) && (
+        <div className="mt-6 p-3 bg-gray-50 rounded-lg text-xs text-gray-600 border print:bg-white">
+          <p className="font-semibold mb-2">Digital Signature Audit Trail</p>
+          <div className="grid grid-cols-2 gap-4">
+            {signatureMetadata.buyer && (
+              <div>
+                <p>Buyer: {signatureMetadata.buyer.name}</p>
+                <p>Signed: {format(new Date(signatureMetadata.buyer.signedAt), 'MMM d, yyyy h:mm:ss a')}</p>
+                <p>Method: {signatureMetadata.buyer.method === 'electronic_capture' ? 'Electronic Signature Capture' : 'AI Generated'}</p>
+              </div>
+            )}
+            {signatureMetadata.seller && (
+              <div>
+                <p>Seller: {signatureMetadata.seller.name}</p>
+                <p>Signed: {format(new Date(signatureMetadata.seller.signedAt), 'MMM d, yyyy h:mm:ss a')}</p>
+                <p>Method: {signatureMetadata.seller.method === 'electronic_capture' ? 'Electronic Signature Capture' : 'AI Generated'}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
