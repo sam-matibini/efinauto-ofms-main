@@ -542,13 +542,29 @@ export default function Projects() {
 
       <TaskDialog
         open={taskDialog.open}
-        onClose={() => setTaskDialog({ open: false, task: null })}
+        onClose={() => setTaskDialog({ open: false, task: null, parentTaskId: null })}
         task={taskDialog.task}
         projectId={selectedProject?.id}
         projectName={selectedProject?.name}
         existingTasks={selectedProjectTasks}
         onSave={handleSaveTask}
         isLoading={createTaskMutation.isPending || updateTaskMutation.isPending}
+      />
+
+      <TaskDetailDialog
+        open={taskDetailDialog.open}
+        onClose={() => setTaskDetailDialog({ open: false, task: null })}
+        task={taskDetailDialog.task}
+        subTasks={taskDetailDialog.task ? getSubTasks(taskDetailDialog.task.id) : []}
+        onEdit={(task) => {
+          setTaskDetailDialog({ open: false, task: null });
+          setTaskDialog({ open: true, task, parentTaskId: null });
+        }}
+        onUpdateTask={handleTaskUpdate}
+        onAddSubTask={(parentTask) => {
+          setTaskDetailDialog({ open: false, task: null });
+          setTaskDialog({ open: true, task: null, parentTaskId: parentTask.id });
+        }}
       />
 
       <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}>
