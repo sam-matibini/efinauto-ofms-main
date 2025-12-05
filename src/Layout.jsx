@@ -22,7 +22,8 @@ import {
   MessageCircle,
   Send,
   Settings as SettingsIcon,
-  Shield
+  Shield,
+  FolderKanban
 } from "lucide-react";
 import {
   Sidebar,
