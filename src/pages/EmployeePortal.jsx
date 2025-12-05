@@ -19,6 +19,12 @@ export default function EmployeePortal() {
 
   const employeeEntityId = currentUser?.employee_entity_id || currentUser?.data?.employee_entity_id;
 
+  const { data: company } = useQuery({
+    queryKey: ['company', selectedCompanyId],
+    queryFn: () => base44.entities.Company.filter({ id: selectedCompanyId }).then(c => c[0]),
+    enabled: !!selectedCompanyId,
+  });
+
   const { data: employee, isLoading: employeeLoading } = useQuery({
     queryKey: ['myEmployee', employeeEntityId, currentUser?.email, selectedCompanyId],
     queryFn: async () => {
@@ -163,7 +169,7 @@ export default function EmployeePortal() {
           </TabsContent>
 
           <TabsContent value="paystubs" className="mt-6">
-            <MyPaystubs employee={employee} />
+            <MyPaystubs employee={employee} company={company} />
           </TabsContent>
 
           <TabsContent value="timeoff" className="mt-6">
