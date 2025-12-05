@@ -222,6 +222,12 @@ const allNavigationItems = [
     icon: Shield,
     pageId: "AuditLogs"
   },
+  {
+    title: "Integration Diagram",
+    url: createPageUrl("IntegrationDiagram"),
+    icon: BarChart3,
+    pageId: "IntegrationDiagram"
+  },
   ];
 
 export default function Layout({ children, currentPageName }) {

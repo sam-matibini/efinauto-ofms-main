@@ -32,6 +32,7 @@ import Pricing from './pages/Pricing';
 import GlobalShipping from './pages/GlobalShipping';
 import CustomerTracking from './pages/CustomerTracking';
 import AuditLogs from './pages/AuditLogs';
+import IntegrationDiagram from './pages/IntegrationDiagram';
 import __Layout from './Layout.jsx';
 
 
@@ -70,6 +71,7 @@ export const PAGES = {
     "GlobalShipping": GlobalShipping,
     "CustomerTracking": CustomerTracking,
     "AuditLogs": AuditLogs,
+    "IntegrationDiagram": IntegrationDiagram,
 }
 
 export const pagesConfig = {
