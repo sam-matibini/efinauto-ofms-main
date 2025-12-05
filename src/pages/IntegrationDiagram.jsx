@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Car, Wrench, Package, Ship, DollarSign, Users, Trash2, 
   ArrowRight, ArrowDown, Database, CheckCircle, AlertCircle,
-  FileText, CreditCard, Receipt, Building2, Briefcase, BarChart3
+  FileText, CreditCard, Receipt, Building2, Briefcase, BarChart3, Landmark
 } from "lucide-react";
 
 const modules = [
@@ -83,11 +83,27 @@ const modules = [
       { action: 'Employer EI', type: 'payroll_expense', debit: 'EI Expense', credit: 'Payroll Liabilities' },
       { action: 'Deductions Payable', type: 'payroll_liability', debit: 'N/A', credit: 'Payroll Liabilities (CPP/EI/Tax)' }
     ]
+  },
+  {
+    id: 'banking',
+    name: 'Banking',
+    icon: Landmark,
+    color: 'bg-teal-500',
+    borderColor: 'border-teal-500',
+    transactions: [
+      { action: 'Bank Deposit', type: 'bank_deposit', debit: 'Bank Account (1000)', credit: 'Undeposited Funds / A/R' },
+      { action: 'Bank Withdrawal', type: 'bank_withdrawal', debit: 'Expense / A/P', credit: 'Bank Account (1000)' },
+      { action: 'Transfer Between Accounts', type: 'bank_transfer', debit: 'Destination Bank Account', credit: 'Source Bank Account' },
+      { action: 'Bank Fees', type: 'bank_expense', debit: 'Bank Charges Expense (6200)', credit: 'Bank Account (1000)' },
+      { action: 'Interest Income', type: 'interest_income', debit: 'Bank Account (1000)', credit: 'Interest Income (4500)' },
+      { action: 'Reconciliation Adjustment', type: 'journal_entry', debit: 'Bank Account / Adjustment', credit: 'Adjustment / Bank Account' }
+    ]
   }
 ];
 
 const glAccounts = [
-  { code: '1000', name: 'Cash', type: 'Asset' },
+  { code: '1000', name: 'Cash / Bank Account', type: 'Asset' },
+  { code: '1050', name: 'Undeposited Funds', type: 'Asset' },
   { code: '1100', name: 'Accounts Receivable', type: 'Asset' },
   { code: '1200', name: 'Vehicle Inventory', type: 'Asset' },
   { code: '1210', name: 'Parts Inventory', type: 'Asset' },
@@ -99,11 +115,13 @@ const glAccounts = [
   { code: '4000', name: 'Vehicle Sales Revenue', type: 'Revenue' },
   { code: '4200', name: 'Service Revenue', type: 'Revenue' },
   { code: '4400', name: 'Salvage Revenue', type: 'Revenue' },
+  { code: '4500', name: 'Interest Income', type: 'Revenue' },
   { code: '5000', name: 'Cost of Vehicles Sold', type: 'Expense' },
   { code: '5100', name: 'Cost of Parts Sold', type: 'Expense' },
   { code: '5200', name: 'Shipping & Freight Expense', type: 'Expense' },
   { code: '5210', name: 'Customs & Duties Expense', type: 'Expense' },
-  { code: '6100', name: 'Payroll Expense', type: 'Expense' }
+  { code: '6100', name: 'Payroll Expense', type: 'Expense' },
+  { code: '6200', name: 'Bank Charges & Fees', type: 'Expense' }
 ];
 
 // Canadian Sales Tax Rates Reference
@@ -169,14 +187,14 @@ export default function IntegrationDiagram() {
                   {/* Connection Lines */}
                   <div className="flex justify-center mb-4">
                     <div className="flex gap-2">
-                      {[1,2,3,4,5,6].map(i => (
+                      {[1,2,3,4,5,6,7].map(i => (
                         <ArrowDown key={i} className="w-5 h-5 text-gray-400" />
                       ))}
                     </div>
                   </div>
 
                   {/* Module Cards */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
                     {modules.map((module) => (
                       <div
                         key={module.id}
