@@ -80,6 +80,12 @@ const allNavigationItems = [
     pageId: "InventoryManagement"
   },
   {
+    title: "Project Management",
+    url: createPageUrl("Projects"),
+    icon: FolderKanban,
+    pageId: "Projects"
+  },
+  {
     title: "Products & Services",
     url: createPageUrl("ProductsServices"),
     icon: Package,
