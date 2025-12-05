@@ -110,7 +110,17 @@ export const defaultModuleCategories = [
       { id: "CustomerSupport", name: "AI Support Chat", icon: MessageCircle, price: 29 },
       { id: "Notifications", name: "Notifications", icon: Bell, price: 9 },
       { id: "Reports", name: "Reports", icon: BarChart3, price: 15 },
-      { id: "Analytics", name: "Analytics", icon: BarChart3, price: 25 },
+      { id: "Analytics", name: "Analytics", icon: LineChart, price: 25 },
+      { id: "VehicleAnalytics", name: "Vehicle Analytics", icon: BarChart3, price: 19 },
+    ]
+  },
+  {
+    category: "Administration",
+    modules: [
+      { id: "Companies", name: "Multi-Company Management", icon: LayoutDashboard, price: 49 },
+      { id: "UserManagement", name: "User Management", icon: UserCog, price: 15 },
+      { id: "AuditLogs", name: "Audit Logs", icon: Shield, price: 19 },
+      { id: "Settings", name: "Settings", icon: Settings, price: 0 },
     ]
   }
 ];
