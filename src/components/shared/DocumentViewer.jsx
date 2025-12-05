@@ -115,12 +115,18 @@ export default function DocumentViewer({
   const generatePrintHTML = () => {
     const lineItemsHTML = (documentData.line_items || []).map(item => `
       <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${item.description}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.unit_price || item.rate, currency)}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 500;">${formatCurrency(item.total || item.amount, currency)}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">${item.description || ''}</td>
+        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${item.quantity || 1}</td>
+        <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">${formatCurrency(item.unit_price || item.rate || 0, currency)}</td>
+        <td style="padding: 10px; border: 1px solid #ddd; text-align: right; font-weight: 500;">${formatCurrency(item.total || item.amount || ((item.quantity || 1) * (item.unit_price || item.rate || 0)), currency)}</td>
       </tr>
     `).join('');
+
+    // Calculate tax properly
+    const subtotal = documentData.subtotal || (documentData.line_items || []).reduce((sum, item) => sum + (item.total || item.amount || ((item.quantity || 1) * (item.unit_price || item.rate || 0))), 0);
+    const taxRate = documentData.tax_rate || 0;
+    const taxAmount = documentData.tax_amount || (subtotal * taxRate / 100);
+    const totalAmount = documentData.total_amount || documentData.grand_total || (subtotal + taxAmount);
 
     return `
       <html>
@@ -128,52 +134,63 @@ export default function DocumentViewer({
           <title>${docTitle} - ${documentData.invoice_number || documentData.quote_number || documentData.sale_number || ''}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; color: #1f2937; font-size: 11pt; }
-            .header { text-align: center; border-bottom: 2px solid #3b82f6; padding-bottom: 15px; margin-bottom: 20px; }
-            .company-name { font-size: 20pt; font-weight: bold; color: #1e293b; }
-            .doc-title { font-size: 14pt; color: #6b7280; margin-top: 5px; letter-spacing: 2px; }
-            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-            .info-box { background: #f9fafb; padding: 12px; border-radius: 6px; }
-            .info-box h3 { font-size: 10pt; color: #6b7280; margin-bottom: 5px; text-transform: uppercase; }
+            body { font-family: Arial, sans-serif; padding: 30px; max-width: 800px; margin: 0 auto; color: #1f2937; font-size: 11pt; line-height: 1.5; }
+            .company-header { margin-bottom: 25px; }
+            .company-name { font-size: 22pt; font-weight: bold; color: #1e293b; font-style: italic; margin-bottom: 8px; }
+            .company-details { font-size: 10pt; color: #374151; line-height: 1.6; }
+            .doc-title { font-size: 18pt; font-weight: bold; color: #1e293b; margin: 25px 0 15px 0; }
+            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 25px; }
+            .bill-to { }
+            .bill-to h3 { font-size: 11pt; font-weight: bold; color: #1e293b; margin-bottom: 8px; }
+            .bill-to p { font-size: 10pt; color: #374151; margin: 3px 0; }
+            .doc-details { text-align: right; }
+            .doc-details p { font-size: 10pt; margin: 3px 0; }
+            .doc-details strong { color: #6b7280; }
             .vehicle-box { background: #eff6ff; padding: 12px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #bfdbfe; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            th { background: #f3f4f6; padding: 10px; text-align: left; font-size: 10pt; font-weight: 600; }
-            td { padding: 8px; font-size: 10pt; }
-            .totals { width: 300px; margin-left: auto; }
-            .totals tr td { padding: 6px 10px; }
-            .totals .total-row { font-size: 14pt; font-weight: bold; background: #eff6ff; }
-            .totals .total-row td:last-child { color: #2563eb; }
+            table.items { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            table.items th { background: #f3f4f6; padding: 10px; text-align: left; font-size: 10pt; font-weight: 600; border: 1px solid #ddd; }
+            table.items th:nth-child(2), table.items th:nth-child(3), table.items th:nth-child(4) { text-align: right; }
+            table.items td { padding: 10px; font-size: 10pt; border: 1px solid #ddd; }
+            .totals-section { margin-top: 20px; }
+            .totals-section p { font-size: 11pt; margin: 5px 0; }
+            .totals-section .total-line { font-weight: bold; font-size: 12pt; }
+            .thank-you { margin-top: 25px; font-size: 11pt; font-weight: 500; }
+            .tax-info { margin-top: 15px; font-size: 10pt; color: #374151; }
+            .tax-info p { margin: 3px 0; }
             .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 9pt; }
-            .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 10pt; font-weight: 500; }
-            .status-paid { background: #dcfce7; color: #166534; }
-            .status-pending { background: #fef3c7; color: #92400e; }
-            .status-draft { background: #f3f4f6; color: #374151; }
             .notes { background: #fefce8; padding: 12px; border-radius: 6px; margin-top: 15px; font-size: 10pt; }
             .signature-area { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
             .signature-line { border-top: 1px solid #374151; padding-top: 5px; text-align: center; font-size: 10pt; color: #6b7280; }
-            @media print { body { padding: 10mm; } .info-box, .vehicle-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+            @media print { body { padding: 15mm; } }
           </style>
         </head>
         <body>
-          <div class="header">
+          <div class="company-header">
             <div class="company-name">${company?.name || 'Company Name'}</div>
-            <div class="doc-title">${docTitle}</div>
+            <div class="company-details">
+              ${company?.address ? `${company.address}<br>` : ''}
+              ${company?.city ? `${company.city}, ${company?.province || ''} ${company?.postal_code || ''}<br>` : ''}
+              ${company?.phone ? `Tel: ${company.phone}<br>` : ''}
+              ${company?.email ? `${company.email}` : ''}
+            </div>
           </div>
 
+          <div class="doc-title">${docTitle}</div>
+
           <div class="info-grid">
-            <div class="info-box">
-              <h3>Bill To</h3>
+            <div class="bill-to">
+              <h3>Bill To:</h3>
               <p style="font-weight: 600;">${documentData.customer_name || customer?.full_name || 'Customer'}</p>
-              ${documentData.customer_email ? `<p style="font-size: 10pt; color: #6b7280;">${documentData.customer_email}</p>` : ''}
-              ${documentData.customer_phone ? `<p style="font-size: 10pt; color: #6b7280;">${documentData.customer_phone}</p>` : ''}
-              ${documentData.customer_address ? `<p style="font-size: 10pt; color: #6b7280;">${documentData.customer_address}</p>` : ''}
+              ${documentData.customer_email ? `<p>${documentData.customer_email}</p>` : ''}
+              ${documentData.customer_phone ? `<p>${documentData.customer_phone}</p>` : ''}
+              ${documentData.customer_address ? `<p>${documentData.customer_address}</p>` : ''}
             </div>
-            <div class="info-box" style="text-align: right;">
-              <h3>Document Details</h3>
-              <p><strong>${docTitle} #:</strong> ${documentData.invoice_number || documentData.quote_number || documentData.sale_number || documentData.order_number || 'N/A'}</p>
-              <p><strong>Date:</strong> ${formatDate(documentData.invoice_date || documentData.quote_date || documentData.sale_date || documentData.created_date)}</p>
-              ${documentData.due_date ? `<p><strong>Due:</strong> ${formatDate(documentData.due_date)}</p>` : ''}
-              ${documentData.status ? `<p style="margin-top: 8px;"><span class="status-badge status-${documentData.status}">${documentData.status.toUpperCase()}</span></p>` : ''}
+            <div class="doc-details">
+              <p><strong>${docTitle} #:</strong>${documentData.invoice_number || documentData.quote_number || documentData.sale_number || documentData.order_number || 'N/A'}</p>
+              <p><strong>Date:</strong>${formatDate(documentData.invoice_date || documentData.quote_date || documentData.sale_date || documentData.created_date)}</p>
+              ${documentData.due_date ? `<p><strong>Due Date:</strong>${formatDate(documentData.due_date)}</p>` : ''}
+              ${documentData.currency ? `<p><strong>Currency:</strong>${documentData.currency}</p>` : ''}
+              ${documentData.status ? `<p><strong>Status:</strong>${documentData.status}</p>` : ''}
             </div>
           </div>
 
@@ -187,7 +204,7 @@ export default function DocumentViewer({
             </div>
           ` : ''}
 
-          <table>
+          <table class="items">
             <thead>
               <tr>
                 <th style="width: 50%;">Description</th>
@@ -201,20 +218,22 @@ export default function DocumentViewer({
             </tbody>
           </table>
 
-          <table class="totals">
-            <tr>
-              <td>Subtotal:</td>
-              <td style="text-align: right;">${formatCurrency(documentData.subtotal, currency)}</td>
-            </tr>
-            ${documentData.tax_rate ? `<tr><td>Tax (${documentData.tax_rate}%):</td><td style="text-align: right;">${formatCurrency(documentData.tax_amount, currency)}</td></tr>` : ''}
-            ${documentData.discount ? `<tr><td>Discount:</td><td style="text-align: right; color: #dc2626;">-${formatCurrency(documentData.discount, currency)}</td></tr>` : ''}
-            <tr class="total-row">
-              <td>Total:</td>
-              <td style="text-align: right;">${formatCurrency(documentData.total_amount || documentData.grand_total, currency)}</td>
-            </tr>
-            ${documentData.amount_paid > 0 ? `<tr><td>Amount Paid:</td><td style="text-align: right; color: #16a34a;">${formatCurrency(documentData.amount_paid, currency)}</td></tr>` : ''}
-            ${documentData.balance_due > 0 ? `<tr style="font-weight: 600;"><td>Balance Due:</td><td style="text-align: right; color: #dc2626;">${formatCurrency(documentData.balance_due, currency)}</td></tr>` : ''}
-          </table>
+          <div class="totals-section">
+            <p><strong>Subtotal:</strong>${formatCurrency(subtotal, currency)}</p>
+            <p><strong>Tax (${taxRate}%):</strong>${formatCurrency(taxAmount, currency)}</p>
+            ${documentData.discount ? `<p><strong>Discount:</strong>-${formatCurrency(documentData.discount, currency)}</p>` : ''}
+            <p class="total-line"><strong>Total:</strong>${formatCurrency(totalAmount, currency)}</p>
+            ${documentData.amount_paid > 0 ? `<p><strong>Amount Paid:</strong>${formatCurrency(documentData.amount_paid, currency)}</p>` : ''}
+            ${documentData.balance_due > 0 ? `<p class="total-line"><strong>Balance Due:</strong>${formatCurrency(documentData.balance_due, currency)}</p>` : ''}
+          </div>
+
+          <p class="thank-you">Thank you for your business!</p>
+
+          <div class="tax-info">
+            ${company?.gst_number ? `<p><strong>GST #:</strong> ${company.gst_number}</p>` : ''}
+            ${company?.pst_number ? `<p><strong>PST #:</strong> ${company.pst_number}</p>` : ''}
+            ${company?.dealer_permit_number ? `<p><strong>Dealer Permit #:</strong> ${company.dealer_permit_number}</p>` : ''}
+          </div>
 
           ${documentData.notes ? `<div class="notes"><strong>Notes:</strong> ${documentData.notes}</div>` : ''}
           ${documentData.payment_terms ? `<div class="notes" style="background: #f0fdf4;"><strong>Payment Terms:</strong> ${documentData.payment_terms}</div>` : ''}
@@ -231,11 +250,7 @@ export default function DocumentViewer({
           ` : ''}
 
           <div class="footer">
-            <p>Thank you for your business!</p>
-            <p style="margin-top: 5px;">${company?.address || ''} ${company?.city ? `• ${company.city}` : ''} ${company?.province || ''} ${company?.postal_code || ''}</p>
-            ${company?.phone ? `<p>Tel: ${company.phone} ${company?.email ? `• ${company.email}` : ''}</p>` : ''}
-            ${company?.gst_number ? `<p style="margin-top: 5px;">GST #: ${company.gst_number} ${company?.pst_number ? `• PST #: ${company.pst_number}` : ''}</p>` : ''}
-            <p style="margin-top: 10px; font-size: 8pt;">Generated by eFinAuto OFMS • ${new Date().toLocaleString()}</p>
+            <p style="font-size: 8pt;">Generated by eFinAuto OFMS • ${new Date().toLocaleString()}</p>
           </div>
         </body>
       </html>
