@@ -18,6 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import AIDocumentSummary from "@/components/shared/AIDocumentSummary";
 
 export default function LoadingDeclarationDialog({ open, onClose, shipment, onSave, exports }) {
   const { selectedCompanyId } = useCompany();
@@ -1127,6 +1128,13 @@ This is an automated message from eFinAuto Center Freight Management System.
                 </div>
               </CardContent>
             </Card>
+
+            {/* AI Summary */}
+            <AIDocumentSummary
+              documentType="loading_declaration"
+              documentData={savedData}
+              company={selectedCompanyData}
+            />
 
             {/* Shareable Link Section */}
             {pdfUrl && (

@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import AIDocumentSummary from "@/components/shared/AIDocumentSummary";
 
 const formatCurrency = (amount, currency = "CAD") => {
   const symbols = { CAD: "CA$", USD: "$", NGN: "₦" };
@@ -510,9 +511,16 @@ Download PDF: ${url}`;
           </CardContent>
         </Card>
 
+        {/* AI Summary */}
+        <AIDocumentSummary
+          documentType={documentType}
+          documentData={documentData}
+          company={company}
+        />
+
         {/* Document Preview */}
         <div ref={documentRef} className="bg-white p-6 border rounded-lg" dangerouslySetInnerHTML={{ __html: generatePrintHTML().replace(/<\/?html>|<\/?head>|<\/?body>|<title>.*?<\/title>|<style>[\s\S]*?<\/style>/gi, '') }} />
-      </DialogContent>
-    </Dialog>
-  );
+        </DialogContent>
+        </Dialog>
+        );
 }

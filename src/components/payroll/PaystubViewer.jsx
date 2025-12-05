@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import AIDocumentSummary from "@/components/shared/AIDocumentSummary";
 
 const formatCurrency = (amount) => {
   return (amount || 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -664,6 +665,19 @@ Download PDF: ${url}`;
             {company?.gst_number && <p>GST #: {company.gst_number}</p>}
           </div>
         </div>
+
+        {/* AI Summary */}
+        <AIDocumentSummary
+          documentType="paystub"
+          documentData={{
+            ...entry,
+            pay_period_start: payrollRun?.pay_period_start,
+            pay_period_end: payrollRun?.pay_period_end,
+            pay_date: payrollRun?.pay_date,
+            ytd_gross: ytdGross
+          }}
+          company={company}
+        />
 
         {/* Share Success Summary */}
         {shareSuccess && (
