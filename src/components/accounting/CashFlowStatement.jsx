@@ -79,7 +79,7 @@ export default function CashFlowStatement({ comparativePeriods = [] }) {
       })
       .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-    const netCashFromOperating = cashFromSales - cashPaidToSuppliers - operatingExpenses;
+    
 
     // Vehicle inventory purchases are part of OPERATING activities (not investing)
     // because inventory is purchased for resale in the normal course of business
