@@ -85,6 +85,12 @@ const allNavigationItems = [
     pageId: "Parts"
   },
   {
+    title: "Inventory Management",
+    url: createPageUrl("InventoryManagement"),
+    icon: Package,
+    pageId: "InventoryManagement"
+  },
+  {
     title: "Products & Services",
     url: createPageUrl("ProductsServices"),
     icon: Package,

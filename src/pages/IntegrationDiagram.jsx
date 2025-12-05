@@ -255,7 +255,7 @@ export default function IntegrationDiagram() {
                   </div>
 
                   {/* Module Cards */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     {modules.map((module) => (
                       <div
                         key={module.id}

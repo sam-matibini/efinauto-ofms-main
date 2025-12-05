@@ -52,11 +52,60 @@ export default function ChartOfAccounts() {
       equity: 'bg-purple-100 text-purple-700',
       revenue: 'bg-green-100 text-green-700',
       expense: 'bg-red-100 text-red-700',
+      cogs: 'bg-amber-100 text-amber-700',
       bank: 'bg-teal-100 text-teal-700',
-      credit_card: 'bg-pink-100 text-pink-700'
+      credit_card: 'bg-pink-100 text-pink-700',
+      inventory: 'bg-emerald-100 text-emerald-700'
     };
     return colors[type] || 'bg-gray-100 text-gray-700';
   };
+
+  // Standard Chart of Accounts Reference
+  const standardChartOfAccounts = [
+    // Assets (1000-1999)
+    { code: '1000', name: 'Cash / Bank Account', type: 'asset', category: 'Current Assets' },
+    { code: '1050', name: 'Undeposited Funds', type: 'asset', category: 'Current Assets' },
+    { code: '1100', name: 'Accounts Receivable', type: 'asset', category: 'Current Assets' },
+    { code: '1150', name: 'GST/HST Receivable (ITC)', type: 'asset', category: 'Current Assets' },
+    { code: '1200', name: 'Vehicle Inventory', type: 'asset', category: 'Inventory' },
+    { code: '1210', name: 'Parts Inventory', type: 'asset', category: 'Inventory' },
+    { code: '1220', name: 'Product Inventory', type: 'asset', category: 'Inventory' },
+    { code: '1300', name: 'Prepaid Expenses', type: 'asset', category: 'Current Assets' },
+    { code: '1400', name: 'Fixed Assets', type: 'asset', category: 'Fixed Assets' },
+    { code: '1410', name: 'Accumulated Depreciation', type: 'asset', category: 'Fixed Assets' },
+    // Liabilities (2000-2999)
+    { code: '2000', name: 'Accounts Payable', type: 'liability', category: 'Current Liabilities' },
+    { code: '2100', name: 'GST Payable', type: 'liability', category: 'Tax Liabilities' },
+    { code: '2110', name: 'PST/QST Payable', type: 'liability', category: 'Tax Liabilities' },
+    { code: '2120', name: 'HST Payable', type: 'liability', category: 'Tax Liabilities' },
+    { code: '2300', name: 'Wages Payable', type: 'liability', category: 'Current Liabilities' },
+    { code: '2400', name: 'Payroll Liabilities', type: 'liability', category: 'Current Liabilities' },
+    // Equity (3000-3999)
+    { code: '3000', name: "Owner's Equity", type: 'equity', category: 'Equity' },
+    { code: '3100', name: 'Retained Earnings', type: 'equity', category: 'Equity' },
+    // Revenue (4000-4999)
+    { code: '4000', name: 'Vehicle Sales Revenue', type: 'revenue', category: 'Sales' },
+    { code: '4100', name: 'Service Revenue', type: 'revenue', category: 'Sales' },
+    { code: '4200', name: 'Freight Service Revenue', type: 'revenue', category: 'Sales' },
+    { code: '4400', name: 'Salvage Revenue', type: 'revenue', category: 'Other Income' },
+    { code: '4500', name: 'Interest Income', type: 'revenue', category: 'Other Income' },
+    { code: '4600', name: 'Foreign Exchange Gain', type: 'revenue', category: 'Other Income' },
+    { code: '4700', name: 'Inventory Adjustment Gain', type: 'revenue', category: 'Other Income' },
+    // COGS (5000-5499)
+    { code: '5000', name: 'Cost of Vehicles Sold', type: 'expense', category: 'Cost of Goods Sold' },
+    { code: '5100', name: 'Cost of Parts Sold', type: 'expense', category: 'Cost of Goods Sold' },
+    { code: '5200', name: 'Labor Expense', type: 'expense', category: 'Cost of Goods Sold' },
+    { code: '5400', name: 'Shipping & Freight Expense', type: 'expense', category: 'Cost of Goods Sold' },
+    { code: '5500', name: 'Inventory Shrinkage', type: 'expense', category: 'Cost of Goods Sold' },
+    { code: '5510', name: 'Inventory Write-Off', type: 'expense', category: 'Cost of Goods Sold' },
+    // Operating Expenses (6000-6999)
+    { code: '6100', name: 'Wages & Salaries Expense', type: 'expense', category: 'Operating Expenses' },
+    { code: '6110', name: 'CPP Expense', type: 'expense', category: 'Operating Expenses' },
+    { code: '6120', name: 'EI Expense', type: 'expense', category: 'Operating Expenses' },
+    { code: '6200', name: 'Bank Charges & Fees', type: 'expense', category: 'Operating Expenses' },
+    { code: '6300', name: 'Foreign Exchange Loss', type: 'expense', category: 'Operating Expenses' },
+    { code: '6400', name: 'Depreciation Expense', type: 'expense', category: 'Operating Expenses' },
+  ];
 
   // Organize accounts into hierarchical structure
   const groupedAccounts = accounts.reduce((groups, account) => {

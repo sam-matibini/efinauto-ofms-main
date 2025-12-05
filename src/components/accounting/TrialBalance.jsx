@@ -176,17 +176,41 @@ export default function TrialBalance({ comparativePeriods = [] }) {
 
   // Add standard accounts for display in the Trial Balance
   const standardAccounts = [
+    // Assets (1000-1999)
     { id: 'cash', account_code: '1000', account_name: 'Cash and Bank', account_type: 'asset' },
+    { id: 'undeposited', account_code: '1050', account_name: 'Undeposited Funds', account_type: 'asset' },
     { id: 'ar', account_code: '1100', account_name: 'Accounts Receivable', account_type: 'asset' },
+    { id: 'gst-receivable', account_code: '1150', account_name: 'GST/HST Receivable (ITC)', account_type: 'asset' },
     { id: 'vehicle-inventory', account_code: '1200', account_name: 'Vehicle Inventory', account_type: 'asset' },
     { id: 'parts-inventory', account_code: '1210', account_name: 'Parts Inventory', account_type: 'asset' },
+    { id: 'product-inventory', account_code: '1220', account_name: 'Product Inventory', account_type: 'asset' },
+    // Liabilities (2000-2999)
     { id: 'ap', account_code: '2000', account_name: 'Accounts Payable', account_type: 'liability' },
+    { id: 'gst-payable', account_code: '2100', account_name: 'GST Payable', account_type: 'liability' },
+    { id: 'pst-payable', account_code: '2110', account_name: 'PST/QST Payable', account_type: 'liability' },
+    { id: 'hst-payable', account_code: '2120', account_name: 'HST Payable', account_type: 'liability' },
+    { id: 'wages-payable', account_code: '2300', account_name: 'Wages Payable', account_type: 'liability' },
+    { id: 'payroll-liabilities', account_code: '2400', account_name: 'Payroll Liabilities', account_type: 'liability' },
+    // Equity (3000-3999)
     { id: 'retained-earnings', account_code: '3100', account_name: 'Retained Earnings', account_type: 'equity' },
+    // Revenue (4000-4999)
     { id: 'sales-revenue', account_code: '4000', account_name: 'Vehicle Sales Revenue', account_type: 'revenue' },
     { id: 'service-revenue', account_code: '4100', account_name: 'Service Revenue', account_type: 'revenue' },
-    { id: 'cogs', account_code: '5000', account_name: 'Cost of Goods Sold', account_type: 'expense' },
-    { id: 'parts-expense', account_code: '5100', account_name: 'Parts Expense', account_type: 'expense' },
+    { id: 'freight-revenue', account_code: '4200', account_name: 'Freight Service Revenue', account_type: 'revenue' },
+    { id: 'salvage-revenue', account_code: '4400', account_name: 'Salvage Revenue', account_type: 'revenue' },
+    { id: 'interest-income', account_code: '4500', account_name: 'Interest Income', account_type: 'revenue' },
+    { id: 'fx-gain', account_code: '4600', account_name: 'Foreign Exchange Gain', account_type: 'revenue' },
+    { id: 'inv-adj-gain', account_code: '4700', account_name: 'Inventory Adjustment Gain', account_type: 'revenue' },
+    // Expenses (5000-6999)
+    { id: 'cogs', account_code: '5000', account_name: 'Cost of Vehicles Sold', account_type: 'expense' },
+    { id: 'parts-expense', account_code: '5100', account_name: 'Cost of Parts Sold', account_type: 'expense' },
     { id: 'labor-expense', account_code: '5200', account_name: 'Labor Expense', account_type: 'expense' },
+    { id: 'freight-expense', account_code: '5400', account_name: 'Shipping & Freight Expense', account_type: 'expense' },
+    { id: 'inv-shrinkage', account_code: '5500', account_name: 'Inventory Shrinkage', account_type: 'expense' },
+    { id: 'inv-writeoff', account_code: '5510', account_name: 'Inventory Write-Off', account_type: 'expense' },
+    { id: 'wages-expense', account_code: '6100', account_name: 'Wages & Salaries Expense', account_type: 'expense' },
+    { id: 'bank-charges', account_code: '6200', account_name: 'Bank Charges & Fees', account_type: 'expense' },
+    { id: 'fx-loss', account_code: '6300', account_name: 'Foreign Exchange Loss', account_type: 'expense' },
   ];
 
   standardAccounts.forEach(stdAccount => {
