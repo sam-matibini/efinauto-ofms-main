@@ -269,6 +269,8 @@ export default function GlobalShipping() {
               shipments={shipments}
               containers={containers}
               vehicles={vehicles}
+              customers={customers}
+              exports={exports}
               showUploadDialog={showDocumentDialog}
               onDialogClose={() => setShowDocumentDialog(false)}
             />

@@ -9,14 +9,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { 
   FileText, Search, Upload, Eye, Download, Trash2, 
-  LayoutGrid, List, Filter, Image, File
+  LayoutGrid, List, Filter, Image, File, Plus, Sparkles
 } from "lucide-react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useCompany } from "@/components/shared/CompanyContext";
+import DocumentTemplateGenerator from "./DocumentTemplateGenerator";
 
 const documentTypes = [
   { value: 'export_order', label: 'Export Order', icon: '📤' },
@@ -33,14 +34,26 @@ const documentTypes = [
   { value: 'other', label: 'Other', icon: '📄' }
 ];
 
-export default function DocumentsTab({ documents = [], loadingDeclarations = [], shipments = [], containers = [], vehicles = [], showUploadDialog = false, onDialogClose }) {
+export default function DocumentsTab({ documents = [], loadingDeclarations = [], shipments = [], containers = [], vehicles = [], customers = [], exports = [], showUploadDialog = false, onDialogClose }) {
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState("grid");
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [viewDocument, setViewDocument] = useState(null);
+
+  // Fetch company data
+  const { data: company } = useQuery({
+    queryKey: ['company', selectedCompanyId],
+    queryFn: async () => {
+      if (!selectedCompanyId) return null;
+      const companies = await base44.entities.Company.filter({ id: selectedCompanyId });
+      return companies[0] || null;
+    },
+    enabled: !!selectedCompanyId,
+  });
 
   // Handle external dialog trigger
   React.useEffect(() => {
@@ -144,6 +157,10 @@ export default function DocumentsTab({ documents = [], loadingDeclarations = [],
               <List className="w-4 h-4" />
             </Button>
           </div>
+          <Button variant="outline" onClick={() => setTemplateDialogOpen(true)} className="border-purple-300 text-purple-700 hover:bg-purple-50">
+            <Sparkles className="w-4 h-4 mr-2" />
+            Generate Template
+          </Button>
           <Button onClick={() => { setUploadDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
             <Upload className="w-4 h-4 mr-2" />
             Upload Document
@@ -320,6 +337,22 @@ export default function DocumentsTab({ documents = [], loadingDeclarations = [],
         shipments={shipments}
         containers={containers}
         vehicles={vehicles}
+      />
+
+      {/* Template Generator Dialog */}
+      <DocumentTemplateGenerator
+        open={templateDialogOpen}
+        onClose={() => setTemplateDialogOpen(false)}
+        onSave={(data) => {
+          createMutation.mutate(data);
+          setTemplateDialogOpen(false);
+        }}
+        shipments={shipments}
+        containers={containers}
+        vehicles={vehicles}
+        customers={customers}
+        exports={exports}
+        company={company}
       />
     </div>
   );
