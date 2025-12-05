@@ -62,7 +62,7 @@ export default function FinancialReports() {
   const reportRef = useRef(null);
   
   // Filter States
-  const [activeReport, setActiveReport] = useState("income");
+  const [activeReport, setActiveReport] = useState("dashboard");
   const [datePreset, setDatePreset] = useState("This Year");
   const [dateRange, setDateRange] = useState({ 
     from: startOfYear(new Date()), 
