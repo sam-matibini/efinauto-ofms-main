@@ -29,6 +29,18 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-CA');
 };
 
+const formatPhone = (phone) => {
+  if (!phone) return '';
+  const cleaned = phone.replace(/\D/g, '');
+  if (cleaned.length === 10) {
+    return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+  }
+  if (cleaned.length === 11 && cleaned.startsWith('1')) {
+    return `${cleaned.slice(1, 4)}-${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
+  }
+  return phone;
+};
+
 export default function DocumentViewer({ 
   open, 
   onClose, 
@@ -170,7 +182,7 @@ export default function DocumentViewer({
             <div class="company-details">
               ${company?.address ? `${company.address}<br>` : ''}
               ${company?.city ? `${company.city}, ${company?.province || ''} ${company?.postal_code || ''}<br>` : ''}
-              ${company?.phone ? `Tel: ${company.phone}<br>` : ''}
+              ${company?.phone ? `Tel: ${formatPhone(company.phone)}<br>` : ''}
               ${company?.email ? `${company.email}` : ''}
             </div>
           </div>
@@ -182,7 +194,7 @@ export default function DocumentViewer({
               <h3>Bill To:</h3>
               <p style="font-weight: 600;">${documentData.customer_name || customer?.full_name || 'Customer'}</p>
               ${documentData.customer_email ? `<p>${documentData.customer_email}</p>` : ''}
-              ${documentData.customer_phone ? `<p>${documentData.customer_phone}</p>` : ''}
+              ${documentData.customer_phone ? `<p>${formatPhone(documentData.customer_phone)}</p>` : ''}
               ${documentData.customer_address ? `<p>${documentData.customer_address}</p>` : ''}
             </div>
             <div class="doc-details">
