@@ -247,7 +247,8 @@ export default function CashFlowStatement({ comparativePeriods = [] }) {
           <div>
             <h3 className="font-bold text-base mb-2 text-gray-900 px-4">Cash Flows from Operating Activities</h3>
             {renderLine('Cash from customers', periodData.map(d => d.cashFromSales), 1, 'text-green-600', 'cashFromSales')}
-            {renderLine('Cash to suppliers', periodData.map(d => -d.cashPaidToSuppliers), 1, 'text-red-600', 'cashPaidToSuppliers')}
+            {renderLine('Cash to suppliers (general)', periodData.map(d => -d.cashPaidToSuppliers), 1, 'text-red-600', 'cashPaidToSuppliers')}
+            {renderLine('Vehicle/Parts inventory purchases', periodData.map(d => -d.vehicleInventoryPurchases), 1, 'text-red-600')}
             {renderLine('Operating expenses', periodData.map(d => -d.operatingExpenses), 1, 'text-red-600')}
             {renderLine('Net cash from operating', periodData.map(d => d.netCashFromOperating), 1, 'border-t font-semibold')}
           </div>
@@ -255,8 +256,7 @@ export default function CashFlowStatement({ comparativePeriods = [] }) {
           {/* Investing Activities */}
           <div>
             <h3 className="font-bold text-base mb-2 text-gray-900 px-4">Cash Flows from Investing Activities</h3>
-            {renderLine('Vehicle purchases', periodData.map(d => -d.vehiclePurchases), 1, 'text-red-600', 'vehiclePurchases')}
-            {renderLine('Equipment purchases', periodData.map(d => -d.equipmentPurchases), 1, 'text-red-600', 'equipmentPurchases')}
+            {renderLine('Equipment/Fixed asset purchases', periodData.map(d => -d.equipmentPurchases), 1, 'text-red-600', 'equipmentPurchases')}
             {renderLine('Net cash from investing', periodData.map(d => d.netCashFromInvesting), 1, 'border-t font-semibold')}
           </div>
 
