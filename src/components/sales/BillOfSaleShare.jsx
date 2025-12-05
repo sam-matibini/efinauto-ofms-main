@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,15 +9,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Mail, MessageCircle, Loader2, Send, CheckCircle } from "lucide-react";
+import { Mail, MessageCircle, Loader2, Send, CheckCircle, Download, Printer, Link as LinkIcon, Copy } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 export default function BillOfSaleShare({ sale, company, onClose }) {
   const [activeTab, setActiveTab] = useState("email");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState(null);
   const [emailData, setEmailData] = useState({
     to: sale?.customer_email || "",
     subject: `Bill of Sale - ${sale?.vehicle_details || "Vehicle"} - ${sale?.sale_number || ""}`,
@@ -173,10 +177,113 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
     setSending(false);
   };
 
-  const handleShareWhatsApp = () => {
+  const generateAndUploadPDF = async () => {
+    setGeneratingPDF(true);
+    try {
+      // Create a temporary element to render the HTML content
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = generateBillOfSaleHTML();
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.width = '800px';
+      tempDiv.style.background = '#ffffff';
+      document.body.appendChild(tempDiv);
+      
+      const canvas = await html2canvas(tempDiv, { 
+        scale: 2, 
+        useCORS: true, 
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+      
+      document.body.removeChild(tempDiv);
+      
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "letter");
+      const imgWidth = 216;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 0;
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= 279;
+      
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= 279;
+      }
+      
+      // Convert to blob and upload to cloud
+      const pdfBlob = pdf.output('blob');
+      const filename = `Bill_of_Sale-${sale?.sale_number || Date.now()}.pdf`;
+      const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+      
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setPdfUrl(file_url);
+      setGeneratingPDF(false);
+      toast.success("PDF saved to cloud!");
+      return file_url;
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      setGeneratingPDF(false);
+      toast.error("Failed to generate PDF");
+      return null;
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    setGeneratingPDF(true);
+    try {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = generateBillOfSaleHTML();
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.width = '800px';
+      tempDiv.style.background = '#ffffff';
+      document.body.appendChild(tempDiv);
+      
+      const canvas = await html2canvas(tempDiv, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      document.body.removeChild(tempDiv);
+      
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "letter");
+      const imgWidth = 216;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+      pdf.save(`Bill_of_Sale-${sale?.sale_number || 'doc'}.pdf`);
+      
+      toast.success("PDF downloaded");
+    } catch (error) {
+      toast.error("Failed to download PDF");
+    } finally {
+      setGeneratingPDF(false);
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (pdfUrl) {
+      navigator.clipboard.writeText(pdfUrl);
+      toast.success("PDF link copied to clipboard!");
+    }
+  };
+
+  const handleShareWhatsApp = async () => {
     const isExport = sale?.sale_type === 'export';
+    
+    // Generate PDF first if not already done
+    let url = pdfUrl;
+    if (!url) {
+      toast.loading("Generating PDF for sharing...");
+      url = await generateAndUploadPDF();
+      toast.dismiss();
+      if (!url) return;
+    }
+
     const message = `
-*BILL OF SALE*
+*📄 BILL OF SALE*
 ${company?.name || 'Company'}
 
 *Sale #:* ${sale?.sale_number || ''}
@@ -193,8 +300,12 @@ ${company?.name || 'Company'}
 *Grand Total:* $${sale?.grand_total?.toLocaleString() || '0'}
 *Balance Due:* $${sale?.balance_due?.toLocaleString() || '0'}
 
+📎 *Download PDF:* ${url}
+
 ${company?.phone ? `Tel: ${company.phone}` : ''}
 ${company?.email ? `Email: ${company.email}` : ''}
+
+_Generated by eFinAuto OFMS_
     `.trim();
 
     const phoneNumber = sale?.customer_phone?.replace(/\D/g, '') || '';
@@ -294,12 +405,37 @@ ${company?.email ? `Email: ${company.email}` : ''}
 
       {activeTab === "whatsapp" && (
         <div className="space-y-4">
+          {/* PDF Actions */}
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" onClick={handleDownloadPDF} disabled={generatingPDF}>
+              {generatingPDF ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+              Download PDF
+            </Button>
+            <Button variant="outline" size="sm" onClick={generateAndUploadPDF} disabled={generatingPDF}>
+              {generatingPDF ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <LinkIcon className="w-4 h-4 mr-2" />}
+              Save to Cloud
+            </Button>
+            {pdfUrl && (
+              <Button variant="outline" size="sm" onClick={handleCopyLink}>
+                <Copy className="w-4 h-4 mr-2" />
+                Copy Link
+              </Button>
+            )}
+          </div>
+
+          {pdfUrl && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <p className="text-sm text-green-800 font-medium mb-2">✓ PDF Ready to Share</p>
+              <Input value={pdfUrl} readOnly className="text-xs bg-white" />
+            </div>
+          )}
+
           <div className="bg-green-50 rounded-lg p-4">
             <p className="text-sm text-green-800 mb-2">
               <strong>WhatsApp Share</strong>
             </p>
             <p className="text-sm text-green-700">
-              This will open WhatsApp with a formatted message containing the Bill of Sale details.
+              This will generate a PDF, upload it to cloud, and open WhatsApp with the download link.
               {sale?.customer_phone && (
                 <span className="block mt-1">
                   Customer phone: <strong>{sale.customer_phone}</strong>
@@ -307,24 +443,13 @@ ${company?.email ? `Email: ${company.email}` : ''}
               )}
             </p>
           </div>
-          <div className="bg-gray-50 rounded-lg p-4 text-sm">
-            <p className="font-medium mb-2">Message Preview:</p>
-            <pre className="whitespace-pre-wrap text-xs text-gray-600 bg-white p-3 rounded border max-h-48 overflow-y-auto">
-{`*BILL OF SALE*
-${company?.name || 'Company'}
-
-*Sale #:* ${sale?.sale_number || ''}
-*Vehicle:* ${sale?.vehicle_details || ''}
-*Grand Total:* $${sale?.grand_total?.toLocaleString() || '0'}
-...`}
-            </pre>
-          </div>
           <Button
             onClick={handleShareWhatsApp}
             className="w-full bg-green-600 hover:bg-green-700"
+            disabled={generatingPDF}
           >
-            <MessageCircle className="w-4 h-4 mr-2" />
-            Share via WhatsApp
+            {generatingPDF ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <MessageCircle className="w-4 h-4 mr-2" />}
+            Share via WhatsApp with PDF
           </Button>
         </div>
       )}
