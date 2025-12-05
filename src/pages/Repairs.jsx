@@ -17,7 +17,8 @@ import {
   CheckCircle,
   AlertCircle,
   Filter,
-  CalendarDays
+  CalendarDays,
+  Sparkles
 } from "lucide-react";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { toast } from "sonner";
@@ -29,6 +30,7 @@ import InvoiceGenerator from "@/components/repairs/InvoiceGenerator";
 import TechnicianScheduler from "@/components/technicians/TechnicianScheduler";
 import WorkloadDashboard from "@/components/technicians/WorkloadDashboard";
 import AIAppointmentOptimizer from "@/components/repairs/AIAppointmentOptimizer";
+import AIFaultSearch from "@/components/repairs/AIFaultSearch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function RepairsPage() {
@@ -339,6 +341,11 @@ export default function RepairsPage() {
             <span className="hidden sm:inline">List View</span>
             <span className="sm:hidden">List</span>
           </TabsTrigger>
+          <TabsTrigger value="fault-search" className="text-xs md:text-sm">
+            <Sparkles className="w-3 h-3 mr-1" />
+            <span className="hidden sm:inline">Fault Search</span>
+            <span className="sm:hidden">Faults</span>
+          </TabsTrigger>
           <TabsTrigger value="workload" className="text-xs md:text-sm">Workload</TabsTrigger>
           <TabsTrigger value="ai-optimizer" className="text-xs md:text-sm">
             <span className="hidden sm:inline">AI Optimizer</span>
@@ -452,6 +459,10 @@ export default function RepairsPage() {
               />
             ))
           )}
+        </TabsContent>
+
+        <TabsContent value="fault-search" className="space-y-4">
+          <AIFaultSearch />
         </TabsContent>
 
         <TabsContent value="workload" className="space-y-4">
