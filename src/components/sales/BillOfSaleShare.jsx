@@ -155,9 +155,18 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
 
     setSending(true);
     try {
+      // Generate and upload PDF first
+      let url = pdfUrl;
+      if (!url) {
+        toast.loading("Generating PDF...");
+        url = await generateAndUploadPDF();
+        toast.dismiss();
+      }
+
       const billHTML = generateBillOfSaleHTML();
       const emailBody = `
         ${emailData.customMessage ? `<p>${emailData.customMessage}</p><hr/>` : ''}
+        ${url ? `<p><strong>📎 Download PDF:</strong> <a href="${url}">${url}</a></p><hr/>` : ''}
         ${billHTML}
       `;
 
@@ -169,7 +178,7 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
       });
 
       setSent(true);
-      toast.success("Bill of Sale sent successfully!");
+      toast.success("Bill of Sale sent successfully with PDF link!");
     } catch (error) {
       console.error("Email error:", error);
       toast.error("Failed to send email: " + error.message);
