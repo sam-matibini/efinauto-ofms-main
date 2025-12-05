@@ -19,7 +19,11 @@ export default function ShippingDashboard({
   containers = [], 
   vehicles = [],
   exports = [],
-  loadingDeclarations = []
+  loadingDeclarations = [],
+  onCreateShipment,
+  onAddContainer,
+  onAddVehicle,
+  onUploadDocument
 }) {
   const [aiInsights, setAiInsights] = useState(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
@@ -163,19 +167,19 @@ Provide:
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={onCreateShipment}>
               <Plus className="w-4 h-4 mr-2" />
               Create Shipment
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={onAddContainer}>
               <Package className="w-4 h-4 mr-2" />
               Add Container
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={onAddVehicle}>
               <Car className="w-4 h-4 mr-2" />
               Add Vehicle
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={onUploadDocument}>
               <Upload className="w-4 h-4 mr-2" />
               Upload Document
             </Button>

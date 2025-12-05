@@ -33,7 +33,7 @@ const documentTypes = [
   { value: 'other', label: 'Other', icon: '📄' }
 ];
 
-export default function DocumentsTab({ documents = [], loadingDeclarations = [], shipments = [], containers = [], vehicles = [] }) {
+export default function DocumentsTab({ documents = [], loadingDeclarations = [], shipments = [], containers = [], vehicles = [], showUploadDialog = false, onDialogClose }) {
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState("grid");
@@ -42,11 +42,23 @@ export default function DocumentsTab({ documents = [], loadingDeclarations = [],
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [viewDocument, setViewDocument] = useState(null);
 
+  // Handle external dialog trigger
+  React.useEffect(() => {
+    if (showUploadDialog) {
+      setUploadDialogOpen(true);
+    }
+  }, [showUploadDialog]);
+
+  const handleUploadDialogClose = () => {
+    setUploadDialogOpen(false);
+    if (onDialogClose) onDialogClose();
+  };
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.ShippingDocument.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shipping-documents'] });
-      setUploadDialogOpen(false);
+      handleUploadDialogClose();
       toast.success("Document uploaded!");
     },
   });
@@ -132,7 +144,7 @@ export default function DocumentsTab({ documents = [], loadingDeclarations = [],
               <List className="w-4 h-4" />
             </Button>
           </div>
-          <Button onClick={() => setUploadDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={() => { setUploadDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
             <Upload className="w-4 h-4 mr-2" />
             Upload Document
           </Button>
@@ -303,7 +315,7 @@ export default function DocumentsTab({ documents = [], loadingDeclarations = [],
       {/* Upload Dialog */}
       <UploadDocumentDialog
         open={uploadDialogOpen}
-        onClose={() => setUploadDialogOpen(false)}
+        onClose={handleUploadDialogClose}
         onSave={(data) => createMutation.mutate(data)}
         shipments={shipments}
         containers={containers}

@@ -17,12 +17,26 @@ import { useCompany } from "@/components/shared/CompanyContext";
 
 const formatCurrency = (amount) => `$${(amount || 0).toLocaleString()}`;
 
-export default function ContainersTab({ containers = [], shipments = [], vehicles = [] }) {
+export default function ContainersTab({ containers = [], shipments = [], vehicles = [], showCreateDialog = false, onDialogClose }) {
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState("list");
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Handle external dialog trigger
+  React.useEffect(() => {
+    if (showCreateDialog) {
+      setDialogOpen(true);
+      setEditingContainer(null);
+    }
+  }, [showCreateDialog]);
+
+  const handleDialogClose = () => {
+    setDialogOpen(false);
+    setEditingContainer(null);
+    if (onDialogClose) onDialogClose();
+  };
   const [editingContainer, setEditingContainer] = useState(null);
   const [viewContainer, setViewContainer] = useState(null);
 
@@ -41,8 +55,7 @@ export default function ContainersTab({ containers = [], shipments = [], vehicle
     mutationFn: (data) => base44.entities.Container.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['containers'] });
-      setDialogOpen(false);
-      setEditingContainer(null);
+      handleDialogClose();
       toast.success("Container created!");
     },
   });
@@ -51,8 +64,7 @@ export default function ContainersTab({ containers = [], shipments = [], vehicle
     mutationFn: ({ id, data }) => base44.entities.Container.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['containers'] });
-      setDialogOpen(false);
-      setEditingContainer(null);
+      handleDialogClose();
       toast.success("Container updated!");
     },
   });

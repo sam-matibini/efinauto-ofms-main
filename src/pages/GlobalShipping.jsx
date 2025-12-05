@@ -30,6 +30,9 @@ import DocumentsTab from "@/components/shipping/DocumentsTab.jsx";
 export default function GlobalShipping() {
   const { selectedCompanyId } = useCompany();
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [showShipmentDialog, setShowShipmentDialog] = useState(false);
+  const [showContainerDialog, setShowContainerDialog] = useState(false);
+  const [showDocumentDialog, setShowDocumentDialog] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch all data
@@ -131,11 +134,18 @@ export default function GlobalShipping() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="bg-white/10 text-white border-white/20 hover:bg-white/20">
+            <Button 
+              variant="outline" 
+              className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+              onClick={() => { setActiveTab("documents"); setShowDocumentDialog(true); }}
+            >
               <Upload className="w-4 h-4 mr-2" />
               Upload Document
             </Button>
-            <Button className="bg-white text-blue-900 hover:bg-blue-50">
+            <Button 
+              className="bg-white text-blue-900 hover:bg-blue-50"
+              onClick={() => { setActiveTab("shipments"); setShowShipmentDialog(true); }}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Create Shipment
             </Button>
@@ -188,6 +198,10 @@ export default function GlobalShipping() {
               vehicles={vehiclesInTransit}
               exports={exports}
               loadingDeclarations={loadingDeclarations}
+              onCreateShipment={() => { setActiveTab("shipments"); setShowShipmentDialog(true); }}
+              onAddContainer={() => { setActiveTab("containers"); setShowContainerDialog(true); }}
+              onAddVehicle={() => setActiveTab("vehicles")}
+              onUploadDocument={() => { setActiveTab("documents"); setShowDocumentDialog(true); }}
             />
           </TabsContent>
 
@@ -199,6 +213,8 @@ export default function GlobalShipping() {
               vehicles={vehicles}
               containers={containers}
               loadingDeclarations={loadingDeclarations}
+              showCreateDialog={showShipmentDialog}
+              onDialogClose={() => setShowShipmentDialog(false)}
             />
           </TabsContent>
 
@@ -207,6 +223,8 @@ export default function GlobalShipping() {
               containers={containers}
               shipments={shipments}
               vehicles={vehicles}
+              showCreateDialog={showContainerDialog}
+              onDialogClose={() => setShowContainerDialog(false)}
             />
           </TabsContent>
 
@@ -251,6 +269,8 @@ export default function GlobalShipping() {
               shipments={shipments}
               containers={containers}
               vehicles={vehicles}
+              showUploadDialog={showDocumentDialog}
+              onDialogClose={() => setShowDocumentDialog(false)}
             />
           </TabsContent>
         </Tabs>

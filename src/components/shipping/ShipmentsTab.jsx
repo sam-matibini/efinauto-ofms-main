@@ -22,13 +22,27 @@ import LoadingDeclarationDialog from "@/components/freight/LoadingDeclarationDia
 
 const formatCurrency = (amount) => `$${(amount || 0).toLocaleString()}`;
 
-export default function ShipmentsTab({ shipments = [], exports = [], customers = [], vehicles = [], containers = [], loadingDeclarations = [] }) {
+export default function ShipmentsTab({ shipments = [], exports = [], customers = [], vehicles = [], containers = [], loadingDeclarations = [], showCreateDialog = false, onDialogClose }) {
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState("list");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Handle external dialog trigger
+  React.useEffect(() => {
+    if (showCreateDialog) {
+      setDialogOpen(true);
+      setEditingShipment(null);
+    }
+  }, [showCreateDialog]);
+
+  const handleDialogClose = () => {
+    setDialogOpen(false);
+    setEditingShipment(null);
+    if (onDialogClose) onDialogClose();
+  };
   const [editingShipment, setEditingShipment] = useState(null);
   const [viewShipment, setViewShipment] = useState(null);
   const [loadingDeclOpen, setLoadingDeclOpen] = useState(false);
@@ -63,8 +77,7 @@ export default function ShipmentsTab({ shipments = [], exports = [], customers =
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
-      setDialogOpen(false);
-      setEditingShipment(null);
+      handleDialogClose();
       toast.success("Shipment created!");
     },
   });
@@ -73,8 +86,7 @@ export default function ShipmentsTab({ shipments = [], exports = [], customers =
     mutationFn: ({ id, data }) => base44.entities.FreightShipment.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
-      setDialogOpen(false);
-      setEditingShipment(null);
+      handleDialogClose();
       toast.success("Shipment updated!");
     },
   });
