@@ -454,6 +454,10 @@ export default function FinancialReports() {
                 comparativePeriods={periods}
               />
             </TabsContent>
+
+            <TabsContent value="automated">
+              <AutomatedReportingEngine />
+            </TabsContent>
           </div>
         </Tabs>
 
