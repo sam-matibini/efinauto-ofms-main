@@ -195,6 +195,8 @@ const glAccounts = [
   { code: '6100', name: 'Wages & Salaries Expense', type: 'Expense' },
   { code: '6110', name: 'CPP Expense', type: 'Expense' },
   { code: '6120', name: 'EI Expense', type: 'Expense' },
+  { code: '6150', name: 'Project Labor Expense', type: 'Expense' },
+  { code: '6160', name: 'Project Overhead', type: 'Expense' },
   { code: '6200', name: 'Bank Charges & Fees', type: 'Expense' },
   { code: '6300', name: 'Foreign Exchange Loss', type: 'Expense' },
   { code: '6310', name: 'Unrealized FX Loss', type: 'Expense' },
