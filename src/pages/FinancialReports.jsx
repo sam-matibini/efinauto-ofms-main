@@ -25,6 +25,7 @@ import ProfitLossStatement from "@/components/accounting/ProfitLossStatement";
 import BalanceSheet from "@/components/accounting/BalanceSheet";
 import CashFlowStatement from "@/components/accounting/CashFlowStatement";
 import AutomatedReportingEngine from "@/components/accounting/AutomatedReportingEngine";
+import FinancialDashboard from "@/components/accounting/FinancialDashboard";
 
 const DATE_PRESETS = [
   { label: "This Month", getValue: () => ({ from: startOfMonth(new Date()), to: new Date() }) },
