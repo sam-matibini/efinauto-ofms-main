@@ -33,6 +33,7 @@ import AIVehicleSearchMarketplace from "../components/vehicles/AIVehicleSearchMa
 import VehicleBulkImport from "../components/vehicles/VehicleBulkImport";
 import AIVINScanner from "../components/vehicles/AIVINScanner";
 import AIMileageScanner from "../components/vehicles/AIMileageScanner";
+import AIInventoryInsights from "@/components/shared/AIInventoryInsights";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,6 +73,13 @@ export default function Vehicles() {
       const allVehicles = await base44.entities.Vehicle.filter({ company_id: selectedCompanyId }, '-created_date');
       return allVehicles;
     },
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: sales = [] } = useQuery({
+    queryKey: ['sales', selectedCompanyId],
+    queryFn: () => base44.entities.Sale.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
@@ -462,6 +470,16 @@ export default function Vehicles() {
       {/* AI Vehicle Search - Marketplaces */}
       <div className="mt-6">
         <AIVehicleSearchMarketplace />
+      </div>
+
+      {/* AI Inventory Insights */}
+      <div className="mt-6">
+        <AIInventoryInsights 
+          companyId={selectedCompanyId}
+          inventoryType="vehicles"
+          vehicles={vehicles}
+          sales={sales}
+        />
       </div>
 
       {isLoading ? (

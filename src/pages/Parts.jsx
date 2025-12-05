@@ -46,6 +46,7 @@ import AIPartsSearchLocal from "@/components/parts/AIPartsSearchLocal";
 import AIPartsSearchMarketplace from "@/components/parts/AIPartsSearchMarketplace";
 import AIPartsShopSearch from "@/components/parts/AIPartsShopSearch";
 import ImportPartsDialog from "@/components/parts/ImportPartsDialog";
+import AIInventoryInsights from "@/components/shared/AIInventoryInsights";
 
 export default function Parts() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -67,6 +68,13 @@ export default function Parts() {
   const { data: parts = [], isLoading } = useQuery({
     queryKey: ['parts', selectedCompanyId],
     queryFn: () => base44.entities.Part.filter({ company_id: selectedCompanyId }, '-created_date'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: repairs = [] } = useQuery({
+    queryKey: ['repairs', selectedCompanyId],
+    queryFn: () => base44.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
@@ -385,6 +393,16 @@ export default function Parts() {
           {/* AI Parts Search - Marketplaces */}
           <div className="mt-6">
             <AIPartsSearchMarketplace />
+          </div>
+
+          {/* AI Inventory Insights */}
+          <div className="mt-6">
+            <AIInventoryInsights 
+              companyId={selectedCompanyId}
+              inventoryType="parts"
+              parts={parts}
+              repairs={repairs}
+            />
           </div>
 
           {/* Parts Grid/List */}
