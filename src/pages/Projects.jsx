@@ -396,7 +396,14 @@ export default function Projects() {
                             >
                               <List className="w-4 h-4" />
                             </Button>
-                            <Button size="sm" onClick={() => setTaskDialog({ open: true, task: null })}>
+                            <Button
+                              variant={taskView === "gantt" ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setTaskView("gantt")}
+                            >
+                              <GanttIcon className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" onClick={() => setTaskDialog({ open: true, task: null, parentTaskId: null })}>
                               <Plus className="w-4 h-4 mr-1" /> Task
                             </Button>
                           </div>
