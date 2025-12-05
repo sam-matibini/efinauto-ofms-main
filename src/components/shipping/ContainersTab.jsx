@@ -14,6 +14,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useCompany } from "@/components/shared/CompanyContext";
+import VehicleSelector from "./VehicleSelector";
 
 const formatCurrency = (amount) => `$${(amount || 0).toLocaleString()}`;
 
@@ -245,6 +246,7 @@ export default function ContainersTab({ containers = [], shipments = [], vehicle
           <ContainerForm 
             container={editingContainer} 
             shipments={shipments}
+            vehicles={vehicles}
             onSave={handleSave} 
             onClose={() => { setDialogOpen(false); setEditingContainer(null); }}
           />
@@ -254,7 +256,7 @@ export default function ContainersTab({ containers = [], shipments = [], vehicle
   );
 }
 
-function ContainerForm({ container, shipments, onSave, onClose }) {
+function ContainerForm({ container, shipments, vehicles, onSave, onClose }) {
   const [formData, setFormData] = useState({
     container_number: "",
     seal_number: "",
@@ -266,14 +268,23 @@ function ContainerForm({ container, shipments, onSave, onClose }) {
     destination_port: "",
     eta: "",
     status: "empty",
-    vehicle_count: 0
+    vehicle_count: 0,
+    vehicle_ids: []
   });
 
   React.useEffect(() => {
     if (container) {
-      setFormData({ ...container });
+      setFormData({ ...container, vehicle_ids: container.vehicle_ids || [] });
     }
   }, [container]);
+
+  const handleVehicleSelection = (selectedIds) => {
+    setFormData({
+      ...formData,
+      vehicle_ids: selectedIds,
+      vehicle_count: selectedIds.length
+    });
+  };
 
   return (
     <div className="space-y-4 py-4">
@@ -339,6 +350,19 @@ function ContainerForm({ container, shipments, onSave, onClose }) {
           </Select>
         </div>
       </div>
+      
+      {/* Vehicle Selection */}
+      <div className="space-y-2">
+        <Label>Vehicles in Container</Label>
+        <VehicleSelector
+          vehicles={vehicles}
+          selectedVehicles={formData.vehicle_ids}
+          onSelectionChange={handleVehicleSelection}
+          multiple={true}
+          placeholder="Search and select vehicles..."
+        />
+      </div>
+
       <div className="flex justify-end gap-3">
         <Button variant="outline" onClick={onClose}>Cancel</Button>
         <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700" disabled={!formData.container_number}>

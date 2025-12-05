@@ -19,6 +19,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useCompany } from "@/components/shared/CompanyContext";
 import LoadingDeclarationDialog from "@/components/freight/LoadingDeclarationDialog";
+import VehicleSelector from "./VehicleSelector";
 
 const formatCurrency = (amount) => `$${(amount || 0).toLocaleString()}`;
 
@@ -357,6 +358,7 @@ export default function ShipmentsTab({ shipments = [], exports = [], customers =
         onSave={handleSave}
         exports={exports}
         customers={customers}
+        vehicles={vehicles}
         generateShipmentNumber={generateShipmentNumber}
       />
 
@@ -376,13 +378,13 @@ export default function ShipmentsTab({ shipments = [], exports = [], customers =
   );
 }
 
-function ShipmentFormDialog({ open, onClose, shipment, onSave, exports, customers, generateShipmentNumber }) {
+function ShipmentFormDialog({ open, onClose, shipment, onSave, exports, customers, vehicles, generateShipmentNumber }) {
   const [formData, setFormData] = useState({});
 
   React.useEffect(() => {
     if (open) {
       if (shipment) {
-        setFormData({ ...shipment });
+        setFormData({ ...shipment, vehicle_ids: shipment.vehicle_ids || [] });
       } else {
         setFormData({
           shipment_number: generateShipmentNumber(),
@@ -394,11 +396,16 @@ function ShipmentFormDialog({ open, onClose, shipment, onSave, exports, customer
           status: "booked",
           cargo_value: 0,
           freight_cost: 0,
-          total_cost: 0
+          total_cost: 0,
+          vehicle_ids: []
         });
       }
     }
   }, [open, shipment]);
+
+  const handleVehicleSelection = (selectedIds) => {
+    setFormData({ ...formData, vehicle_ids: selectedIds });
+  };
 
   const handleExportSelect = (exportId) => {
     const exp = exports.find(e => e.id === exportId);
@@ -493,7 +500,17 @@ function ShipmentFormDialog({ open, onClose, shipment, onSave, exports, customer
               <Input type="number" value={formData.cargo_value || 0} onChange={(e) => setFormData({...formData, cargo_value: parseFloat(e.target.value) || 0})} />
             </div>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 col-span-2">
+            <Label>Vehicles in Shipment</Label>
+            <VehicleSelector
+              vehicles={vehicles}
+              selectedVehicles={formData.vehicle_ids || []}
+              onSelectionChange={handleVehicleSelection}
+              multiple={true}
+              placeholder="Search and select vehicles..."
+            />
+          </div>
+          <div className="space-y-2 col-span-2">
             <Label>Notes</Label>
             <Textarea value={formData.notes || ''} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={2} />
           </div>
