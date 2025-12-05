@@ -28,6 +28,8 @@ import FixedAssetsRegister from "@/components/accounting/FixedAssetsRegister";
 import TrialBalance from "@/components/accounting/TrialBalance";
 import GeneralLedger from "@/components/accounting/GeneralLedger";
 import PeriodComparison from "@/components/shared/PeriodComparison";
+import CurrencyConverter from "@/components/shared/CurrencyConverter";
+import FXGainLossCalculator from "@/components/shared/FXGainLossCalculator";
 
 export default function Accounting() {
   const { selectedCompanyId } = useCompany();
@@ -542,7 +544,7 @@ export default function Accounting() {
 
         {/* Main Content */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-10 h-auto">
+          <TabsList className="grid w-full grid-cols-11 h-auto">
             <TabsTrigger value="overview">Revenue Overview</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="chart-of-accounts">Chart of Accounts</TabsTrigger>
@@ -553,6 +555,7 @@ export default function Accounting() {
             <TabsTrigger value="retained-earnings">Retained Earnings</TabsTrigger>
             <TabsTrigger value="cash-flow">Cash Flow</TabsTrigger>
             <TabsTrigger value="fixed-assets">Fixed Assets</TabsTrigger>
+            <TabsTrigger value="forex">Foreign Exchange</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -608,6 +611,20 @@ export default function Accounting() {
 
           <TabsContent value="fixed-assets">
             <FixedAssetsRegister comparativePeriods={effectivePeriods} />
+          </TabsContent>
+
+          <TabsContent value="forex">
+            <div className="space-y-6">
+              <CurrencyConverter 
+                companyId={selectedCompanyId}
+                fromCurrency="USD"
+                toCurrency="CAD"
+              />
+              <FXGainLossCalculator 
+                companyId={selectedCompanyId}
+                transactions={filteredTransactions.filter(t => t.currency && t.currency !== 'CAD')}
+              />
+            </div>
           </TabsContent>
           </Tabs>
       </div>
