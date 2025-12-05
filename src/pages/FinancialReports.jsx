@@ -427,7 +427,8 @@ export default function FinancialReports() {
             {/* Print Header */}
             <div className="hidden print:block mb-6">
               <h1 className="text-2xl font-bold text-center">
-                {activeReport === "income" ? "Income Statement" : 
+                {activeReport === "dashboard" ? "Financial Dashboard" :
+                 activeReport === "income" ? "Income Statement" : 
                  activeReport === "balance" ? "Balance Sheet" : "Cash Flow Statement"}
               </h1>
               <p className="text-center text-gray-600">{company?.name}</p>
@@ -438,6 +439,13 @@ export default function FinancialReports() {
                 Generated on {format(new Date(), 'MMMM d, yyyy h:mm a')}
               </p>
             </div>
+
+            <TabsContent value="dashboard">
+              <FinancialDashboard 
+                dateRange={dateRange}
+                accountTypeFilter={accountTypeFilter}
+              />
+            </TabsContent>
 
             <TabsContent value="income">
               <ProfitLossStatement 
