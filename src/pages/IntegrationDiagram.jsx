@@ -11,17 +11,32 @@ import {
 
 const modules = [
   {
+    id: 'inventory',
+    name: 'Inventory',
+    icon: Package,
+    color: 'bg-emerald-500',
+    borderColor: 'border-emerald-500',
+    transactions: [
+      { action: 'Vehicle Acquisition', type: 'vehicle_purchase', debit: 'Vehicle Inventory (1200)', credit: 'Accounts Payable (2000)' },
+      { action: 'Parts Acquisition', type: 'parts_purchase', debit: 'Parts Inventory (1210)', credit: 'Accounts Payable (2000)' },
+      { action: 'Product Acquisition', type: 'product_purchase', debit: 'Product Inventory (1220)', credit: 'Accounts Payable (2000)' },
+      { action: 'Inventory Adjustment (+)', type: 'inventory_adjustment', debit: 'Inventory Account', credit: 'Inventory Adjustment (4700)' },
+      { action: 'Inventory Adjustment (-)', type: 'inventory_adjustment', debit: 'Inventory Shrinkage (5500)', credit: 'Inventory Account' },
+      { action: 'Inventory Write-Off', type: 'inventory_writeoff', debit: 'Inventory Write-Off Expense (5510)', credit: 'Inventory Account' }
+    ]
+  },
+  {
     id: 'sales',
     name: 'Sales',
     icon: DollarSign,
     color: 'bg-green-500',
     borderColor: 'border-green-500',
     transactions: [
-      { action: 'Create Sale', type: 'sale_revenue', debit: 'Accounts Receivable', credit: 'Vehicle Sales Revenue' },
-      { action: 'GST/HST Collected', type: 'tax_liability', debit: 'Accounts Receivable', credit: 'GST/HST Payable (2100/2120)' },
-      { action: 'PST/QST Collected', type: 'tax_liability', debit: 'Accounts Receivable', credit: 'PST Payable (2110)' },
-      { action: 'Payment Received', type: 'payment_received', debit: 'Cash', credit: 'Accounts Receivable' },
-      { action: 'COGS (if vehicle)', type: 'other_expense', debit: 'Cost of Vehicles Sold', credit: 'Vehicle Inventory' }
+      { action: 'Create Sale', type: 'sale_revenue', debit: 'Accounts Receivable (1100)', credit: 'Vehicle Sales Revenue (4000)' },
+      { action: 'GST/HST Collected', type: 'tax_liability', debit: 'Accounts Receivable (1100)', credit: 'GST/HST Payable (2100/2120)' },
+      { action: 'PST/QST Collected', type: 'tax_liability', debit: 'Accounts Receivable (1100)', credit: 'PST Payable (2110)' },
+      { action: 'Payment Received', type: 'payment_received', debit: 'Cash (1000)', credit: 'Accounts Receivable (1100)' },
+      { action: 'COGS (Vehicle)', type: 'cogs', debit: 'Cost of Vehicles Sold (5000)', credit: 'Vehicle Inventory (1200)' }
     ]
   },
   {
@@ -31,8 +46,9 @@ const modules = [
     color: 'bg-blue-500',
     borderColor: 'border-blue-500',
     transactions: [
-      { action: 'Receive Purchase', type: 'vehicle_purchase / parts_purchase', debit: 'Inventory (Vehicle/Parts)', credit: 'Accounts Payable' },
-      { action: 'Payment Made', type: 'payment_made', debit: 'Accounts Payable', credit: 'Cash' }
+      { action: 'Receive Purchase', type: 'vehicle_purchase / parts_purchase', debit: 'Inventory (Vehicle/Parts)', credit: 'Accounts Payable (2000)' },
+      { action: 'GST/HST Paid (ITC)', type: 'tax_asset', debit: 'GST/HST Receivable (1150)', credit: 'Accounts Payable (2000)' },
+      { action: 'Payment Made', type: 'payment_made', debit: 'Accounts Payable (2000)', credit: 'Cash (1000)' }
     ]
   },
   {
@@ -42,8 +58,9 @@ const modules = [
     color: 'bg-orange-500',
     borderColor: 'border-orange-500',
     transactions: [
-      { action: 'Complete Repair (Labor)', type: 'service_revenue', debit: 'Accounts Receivable', credit: 'Service Revenue' },
-      { action: 'Parts Used', type: 'other_expense', debit: 'Cost of Parts Sold', credit: 'Parts Inventory' },
+      { action: 'Complete Repair (Labor)', type: 'service_revenue', debit: 'Accounts Receivable (1100)', credit: 'Service Revenue (4100)' },
+      { action: 'Parts Used', type: 'parts_expense', debit: 'Cost of Parts Sold (5100)', credit: 'Parts Inventory (1210)' },
+      { action: 'Labor Cost', type: 'labor_expense', debit: 'Labor Expense (5200)', credit: 'Wages Payable (2300)' },
       { action: 'Inventory Update', type: 'inventory_adjustment', debit: 'N/A', credit: 'Parts Quantity Reduced' }
     ]
   },
@@ -54,9 +71,9 @@ const modules = [
     color: 'bg-purple-500',
     borderColor: 'border-purple-500',
     transactions: [
-      { action: 'Acquire Salvage Vehicle', type: 'vehicle_purchase', debit: 'Vehicle Inventory', credit: 'Accounts Payable' },
-      { action: 'Scrap Sale', type: 'other_income', debit: 'Cash', credit: 'Salvage Revenue' },
-      { action: 'Parts Extraction', type: 'journal_entry', debit: 'Parts Inventory', credit: 'Vehicle Inventory' }
+      { action: 'Acquire Salvage Vehicle', type: 'vehicle_purchase', debit: 'Vehicle Inventory (1200)', credit: 'Accounts Payable (2000)' },
+      { action: 'Scrap Sale', type: 'other_income', debit: 'Cash (1000)', credit: 'Salvage Revenue (4400)' },
+      { action: 'Parts Extraction', type: 'journal_entry', debit: 'Parts Inventory (1210)', credit: 'Vehicle Inventory (1200)' }
     ]
   },
   {
@@ -66,9 +83,9 @@ const modules = [
     color: 'bg-cyan-500',
     borderColor: 'border-cyan-500',
     transactions: [
-      { action: 'Freight Charges', type: 'other_expense', debit: 'Shipping & Freight Expense', credit: 'Accounts Payable' },
-      { action: 'Customs & Duties', type: 'other_expense', debit: 'Customs & Duties Expense', credit: 'Accounts Payable' },
-      { action: 'Insurance', type: 'other_expense', debit: 'Insurance Expense', credit: 'Accounts Payable' }
+      { action: 'Freight Charges', type: 'other_expense', debit: 'Shipping & Freight Expense (5400)', credit: 'Accounts Payable (2000)' },
+      { action: 'Customs & Duties', type: 'other_expense', debit: 'Customs & Duties Expense (5410)', credit: 'Accounts Payable (2000)' },
+      { action: 'Insurance', type: 'other_expense', debit: 'Insurance Expense (5420)', credit: 'Accounts Payable (2000)' }
     ]
   },
   {
@@ -78,9 +95,9 @@ const modules = [
     color: 'bg-indigo-500',
     borderColor: 'border-indigo-500',
     transactions: [
-      { action: 'Process Payroll (Gross)', type: 'payroll_expense', debit: 'Wages & Salaries Expense', credit: 'Cash' },
-      { action: 'Employer CPP', type: 'payroll_expense', debit: 'CPP Expense', credit: 'Payroll Liabilities' },
-      { action: 'Employer EI', type: 'payroll_expense', debit: 'EI Expense', credit: 'Payroll Liabilities' },
+      { action: 'Process Payroll (Gross)', type: 'payroll_expense', debit: 'Wages & Salaries Expense (6100)', credit: 'Cash (1000)' },
+      { action: 'Employer CPP', type: 'payroll_expense', debit: 'CPP Expense (6110)', credit: 'Payroll Liabilities (2400)' },
+      { action: 'Employer EI', type: 'payroll_expense', debit: 'EI Expense (6120)', credit: 'Payroll Liabilities (2400)' },
       { action: 'Deductions Payable', type: 'payroll_liability', debit: 'N/A', credit: 'Payroll Liabilities (CPP/EI/Tax)' }
     ]
   },
@@ -116,30 +133,56 @@ const modules = [
 ];
 
 const glAccounts = [
+  // Assets (1000-1999)
   { code: '1000', name: 'Cash / Bank Account', type: 'Asset' },
   { code: '1050', name: 'Undeposited Funds', type: 'Asset' },
   { code: '1100', name: 'Accounts Receivable', type: 'Asset' },
+  { code: '1150', name: 'GST/HST Receivable (ITC)', type: 'Asset' },
   { code: '1200', name: 'Vehicle Inventory', type: 'Asset' },
   { code: '1210', name: 'Parts Inventory', type: 'Asset' },
+  { code: '1220', name: 'Product Inventory', type: 'Asset' },
+  { code: '1300', name: 'Prepaid Expenses', type: 'Asset' },
+  { code: '1400', name: 'Fixed Assets', type: 'Asset' },
+  { code: '1410', name: 'Accumulated Depreciation', type: 'Asset' },
+  // Liabilities (2000-2999)
   { code: '2000', name: 'Accounts Payable', type: 'Liability' },
   { code: '2100', name: 'GST Payable', type: 'Liability' },
   { code: '2110', name: 'PST/QST Payable', type: 'Liability' },
   { code: '2120', name: 'HST Payable', type: 'Liability' },
+  { code: '2300', name: 'Wages Payable', type: 'Liability' },
   { code: '2400', name: 'Payroll Liabilities', type: 'Liability' },
+  { code: '2500', name: 'Accrued Liabilities', type: 'Liability' },
+  // Equity (3000-3999)
+  { code: '3000', name: 'Owner\'s Equity', type: 'Equity' },
+  { code: '3100', name: 'Retained Earnings', type: 'Equity' },
+  // Revenue (4000-4999)
   { code: '4000', name: 'Vehicle Sales Revenue', type: 'Revenue' },
-  { code: '4200', name: 'Service Revenue', type: 'Revenue' },
+  { code: '4100', name: 'Service Revenue', type: 'Revenue' },
+  { code: '4200', name: 'Freight Service Revenue', type: 'Revenue' },
   { code: '4400', name: 'Salvage Revenue', type: 'Revenue' },
   { code: '4500', name: 'Interest Income', type: 'Revenue' },
   { code: '4600', name: 'Foreign Exchange Gain', type: 'Revenue' },
   { code: '4610', name: 'Unrealized FX Gain', type: 'Revenue' },
+  { code: '4700', name: 'Inventory Adjustment Gain', type: 'Revenue' },
+  // Cost of Goods Sold (5000-5499)
   { code: '5000', name: 'Cost of Vehicles Sold', type: 'Expense' },
   { code: '5100', name: 'Cost of Parts Sold', type: 'Expense' },
-  { code: '5200', name: 'Shipping & Freight Expense', type: 'Expense' },
-  { code: '5210', name: 'Customs & Duties Expense', type: 'Expense' },
-  { code: '6100', name: 'Payroll Expense', type: 'Expense' },
+  { code: '5200', name: 'Labor Expense', type: 'Expense' },
+  { code: '5400', name: 'Shipping & Freight Expense', type: 'Expense' },
+  { code: '5410', name: 'Customs & Duties Expense', type: 'Expense' },
+  { code: '5420', name: 'Insurance Expense (Shipping)', type: 'Expense' },
+  { code: '5500', name: 'Inventory Shrinkage', type: 'Expense' },
+  { code: '5510', name: 'Inventory Write-Off', type: 'Expense' },
+  // Operating Expenses (6000-6999)
+  { code: '6100', name: 'Wages & Salaries Expense', type: 'Expense' },
+  { code: '6110', name: 'CPP Expense', type: 'Expense' },
+  { code: '6120', name: 'EI Expense', type: 'Expense' },
   { code: '6200', name: 'Bank Charges & Fees', type: 'Expense' },
   { code: '6300', name: 'Foreign Exchange Loss', type: 'Expense' },
-  { code: '6310', name: 'Unrealized FX Loss', type: 'Expense' }
+  { code: '6310', name: 'Unrealized FX Loss', type: 'Expense' },
+  { code: '6400', name: 'Depreciation Expense', type: 'Expense' },
+  { code: '6500', name: 'Rent Expense', type: 'Expense' },
+  { code: '6600', name: 'Utilities Expense', type: 'Expense' }
 ];
 
 // Canadian Sales Tax Rates Reference
