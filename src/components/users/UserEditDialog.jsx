@@ -203,9 +203,9 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
             <label className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:bg-gray-50 p-2 rounded mb-2 border-b">
               <input
                 type="checkbox"
-                checked={userData.accessible_modules?.length === 25}
+                checked={userData.accessible_modules?.length === 27}
                 onChange={(e) => {
-                  const allModules = ['Dashboard', 'Companies', 'Customers', 'Vehicles', 'Parts', 'ProductsServices', 'Purchases', 'Sales', 'Repairs', 'Technicians', 'Salvage', 'Exports', 'Freight', 'Reports', 'Analytics', 'VehicleAnalytics', 'Accounting', 'Banking', 'Payroll', 'EmployeePortal', 'CustomerCommunications', 'CustomerSupport', 'Notifications', 'UserManagement', 'Settings'];
+                  const allModules = ['Landing', 'Dashboard', 'Companies', 'Customers', 'Vehicles', 'Parts', 'ProductsServices', 'Purchases', 'Sales', 'Repairs', 'Technicians', 'Salvage', 'GlobalShipping', 'Reports', 'Analytics', 'VehicleAnalytics', 'Accounting', 'Banking', 'BankingMobile', 'Payroll', 'EmployeePortal', 'CustomerCommunications', 'CustomerSupport', 'Notifications', 'UserManagement', 'Settings', 'Pricing', 'FinancialAssistant'];
                   setUserData({
                     ...userData,
                     accessible_modules: e.target.checked ? allModules : []
@@ -217,6 +217,7 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
             </label>
             <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto border rounded-lg p-3">
               {[
+                { id: 'Landing', label: 'Home' },
                 { id: 'Dashboard', label: 'Dashboard' },
                 { id: 'Companies', label: 'Companies' },
                 { id: 'Customers', label: 'Customers' },
@@ -228,20 +229,22 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
                 { id: 'Repairs', label: 'Auto Repair' },
                 { id: 'Technicians', label: 'Technicians' },
                 { id: 'Salvage', label: 'Salvage & Dismantling' },
-                { id: 'Exports', label: 'Exports' },
-                { id: 'Freight', label: 'Freight & Cargo' },
+                { id: 'GlobalShipping', label: 'Global Shipping & Logistics' },
                 { id: 'Reports', label: 'Reports' },
                 { id: 'Analytics', label: 'Analytics' },
                 { id: 'VehicleAnalytics', label: 'Vehicle Analytics' },
                 { id: 'Accounting', label: 'Financials' },
                 { id: 'Banking', label: 'Banking' },
+                { id: 'BankingMobile', label: 'Mobile Banking' },
                 { id: 'Payroll', label: 'Payroll & HR' },
                 { id: 'EmployeePortal', label: 'Employee Portal' },
                 { id: 'CustomerCommunications', label: 'Communications Hub' },
                 { id: 'CustomerSupport', label: 'AI Support Chat' },
                 { id: 'Notifications', label: 'Notifications' },
                 { id: 'UserManagement', label: 'User Management' },
-                { id: 'Settings', label: 'Settings' }
+                { id: 'Settings', label: 'Settings' },
+                { id: 'Pricing', label: 'Pricing' },
+                { id: 'FinancialAssistant', label: 'AI Assistant' }
               ].map(module => (
                 <label key={module.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded">
                   <input
