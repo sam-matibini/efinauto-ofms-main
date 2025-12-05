@@ -66,12 +66,6 @@ const allNavigationItems = [
     pageId: "Companies"
   },
   {
-    title: "Global Shipping & Logistics",
-    url: createPageUrl("GlobalShipping"),
-    icon: Plane,
-    pageId: "GlobalShipping"
-  },
-  {
     title: "Customers",
     url: createPageUrl("Customers"),
     icon: Users,
