@@ -218,12 +218,6 @@ const allNavigationItems = [
     pageId: "FinancialAssistant"
   },
   {
-    title: "Project Management",
-    url: createPageUrl("Projects"),
-    icon: FolderKanban,
-    pageId: "Projects"
-  },
-  {
     title: "Audit Logs",
     url: createPageUrl("AuditLogs"),
     icon: Shield,
