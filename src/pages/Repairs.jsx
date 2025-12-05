@@ -107,9 +107,80 @@ export default function RepairsPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.RepairOrder.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const oldOrder = repairOrders.find(r => r.id === id);
+      const updated = await base44.entities.RepairOrder.update(id, data);
+      
+      // If status changed to completed and has costs, record revenue
+      if (data.status === 'completed' && oldOrder?.status !== 'completed') {
+        // Record labor revenue
+        if (data.labor_cost > 0) {
+          await base44.entities.Transaction.create({
+            company_id: selectedCompanyId,
+            transaction_number: `SRV-${id.slice(0, 8)}`,
+            transaction_type: 'service_revenue',
+            category: 'revenue',
+            amount: data.labor_cost,
+            account_code: '4200',
+            account_name: 'Service Revenue',
+            account_type: 'revenue',
+            reference_type: 'RepairOrder',
+            reference_id: id,
+            reference_number: data.order_number,
+            customer_name: data.customer_name,
+            description: `Labor for repair: ${data.vehicle_make} ${data.vehicle_model}`,
+            transaction_date: data.completion_date || new Date().toISOString().split('T')[0],
+            status: data.payment_status === 'paid' ? 'completed' : 'pending'
+          });
+        }
+        
+        // Record parts COGS if parts were used
+        if (data.parts_used?.length > 0) {
+          const partsCost = data.parts_used.reduce((sum, p) => sum + (p.total_cost || 0), 0);
+          if (partsCost > 0) {
+            await base44.entities.Transaction.create({
+              company_id: selectedCompanyId,
+              transaction_number: `COGS-${id.slice(0, 8)}`,
+              transaction_type: 'other_expense',
+              category: 'expense',
+              amount: partsCost,
+              account_code: '5100',
+              account_name: 'Cost of Parts Sold',
+              account_type: 'expense',
+              reference_type: 'RepairOrder',
+              reference_id: id,
+              reference_number: data.order_number,
+              customer_name: data.customer_name,
+              description: `Parts COGS: ${data.parts_used.map(p => p.part_name).join(', ')}`,
+              transaction_date: data.completion_date || new Date().toISOString().split('T')[0],
+              status: 'completed'
+            });
+            
+            // Update parts inventory quantities
+            for (const part of data.parts_used) {
+              if (part.part_id) {
+                try {
+                  const existingParts = await base44.entities.Part.filter({ id: part.part_id });
+                  if (existingParts.length > 0) {
+                    const currentPart = existingParts[0];
+                    const newQty = Math.max(0, (currentPart.quantity || 0) - (part.quantity || 1));
+                    await base44.entities.Part.update(part.part_id, { quantity: newQty });
+                  }
+                } catch (e) {
+                  console.error('Failed to update part inventory', e);
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      return updated;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repairs'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['parts'] });
       toast.success("Repair order updated successfully");
       setDialogOpen(false);
       setEditingOrder(null);

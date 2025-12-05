@@ -40,9 +40,36 @@ export default function Salvage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.SalvageVehicle.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: async (data) => {
+      const salvage = await base44.entities.SalvageVehicle.create({ ...data, company_id: selectedCompanyId });
+      
+      // Create GL transaction for salvage vehicle purchase
+      if (salvage.purchase_price > 0) {
+        await base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: `SALV-${salvage.id.slice(0, 8)}`,
+          transaction_type: 'vehicle_purchase',
+          category: 'asset',
+          amount: salvage.purchase_price,
+          account_code: '1200',
+          account_name: 'Vehicle Inventory',
+          account_type: 'asset',
+          contra_account_code: '2000',
+          contra_account_name: 'Accounts Payable',
+          reference_type: 'SalvageVehicle',
+          reference_id: salvage.id,
+          reference_number: salvage.salvage_number,
+          description: `Salvage vehicle acquisition: ${salvage.year} ${salvage.make} ${salvage.model}`,
+          transaction_date: salvage.intake_date || new Date().toISOString().split('T')[0],
+          status: 'completed'
+        });
+      }
+      
+      return salvage;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['salvage-vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setDialogOpen(false);
       setEditingSalvage(null);
       toast.success("Salvage vehicle added!");
@@ -50,9 +77,35 @@ export default function Salvage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.SalvageVehicle.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const oldSalvage = salvageVehicles.find(s => s.id === id);
+      const updated = await base44.entities.SalvageVehicle.update(id, data);
+      
+      // If status changed to 'scrapped' and has scrap value, record scrap revenue
+      if (data.status === 'scrapped' && oldSalvage?.status !== 'scrapped' && data.scrap_weights?.scrap_value > 0) {
+        await base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: `SCRAP-${id.slice(0, 8)}`,
+          transaction_type: 'other_income',
+          category: 'revenue',
+          amount: data.scrap_weights.scrap_value,
+          account_code: '4400',
+          account_name: 'Salvage Revenue',
+          account_type: 'revenue',
+          reference_type: 'SalvageVehicle',
+          reference_id: id,
+          reference_number: data.salvage_number,
+          description: `Scrap metal sale: ${data.scrap_weights.total_weight_kg}kg from ${data.year} ${data.make} ${data.model}`,
+          transaction_date: new Date().toISOString().split('T')[0],
+          status: 'completed'
+        });
+      }
+      
+      return updated;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['salvage-vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setDialogOpen(false);
       setEditingSalvage(null);
       toast.success("Salvage vehicle updated!");
