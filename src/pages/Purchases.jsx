@@ -14,6 +14,7 @@ import AIPartsSearchLocal from "@/components/parts/AIPartsSearchLocal";
 import AIPartsSearchCanada from "@/components/parts/AIPartsSearchCanada";
 import AIPartsSearchUSA from "@/components/parts/AIPartsSearchUSA";
 import AIPartsSearchMarketplace from "@/components/parts/AIPartsSearchMarketplace";
+import AIInventoryInsights from "@/components/shared/AIInventoryInsights";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -104,6 +105,20 @@ export default function Purchases() {
   const { data: vendorCredits = [] } = useQuery({
     queryKey: ['vendorCredits', selectedCompanyId],
     queryFn: () => base44.entities.VendorCredit.filter({ company_id: selectedCompanyId }, '-created_date'),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: parts = [] } = useQuery({
+    queryKey: ['parts', selectedCompanyId],
+    queryFn: () => base44.entities.Part.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+    initialData: [],
+  });
+
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ['vehicles', selectedCompanyId],
+    queryFn: () => base44.entities.Vehicle.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
@@ -341,6 +356,17 @@ export default function Purchases() {
             {/* AI Parts Search - Marketplaces */}
             <div className="mt-6">
               <AIPartsSearchMarketplace />
+            </div>
+
+            {/* AI Inventory Insights */}
+            <div className="mt-6">
+              <AIInventoryInsights 
+                companyId={selectedCompanyId}
+                inventoryType="all"
+                parts={parts}
+                vehicles={vehicles}
+                purchases={purchases}
+              />
             </div>
 
             {/* Stats Cards */}
