@@ -15,11 +15,11 @@ export default function VehiclesInTransitTab({ vehicles = [], shipments = [], co
   const [viewVehicle, setViewVehicle] = useState(null);
 
   const statusColors = {
-    in_stock: "bg-green-100 text-green-800",
-    sold: "bg-blue-100 text-blue-800",
-    reserved: "bg-yellow-100 text-yellow-800",
-    in_transit: "bg-purple-100 text-purple-800",
-    exported: "bg-indigo-100 text-indigo-800"
+    in_stock: "bg-green-100 text-green-700 border border-green-300",
+    sold: "bg-blue-100 text-blue-700 border border-blue-300",
+    reserved: "bg-amber-100 text-amber-700 border border-amber-300",
+    in_transit: "bg-purple-100 text-purple-700 border border-purple-300",
+    exported: "bg-indigo-100 text-indigo-700 border border-indigo-300"
   };
 
   const filteredVehicles = vehicles.filter(v =>
