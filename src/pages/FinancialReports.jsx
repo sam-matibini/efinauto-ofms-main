@@ -24,6 +24,7 @@ import jsPDF from "jspdf";
 import ProfitLossStatement from "@/components/accounting/ProfitLossStatement";
 import BalanceSheet from "@/components/accounting/BalanceSheet";
 import CashFlowStatement from "@/components/accounting/CashFlowStatement";
+import AutomatedReportingEngine from "@/components/accounting/AutomatedReportingEngine";
 
 const DATE_PRESETS = [
   { label: "This Month", getValue: () => ({ from: startOfMonth(new Date()), to: new Date() }) },
