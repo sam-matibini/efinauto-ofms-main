@@ -6,7 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, LayoutGrid, List, ArrowUpDown, Search } from "lucide-react";
+import { Plus, Trash2, LayoutGrid, List, ArrowUpDown, Search, Eye, Edit } from "lucide-react";
+import DocumentViewer from "../shared/DocumentViewer";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -14,14 +15,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import CustomerSelector from "../shared/CustomerSelector";
 
-export default function QuotesTab({ quotes, selectedCompanyId }) {
+export default function QuotesTab({ quotes, selectedCompanyId, company }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingQuote, setEditingQuote] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("list");
   const [sortBy, setSortBy] = useState("created_date");
   const [sortOrder, setSortOrder] = useState("desc");
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [selectedQuote, setSelectedQuote] = useState(null);
   const queryClient = useQueryClient();
+
+  const handleViewQuote = (quote) => {
+    setSelectedQuote(quote);
+    setViewerOpen(true);
+  };
 
   const filteredQuotes = quotes.filter(q =>
     q.quote_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -128,7 +136,10 @@ export default function QuotesTab({ quotes, selectedCompanyId }) {
                   <TableCell><Badge className={statusColors[quote.status]}>{quote.status}</Badge></TableCell>
                   <TableCell className="font-semibold text-blue-600">${quote.total_amount?.toLocaleString()}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(quote.id)}><Trash2 className="w-4 h-4" /></Button>
+                    <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => handleViewQuote(quote)}><Eye className="w-4 h-4" /></Button>
+                      <Button variant="ghost" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(quote.id)}><Trash2 className="w-4 h-4" /></Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -152,10 +163,16 @@ export default function QuotesTab({ quotes, selectedCompanyId }) {
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-blue-600">${quote.total_amount?.toLocaleString()}</p>
-                    <Button variant="outline" size="sm" className="mt-2 text-red-600" onClick={() => deleteMutation.mutate(quote.id)}>
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete
-                    </Button>
+                    <div className="flex gap-2 mt-2">
+                      <Button variant="outline" size="sm" onClick={() => handleViewQuote(quote)}>
+                        <Eye className="w-4 h-4 mr-1" />
+                        View
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(quote.id)}>
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -168,6 +185,14 @@ export default function QuotesTab({ quotes, selectedCompanyId }) {
         open={dialogOpen}
         onClose={() => { setDialogOpen(false); setEditingQuote(null); }}
         onSave={(data) => createMutation.mutate(data)}
+      />
+
+      <DocumentViewer
+        open={viewerOpen}
+        onClose={() => { setViewerOpen(false); setSelectedQuote(null); }}
+        documentType="quote"
+        documentData={selectedQuote}
+        company={company}
       />
     </>
   );

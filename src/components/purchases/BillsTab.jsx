@@ -3,12 +3,20 @@ import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Eye } from "lucide-react";
+import DocumentViewer from "../shared/DocumentViewer";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 
-export default function BillsTab({ bills, selectedCompanyId }) {
+export default function BillsTab({ bills, selectedCompanyId, company }) {
+  const [viewerOpen, setViewerOpen] = React.useState(false);
+  const [selectedBill, setSelectedBill] = React.useState(null);
   const queryClient = useQueryClient();
+
+  const handleViewBill = (bill) => {
+    setSelectedBill(bill);
+    setViewerOpen(true);
+  };
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Bill.delete(id),
@@ -57,16 +65,31 @@ export default function BillsTab({ bills, selectedCompanyId }) {
                 <div className="text-right">
                   <p className="text-2xl font-bold text-red-600">${bill.total_amount?.toLocaleString()}</p>
                   <p className="text-sm text-gray-500">Paid: ${bill.amount_paid?.toLocaleString()}</p>
-                  <Button variant="outline" size="sm" className="mt-2 text-red-600" onClick={() => deleteMutation.mutate(bill.id)}>
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </Button>
+                  <div className="flex gap-2 mt-2">
+                    <Button variant="outline" size="sm" onClick={() => handleViewBill(bill)}>
+                      <Eye className="w-4 h-4 mr-1" />
+                      View
+                    </Button>
+                    <Button variant="outline" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(bill.id)}>
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      <DocumentViewer
+        open={viewerOpen}
+        onClose={() => { setViewerOpen(false); setSelectedBill(null); }}
+        documentType="invoice"
+        documentData={selectedBill ? { ...selectedBill, invoice_number: selectedBill.bill_number, invoice_date: selectedBill.bill_date, customer_name: selectedBill.vendor_name } : null}
+        company={company}
+        title="BILL"
+      />
     </>
   );
 }
