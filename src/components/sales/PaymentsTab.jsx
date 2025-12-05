@@ -1,14 +1,15 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, LayoutGrid, List, ArrowUpDown, Search } from "lucide-react";
+import { Plus, Trash2, LayoutGrid, List, ArrowUpDown, Search, Receipt, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import PaymentReceiptDialog from "./PaymentReceiptDialog";
 
 export default function PaymentsTab({ payments, selectedCompanyId }) {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -16,7 +17,23 @@ export default function PaymentsTab({ payments, selectedCompanyId }) {
   const [viewMode, setViewMode] = useState("list");
   const [sortBy, setSortBy] = useState("created_date");
   const [sortOrder, setSortOrder] = useState("desc");
+  const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
   const queryClient = useQueryClient();
+
+  const { data: company } = useQuery({
+    queryKey: ['company', selectedCompanyId],
+    queryFn: async () => {
+      const result = await base44.entities.Company.filter({ id: selectedCompanyId });
+      return result?.[0];
+    },
+    enabled: !!selectedCompanyId,
+  });
+
+  const handleViewReceipt = (payment) => {
+    setSelectedPayment(payment);
+    setReceiptDialogOpen(true);
+  };
 
   const filteredPayments = payments.filter(p =>
     p.payment_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -108,6 +125,7 @@ export default function PaymentsTab({ payments, selectedCompanyId }) {
                   <TableCell><Badge className={statusColors[payment.status]}>{payment.status}</Badge></TableCell>
                   <TableCell className="font-semibold text-green-600">${payment.amount?.toLocaleString()}</TableCell>
                   <TableCell className="text-right">
+                    <Button variant="ghost" size="sm" onClick={() => handleViewReceipt(payment)}><Receipt className="w-4 h-4" /></Button>
                     <Button variant="ghost" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(payment.id)}><Trash2 className="w-4 h-4" /></Button>
                   </TableCell>
                 </TableRow>
@@ -138,10 +156,16 @@ export default function PaymentsTab({ payments, selectedCompanyId }) {
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-green-600">${payment.amount?.toLocaleString()}</p>
-                    <Button variant="outline" size="sm" className="mt-2 text-red-600" onClick={() => deleteMutation.mutate(payment.id)}>
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete
-                    </Button>
+                    <div className="flex gap-2 mt-2 justify-end">
+                      <Button variant="outline" size="sm" onClick={() => handleViewReceipt(payment)}>
+                        <Receipt className="w-4 h-4 mr-2" />
+                        Receipt
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(payment.id)}>
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -149,6 +173,13 @@ export default function PaymentsTab({ payments, selectedCompanyId }) {
           ))}
         </div>
       )}
+
+      <PaymentReceiptDialog
+        open={receiptDialogOpen}
+        onClose={() => { setReceiptDialogOpen(false); setSelectedPayment(null); }}
+        payment={selectedPayment}
+        company={company}
+      />
     </>
   );
 }
