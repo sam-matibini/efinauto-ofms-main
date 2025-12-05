@@ -12,6 +12,8 @@ export const defaultSubscriptionPlans = [
     price: 49,
     interval: "month",
     popular: false,
+    icon: Car,
+    color: "blue",
     features: [
       "Vehicle Inventory Management",
       "Sales Tracking",
@@ -28,6 +30,8 @@ export const defaultSubscriptionPlans = [
     price: 149,
     interval: "month",
     popular: true,
+    icon: Wrench,
+    color: "purple",
     features: [
       "All Starter features",
       "Advanced Inventory Management",
@@ -46,6 +50,8 @@ export const defaultSubscriptionPlans = [
     price: 299,
     interval: "month",
     popular: false,
+    icon: LayoutDashboard,
+    color: "amber",
     features: [
       "All Professional features",
       "Multi-company Management",
