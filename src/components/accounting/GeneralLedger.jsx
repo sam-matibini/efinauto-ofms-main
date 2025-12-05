@@ -97,11 +97,25 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
     
     // Cost of Goods Sold - check this first before other matches
     if (desc.includes('cogs') || desc.includes('cost of goods') || desc.includes('cost of vehicle')) {
-      return { account_code: '5000', account_name: 'Cost of Goods Sold', account_type: 'expense' };
+      return { account_code: '5000', account_name: 'Cost of Vehicles Sold', account_type: 'expense' };
+    }
+    // Inventory adjustments
+    if (desc.includes('inventory adjustment') || type === 'inventory_adjustment') {
+      if (desc.includes('shrinkage') || desc.includes('loss')) {
+        return { account_code: '5500', account_name: 'Inventory Shrinkage', account_type: 'expense' };
+      }
+      if (desc.includes('write-off') || desc.includes('writeoff')) {
+        return { account_code: '5510', account_name: 'Inventory Write-Off', account_type: 'expense' };
+      }
+      return { account_code: '4700', account_name: 'Inventory Adjustment Gain', account_type: 'revenue' };
     }
     // Freight/Shipping revenue
     if (desc.includes('freight') && (desc.includes('revenue') || desc.includes('service'))) {
       return { account_code: '4200', account_name: 'Freight Service Revenue', account_type: 'revenue' };
+    }
+    // Salvage revenue
+    if (desc.includes('salvage') || desc.includes('scrap')) {
+      return { account_code: '4400', account_name: 'Salvage Revenue', account_type: 'revenue' };
     }
     // Export sale revenue
     if (desc.includes('export') && (desc.includes('sale') || desc.includes('revenue'))) {
@@ -123,7 +137,17 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
     if (type === 'parts_purchase' || desc.includes('parts purchase')) {
       return { account_code: '1210', account_name: 'Parts Inventory', account_type: 'asset' };
     }
-
+    // Product purchase
+    if (type === 'product_purchase' || desc.includes('product purchase')) {
+      return { account_code: '1220', account_name: 'Product Inventory', account_type: 'asset' };
+    }
+    // GST/HST
+    if (desc.includes('gst') || desc.includes('hst')) {
+      if (desc.includes('payable') || desc.includes('collected')) {
+        return { account_code: '2100', account_name: 'GST Payable', account_type: 'liability' };
+      }
+      return { account_code: '1150', account_name: 'GST/HST Receivable (ITC)', account_type: 'asset' };
+    }
     // Accounts Receivable
     if (desc.includes('ar:') || desc.includes('accounts receivable')) {
       return { account_code: '1100', account_name: 'Accounts Receivable', account_type: 'asset' };
@@ -133,24 +157,35 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
       return { account_code: '2000', account_name: 'Accounts Payable', account_type: 'liability' };
     }
     // Cash
-    if (desc.includes('cash received') || desc.includes('cash payment')) {
+    if (desc.includes('cash received') || desc.includes('cash payment') || desc.includes('bank')) {
       return { account_code: '1000', account_name: 'Cash and Bank', account_type: 'asset' };
     }
+    // Foreign Exchange
+    if (desc.includes('fx gain') || desc.includes('exchange gain')) {
+      return { account_code: '4600', account_name: 'Foreign Exchange Gain', account_type: 'revenue' };
+    }
+    if (desc.includes('fx loss') || desc.includes('exchange loss')) {
+      return { account_code: '6300', account_name: 'Foreign Exchange Loss', account_type: 'expense' };
+    }
     // Freight expense
-    if (desc.includes('freight cost') || desc.includes('shipment cost')) {
-      return { account_code: '5400', account_name: 'Freight & Shipping Expense', account_type: 'expense' };
+    if (desc.includes('freight cost') || desc.includes('shipment cost') || desc.includes('shipping')) {
+      return { account_code: '5400', account_name: 'Shipping & Freight Expense', account_type: 'expense' };
     }
     // Parts expense
-    if (desc.includes('parts used') || desc.includes('parts expense')) {
-      return { account_code: '5100', account_name: 'Parts Expense', account_type: 'expense' };
+    if (desc.includes('parts used') || desc.includes('parts expense') || desc.includes('cost of parts')) {
+      return { account_code: '5100', account_name: 'Cost of Parts Sold', account_type: 'expense' };
     }
     // Labor expense
     if (desc.includes('labor')) {
       return { account_code: '5200', account_name: 'Labor Expense', account_type: 'expense' };
     }
-    // Payroll
-    if (type === 'payroll_expense' || desc.includes('payroll')) {
-      return { account_code: '5300', account_name: 'Payroll Expense', account_type: 'expense' };
+    // Payroll / Wages
+    if (type === 'payroll_expense' || desc.includes('payroll') || desc.includes('wages') || desc.includes('salary')) {
+      return { account_code: '6100', account_name: 'Wages & Salaries Expense', account_type: 'expense' };
+    }
+    // Bank fees
+    if (desc.includes('bank fee') || desc.includes('bank charge')) {
+      return { account_code: '6200', account_name: 'Bank Charges & Fees', account_type: 'expense' };
     }
     // Default based on category
     if (entry.category === 'revenue') {
