@@ -71,13 +71,60 @@ export default function ShipmentsTab({ shipments = [], exports = [], customers =
   };
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.FreightShipment.create({
-      ...data, 
-      company_id: selectedCompanyId,
-      shipment_number: data.shipment_number || generateShipmentNumber()
-    }),
+    mutationFn: async (data) => {
+      const shipmentData = {
+        ...data, 
+        company_id: selectedCompanyId,
+        shipment_number: data.shipment_number || generateShipmentNumber()
+      };
+      const shipment = await base44.entities.FreightShipment.create(shipmentData);
+      
+      // Create GL transactions for shipping fees
+      if (data.freight_cost > 0) {
+        await base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: `FRT-${shipment.id.slice(0, 8)}`,
+          transaction_type: 'other_expense',
+          category: 'expense',
+          amount: data.freight_cost,
+          account_code: '5200',
+          account_name: 'Shipping & Freight Expense',
+          account_type: 'expense',
+          reference_type: 'FreightShipment',
+          reference_id: shipment.id,
+          reference_number: shipment.shipment_number,
+          customer_name: data.customer_name,
+          description: `Freight charges: ${data.origin_country} → ${data.destination_country}`,
+          transaction_date: data.departure_date || new Date().toISOString().split('T')[0],
+          status: 'completed'
+        });
+      }
+      
+      if (data.customs_fees > 0) {
+        await base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: `CUST-${shipment.id.slice(0, 8)}`,
+          transaction_type: 'other_expense',
+          category: 'expense',
+          amount: data.customs_fees,
+          account_code: '5210',
+          account_name: 'Customs & Duties Expense',
+          account_type: 'expense',
+          reference_type: 'FreightShipment',
+          reference_id: shipment.id,
+          reference_number: shipment.shipment_number,
+          customer_name: data.customer_name,
+          description: `Customs & duties: ${shipment.shipment_number}`,
+          transaction_date: data.departure_date || new Date().toISOString().split('T')[0],
+          status: 'completed'
+        });
+      }
+      
+      return shipment;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       handleDialogClose();
       toast.success("Shipment created!");
     },
