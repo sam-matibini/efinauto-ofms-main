@@ -19,10 +19,10 @@ import { toast } from "sonner";
 import VehicleSelector from "./VehicleSelector";
 
 const templateTypes = [
+  { id: 'export_order', name: 'Export Order', icon: '📤' },
   { id: 'loading_declaration', name: 'Loading Declaration', icon: '📦' },
   { id: 'bill_of_lading', name: 'Bill of Lading (B/L)', icon: '📜' },
-  { id: 'packing_list', name: 'Packing List', icon: '📝' },
-  { id: 'export_order', name: 'Export Order', icon: '📤' }
+  { id: 'packing_list', name: 'Packing List', icon: '📝' }
 ];
 
 export default function DocumentTemplateGenerator({ 
@@ -36,7 +36,7 @@ export default function DocumentTemplateGenerator({
   exports = [],
   company
 }) {
-  const [templateType, setTemplateType] = useState('loading_declaration');
+  const [templateType, setTemplateType] = useState('export_order');
   const [formData, setFormData] = useState({});
   const [selectedVehicles, setSelectedVehicles] = useState([]);
   const [generating, setGenerating] = useState(false);
