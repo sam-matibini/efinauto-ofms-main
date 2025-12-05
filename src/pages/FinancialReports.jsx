@@ -368,7 +368,7 @@ export default function FinancialReports() {
         {/* Report Tabs */}
         <Tabs value={activeReport} onValueChange={setActiveReport}>
           <div className="flex justify-between items-center mb-4 print:hidden">
-            <TabsList className="grid grid-cols-5 w-auto">
+            <TabsList className="grid grid-cols-6 w-auto">
               <TabsTrigger value="dashboard" className="flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />
                 Dashboard
@@ -384,6 +384,10 @@ export default function FinancialReports() {
               <TabsTrigger value="cashflow" className="flex items-center gap-2">
                 <Wallet className="w-4 h-4" />
                 Cash Flow
+              </TabsTrigger>
+              <TabsTrigger value="custom" className="flex items-center gap-2">
+                <PenTool className="w-4 h-4" />
+                Custom Reports
               </TabsTrigger>
               <TabsTrigger value="automated" className="flex items-center gap-2">
                 <Mail className="w-4 h-4" />
