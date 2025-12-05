@@ -6,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Car, Wrench, Package, Ship, DollarSign, Users, Trash2, 
   ArrowRight, ArrowDown, Database, CheckCircle, AlertCircle,
-  FileText, CreditCard, Receipt, Building2, Briefcase, BarChart3, Landmark
+  FileText, CreditCard, Receipt, Building2, Briefcase, BarChart3, Landmark,
+  FolderKanban
 } from "lucide-react";
 
 const modules = [
