@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import InvoiceDialog from "./InvoiceDialog";
 import InvoicePreview from "./InvoicePreview";
+import DocumentViewer from "../shared/DocumentViewer";
 
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-US', {
