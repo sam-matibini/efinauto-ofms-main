@@ -73,18 +73,6 @@ const allNavigationItems = [
     pageId: "Customers"
   },
   {
-    title: "Vehicles",
-    url: createPageUrl("Vehicles"),
-    icon: Car,
-    pageId: "Vehicles"
-  },
-  {
-    title: "Parts Inventory",
-    url: createPageUrl("Parts"),
-    icon: Settings,
-    pageId: "Parts"
-  },
-  {
     title: "Inventory Management",
     url: createPageUrl("InventoryManagement"),
     icon: Package,
