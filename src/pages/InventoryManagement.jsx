@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,19 +8,29 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Car, Package, Wrench, Search, TrendingUp, TrendingDown, 
   AlertTriangle, DollarSign, BarChart3, RefreshCw, Filter,
-  Download, ArrowUpRight, ArrowDownRight, Boxes
+  Download, ArrowUpRight, ArrowDownRight, Boxes, Plus, Edit, Trash2, Eye
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
+import { toast } from "sonner";
 import AIInventoryInsights from "@/components/shared/AIInventoryInsights";
 
 export default function InventoryManagement() {
   const { selectedCompanyId } = useCompany();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
+  const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
+  const [partDialogOpen, setPartDialogOpen] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState(null);
+  const [editingPart, setEditingPart] = useState(null);
 
   // Fetch all inventory data
   const { data: vehicles = [], isLoading: loadingVehicles } = useQuery({
@@ -105,6 +115,64 @@ export default function InventoryManagement() {
   }
 
   const isLoading = loadingVehicles || loadingParts || loadingProducts;
+
+  // Vehicle mutations
+  const createVehicleMutation = useMutation({
+    mutationFn: (data) => base44.entities.Vehicle.create({ ...data, company_id: selectedCompanyId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      setVehicleDialogOpen(false);
+      setEditingVehicle(null);
+      toast.success("Vehicle added successfully");
+    },
+  });
+
+  const updateVehicleMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Vehicle.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      setVehicleDialogOpen(false);
+      setEditingVehicle(null);
+      toast.success("Vehicle updated successfully");
+    },
+  });
+
+  const deleteVehicleMutation = useMutation({
+    mutationFn: (id) => base44.entities.Vehicle.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      toast.success("Vehicle deleted");
+    },
+  });
+
+  // Part mutations
+  const createPartMutation = useMutation({
+    mutationFn: (data) => base44.entities.Part.create({ ...data, company_id: selectedCompanyId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['parts'] });
+      setPartDialogOpen(false);
+      setEditingPart(null);
+      toast.success("Part added successfully");
+    },
+  });
+
+  const updatePartMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Part.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['parts'] });
+      setPartDialogOpen(false);
+      setEditingPart(null);
+      toast.success("Part updated successfully");
+    },
+  });
+
+  const deletePartMutation = useMutation({
+    mutationFn: (id) => base44.entities.Part.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['parts'] });
+      toast.success("Part deleted");
+    },
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -325,8 +393,12 @@ export default function InventoryManagement() {
 
           <TabsContent value="vehicles" className="mt-6">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Vehicle Inventory</CardTitle>
+                <Button onClick={() => { setEditingVehicle(null); setVehicleDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Vehicle
+                </Button>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -339,24 +411,35 @@ export default function InventoryManagement() {
                         <th className="text-right p-3">Cost</th>
                         <th className="text-right p-3">Selling Price</th>
                         <th className="text-right p-3">Days In Stock</th>
+                        <th className="text-center p-3">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {inStockVehicles.filter(v => 
+                      {vehicles.filter(v => 
                         searchTerm === "" || 
                         `${v.year} ${v.make} ${v.model}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         v.vin?.toLowerCase().includes(searchTerm.toLowerCase())
-                      ).slice(0, 20).map((vehicle) => (
+                      ).slice(0, 50).map((vehicle) => (
                         <tr key={vehicle.id} className="border-b hover:bg-gray-50">
                           <td className="p-3 font-medium">{vehicle.year} {vehicle.make} {vehicle.model}</td>
                           <td className="p-3 font-mono text-xs">{vehicle.vin}</td>
                           <td className="p-3">
-                            <Badge className="bg-green-100 text-green-800">{vehicle.status}</Badge>
+                            <Badge className={vehicle.status === 'in_stock' ? 'bg-green-100 text-green-800' : vehicle.status === 'sold' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}>{vehicle.status}</Badge>
                           </td>
                           <td className="p-3 text-right">${(vehicle.total_cost || vehicle.purchase_price || 0).toLocaleString()}</td>
                           <td className="p-3 text-right">${(vehicle.selling_price || 0).toLocaleString()}</td>
                           <td className="p-3 text-right">
                             {Math.floor((new Date() - new Date(vehicle.created_date)) / (1000 * 60 * 60 * 24))} days
+                          </td>
+                          <td className="p-3 text-center">
+                            <div className="flex justify-center gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => { setEditingVehicle(vehicle); setVehicleDialogOpen(true); }}>
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="text-red-600" onClick={() => { if(confirm('Delete this vehicle?')) deleteVehicleMutation.mutate(vehicle.id); }}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -369,8 +452,12 @@ export default function InventoryManagement() {
 
           <TabsContent value="parts" className="mt-6">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Parts Inventory</CardTitle>
+                <Button onClick={() => { setEditingPart(null); setPartDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Part
+                </Button>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -384,6 +471,7 @@ export default function InventoryManagement() {
                         <th className="text-right p-3">Cost</th>
                         <th className="text-right p-3">Value</th>
                         <th className="text-center p-3">Status</th>
+                        <th className="text-center p-3">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -391,7 +479,7 @@ export default function InventoryManagement() {
                         searchTerm === "" || 
                         p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         p.part_number?.toLowerCase().includes(searchTerm.toLowerCase())
-                      ).slice(0, 20).map((part) => (
+                      ).slice(0, 50).map((part) => (
                         <tr key={part.id} className="border-b hover:bg-gray-50">
                           <td className="p-3 font-medium">{part.name}</td>
                           <td className="p-3 font-mono text-xs">{part.part_number}</td>
@@ -405,6 +493,16 @@ export default function InventoryManagement() {
                             ) : (
                               <Badge className="bg-green-100 text-green-800">In Stock</Badge>
                             )}
+                          </td>
+                          <td className="p-3 text-center">
+                            <div className="flex justify-center gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => { setEditingPart(part); setPartDialogOpen(true); }}>
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="text-red-600" onClick={() => { if(confirm('Delete this part?')) deletePartMutation.mutate(part.id); }}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -476,6 +574,238 @@ export default function InventoryManagement() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Vehicle Dialog */}
+      <VehicleDialog
+        open={vehicleDialogOpen}
+        onClose={() => { setVehicleDialogOpen(false); setEditingVehicle(null); }}
+        vehicle={editingVehicle}
+        onSave={(data) => {
+          if (editingVehicle) {
+            updateVehicleMutation.mutate({ id: editingVehicle.id, data });
+          } else {
+            createVehicleMutation.mutate(data);
+          }
+        }}
+      />
+
+      {/* Part Dialog */}
+      <PartDialog
+        open={partDialogOpen}
+        onClose={() => { setPartDialogOpen(false); setEditingPart(null); }}
+        part={editingPart}
+        onSave={(data) => {
+          if (editingPart) {
+            updatePartMutation.mutate({ id: editingPart.id, data });
+          } else {
+            createPartMutation.mutate(data);
+          }
+        }}
+      />
     </div>
+  );
+}
+
+function VehicleDialog({ open, onClose, vehicle, onSave }) {
+  const [formData, setFormData] = React.useState(vehicle || {
+    vin: "", make: "", model: "", year: new Date().getFullYear(), color: "",
+    mileage: 0, condition: "used", status: "in_stock", purchase_price: 0, selling_price: 0,
+    fuel_type: "petrol", transmission: "automatic", location: "", notes: ""
+  });
+
+  React.useEffect(() => {
+    setFormData(vehicle || {
+      vin: "", make: "", model: "", year: new Date().getFullYear(), color: "",
+      mileage: 0, condition: "used", status: "in_stock", purchase_price: 0, selling_price: 0,
+      fuel_type: "petrol", transmission: "automatic", location: "", notes: ""
+    });
+  }, [vehicle]);
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{vehicle ? 'Edit Vehicle' : 'Add Vehicle'}</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-4 py-4">
+          <div className="space-y-2">
+            <Label>VIN *</Label>
+            <Input value={formData.vin} onChange={(e) => setFormData({...formData, vin: e.target.value})} />
+          </div>
+          <div className="space-y-2">
+            <Label>Year *</Label>
+            <Input type="number" value={formData.year} onChange={(e) => setFormData({...formData, year: parseInt(e.target.value)})} />
+          </div>
+          <div className="space-y-2">
+            <Label>Make *</Label>
+            <Input value={formData.make} onChange={(e) => setFormData({...formData, make: e.target.value})} />
+          </div>
+          <div className="space-y-2">
+            <Label>Model *</Label>
+            <Input value={formData.model} onChange={(e) => setFormData({...formData, model: e.target.value})} />
+          </div>
+          <div className="space-y-2">
+            <Label>Color</Label>
+            <Input value={formData.color} onChange={(e) => setFormData({...formData, color: e.target.value})} />
+          </div>
+          <div className="space-y-2">
+            <Label>Mileage (km)</Label>
+            <Input type="number" value={formData.mileage} onChange={(e) => setFormData({...formData, mileage: parseInt(e.target.value)})} />
+          </div>
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="in_stock">In Stock</SelectItem>
+                <SelectItem value="sold">Sold</SelectItem>
+                <SelectItem value="reserved">Reserved</SelectItem>
+                <SelectItem value="in_transit">In Transit</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Condition</Label>
+            <Select value={formData.condition} onValueChange={(v) => setFormData({...formData, condition: v})}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="new">New</SelectItem>
+                <SelectItem value="used">Used</SelectItem>
+                <SelectItem value="certified_pre_owned">Certified Pre-Owned</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Purchase Price ($)</Label>
+            <Input type="number" value={formData.purchase_price} onChange={(e) => setFormData({...formData, purchase_price: parseFloat(e.target.value)})} />
+          </div>
+          <div className="space-y-2">
+            <Label>Selling Price ($)</Label>
+            <Input type="number" value={formData.selling_price} onChange={(e) => setFormData({...formData, selling_price: parseFloat(e.target.value)})} />
+          </div>
+          <div className="space-y-2">
+            <Label>Fuel Type</Label>
+            <Select value={formData.fuel_type} onValueChange={(v) => setFormData({...formData, fuel_type: v})}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="petrol">Petrol</SelectItem>
+                <SelectItem value="diesel">Diesel</SelectItem>
+                <SelectItem value="electric">Electric</SelectItem>
+                <SelectItem value="hybrid">Hybrid</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Transmission</Label>
+            <Select value={formData.transmission} onValueChange={(v) => setFormData({...formData, transmission: v})}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="automatic">Automatic</SelectItem>
+                <SelectItem value="manual">Manual</SelectItem>
+                <SelectItem value="semi_automatic">Semi-Automatic</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2 col-span-2">
+            <Label>Location</Label>
+            <Input value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} placeholder="Lot A, Bay 5" />
+          </div>
+          <div className="space-y-2 col-span-2">
+            <Label>Notes</Label>
+            <Textarea value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={2} />
+          </div>
+        </div>
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700" disabled={!formData.vin || !formData.make || !formData.model}>
+            {vehicle ? 'Update' : 'Add'} Vehicle
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PartDialog({ open, onClose, part, onSave }) {
+  const [formData, setFormData] = React.useState(part || {
+    part_number: `PART-${Date.now()}`, name: "", description: "", category: "other",
+    quantity: 0, reorder_level: 5, cost_price: 0, selling_price: 0, location: ""
+  });
+
+  React.useEffect(() => {
+    setFormData(part || {
+      part_number: `PART-${Date.now()}`, name: "", description: "", category: "other",
+      quantity: 0, reorder_level: 5, cost_price: 0, selling_price: 0, location: ""
+    });
+  }, [part]);
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{part ? 'Edit Part' : 'Add Part'}</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-4 py-4">
+          <div className="space-y-2">
+            <Label>Part Number *</Label>
+            <Input value={formData.part_number} onChange={(e) => setFormData({...formData, part_number: e.target.value})} />
+          </div>
+          <div className="space-y-2">
+            <Label>Name *</Label>
+            <Input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
+          </div>
+          <div className="space-y-2">
+            <Label>Category</Label>
+            <Select value={formData.category} onValueChange={(v) => setFormData({...formData, category: v})}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="engine">Engine</SelectItem>
+                <SelectItem value="transmission">Transmission</SelectItem>
+                <SelectItem value="brakes">Brakes</SelectItem>
+                <SelectItem value="suspension">Suspension</SelectItem>
+                <SelectItem value="electrical">Electrical</SelectItem>
+                <SelectItem value="body_parts">Body Parts</SelectItem>
+                <SelectItem value="interior">Interior</SelectItem>
+                <SelectItem value="exhaust">Exhaust</SelectItem>
+                <SelectItem value="filters">Filters</SelectItem>
+                <SelectItem value="lights">Lights</SelectItem>
+                <SelectItem value="tires_wheels">Tires & Wheels</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Location</Label>
+            <Input value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} placeholder="Shelf A3" />
+          </div>
+          <div className="space-y-2">
+            <Label>Quantity</Label>
+            <Input type="number" value={formData.quantity} onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 0})} />
+          </div>
+          <div className="space-y-2">
+            <Label>Reorder Level</Label>
+            <Input type="number" value={formData.reorder_level} onChange={(e) => setFormData({...formData, reorder_level: parseInt(e.target.value) || 5})} />
+          </div>
+          <div className="space-y-2">
+            <Label>Cost Price ($)</Label>
+            <Input type="number" step="0.01" value={formData.cost_price} onChange={(e) => setFormData({...formData, cost_price: parseFloat(e.target.value) || 0})} />
+          </div>
+          <div className="space-y-2">
+            <Label>Selling Price ($)</Label>
+            <Input type="number" step="0.01" value={formData.selling_price} onChange={(e) => setFormData({...formData, selling_price: parseFloat(e.target.value) || 0})} />
+          </div>
+          <div className="space-y-2 col-span-2">
+            <Label>Description</Label>
+            <Textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} rows={2} />
+          </div>
+        </div>
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700" disabled={!formData.part_number || !formData.name}>
+            {part ? 'Update' : 'Add'} Part
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
