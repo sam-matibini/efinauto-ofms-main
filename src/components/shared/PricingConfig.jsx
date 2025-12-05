@@ -97,8 +97,9 @@ export const defaultModuleCategories = [
     category: "Finance & Accounting",
     modules: [
       { id: "Accounting", name: "Full Accounting Suite", icon: DollarSign, price: 49 },
+      { id: "FinancialReports", name: "Financial Reports", icon: FileText, price: 29 },
       { id: "Payroll", name: "Payroll & HR", icon: Users, price: 39 },
-      { id: "Banking", name: "Banking Integration", icon: DollarSign, price: 29 },
+      { id: "Banking", name: "Banking Integration", icon: Landmark, price: 29 },
       { id: "FinancialAssistant", name: "AI Financial Assistant", icon: MessageCircle, price: 25 },
     ]
   },
