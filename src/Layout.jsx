@@ -21,7 +21,8 @@ import {
   DollarSign,
   MessageCircle,
   Send,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Globe
 } from "lucide-react";
 import {
   Sidebar,
