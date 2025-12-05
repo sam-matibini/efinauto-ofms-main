@@ -79,8 +79,6 @@ export default function CashFlowStatement({ comparativePeriods = [] }) {
       })
       .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-    
-
     // Vehicle inventory purchases are part of OPERATING activities (not investing)
     // because inventory is purchased for resale in the normal course of business
     const vehicleInventoryPurchases = purchases
