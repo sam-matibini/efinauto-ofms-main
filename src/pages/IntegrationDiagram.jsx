@@ -185,6 +185,7 @@ const glAccounts = [
   { code: '5000', name: 'Cost of Vehicles Sold', type: 'Expense' },
   { code: '5100', name: 'Cost of Parts Sold', type: 'Expense' },
   { code: '5200', name: 'Labor Expense', type: 'Expense' },
+  { code: '5300', name: 'Project Materials', type: 'Expense' },
   { code: '5400', name: 'Shipping & Freight Expense', type: 'Expense' },
   { code: '5410', name: 'Customs & Duties Expense', type: 'Expense' },
   { code: '5420', name: 'Insurance Expense (Shipping)', type: 'Expense' },
