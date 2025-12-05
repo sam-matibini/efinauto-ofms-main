@@ -130,6 +130,20 @@ const modules = [
       { action: 'Unrealized FX Loss', type: 'fx_unrealized_loss', debit: 'Unrealized FX Loss (6310)', credit: 'A/R Revaluation' },
       { action: 'Currency Conversion', type: 'fx_conversion', debit: 'Bank Account (Target Currency)', credit: 'Bank Account (Source Currency)' }
     ]
+  },
+  {
+    id: 'projects',
+    name: 'Project Management',
+    icon: FolderKanban,
+    color: 'bg-rose-500',
+    borderColor: 'border-rose-500',
+    transactions: [
+      { action: 'Project Labor Cost', type: 'project_labor', debit: 'Project Labor Expense (6150)', credit: 'Wages Payable (2300)' },
+      { action: 'Project Material Cost', type: 'project_material', debit: 'Project Materials (5300)', credit: 'Inventory / A/P' },
+      { action: 'Project Revenue', type: 'project_revenue', debit: 'Accounts Receivable (1100)', credit: 'Project Revenue (4300)' },
+      { action: 'Project Overhead', type: 'project_overhead', debit: 'Project Overhead (6160)', credit: 'Accounts Payable (2000)' },
+      { action: 'Work in Progress', type: 'wip', debit: 'Work in Progress (1250)', credit: 'Project Costs Applied' }
+    ]
   }
 ];
 
