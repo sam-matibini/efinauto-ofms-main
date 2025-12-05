@@ -271,9 +271,9 @@ export default function Layout({ children, currentPageName }) {
                   />
                 </div>
                 <div>
-                  <h2 className="font-bold text-lg" style={{ color: '#1e293b' }}>eFinAuto OFMS</h2>
-                  <p className="text-xs" style={{ color: '#1e293b' }}>Car Dealership & Services</p>
-                </div>
+                    <h2 className="font-bold text-lg text-white">eFinAuto OFMS</h2>
+                    <p className="text-xs text-gray-300">Car Dealership & Services</p>
+                  </div>
               </div>
               <CompanySelector />
             </SidebarHeader>
