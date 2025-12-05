@@ -127,6 +127,12 @@ const allNavigationItems = [
     pageId: "Reports"
   },
   {
+    title: "Financial Reports",
+    url: createPageUrl("FinancialReports"),
+    icon: FileText,
+    pageId: "FinancialReports"
+  },
+  {
     title: "Analytics",
     url: createPageUrl("Analytics"),
     icon: LineChart,

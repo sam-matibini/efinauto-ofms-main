@@ -34,6 +34,7 @@ import CustomerTracking from './pages/CustomerTracking';
 import AuditLogs from './pages/AuditLogs';
 import IntegrationDiagram from './pages/IntegrationDiagram';
 import InventoryManagement from './pages/InventoryManagement';
+import FinancialReports from './pages/FinancialReports';
 import __Layout from './Layout.jsx';
 
 
@@ -74,6 +75,7 @@ export const PAGES = {
     "AuditLogs": AuditLogs,
     "IntegrationDiagram": IntegrationDiagram,
     "InventoryManagement": InventoryManagement,
+    "FinancialReports": FinancialReports,
 }
 
 export const pagesConfig = {
