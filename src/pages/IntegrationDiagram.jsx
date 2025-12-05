@@ -98,6 +98,20 @@ const modules = [
       { action: 'Interest Income', type: 'interest_income', debit: 'Bank Account (1000)', credit: 'Interest Income (4500)' },
       { action: 'Reconciliation Adjustment', type: 'journal_entry', debit: 'Bank Account / Adjustment', credit: 'Adjustment / Bank Account' }
     ]
+  },
+  {
+    id: 'forex',
+    name: 'Foreign Exchange',
+    icon: CreditCard,
+    color: 'bg-amber-500',
+    borderColor: 'border-amber-500',
+    transactions: [
+      { action: 'Realized FX Gain', type: 'fx_gain', debit: 'A/R or Bank (1100/1000)', credit: 'FX Gain (4600)' },
+      { action: 'Realized FX Loss', type: 'fx_loss', debit: 'FX Loss (6300)', credit: 'A/R or Bank (1100/1000)' },
+      { action: 'Unrealized FX Gain', type: 'fx_unrealized_gain', debit: 'A/R Revaluation', credit: 'Unrealized FX Gain (4610)' },
+      { action: 'Unrealized FX Loss', type: 'fx_unrealized_loss', debit: 'Unrealized FX Loss (6310)', credit: 'A/R Revaluation' },
+      { action: 'Currency Conversion', type: 'fx_conversion', debit: 'Bank Account (Target Currency)', credit: 'Bank Account (Source Currency)' }
+    ]
   }
 ];
 
@@ -116,12 +130,16 @@ const glAccounts = [
   { code: '4200', name: 'Service Revenue', type: 'Revenue' },
   { code: '4400', name: 'Salvage Revenue', type: 'Revenue' },
   { code: '4500', name: 'Interest Income', type: 'Revenue' },
+  { code: '4600', name: 'Foreign Exchange Gain', type: 'Revenue' },
+  { code: '4610', name: 'Unrealized FX Gain', type: 'Revenue' },
   { code: '5000', name: 'Cost of Vehicles Sold', type: 'Expense' },
   { code: '5100', name: 'Cost of Parts Sold', type: 'Expense' },
   { code: '5200', name: 'Shipping & Freight Expense', type: 'Expense' },
   { code: '5210', name: 'Customs & Duties Expense', type: 'Expense' },
   { code: '6100', name: 'Payroll Expense', type: 'Expense' },
-  { code: '6200', name: 'Bank Charges & Fees', type: 'Expense' }
+  { code: '6200', name: 'Bank Charges & Fees', type: 'Expense' },
+  { code: '6300', name: 'Foreign Exchange Loss', type: 'Expense' },
+  { code: '6310', name: 'Unrealized FX Loss', type: 'Expense' }
 ];
 
 // Canadian Sales Tax Rates Reference
@@ -187,14 +205,14 @@ export default function IntegrationDiagram() {
                   {/* Connection Lines */}
                   <div className="flex justify-center mb-4">
                     <div className="flex gap-2">
-                      {[1,2,3,4,5,6,7].map(i => (
+                      {[1,2,3,4,5,6,7,8].map(i => (
                         <ArrowDown key={i} className="w-5 h-5 text-gray-400" />
                       ))}
                     </div>
                   </div>
 
                   {/* Module Cards */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
                     {modules.map((module) => (
                       <div
                         key={module.id}
