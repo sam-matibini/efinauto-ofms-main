@@ -127,10 +127,10 @@ export default function DocumentViewer({
   const generatePrintHTML = () => {
     const lineItemsHTML = (documentData.line_items || []).map(item => `
       <tr>
-        <td style="padding: 10px; border: 1px solid #ddd;">${item.description || ''}</td>
-        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${item.quantity || 1}</td>
-        <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">${formatCurrency(item.unit_price || item.rate || 0, currency)}</td>
-        <td style="padding: 10px; border: 1px solid #ddd; text-align: right; font-weight: 500;">${formatCurrency(item.total || item.amount || ((item.quantity || 1) * (item.unit_price || item.rate || 0)), currency)}</td>
+        <td>${item.description || ''}</td>
+        <td class="right">${item.quantity || 1}</td>
+        <td class="right">${formatCurrency(item.unit_price || item.rate || 0, currency)}</td>
+        <td class="right">${formatCurrency(item.total || item.amount || ((item.quantity || 1) * (item.unit_price || item.rate || 0)), currency)}</td>
       </tr>
     `).join('');
 
@@ -146,123 +146,165 @@ export default function DocumentViewer({
           <title>${docTitle} - ${documentData.invoice_number || documentData.quote_number || documentData.sale_number || ''}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: Arial, sans-serif; padding: 30px; max-width: 800px; margin: 0 auto; color: #1f2937; font-size: 11pt; line-height: 1.5; }
-            .company-header { margin-bottom: 25px; }
-            .company-name { font-size: 22pt; font-weight: bold; color: #1e293b; font-style: italic; margin-bottom: 8px; }
-            .company-details { font-size: 10pt; color: #374151; line-height: 1.6; }
-            .doc-title { font-size: 18pt; font-weight: bold; color: #1e293b; margin: 25px 0 15px 0; }
-            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 25px; }
-            .bill-to { }
-            .bill-to h3 { font-size: 11pt; font-weight: bold; color: #1e293b; margin-bottom: 8px; }
-            .bill-to p { font-size: 10pt; color: #374151; margin: 3px 0; }
-            .doc-details { text-align: right; }
-            .doc-details p { font-size: 10pt; margin: 3px 0; }
-            .doc-details strong { color: #6b7280; }
-            .vehicle-box { background: #eff6ff; padding: 12px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #bfdbfe; }
-            table.items { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            table.items th { background: #f3f4f6; padding: 10px; text-align: left; font-size: 10pt; font-weight: 600; border: 1px solid #ddd; }
-            table.items th:nth-child(2), table.items th:nth-child(3), table.items th:nth-child(4) { text-align: right; }
-            table.items td { padding: 10px; font-size: 10pt; border: 1px solid #ddd; }
-            .totals-section { margin-top: 20px; }
-            .totals-section p { font-size: 11pt; margin: 5px 0; }
-            .totals-section .total-line { font-weight: bold; font-size: 12pt; }
-            .thank-you { margin-top: 25px; font-size: 11pt; font-weight: 500; }
-            .tax-info { margin-top: 15px; font-size: 10pt; color: #374151; }
-            .tax-info p { margin: 3px 0; }
-            .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 9pt; }
-            .notes { background: #fefce8; padding: 12px; border-radius: 6px; margin-top: 15px; font-size: 10pt; }
-            .signature-area { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
-            .signature-line { border-top: 1px solid #374151; padding-top: 5px; text-align: center; font-size: 10pt; color: #6b7280; }
-            @media print { body { padding: 15mm; } }
+            body { font-family: 'Segoe UI', Arial, sans-serif; padding: 0; margin: 0; color: #333; font-size: 10pt; line-height: 1.4; }
+            .invoice-container { max-width: 800px; margin: 0 auto; background: #fff; }
+            .header { background: #1a5f7a; color: white; padding: 25px 30px; display: flex; justify-content: space-between; align-items: flex-start; }
+            .company-info { }
+            .company-name { font-size: 20pt; font-weight: 600; margin-bottom: 8px; }
+            .company-details { font-size: 9pt; opacity: 0.9; line-height: 1.6; }
+            .invoice-title { text-align: right; }
+            .invoice-title h1 { font-size: 28pt; font-weight: 300; letter-spacing: 2px; margin-bottom: 5px; }
+            .invoice-number { font-size: 11pt; opacity: 0.9; }
+            .content { padding: 30px; }
+            .info-section { display: flex; justify-content: space-between; margin-bottom: 30px; }
+            .bill-to { flex: 1; }
+            .bill-to-label { font-size: 9pt; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 600; }
+            .bill-to-name { font-size: 12pt; font-weight: 600; color: #1a5f7a; margin-bottom: 5px; }
+            .bill-to-details { font-size: 10pt; color: #555; line-height: 1.6; }
+            .invoice-details { text-align: right; }
+            .invoice-details-table { margin-left: auto; }
+            .invoice-details-table td { padding: 4px 0; font-size: 10pt; }
+            .invoice-details-table td:first-child { color: #666; padding-right: 15px; }
+            .invoice-details-table td:last-child { font-weight: 500; color: #333; }
+            .items-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
+            .items-table th { background: #f8f9fa; padding: 12px 15px; text-align: left; font-size: 9pt; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #1a5f7a; }
+            .items-table th.right { text-align: right; }
+            .items-table td { padding: 15px; border-bottom: 1px solid #eee; font-size: 10pt; }
+            .items-table td.right { text-align: right; }
+            .items-table tr:hover { background: #fafafa; }
+            .totals-wrapper { display: flex; justify-content: flex-end; }
+            .totals-table { width: 280px; }
+            .totals-table td { padding: 8px 0; font-size: 10pt; }
+            .totals-table td:first-child { color: #666; }
+            .totals-table td:last-child { text-align: right; font-weight: 500; }
+            .totals-table .subtotal-row td { border-top: 1px solid #eee; padding-top: 15px; }
+            .totals-table .total-row td { border-top: 2px solid #1a5f7a; padding-top: 12px; font-size: 14pt; font-weight: 700; }
+            .totals-table .total-row td:last-child { color: #1a5f7a; }
+            .totals-table .balance-row td { background: #fff3cd; padding: 10px 8px; font-weight: 600; }
+            .totals-table .balance-row td:last-child { color: #856404; }
+            .footer-section { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; }
+            .thank-you { font-size: 12pt; color: #1a5f7a; font-weight: 500; margin-bottom: 15px; }
+            .tax-numbers { display: flex; gap: 25px; font-size: 9pt; color: #666; }
+            .tax-numbers span { }
+            .notes-section { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 4px; border-left: 3px solid #1a5f7a; }
+            .notes-section h4 { font-size: 9pt; color: #666; text-transform: uppercase; margin-bottom: 8px; }
+            .notes-section p { font-size: 10pt; color: #555; }
+            .vehicle-box { background: #e8f4f8; padding: 15px; border-radius: 4px; margin-bottom: 20px; border-left: 3px solid #1a5f7a; }
+            .vehicle-box h4 { font-size: 9pt; color: #1a5f7a; text-transform: uppercase; margin-bottom: 8px; font-weight: 600; }
+            .vehicle-box p { font-size: 10pt; color: #333; margin: 3px 0; }
+            .signature-area { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; }
+            .signature-line { border-top: 1px solid #333; padding-top: 8px; text-align: center; font-size: 9pt; color: #666; }
+            .powered-by { text-align: center; margin-top: 30px; font-size: 8pt; color: #999; }
+            @media print { 
+              body { padding: 0; } 
+              .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              .items-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
           </style>
         </head>
         <body>
-          <div class="company-header">
-            <div class="company-name">${company?.name || 'Company Name'}</div>
-            <div class="company-details">
-              ${company?.address ? `${company.address}<br>` : ''}
-              ${company?.city ? `${company.city}, ${company?.province || ''} ${company?.postal_code || ''}<br>` : ''}
-              ${company?.phone ? `Tel: ${formatPhone(company.phone)}<br>` : ''}
-              ${company?.email ? `${company.email}` : ''}
-            </div>
-          </div>
-
-          <div class="doc-title">${docTitle}</div>
-
-          <div class="info-grid">
-            <div class="bill-to">
-              <h3>Bill To:</h3>
-              <p style="font-weight: 600;">${documentData.customer_name || customer?.full_name || 'Customer'}</p>
-              ${documentData.customer_email ? `<p>${documentData.customer_email}</p>` : ''}
-              ${documentData.customer_phone ? `<p>${formatPhone(documentData.customer_phone)}</p>` : ''}
-              ${documentData.customer_address ? `<p>${documentData.customer_address}</p>` : ''}
-            </div>
-            <div class="doc-details">
-              <p><strong>${docTitle} #:</strong>${documentData.invoice_number || documentData.quote_number || documentData.sale_number || documentData.order_number || 'N/A'}</p>
-              <p><strong>Date:</strong>${formatDate(documentData.invoice_date || documentData.quote_date || documentData.sale_date || documentData.created_date)}</p>
-              ${documentData.due_date ? `<p><strong>Due Date:</strong>${formatDate(documentData.due_date)}</p>` : ''}
-              ${documentData.currency ? `<p><strong>Currency:</strong>${documentData.currency}</p>` : ''}
-              ${documentData.status ? `<p><strong>Status:</strong>${documentData.status}</p>` : ''}
-            </div>
-          </div>
-
-          ${(documentData.vehicle_details || documentData.vehicle_vin) ? `
-            <div class="vehicle-box">
-              <h3 style="font-size: 10pt; color: #1e40af; margin-bottom: 8px;">VEHICLE INFORMATION</h3>
-              ${documentData.vehicle_details ? `<p style="font-weight: 600;">${documentData.vehicle_details}</p>` : ''}
-              ${documentData.vehicle_vin ? `<p style="font-size: 10pt;">VIN: ${documentData.vehicle_vin}</p>` : ''}
-              ${documentData.vehicle_mileage ? `<p style="font-size: 10pt;">Mileage: ${documentData.vehicle_mileage?.toLocaleString()} km</p>` : ''}
-              ${documentData.vehicle_color ? `<p style="font-size: 10pt;">Color: ${documentData.vehicle_color}</p>` : ''}
-            </div>
-          ` : ''}
-
-          <table class="items">
-            <thead>
-              <tr>
-                <th style="width: 50%;">Description</th>
-                <th style="width: 15%; text-align: center;">Qty</th>
-                <th style="width: 17%; text-align: right;">Rate</th>
-                <th style="width: 18%; text-align: right;">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${lineItemsHTML || '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #9ca3af;">No line items</td></tr>'}
-            </tbody>
-          </table>
-
-          <div class="totals-section">
-            <p><strong>Subtotal:</strong>${formatCurrency(subtotal, currency)}</p>
-            <p><strong>Tax (${taxRate}%):</strong>${formatCurrency(taxAmount, currency)}</p>
-            ${documentData.discount ? `<p><strong>Discount:</strong>-${formatCurrency(documentData.discount, currency)}</p>` : ''}
-            <p class="total-line"><strong>Total:</strong>${formatCurrency(totalAmount, currency)}</p>
-            ${documentData.amount_paid > 0 ? `<p><strong>Amount Paid:</strong>${formatCurrency(documentData.amount_paid, currency)}</p>` : ''}
-            ${documentData.balance_due > 0 ? `<p class="total-line"><strong>Balance Due:</strong>${formatCurrency(documentData.balance_due, currency)}</p>` : ''}
-          </div>
-
-          <p class="thank-you">Thank you for your business!</p>
-
-          <div class="tax-info">
-            ${company?.gst_number ? `<p><strong>GST #:</strong> ${company.gst_number}</p>` : ''}
-            ${company?.pst_number ? `<p><strong>PST #:</strong> ${company.pst_number}</p>` : ''}
-            ${company?.dealer_permit_number ? `<p><strong>Dealer Permit #:</strong> ${company.dealer_permit_number}</p>` : ''}
-          </div>
-
-          ${documentData.notes ? `<div class="notes"><strong>Notes:</strong> ${documentData.notes}</div>` : ''}
-          ${documentData.payment_terms ? `<div class="notes" style="background: #f0fdf4;"><strong>Payment Terms:</strong> ${documentData.payment_terms}</div>` : ''}
-
-          ${documentType === 'bill_of_sale' ? `
-            <div class="signature-area">
-              <div>
-                <div class="signature-line">Seller Signature</div>
+          <div class="invoice-container">
+            <div class="header">
+              <div class="company-info">
+                <div class="company-name">${company?.name || 'Company Name'}</div>
+                <div class="company-details">
+                  ${company?.address ? `${company.address}<br>` : ''}
+                  ${company?.city ? `${company.city}, ${company?.province || ''} ${company?.postal_code || ''}<br>` : ''}
+                  ${company?.phone ? `Tel: ${formatPhone(company.phone)}<br>` : ''}
+                  ${company?.email ? `${company.email}` : ''}
+                </div>
               </div>
-              <div>
-                <div class="signature-line">Buyer Signature</div>
+              <div class="invoice-title">
+                <h1>${docTitle}</h1>
+                <div class="invoice-number">#${documentData.invoice_number || documentData.quote_number || documentData.sale_number || documentData.order_number || 'N/A'}</div>
               </div>
             </div>
-          ` : ''}
 
-          <div class="footer">
-            <p style="font-size: 8pt;">Generated by eFinAuto OFMS • ${new Date().toLocaleString()}</p>
+            <div class="content">
+              <div class="info-section">
+                <div class="bill-to">
+                  <div class="bill-to-label">Bill To</div>
+                  <div class="bill-to-name">${documentData.customer_name || customer?.full_name || 'Customer'}</div>
+                  <div class="bill-to-details">
+                    ${documentData.customer_email ? `${documentData.customer_email}<br>` : ''}
+                    ${documentData.customer_phone ? `${formatPhone(documentData.customer_phone)}<br>` : ''}
+                    ${documentData.customer_address ? `${documentData.customer_address}` : ''}
+                  </div>
+                </div>
+                <div class="invoice-details">
+                  <table class="invoice-details-table">
+                    <tr><td>Invoice Date:</td><td>${formatDate(documentData.invoice_date || documentData.quote_date || documentData.sale_date || documentData.created_date)}</td></tr>
+                    ${documentData.due_date ? `<tr><td>Due Date:</td><td>${formatDate(documentData.due_date)}</td></tr>` : ''}
+                    ${documentData.currency ? `<tr><td>Currency:</td><td>${documentData.currency}</td></tr>` : ''}
+                    ${documentData.payment_terms ? `<tr><td>Terms:</td><td>${documentData.payment_terms}</td></tr>` : ''}
+                  </table>
+                </div>
+              </div>
+
+              ${(documentData.vehicle_details || documentData.vehicle_vin) ? `
+              <div class="vehicle-box">
+                <h4>Vehicle Information</h4>
+                ${documentData.vehicle_details ? `<p><strong>${documentData.vehicle_details}</strong></p>` : ''}
+                ${documentData.vehicle_vin ? `<p>VIN: ${documentData.vehicle_vin}</p>` : ''}
+                ${documentData.vehicle_mileage ? `<p>Mileage: ${documentData.vehicle_mileage?.toLocaleString()} km</p>` : ''}
+                ${documentData.vehicle_color ? `<p>Color: ${documentData.vehicle_color}</p>` : ''}
+              </div>
+              ` : ''}
+
+              <table class="items-table">
+                <thead>
+                  <tr>
+                    <th style="width: 50%;">Item & Description</th>
+                    <th class="right" style="width: 15%;">Qty</th>
+                    <th class="right" style="width: 17%;">Rate</th>
+                    <th class="right" style="width: 18%;">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${lineItemsHTML || '<tr><td colspan="4" style="text-align: center; padding: 30px; color: #999;">No items</td></tr>'}
+                </tbody>
+              </table>
+
+              <div class="totals-wrapper">
+                <table class="totals-table">
+                  <tr class="subtotal-row"><td>Subtotal</td><td>${formatCurrency(subtotal, currency)}</td></tr>
+                  <tr><td>Tax (${taxRate}%)</td><td>${formatCurrency(taxAmount, currency)}</td></tr>
+                  ${documentData.discount ? `<tr><td>Discount</td><td>-${formatCurrency(documentData.discount, currency)}</td></tr>` : ''}
+                  <tr class="total-row"><td>Total</td><td>${formatCurrency(totalAmount, currency)}</td></tr>
+                  ${documentData.amount_paid > 0 ? `<tr><td>Payment Made</td><td>(-) ${formatCurrency(documentData.amount_paid, currency)}</td></tr>` : ''}
+                  ${documentData.balance_due > 0 ? `<tr class="balance-row"><td>Balance Due</td><td>${formatCurrency(documentData.balance_due, currency)}</td></tr>` : ''}
+                </table>
+              </div>
+
+              <div class="footer-section">
+                <div class="thank-you">Thank you for your business!</div>
+                <div class="tax-numbers">
+                  ${company?.gst_number ? `<span><strong>GST #:</strong> ${company.gst_number}</span>` : ''}
+                  ${company?.pst_number ? `<span><strong>PST #:</strong> ${company.pst_number}</span>` : ''}
+                  ${company?.dealer_permit_number ? `<span><strong>Dealer Permit #:</strong> ${company.dealer_permit_number}</span>` : ''}
+                </div>
+              </div>
+
+              ${documentData.notes ? `
+              <div class="notes-section">
+                <h4>Notes</h4>
+                <p>${documentData.notes}</p>
+              </div>
+              ` : ''}
+
+              ${documentType === 'bill_of_sale' ? `
+              <div class="signature-area">
+                <div>
+                  <div class="signature-line">Seller Signature</div>
+                </div>
+                <div>
+                  <div class="signature-line">Buyer Signature</div>
+                </div>
+              </div>
+              ` : ''}
+
+              <div class="powered-by">Generated by eFinAuto OFMS</div>
+            </div>
           </div>
         </body>
       </html>
