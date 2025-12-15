@@ -359,22 +359,24 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
       {/* Bill of Sale Title */}
       <div className="flex justify-between items-start mb-8">
         <div className="flex-1">
-          {sale.bos_number && (
+          {sale?.bos_number && sale.bos_status === 'finalized' && (
             <div className="border-2 border-gray-800 p-3 inline-block bg-gray-50 bos-number-container">
               <p className="text-xs font-semibold text-gray-600 mb-1">BOS NUMBER</p>
               <p className="text-lg font-bold text-gray-900 font-mono tracking-wider">{sale.bos_number}</p>
-              <div className="mt-2 barcode-container">
-                <Barcode 
-                  value={sale.bos_number} 
-                  height={50}
-                  width={2}
-                  fontSize={11}
-                  margin={0}
-                  background="#f9fafb"
-                  displayValue={true}
-                  textMargin={2}
-                />
-              </div>
+              {typeof window !== 'undefined' && (
+                <div className="mt-2 barcode-container">
+                  <Barcode 
+                    value={String(sale.bos_number || '')} 
+                    height={50}
+                    width={2}
+                    fontSize={11}
+                    margin={0}
+                    background="#f9fafb"
+                    displayValue={true}
+                    textMargin={2}
+                  />
+                </div>
+              )}
               {sale.bos_issued_date && (
                 <p className="text-xs text-gray-500 mt-1">
                   Issued: {format(new Date(sale.bos_issued_date), 'MMM d, yyyy')}
@@ -390,7 +392,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
         </div>
         <div className="text-center flex-1">
           <h1 className="text-2xl font-bold">BILL OF SALE</h1>
-          {sale.bos_status && (
+          {sale?.bos_status && (
             <div className="mt-2 flex justify-center gap-2">
               {sale.bos_status === 'voided' ? (
                 <span className="inline-block px-3 py-1 rounded text-sm font-semibold bg-red-100 text-red-800">
@@ -506,7 +508,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           <div className="p-3 border-b border-gray-800">
             <div className="flex justify-between">
               <span className="font-semibold">Total Price</span>
-              <span>${sale.sale_price?.toLocaleString()}</span>
+              <span>${(sale.sale_price || 0).toLocaleString()}</span>
             </div>
           </div>
           <div className="p-3 border-b border-gray-800 border-l border-gray-800"></div>
@@ -557,7 +559,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           <div className="p-3 border-b border-gray-800">
             <div className="flex justify-between">
               <span className="font-semibold">Total</span>
-              <span>${sale.grand_total?.toLocaleString()}</span>
+              <span>${(sale.grand_total || 0).toLocaleString()}
             </div>
           </div>
           <div className="p-3 border-b border-gray-800 border-l border-gray-800"></div>
@@ -577,7 +579,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           <div className="p-3">
             <div className="flex justify-between">
               <span className="font-semibold">Balance Due</span>
-              <span>${sale.balance_due?.toLocaleString()}</span>
+              <span>${(sale.balance_due || 0).toLocaleString()}</span>
             </div>
           </div>
           <div className="p-3 border-l border-gray-800"></div>
