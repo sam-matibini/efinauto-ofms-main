@@ -32,17 +32,19 @@ export default function SignatureRequestDialog({ open, onClose, sale, company })
       const expirationDate = new Date();
       expirationDate.setDate(expirationDate.getDate() + formData.expiresInDays);
 
-      // Create signature request record
-      const requestData = {
+      // Create signature request record in database
+      await base44.entities.SignatureRequest.create({
+        company_id: sale.company_id,
         sale_id: sale.id,
         signer_email: formData.signerEmail,
         signer_name: formData.signerName,
         signer_type: formData.signerType,
         status: "pending",
+        message: formData.message,
         expires_at: expirationDate.toISOString(),
         signature_url: signatureRequestUrl,
         require_identity_verification: formData.requireIdentityVerification
-      };
+      });
 
       // Send email notification
       await base44.integrations.Core.SendEmail({
