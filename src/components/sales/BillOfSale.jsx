@@ -184,12 +184,17 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
       <div className="flex justify-between items-start mb-8">
         <div className="flex-1">
           {sale.bos_number && (
-            <div className="border-2 border-gray-800 p-3 inline-block">
+            <div className="border-2 border-gray-800 p-3 inline-block bg-gray-50">
               <p className="text-xs font-semibold text-gray-600 mb-1">BOS NUMBER</p>
               <p className="text-lg font-bold text-gray-900 font-mono tracking-wider">{sale.bos_number}</p>
               {sale.bos_issued_date && (
                 <p className="text-xs text-gray-500 mt-1">
                   Issued: {format(new Date(sale.bos_issued_date), 'MMM d, yyyy')}
+                </p>
+              )}
+              {sale.bos_issued_by && (
+                <p className="text-xs text-gray-500">
+                  By: {sale.bos_issued_by}
                 </p>
               )}
             </div>

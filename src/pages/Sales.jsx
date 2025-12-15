@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, DollarSign, TrendingUp, ChevronDown, ChevronUp, FileText, Users, FileCheck, Receipt, RefreshCw, CreditCard, FileX, Mail, Edit, Trash2, LayoutGrid, List, Download, FileSpreadsheet, Loader2 } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, ChevronDown, ChevronUp, FileText, Users, FileCheck, Receipt, RefreshCw, CreditCard, FileX, Mail, Edit, Trash2, LayoutGrid, List, Download, FileSpreadsheet, Loader2, XCircle } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   AlertDialog,
@@ -34,6 +34,7 @@ import CanadianTaxCalculator, { calculateCanadianTax } from "../components/sales
 import BillOfSale from "../components/sales/BillOfSale";
 import BillOfSaleShare from "../components/sales/BillOfSaleShare";
 import { useCompany } from "../components/shared/CompanyContext";
+import { generateBOSNumber, voidBOS } from "../components/sales/BOSNumberingService";
 import CustomersTab from "../components/sales/CustomersTab";
 import QuotesTab from "../components/sales/QuotesTab";
 import InvoicesTab from "../components/sales/InvoicesTab";
@@ -58,6 +59,8 @@ export default function Sales() {
   const [salesViewMode, setSalesViewMode] = useState("cards");
   const [dateRange, setDateRange] = useState("all");
   const [compareWith, setCompareWith] = useState(null);
+  const [finalizingBOS, setFinalizingBOS] = useState(null);
+  const [voidingBOS, setVoidingBOS] = useState(null);
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
 
@@ -184,9 +187,67 @@ export default function Sales() {
     },
   });
 
+  // Finalize BOS and generate number
+  const finalizeBOSMutation = useMutation({
+    mutationFn: async (sale) => {
+      const user = await base44.auth.me();
+      const locationCode = company?.code?.substring(0, 5).toUpperCase() || 'HQ';
+      
+      // Generate BOS number
+      const bosData = await generateBOSNumber(selectedCompanyId, locationCode);
+      
+      // Update sale with BOS details
+      return await base44.entities.Sale.update(sale.id, {
+        bos_number: bosData.bos_number,
+        bos_sequence: bosData.bos_sequence,
+        bos_status: 'finalized',
+        bos_issued_date: new Date().toISOString(),
+        bos_issued_by: user.email,
+        location_code: bosData.location_code
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      setFinalizingBOS(null);
+      toast.success("Bill of Sale finalized and number assigned!");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to finalize Bill of Sale");
+      setFinalizingBOS(null);
+    }
+  });
+
+  // Void BOS
+  const voidBOSMutation = useMutation({
+    mutationFn: async ({ saleId, reason }) => {
+      const user = await base44.auth.me();
+      return await voidBOS(saleId, reason, user.email);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      setVoidingBOS(null);
+      toast.success("Bill of Sale voided");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to void Bill of Sale");
+    }
+  });
+
+  const handleFinalizeBOS = (sale) => {
+    setFinalizingBOS(sale);
+  };
+
+  const handleVoidBOS = (sale) => {
+    setVoidingBOS(sale);
+  };
+
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const sale = await base44.entities.Sale.create({...data, company_id: selectedCompanyId});
+      const sale = await base44.entities.Sale.create({
+        ...data, 
+        company_id: selectedCompanyId,
+        bos_status: 'draft'
+      });
       
       if (data.vehicle_id) {
         const vehicleStatus = data.sale_type === 'export' ? 'exported' : 'sold';
@@ -445,6 +506,7 @@ export default function Sales() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Sale #</TableHead>
+                      <TableHead>BOS #</TableHead>
                       <TableHead>Vehicle</TableHead>
                       <TableHead>Customer</TableHead>
                       <TableHead>Date</TableHead>
@@ -458,6 +520,18 @@ export default function Sales() {
                     {filteredSales.map((sale) => (
                       <TableRow key={sale.id}>
                         <TableCell className="font-medium">{sale.sale_number}</TableCell>
+                        <TableCell>
+                          {sale.bos_number ? (
+                            <div>
+                              <p className="font-mono text-xs font-semibold">{sale.bos_number}</p>
+                              <Badge className={`text-xs ${sale.bos_status === 'finalized' ? 'bg-green-100 text-green-800' : sale.bos_status === 'voided' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-600'}`}>
+                                {sale.bos_status}
+                              </Badge>
+                            </div>
+                          ) : (
+                            <Badge variant="outline" className="text-xs">No BOS</Badge>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <div>
                             <p className="font-medium">{sale.vehicle_details}</p>
@@ -482,13 +556,18 @@ export default function Sales() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
+                            {sale.bos_status === 'draft' && (
+                              <Button size="icon" variant="ghost" onClick={() => handleFinalizeBOS(sale)} className="text-green-600">
+                                <FileCheck className="w-4 h-4" />
+                              </Button>
+                            )}
                             <Button size="icon" variant="ghost" onClick={() => handleViewBillOfSale(sale)}>
                               <FileText className="w-4 h-4" />
                             </Button>
-                            <Button size="icon" variant="ghost" onClick={() => { setEditingSale(sale); setDialogOpen(true); }}>
+                            <Button size="icon" variant="ghost" onClick={() => { setEditingSale(sale); setDialogOpen(true); }} disabled={sale.bos_status === 'finalized'}>
                               <Edit className="w-4 h-4" />
                             </Button>
-                            <Button size="icon" variant="ghost" className="text-red-600" onClick={() => setDeletingSale(sale)}>
+                            <Button size="icon" variant="ghost" className="text-red-600" onClick={() => setDeletingSale(sale)} disabled={sale.bos_status === 'finalized'}>
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
@@ -519,6 +598,26 @@ export default function Sales() {
                       <div className="space-y-2 flex-1">
                         <div className="flex items-center gap-3 flex-wrap">
                           <h3 className="font-bold text-lg">{sale.vehicle_details}</h3>
+                          {sale.bos_number && (
+                            <Badge className="bg-slate-700 text-white font-mono text-xs">
+                              {sale.bos_number}
+                            </Badge>
+                          )}
+                          {sale.bos_status === 'voided' && (
+                            <Badge className="bg-red-100 text-red-800">
+                              VOIDED
+                            </Badge>
+                          )}
+                          {sale.bos_status === 'finalized' && (
+                            <Badge className="bg-green-100 text-green-800">
+                              BOS Finalized
+                            </Badge>
+                          )}
+                          {sale.bos_status === 'draft' && (
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                              Draft
+                            </Badge>
+                          )}
                           <Badge className={statusColors[sale.status]}>
                             {sale.status}
                           </Badge>
@@ -552,7 +651,29 @@ export default function Sales() {
                         <p className="text-sm text-gray-500">
                           Sale Date: {sale.sale_date ? format(new Date(sale.sale_date), 'MMM d, yyyy') : 'N/A'}
                         </p>
-                        <div className="flex gap-2 mt-2">
+                        <div className="flex gap-2 mt-2 flex-wrap">
+                          {sale.bos_status === 'draft' && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleFinalizeBOS(sale)}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <FileCheck className="w-4 h-4 mr-2" />
+                              Finalize BOS
+                            </Button>
+                          )}
+                          {sale.bos_status === 'finalized' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleVoidBOS(sale)}
+                              className="text-red-600 hover:bg-red-50"
+                            >
+                              <FileX className="w-4 h-4 mr-2" />
+                              Void BOS
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -565,6 +686,7 @@ export default function Sales() {
                             variant="outline"
                             size="sm"
                             onClick={() => { setEditingSale(sale); setDialogOpen(true); }}
+                            disabled={sale.bos_status === 'finalized'}
                           >
                             <Edit className="w-4 h-4 mr-2" />
                             Edit
@@ -574,6 +696,7 @@ export default function Sales() {
                             size="sm"
                             className="text-red-600 hover:text-red-700"
                             onClick={() => setDeletingSale(sale)}
+                            disabled={sale.bos_status === 'finalized'}
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
                             Delete
@@ -796,6 +919,66 @@ export default function Sales() {
                 />
               </DialogContent>
             </Dialog>
+
+            {/* Finalize BOS Confirmation */}
+            <AlertDialog open={!!finalizingBOS} onOpenChange={() => setFinalizingBOS(null)}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Finalize Bill of Sale</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will assign a permanent BOS number to this sale. Once finalized:
+                    <ul className="mt-2 space-y-1 list-disc list-inside text-sm">
+                      <li>A unique BOS number will be generated</li>
+                      <li>The sale cannot be edited or deleted</li>
+                      <li>The BOS number is permanent for audit purposes</li>
+                    </ul>
+                    <p className="mt-3 font-semibold">
+                      Sale: {finalizingBOS?.vehicle_details} - {finalizingBOS?.customer_name}
+                    </p>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => finalizeBOSMutation.mutate(finalizingBOS)}
+                    className="bg-green-600 hover:bg-green-700"
+                    disabled={finalizeBOSMutation.isPending}
+                  >
+                    {finalizeBOSMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Finalize BOS
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Void BOS Dialog */}
+            <AlertDialog open={!!voidingBOS} onOpenChange={() => setVoidingBOS(null)}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Void Bill of Sale</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will void BOS #{voidingBOS?.bos_number}. The BOS number will be retained for audit purposes but marked as VOIDED.
+                    <p className="mt-3 font-semibold text-red-600">
+                      This action cannot be undone.
+                    </p>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => voidBOSMutation.mutate({ 
+                      saleId: voidingBOS?.id, 
+                      reason: "Voided by user" 
+                    })}
+                    className="bg-red-600 hover:bg-red-700"
+                    disabled={voidBOSMutation.isPending}
+                  >
+                    {voidBOSMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Void BOS
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             </div>
             </div>
             );

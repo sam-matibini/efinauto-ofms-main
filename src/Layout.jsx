@@ -212,6 +212,12 @@ const allNavigationItems = [
     pageId: "Settings"
   },
   {
+    title: "BOS Settings",
+    url: createPageUrl("BOSSettings"),
+    icon: FileText,
+    pageId: "BOSSettings"
+  },
+  {
     title: "Pricing",
     url: createPageUrl("Pricing"),
     icon: DollarSign,

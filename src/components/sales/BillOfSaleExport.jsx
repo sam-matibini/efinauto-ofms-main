@@ -28,6 +28,8 @@ export default function BillOfSaleExport({ sales, company }) {
 
   const exportColumns = [
     { label: "Sale #", accessor: (s) => s.sale_number },
+    { label: "BOS #", accessor: (s) => s.bos_number || "" },
+    { label: "BOS Status", accessor: (s) => s.bos_status || "" },
     { label: "Sale Date", accessor: (s) => s.sale_date || "" },
     { label: "Sale Type", accessor: (s) => s.sale_type || "domestic" },
     { label: "Customer Name", accessor: (s) => s.customer_name },
@@ -139,8 +141,11 @@ export default function BillOfSaleExport({ sales, company }) {
           <p style="margin:5px 0;font-size:12px;">Tel: ${company?.phone || ''} | Email: ${company?.email || ''}</p>
           <p style="margin:5px 0;font-size:11px;font-weight:bold;">GST#: ${company?.gst_number || ''} | PST#: ${company?.pst_number || ''} | Dealer#: ${company?.dealer_permit_number || ''}</p>
         </div>
-        <h1 style="text-align:center;margin:15px 0;">BILL OF SALE</h1>
-        <p style="text-align:center;"><span style="background:${isExport ? '#dcfce7' : '#dbeafe'};padding:5px 15px;border-radius:4px;">${isExport ? 'EXPORT SALE' : 'DOMESTIC SALE'}</span></p>
+        <div style="text-align:center;">
+          <h1 style="margin:15px 0;">BILL OF SALE</h1>
+          ${sale.bos_number ? `<div style="border:2px solid #333;display:inline-block;padding:10px;margin:10px 0;background:#f9fafb;"><p style="margin:0;font-size:10px;font-weight:bold;">BOS NUMBER</p><p style="margin:5px 0;font-size:16px;font-weight:bold;font-family:monospace;">${sale.bos_number}</p></div>` : ''}
+          <p style="margin:10px 0;"><span style="background:${isExport ? '#dcfce7' : '#dbeafe'};padding:5px 15px;border-radius:4px;">${isExport ? 'EXPORT SALE' : 'DOMESTIC SALE'}</span></p>
+        </div>
         
         <table style="width:100%;border-collapse:collapse;margin:20px 0;">
           <tr><td style="padding:8px;border-bottom:1px solid #333;"><strong>Purchaser:</strong> ${sale.customer_name}</td><td style="padding:8px;border-bottom:1px solid #333;"><strong>Date:</strong> ${sale.sale_date || ''}</td></tr>
