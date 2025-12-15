@@ -20,6 +20,20 @@ export default function SignatureRequestDialog({ open, onClose, sale, company })
     requireIdentityVerification: false
   });
 
+  // Reset form when dialog opens
+  React.useEffect(() => {
+    if (open && sale) {
+      setFormData({
+        signerEmail: sale?.customer_email || "",
+        signerName: sale?.customer_name || "",
+        signerType: "buyer",
+        message: `Please review and sign the Bill of Sale for ${sale?.vehicle_details || "your vehicle"}.`,
+        expiresInDays: 7,
+        requireIdentityVerification: false
+      });
+    }
+  }, [open, sale]);
+
   const handleSendRequest = async () => {
     if (!formData.signerEmail || !formData.signerName) {
       toast.error("Email and name are required");
@@ -83,11 +97,14 @@ export default function SignatureRequestDialog({ open, onClose, sale, company })
       });
 
       toast.success(`Signature request sent to ${formData.signerEmail}`);
-      onClose();
+      setLoading(false);
+      // Close dialog after a brief delay to show success message
+      setTimeout(() => {
+        onClose();
+      }, 500);
     } catch (error) {
       console.error("Failed to send signature request:", error);
       toast.error("Failed to send signature request");
-    } finally {
       setLoading(false);
     }
   };
