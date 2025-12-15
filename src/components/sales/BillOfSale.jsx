@@ -48,7 +48,10 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
   }, [existingSignatures]);
 
   const uploadSignatureImage = async (dataUrl, type) => {
-    if (!sale || !dataUrl) return;
+    if (!sale || !dataUrl || !sale.id || !sale.company_id) {
+      toast.error("Invalid sale data");
+      return;
+    }
 
     setUploadingSignature(type);
     try {
@@ -110,6 +113,11 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
   };
 
   const generateAISignature = async () => {
+    if (!sale || !company) {
+      toast.error("Missing required data");
+      return;
+    }
+    
     const sellerName = sale.salesman || company?.contact_person_name || company?.name || 'Seller';
     setGeneratingSignature(true);
     try {
@@ -168,7 +176,12 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
   };
 
   if (!sale) return null;
-  if (!company) return <div>Loading...</div>;
+  if (!company) return <div>Loading company data...</div>;
+  
+  // Validate required fields for security scan
+  if (!sale.customer_name || !sale.vehicle_details || !sale.company_id) {
+    return <div className="p-8 text-center text-red-600">Missing required sale data. Cannot generate Bill of Sale.</div>;
+  }
 
   const isExport = sale.sale_type === 'export';
 
@@ -334,14 +347,14 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
 
       <div className="flex justify-between items-start mb-8">
         <div className="flex-1">
-          {sale?.bos_number && sale.bos_status === 'finalized' && (
+          {sale?.bos_number && sale.bos_status === 'finalized' && sale.bos_number.length > 0 && (
             <div className="border-2 border-gray-800 p-3 inline-block bg-gray-50 bos-number-container">
               <p className="text-xs font-semibold text-gray-600 mb-1">BOS NUMBER</p>
               <p className="text-lg font-bold text-gray-900 font-mono tracking-wider">{sale.bos_number}</p>
-              {typeof window !== 'undefined' && (
+              {typeof window !== 'undefined' && sale.bos_number && (
                 <div className="mt-2 barcode-container">
                   <Barcode 
-                    value={String(sale.bos_number || '')} 
+                    value={String(sale.bos_number).substring(0, 50)} 
                     height={50}
                     width={2}
                     fontSize={11}
