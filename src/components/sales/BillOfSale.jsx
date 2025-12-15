@@ -184,7 +184,28 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
         @media print {
           .print\\:hidden { display: none !important; }
           #bill-of-sale { max-width: 100% !important; }
-          #bill-of-sale * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+          #bill-of-sale * { 
+            print-color-adjust: exact; 
+            -webkit-print-color-adjust: exact; 
+            color-adjust: exact;
+          }
+          .bos-number-container { 
+            display: inline-block !important; 
+            visibility: visible !important;
+            page-break-inside: avoid;
+          }
+          .bos-number-container * {
+            visibility: visible !important;
+          }
+          .barcode-container {
+            display: block !important;
+            visibility: visible !important;
+          }
+          .barcode-container svg,
+          .barcode-container canvas {
+            display: block !important;
+            visibility: visible !important;
+          }
         }
       `}</style>
       {/* Company Logo - Top Center */}
@@ -215,10 +236,10 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
       <div className="flex justify-between items-start mb-8">
         <div className="flex-1">
           {sale.bos_number && (
-            <div className="border-2 border-gray-800 p-3 inline-block bg-gray-50">
+            <div className="border-2 border-gray-800 p-3 inline-block bg-gray-50 bos-number-container">
               <p className="text-xs font-semibold text-gray-600 mb-1">BOS NUMBER</p>
               <p className="text-lg font-bold text-gray-900 font-mono tracking-wider">{sale.bos_number}</p>
-              <div className="mt-2">
+              <div className="mt-2 barcode-container">
                 <Barcode 
                   value={sale.bos_number} 
                   height={40}
