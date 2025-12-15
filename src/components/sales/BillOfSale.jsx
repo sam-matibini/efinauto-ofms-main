@@ -182,9 +182,38 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
 
       {/* Bill of Sale Title */}
       <div className="flex justify-between items-start mb-8">
-        <div></div>
+        <div className="flex-1">
+          {sale.bos_number && (
+            <div className="border-2 border-gray-800 p-3 inline-block">
+              <p className="text-xs font-semibold text-gray-600 mb-1">BOS NUMBER</p>
+              <p className="text-lg font-bold text-gray-900 font-mono tracking-wider">{sale.bos_number}</p>
+              {sale.bos_issued_date && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Issued: {format(new Date(sale.bos_issued_date), 'MMM d, yyyy')}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
         <div className="text-center flex-1">
           <h1 className="text-2xl font-bold">BILL OF SALE</h1>
+          {sale.bos_status && (
+            <div className="mt-2 flex justify-center gap-2">
+              {sale.bos_status === 'voided' ? (
+                <span className="inline-block px-3 py-1 rounded text-sm font-semibold bg-red-100 text-red-800">
+                  ⚠ VOIDED
+                </span>
+              ) : sale.bos_status === 'finalized' ? (
+                <span className="inline-block px-3 py-1 rounded text-sm font-semibold bg-green-100 text-green-800">
+                  ✓ FINALIZED
+                </span>
+              ) : (
+                <span className="inline-block px-3 py-1 rounded text-sm font-semibold bg-gray-100 text-gray-800">
+                  DRAFT
+                </span>
+              )}
+            </div>
+          )}
           <div className="mt-2 flex justify-center gap-2">
             <span className={`inline-block px-3 py-1 rounded text-sm font-semibold ${isExport ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
               {isExport ? '☑ EXPORT SALE' : '☑ DOMESTIC SALE'}
@@ -194,7 +223,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             <p className="text-sm mt-1 text-green-700 font-medium">Zero-Rated (GST/HST Exempt)</p>
           )}
         </div>
-        <div></div>
+        <div className="flex-1"></div>
       </div>
 
       <div className="space-y-4 mb-6">

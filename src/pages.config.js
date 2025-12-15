@@ -36,6 +36,7 @@ import IntegrationDiagram from './pages/IntegrationDiagram';
 import InventoryManagement from './pages/InventoryManagement';
 import FinancialReports from './pages/FinancialReports';
 import Projects from './pages/Projects';
+import BOSSettings from './pages/BOSSettings';
 import __Layout from './Layout.jsx';
 
 
@@ -78,6 +79,7 @@ export const PAGES = {
     "InventoryManagement": InventoryManagement,
     "FinancialReports": FinancialReports,
     "Projects": Projects,
+    "BOSSettings": BOSSettings,
 }
 
 export const pagesConfig = {
