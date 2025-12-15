@@ -41,6 +41,11 @@ export default function SignatureRequestDialog({ open, onClose, sale, company })
       return;
     }
 
+    if (!sale || !sale.id || !sale.company_id) {
+      toast.error("Sale information is missing");
+      return;
+    }
+
     setLoading(true);
     try {
       const signatureRequestUrl = `${window.location.origin}/sign-document/${sale.id}?token=${btoa(formData.signerEmail)}&type=${formData.signerType}`;
@@ -73,8 +78,8 @@ export default function SignatureRequestDialog({ open, onClose, sale, company })
             
             <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
               <p style="margin: 5px 0;"><strong>Document:</strong> Bill of Sale</p>
-              <p style="margin: 5px 0;"><strong>BOS Number:</strong> ${sale.bos_number || sale.sale_number}</p>
-              <p style="margin: 5px 0;"><strong>Vehicle:</strong> ${sale.vehicle_details}</p>
+              <p style="margin: 5px 0;"><strong>BOS Number:</strong> ${sale.bos_number || sale.sale_number || 'N/A'}</p>
+              <p style="margin: 5px 0;"><strong>Vehicle:</strong> ${sale.vehicle_details || 'N/A'}</p>
               <p style="margin: 5px 0;"><strong>From:</strong> ${company?.name || "Dealership"}</p>
               <p style="margin: 5px 0;"><strong>Expires:</strong> ${expirationDate.toLocaleDateString()}</p>
             </div>

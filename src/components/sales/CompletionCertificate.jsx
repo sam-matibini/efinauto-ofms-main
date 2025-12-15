@@ -7,8 +7,17 @@ import { sendCompletionCertificateNotification } from "./SalesNotificationServic
 
 export default function CompletionCertificate({ sale, company, signatureMetadata }) {
   const generateCertificate = async () => {
+    if (!sale || !company) {
+      toast.error("Required data is missing");
+      return;
+    }
+
     // Send notification
-    await sendCompletionCertificateNotification(sale, company);
+    try {
+      await sendCompletionCertificateNotification(sale, company);
+    } catch (error) {
+      console.error("Failed to send notification:", error);
+    }
 
     const certificateHtml = `
       <!DOCTYPE html>
@@ -56,7 +65,7 @@ export default function CompletionCertificate({ sale, company, signatureMetadata
             </div>
             <div class="field">
               <div class="field-label">BOS Number</div>
-              <div class="field-value">${sale.bos_number || sale.sale_number}</div>
+              <div class="field-value">${sale.bos_number || sale.sale_number || 'N/A'}</div>
             </div>
             <div class="field">
               <div class="field-label">Issued Date</div>
@@ -73,7 +82,7 @@ export default function CompletionCertificate({ sale, company, signatureMetadata
           <div class="section-title">Vehicle Information</div>
           <div class="field">
             <div class="field-label">Vehicle</div>
-            <div class="field-value">${sale.vehicle_details}</div>
+            <div class="field-value">${sale.vehicle_details || 'N/A'}</div>
           </div>
           <div class="field">
             <div class="field-label">VIN</div>
@@ -81,11 +90,11 @@ export default function CompletionCertificate({ sale, company, signatureMetadata
           </div>
           <div class="field">
             <div class="field-label">Sale Price</div>
-            <div class="field-value">$${sale.sale_price?.toLocaleString()}</div>
+            <div class="field-value">$${(sale.sale_price || 0).toLocaleString()}</div>
           </div>
         </div>
 
-        ${signatureMetadata.buyer ? `
+        ${signatureMetadata?.buyer ? `
         <div class="section">
           <div class="section-title">Buyer Signature</div>
           <div class="signature-box">
@@ -98,11 +107,11 @@ export default function CompletionCertificate({ sale, company, signatureMetadata
             <div class="grid">
               <div class="field">
                 <div class="field-label">Name</div>
-                <div class="field-value">${signatureMetadata.buyer.name}</div>
+                <div class="field-value">${signatureMetadata.buyer.name || 'N/A'}</div>
               </div>
               <div class="field">
                 <div class="field-label">Signed At</div>
-                <div class="field-value">${format(new Date(signatureMetadata.buyer.signedAt), 'MMM d, yyyy h:mm:ss a')}</div>
+                <div class="field-value">${signatureMetadata.buyer.signedAt ? format(new Date(signatureMetadata.buyer.signedAt), 'MMM d, yyyy h:mm:ss a') : 'N/A'}</div>
               </div>
               ${signatureMetadata.buyer.email ? `
               <div class="field">
@@ -121,7 +130,7 @@ export default function CompletionCertificate({ sale, company, signatureMetadata
         </div>
         ` : ''}
 
-        ${signatureMetadata.seller ? `
+        ${signatureMetadata?.seller ? `
         <div class="section">
           <div class="section-title">Seller Signature</div>
           <div class="signature-box">
@@ -134,11 +143,11 @@ export default function CompletionCertificate({ sale, company, signatureMetadata
             <div class="grid">
               <div class="field">
                 <div class="field-label">Name</div>
-                <div class="field-value">${signatureMetadata.seller.name}</div>
+                <div class="field-value">${signatureMetadata.seller.name || 'N/A'}</div>
               </div>
               <div class="field">
                 <div class="field-label">Signed At</div>
-                <div class="field-value">${format(new Date(signatureMetadata.seller.signedAt), 'MMM d, yyyy h:mm:ss a')}</div>
+                <div class="field-value">${signatureMetadata.seller.signedAt ? format(new Date(signatureMetadata.seller.signedAt), 'MMM d, yyyy h:mm:ss a') : 'N/A'}</div>
               </div>
               ${signatureMetadata.seller.email ? `
               <div class="field">

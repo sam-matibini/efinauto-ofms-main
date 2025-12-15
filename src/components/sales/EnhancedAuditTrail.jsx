@@ -17,7 +17,9 @@ export default function EnhancedAuditTrail({ auditData }) {
   };
 
   const SignerAuditCard = ({ signer, type }) => {
-    const badge = getMethodBadge(signer.method);
+    if (!signer) return null;
+    
+    const badge = getMethodBadge(signer.method || 'electronic_capture');
     
     return (
       <div className="space-y-3">
@@ -34,7 +36,7 @@ export default function EnhancedAuditTrail({ auditData }) {
             <FileText className="w-3 h-3 text-gray-500 mt-0.5" />
             <div>
               <p className="text-gray-500">Name</p>
-              <p className="font-medium">{signer.name}</p>
+              <p className="font-medium">{signer.name || 'N/A'}</p>
             </div>
           </div>
 
@@ -42,8 +44,8 @@ export default function EnhancedAuditTrail({ auditData }) {
             <Clock className="w-3 h-3 text-gray-500 mt-0.5" />
             <div>
               <p className="text-gray-500">Signed At</p>
-              <p className="font-medium">{format(new Date(signer.signedAt), 'MMM d, yyyy')}</p>
-              <p className="text-gray-400">{format(new Date(signer.signedAt), 'h:mm:ss a')}</p>
+              <p className="font-medium">{signer.signedAt ? format(new Date(signer.signedAt), 'MMM d, yyyy') : 'N/A'}</p>
+              <p className="text-gray-400">{signer.signedAt ? format(new Date(signer.signedAt), 'h:mm:ss a') : ''}</p>
             </div>
           </div>
 
