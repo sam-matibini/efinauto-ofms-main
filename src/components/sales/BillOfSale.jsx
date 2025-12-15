@@ -559,7 +559,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           <div className="p-3 border-b border-gray-800">
             <div className="flex justify-between">
               <span className="font-semibold">Total</span>
-              <span>${(sale.grand_total || 0).toLocaleString()}
+              <span>${(sale.grand_total || 0).toLocaleString()}</span>
             </div>
           </div>
           <div className="p-3 border-b border-gray-800 border-l border-gray-800"></div>
