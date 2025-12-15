@@ -986,6 +986,10 @@ export default function Sales() {
 
 function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
   const [activeTab, setActiveTab] = useState("basic");
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
   const [formData, setFormData] = useState({
     sale_number: `SALE-${Date.now()}`,
     sale_type: "domestic",
@@ -1007,6 +1011,10 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
     sale_price: 0,
     province: "ON",
     tax_status: "taxable",
+    pst_exempt: false,
+    pst_exempt_reason: "",
+    pst_exempt_reference: "",
+    pst_rate: 0,
     tax_gst: 0,
     tax_pst: 0,
     tax_hst: 0,
@@ -1048,6 +1056,10 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
         sale_price: editingSale.sale_price || 0,
         province: editingSale.province || "ON",
         tax_status: editingSale.tax_status || "taxable",
+        pst_exempt: editingSale.pst_exempt || false,
+        pst_exempt_reason: editingSale.pst_exempt_reason || "",
+        pst_exempt_reference: editingSale.pst_exempt_reference || "",
+        pst_rate: editingSale.pst_rate || 0,
         tax_gst: editingSale.tax_gst || 0,
         tax_pst: editingSale.tax_pst || 0,
         tax_hst: editingSale.tax_hst || 0,
@@ -1086,6 +1098,10 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
         sale_price: 0,
         province: "ON",
         tax_status: "taxable",
+        pst_exempt: false,
+        pst_exempt_reason: "",
+        pst_exempt_reference: "",
+        pst_rate: 0,
         tax_gst: 0,
         tax_pst: 0,
         tax_hst: 0,
@@ -1117,16 +1133,17 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
   };
 
   React.useEffect(() => {
-    const taxDetails = calculateCanadianTax(formData.sale_price, formData.province, formData.tax_status);
+    const taxDetails = calculateCanadianTax(formData.sale_price, formData.province, formData.tax_status, formData.pst_exempt);
     setFormData(prev => ({
       ...prev,
       tax_gst: taxDetails.gst,
       tax_pst: taxDetails.pst,
       tax_hst: taxDetails.hst,
       tax_total: taxDetails.total,
+      pst_rate: taxDetails.pstRate || 0,
       grand_total: formData.sale_price + taxDetails.total
     }));
-  }, [formData.sale_price, formData.province, formData.tax_status]);
+  }, [formData.sale_price, formData.province, formData.tax_status, formData.pst_exempt]);
 
   const handleCustomerSelect = (customer) => {
     setFormData({
@@ -1177,12 +1194,27 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.customer_name || !formData.vehicle_details || !formData.sale_price) {
       toast.error("Please fill in all required fields");
       return;
     }
-    onSave(formData);
+    
+    // Validate PST exemption
+    if (formData.pst_exempt && !formData.pst_exempt_reason) {
+      toast.error("PST exemption reason is required");
+      return;
+    }
+    
+    // Add PST exemption audit fields if exempt
+    const dataToSave = { ...formData };
+    if (formData.pst_exempt && !editingSale?.pst_exempt) {
+      const user = await base44.auth.me();
+      dataToSave.pst_exempt_by = user.email;
+      dataToSave.pst_exempt_timestamp = new Date().toISOString();
+    }
+    
+    onSave(dataToSave);
   };
 
   return (
@@ -1320,6 +1352,13 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
               subtotal={formData.sale_price}
               taxStatus={formData.tax_status}
               onTaxStatusChange={(tax_status) => setFormData({...formData, tax_status})}
+              pstExempt={formData.pst_exempt}
+              onPstExemptChange={(pst_exempt) => setFormData({...formData, pst_exempt})}
+              pstExemptReason={formData.pst_exempt_reason}
+              onPstExemptReasonChange={(pst_exempt_reason) => setFormData({...formData, pst_exempt_reason})}
+              pstExemptReference={formData.pst_exempt_reference}
+              onPstExemptReferenceChange={(pst_exempt_reference) => setFormData({...formData, pst_exempt_reference})}
+              userRole={currentUser?.role}
             />
 
             <div className="space-y-2">

@@ -30,6 +30,8 @@ export default function BillOfSaleExport({ sales, company }) {
     { label: "Sale #", accessor: (s) => s.sale_number },
     { label: "BOS #", accessor: (s) => s.bos_number || "" },
     { label: "BOS Status", accessor: (s) => s.bos_status || "" },
+    { label: "PST Exempt", accessor: (s) => s.pst_exempt ? "Yes" : "No" },
+    { label: "PST Exempt Reason", accessor: (s) => s.pst_exempt_reason || "" },
     { label: "Sale Date", accessor: (s) => s.sale_date || "" },
     { label: "Sale Type", accessor: (s) => s.sale_type || "domestic" },
     { label: "Customer Name", accessor: (s) => s.customer_name },
@@ -162,7 +164,8 @@ export default function BillOfSaleExport({ sales, company }) {
         <table style="width:50%;border:2px solid #333;border-collapse:collapse;margin:20px 0;">
           <tr><td style="padding:8px;border:1px solid #333;"><strong>Sale Price</strong></td><td style="padding:8px;border:1px solid #333;text-align:right;">$${(sale.sale_price || 0).toLocaleString()}</td></tr>
           <tr><td style="padding:8px;border:1px solid #333;"><strong>GST/HST</strong></td><td style="padding:8px;border:1px solid #333;text-align:right;">$${((sale.tax_gst || 0) + (sale.tax_hst || 0)).toFixed(2)}</td></tr>
-          <tr><td style="padding:8px;border:1px solid #333;"><strong>PST</strong></td><td style="padding:8px;border:1px solid #333;text-align:right;">$${(sale.tax_pst || 0).toFixed(2)}</td></tr>
+          <tr><td style="padding:8px;border:1px solid #333;"><strong>PST${sale.pst_exempt ? ' <span style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;font-size:10px;">EXEMPT</span>' : ''}</strong></td><td style="padding:8px;border:1px solid #333;text-align:right;">$${(sale.tax_pst || 0).toFixed(2)}</td></tr>
+          ${sale.pst_exempt && sale.pst_exempt_reason ? `<tr><td colspan="2" style="padding:6px;border:1px solid #333;background:#fef3c7;font-size:11px;"><strong>PST Exemption:</strong> ${sale.pst_exempt_reason.replace(/_/g, ' ')}${sale.pst_exempt_reference ? ` | Ref: ${sale.pst_exempt_reference}` : ''}</td></tr>` : ''}
           <tr style="background:#f3f4f6;"><td style="padding:8px;border:1px solid #333;"><strong>Grand Total</strong></td><td style="padding:8px;border:1px solid #333;text-align:right;font-weight:bold;">$${(sale.grand_total || 0).toLocaleString()}</td></tr>
           <tr><td style="padding:8px;border:1px solid #333;"><strong>Balance Due</strong></td><td style="padding:8px;border:1px solid #333;text-align:right;">$${(sale.balance_due || 0).toLocaleString()}</td></tr>
         </table>
