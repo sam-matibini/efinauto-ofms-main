@@ -182,29 +182,101 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
     <div className="bg-white p-8 max-w-4xl mx-auto" id="bill-of-sale">
       <style>{`
         @media print {
-          .print\\:hidden { display: none !important; }
-          #bill-of-sale { max-width: 100% !important; }
-          #bill-of-sale * { 
-            print-color-adjust: exact; 
-            -webkit-print-color-adjust: exact; 
-            color-adjust: exact;
+          /* Hide interactive elements */
+          .print\\:hidden,
+          button,
+          .audit-trail-section,
+          .completion-certificate-section { 
+            display: none !important; 
           }
+          
+          /* Page setup */
+          @page {
+            size: letter;
+            margin: 0.5in;
+          }
+          
+          body {
+            margin: 0;
+            padding: 0;
+          }
+          
+          #bill-of-sale { 
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 20px !important;
+          }
+          
+          /* Force colors and backgrounds */
+          #bill-of-sale *,
+          #bill-of-sale *::before,
+          #bill-of-sale *::after { 
+            print-color-adjust: exact !important; 
+            -webkit-print-color-adjust: exact !important; 
+            color-adjust: exact !important;
+          }
+          
+          /* BOS Number box */
           .bos-number-container { 
             display: inline-block !important; 
             visibility: visible !important;
-            page-break-inside: avoid;
+            page-break-inside: avoid !important;
+            border: 2px solid #000 !important;
+            background: #f9fafb !important;
           }
+          
           .bos-number-container * {
             visibility: visible !important;
+            color: #000 !important;
           }
+          
+          /* Barcode visibility */
           .barcode-container {
             display: block !important;
             visibility: visible !important;
           }
+          
           .barcode-container svg,
           .barcode-container canvas {
             display: block !important;
             visibility: visible !important;
+          }
+          
+          /* Signature boxes */
+          .border-green-200 {
+            border-color: #000 !important;
+          }
+          
+          .bg-green-50 {
+            background: #f9fafb !important;
+          }
+          
+          /* Status badges */
+          .bg-blue-100,
+          .bg-green-100,
+          .bg-red-100,
+          .bg-amber-100 {
+            background: #e5e7eb !important;
+            border: 1px solid #000 !important;
+          }
+          
+          /* Ensure all borders are visible */
+          .border-gray-800,
+          .border-b {
+            border-color: #000 !important;
+          }
+          
+          /* Page breaks */
+          .page-break-before {
+            page-break-before: always;
+          }
+          
+          .page-break-after {
+            page-break-after: always;
+          }
+          
+          .page-break-inside-avoid {
+            page-break-inside: avoid;
           }
         }
       `}</style>
@@ -634,14 +706,18 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
       </div>
 
       {/* Enhanced Audit Trail */}
-      <EnhancedAuditTrail auditData={signatureMetadata} />
+      <div className="audit-trail-section">
+        <EnhancedAuditTrail auditData={signatureMetadata} />
+      </div>
 
       {/* Completion Certificate */}
-      <CompletionCertificate 
-        sale={sale}
-        company={company}
-        signatureMetadata={signatureMetadata}
-      />
+      <div className="completion-certificate-section">
+        <CompletionCertificate 
+          sale={sale}
+          company={company}
+          signatureMetadata={signatureMetadata}
+        />
+      </div>
 
       {/* Signature Request Dialog */}
       <SignatureRequestDialog 
