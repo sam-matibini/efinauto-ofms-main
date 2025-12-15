@@ -246,6 +246,8 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             visibility: visible !important;
             opacity: 1 !important;
             margin-top: 8px !important;
+            width: 100% !important;
+            overflow: visible !important;
           }
           
           .barcode-container svg,
@@ -254,14 +256,23 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
-            max-width: 100% !important;
+            width: 100% !important;
+            max-width: 250px !important;
             height: auto !important;
+            margin: 0 auto !important;
           }
           
           /* Ensure barcode text is visible */
           .barcode-container text {
             fill: #000 !important;
             color: #000 !important;
+            font-size: 10px !important;
+            font-family: monospace !important;
+          }
+          
+          /* Ensure barcode rectangles are visible */
+          .barcode-container rect {
+            fill: #000 !important;
           }
           
           /* Signature boxes */
@@ -355,11 +366,13 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
               <div className="mt-2 barcode-container">
                 <Barcode 
                   value={sale.bos_number} 
-                  height={40}
-                  width={1.5}
-                  fontSize={10}
+                  height={50}
+                  width={2}
+                  fontSize={11}
                   margin={0}
                   background="#f9fafb"
+                  displayValue={true}
+                  textMargin={2}
                 />
               </div>
               {sale.bos_issued_date && (
