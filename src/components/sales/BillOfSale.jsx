@@ -180,6 +180,13 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
 
   return (
     <div className="bg-white p-8 max-w-4xl mx-auto" id="bill-of-sale">
+      <style>{`
+        @media print {
+          .print\\:hidden { display: none !important; }
+          #bill-of-sale { max-width: 100% !important; }
+          #bill-of-sale * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        }
+      `}</style>
       {/* Company Logo - Top Center */}
       {company?.logo_url && (
         <div className="flex justify-center mb-4">
