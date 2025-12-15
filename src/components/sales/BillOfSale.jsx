@@ -208,6 +208,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           }
           
           /* Force colors and backgrounds */
+          #bill-of-sale,
           #bill-of-sale *,
           #bill-of-sale *::before,
           #bill-of-sale *::after { 
@@ -216,30 +217,51 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             color-adjust: exact !important;
           }
           
-          /* BOS Number box */
+          /* BOS Number box - critical for visibility */
           .bos-number-container { 
             display: inline-block !important; 
             visibility: visible !important;
+            opacity: 1 !important;
             page-break-inside: avoid !important;
             border: 2px solid #000 !important;
             background: #f9fafb !important;
+            padding: 12px !important;
           }
           
           .bos-number-container * {
+            display: block !important;
             visibility: visible !important;
+            opacity: 1 !important;
             color: #000 !important;
           }
           
-          /* Barcode visibility */
+          .bos-number-container p {
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          
+          /* Barcode visibility - critical */
           .barcode-container {
             display: block !important;
             visibility: visible !important;
+            opacity: 1 !important;
+            margin-top: 8px !important;
           }
           
           .barcode-container svg,
-          .barcode-container canvas {
+          .barcode-container canvas,
+          .barcode-container img {
             display: block !important;
             visibility: visible !important;
+            opacity: 1 !important;
+            max-width: 100% !important;
+            height: auto !important;
+          }
+          
+          /* Ensure barcode text is visible */
+          .barcode-container text {
+            fill: #000 !important;
+            color: #000 !important;
           }
           
           /* Signature boxes */
@@ -262,8 +284,14 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           
           /* Ensure all borders are visible */
           .border-gray-800,
-          .border-b {
+          .border-b,
+          .border-2 {
             border-color: #000 !important;
+          }
+          
+          /* Table borders */
+          .border-r {
+            border-right: 1px solid #000 !important;
           }
           
           /* Page breaks */
@@ -277,6 +305,19 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           
           .page-break-inside-avoid {
             page-break-inside: avoid;
+          }
+          
+          /* Ensure text is black */
+          .text-gray-900,
+          .text-gray-800,
+          .text-gray-700,
+          .text-gray-600 {
+            color: #000 !important;
+          }
+          
+          /* Force mono font for BOS number */
+          .font-mono {
+            font-family: 'Courier New', monospace !important;
           }
         }
       `}</style>
