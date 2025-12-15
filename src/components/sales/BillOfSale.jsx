@@ -1,10 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, Check, Pen, X } from "lucide-react";
+import { Loader2, Sparkles, Check, Pen, X, Mail, Shield } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import SignaturePad from "@/components/shared/SignaturePad";
+import SignatureRequestDialog from "./SignatureRequestDialog";
+import EnhancedAuditTrail from "./EnhancedAuditTrail";
+import CompletionCertificate from "./CompletionCertificate";
 
 export default function BillOfSale({ sale, company, existingSignatures, onSignaturesUpdate }) {
   const [generatingSignature, setGeneratingSignature] = useState(false);
@@ -13,16 +16,25 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
   const [showBuyerSignaturePad, setShowBuyerSignaturePad] = useState(false);
   const [showSellerSignaturePad, setShowSellerSignaturePad] = useState(false);
   const [uploadingSignature, setUploadingSignature] = useState(null);
+  const [showSignatureRequestDialog, setShowSignatureRequestDialog] = useState(false);
   const [signatureMetadata, setSignatureMetadata] = useState({
     buyer: existingSignatures?.buyer_signed_at ? {
       name: existingSignatures.buyer_name,
       signedAt: existingSignatures.buyer_signed_at,
-      method: existingSignatures.signature_method
+      method: existingSignatures.signature_method,
+      email: existingSignatures.buyer_email,
+      ipAddress: existingSignatures.buyer_ip_address,
+      userAgent: existingSignatures.buyer_user_agent,
+      geolocation: existingSignatures.buyer_geolocation
     } : null,
     seller: existingSignatures?.seller_signed_at ? {
       name: existingSignatures.seller_name,
       signedAt: existingSignatures.seller_signed_at,
-      method: existingSignatures.signature_method
+      method: existingSignatures.signature_method,
+      email: existingSignatures.seller_email,
+      ipAddress: existingSignatures.seller_ip_address,
+      userAgent: existingSignatures.seller_user_agent,
+      geolocation: existingSignatures.seller_geolocation
     } : null
   });
 
@@ -47,19 +59,27 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
       
       const timestamp = new Date().toISOString();
       const signerName = type === 'buyer' ? sale.customer_name : (sale.salesman || company?.contact_person_name || 'Seller');
+      const signerEmail = type === 'buyer' ? sale.customer_email : company?.contact_person_email;
+      
+      // Collect enhanced audit data
+      const ipAddress = await fetch('https://api.ipify.org?format=json').then(r => r.json()).then(d => d.ip).catch(() => null);
+      const userAgent = navigator.userAgent;
+      
+      const metadata = {
+        name: signerName,
+        signedAt: timestamp,
+        method: 'electronic_capture',
+        email: signerEmail,
+        ipAddress,
+        userAgent
+      };
       
       if (type === 'buyer') {
         setBuyerSignature(file_url);
-        setSignatureMetadata(prev => ({
-          ...prev,
-          buyer: { name: signerName, signedAt: timestamp, method: 'electronic_capture' }
-        }));
+        setSignatureMetadata(prev => ({ ...prev, buyer: metadata }));
       } else {
         setSellerSignature(file_url);
-        setSignatureMetadata(prev => ({
-          ...prev,
-          seller: { name: signerName, signedAt: timestamp, method: 'electronic_capture' }
-        }));
+        setSignatureMetadata(prev => ({ ...prev, seller: metadata }));
       }
       
       // Notify parent of signature update
@@ -67,6 +87,9 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
         [`${type}_signature_url`]: file_url,
         [`${type}_name`]: signerName,
         [`${type}_signed_at`]: timestamp,
+        [`${type}_email`]: signerEmail,
+        [`${type}_ip_address`]: ipAddress,
+        [`${type}_user_agent`]: userAgent,
         signature_method: 'electronic_capture'
       });
       
@@ -459,22 +482,31 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
               </div>
             </div>
           ) : (
-            <div className="border-2 border-dashed border-gray-300 rounded-lg h-20 flex items-center justify-center print:border-solid print:border-gray-800">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowBuyerSignaturePad(true)}
-                disabled={uploadingSignature === 'buyer'}
-                className="print:hidden"
-              >
-                {uploadingSignature === 'buyer' ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Pen className="w-4 h-4 mr-2" />
-                )}
-                Sign Here
-              </Button>
-            </div>
+           <div className="border-2 border-dashed border-gray-300 rounded-lg h-20 flex items-center justify-center gap-2 print:border-solid print:border-gray-800">
+             <Button 
+               variant="outline" 
+               size="sm" 
+               onClick={() => setShowBuyerSignaturePad(true)}
+               disabled={uploadingSignature === 'buyer'}
+               className="print:hidden"
+             >
+               {uploadingSignature === 'buyer' ? (
+                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+               ) : (
+                 <Pen className="w-4 h-4 mr-2" />
+               )}
+               Sign Here
+             </Button>
+             <Button 
+               variant="outline" 
+               size="sm" 
+               onClick={() => setShowSignatureRequestDialog(true)}
+               className="print:hidden text-blue-600 border-blue-300 hover:bg-blue-50"
+             >
+               <Mail className="w-4 h-4 mr-2" />
+               Email Request
+             </Button>
+           </div>
           )}
         </div>
 
@@ -562,28 +594,23 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
         </div>
       </div>
 
-      {/* Signature Audit Trail */}
-      {(signatureMetadata.buyer || signatureMetadata.seller) && (
-        <div className="mt-6 p-3 bg-gray-50 rounded-lg text-xs text-gray-600 border print:bg-white">
-          <p className="font-semibold mb-2">Digital Signature Audit Trail</p>
-          <div className="grid grid-cols-2 gap-4">
-            {signatureMetadata.buyer && (
-              <div>
-                <p>Buyer: {signatureMetadata.buyer.name}</p>
-                <p>Signed: {format(new Date(signatureMetadata.buyer.signedAt), 'MMM d, yyyy h:mm:ss a')}</p>
-                <p>Method: {signatureMetadata.buyer.method === 'electronic_capture' ? 'Electronic Signature Capture' : 'AI Generated'}</p>
-              </div>
-            )}
-            {signatureMetadata.seller && (
-              <div>
-                <p>Seller: {signatureMetadata.seller.name}</p>
-                <p>Signed: {format(new Date(signatureMetadata.seller.signedAt), 'MMM d, yyyy h:mm:ss a')}</p>
-                <p>Method: {signatureMetadata.seller.method === 'electronic_capture' ? 'Electronic Signature Capture' : 'AI Generated'}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Enhanced Audit Trail */}
+      <EnhancedAuditTrail auditData={signatureMetadata} />
+
+      {/* Completion Certificate */}
+      <CompletionCertificate 
+        sale={sale}
+        company={company}
+        signatureMetadata={signatureMetadata}
+      />
+
+      {/* Signature Request Dialog */}
+      <SignatureRequestDialog 
+        open={showSignatureRequestDialog}
+        onClose={() => setShowSignatureRequestDialog(false)}
+        sale={sale}
+        company={company}
+      />
     </div>
   );
 }
