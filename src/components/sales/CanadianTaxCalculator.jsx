@@ -82,7 +82,8 @@ export default function CanadianTaxCalculator({
   const taxDetails = calculateCanadianTax(subtotal || 0, selectedProvince, selectedTaxStatus, isPstExempt);
   
   const canApplyPstExempt = userRole === 'admin' || userRole === 'manager' || userRole === 'finance';
-  const provinceHasPst = CANADIAN_TAX_RATES[selectedProvince]?.pst > 0 && CANADIAN_TAX_RATES[selectedProvince]?.hst === 0;
+  const provinceData = CANADIAN_TAX_RATES[selectedProvince];
+  const provinceHasPst = provinceData && provinceData.pst > 0 && provinceData.hst === 0;
 
   return (
     <Card className="border-blue-100 bg-blue-50/30">
@@ -214,10 +215,10 @@ export default function CanadianTaxCalculator({
                   </div>
                 )}
 
-                {CANADIAN_TAX_RATES[selectedProvince].pst > 0 && (
+                {provinceData && provinceData.pst > 0 && (
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">
-                      {selectedProvince === "QC" ? "QST" : "PST"} ({CANADIAN_TAX_RATES[selectedProvince].pst}%):
+                      {selectedProvince === "QC" ? "QST" : "PST"} ({provinceData.pst}%):
                     </span>
                     {isPstExempt ? (
                       <Badge variant="outline" className="bg-amber-50 text-amber-700">Exempt</Badge>
