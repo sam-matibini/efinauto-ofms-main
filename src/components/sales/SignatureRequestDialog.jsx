@@ -97,14 +97,11 @@ export default function SignatureRequestDialog({ open, onClose, sale, company })
       });
 
       toast.success(`Signature request sent to ${formData.signerEmail}`);
-      setLoading(false);
-      // Close dialog after a brief delay to show success message
-      setTimeout(() => {
-        onClose();
-      }, 500);
+      onClose();
     } catch (error) {
       console.error("Failed to send signature request:", error);
       toast.error("Failed to send signature request");
+    } finally {
       setLoading(false);
     }
   };
