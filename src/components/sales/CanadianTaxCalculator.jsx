@@ -1,8 +1,11 @@
 import React from "react";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AlertCircle, ShieldCheck } from "lucide-react";
 
 // Canadian Sales Tax Rates (CRA Guidelines)
 const CANADIAN_TAX_RATES = {
@@ -21,9 +24,9 @@ const CANADIAN_TAX_RATES = {
   YT: { name: "Yukon", gst: 5, pst: 0, hst: 0, total: 5, type: "GST" },
 };
 
-export function calculateCanadianTax(subtotal, province, taxStatus = "taxable") {
+export function calculateCanadianTax(subtotal, province, taxStatus = "taxable", pstExempt = false) {
   if (!province || !CANADIAN_TAX_RATES[province]) {
-    return { gst: 0, pst: 0, hst: 0, total: 0, breakdown: "" };
+    return { gst: 0, pst: 0, hst: 0, total: 0, breakdown: "", pstRate: 0 };
   }
 
   // Zero-rated and exempt sales have no tax
@@ -33,13 +36,14 @@ export function calculateCanadianTax(subtotal, province, taxStatus = "taxable") 
       pst: 0, 
       hst: 0, 
       total: 0, 
+      pstRate: CANADIAN_TAX_RATES[province].pst,
       breakdown: taxStatus === "zero_rated" ? "Zero-Rated (0%)" : "Tax Exempt" 
     };
   }
 
   const rates = CANADIAN_TAX_RATES[province];
   const gst = rates.gst > 0 ? (subtotal * rates.gst) / 100 : 0;
-  const pst = rates.pst > 0 ? (subtotal * rates.pst) / 100 : 0;
+  const pst = (rates.pst > 0 && !pstExempt) ? (subtotal * rates.pst) / 100 : 0;
   const hst = rates.hst > 0 ? (subtotal * rates.hst) / 100 : 0;
   const total = gst + pst + hst;
 
@@ -50,17 +54,35 @@ export function calculateCanadianTax(subtotal, province, taxStatus = "taxable") 
     if (rates.gst > 0) breakdown += `GST ${rates.gst}%`;
     if (rates.pst > 0) {
       if (breakdown) breakdown += " + ";
-      breakdown += province === "QC" ? `QST ${rates.pst}%` : `PST ${rates.pst}%`;
+      const pstLabel = province === "QC" ? "QST" : "PST";
+      breakdown += pstExempt ? `${pstLabel} (Exempt)` : `${pstLabel} ${rates.pst}%`;
     }
   }
 
-  return { gst, pst, hst, total, breakdown };
+  return { gst, pst, hst, total, breakdown, pstRate: rates.pst };
 }
 
-export default function CanadianTaxCalculator({ value, onChange, subtotal, taxStatus, onTaxStatusChange }) {
+export default function CanadianTaxCalculator({ 
+  value, 
+  onChange, 
+  subtotal, 
+  taxStatus, 
+  onTaxStatusChange,
+  pstExempt,
+  onPstExemptChange,
+  pstExemptReason,
+  onPstExemptReasonChange,
+  pstExemptReference,
+  onPstExemptReferenceChange,
+  userRole
+}) {
   const selectedProvince = value || "ON";
   const selectedTaxStatus = taxStatus || "taxable";
-  const taxDetails = calculateCanadianTax(subtotal || 0, selectedProvince, selectedTaxStatus);
+  const isPstExempt = pstExempt || false;
+  const taxDetails = calculateCanadianTax(subtotal || 0, selectedProvince, selectedTaxStatus, isPstExempt);
+  
+  const canApplyPstExempt = userRole === 'admin' || userRole === 'manager' || userRole === 'finance';
+  const provinceHasPst = CANADIAN_TAX_RATES[selectedProvince]?.pst > 0 && CANADIAN_TAX_RATES[selectedProvince]?.hst === 0;
 
   return (
     <Card className="border-blue-100 bg-blue-50/30">
@@ -95,6 +117,73 @@ export default function CanadianTaxCalculator({ value, onChange, subtotal, taxSt
           </Select>
         </div>
 
+        {selectedTaxStatus === "taxable" && provinceHasPst && canApplyPstExempt && (
+          <div className="space-y-3 p-3 border rounded-lg bg-amber-50 border-amber-200">
+            <div className="flex items-start gap-2">
+              <Checkbox 
+                id="pst_exempt" 
+                checked={isPstExempt}
+                onCheckedChange={(checked) => {
+                  if (checked && !confirm("Are you applying a PST exemption? Please confirm compliance eligibility.")) {
+                    return;
+                  }
+                  onPstExemptChange?.(checked);
+                }}
+              />
+              <div className="flex-1">
+                <Label htmlFor="pst_exempt" className="cursor-pointer font-semibold text-amber-900 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4" />
+                  PST Exempt
+                </Label>
+                <p className="text-xs text-amber-700 mt-1">
+                  Check if this sale qualifies for PST exemption (requires justification)
+                </p>
+              </div>
+            </div>
+
+            {isPstExempt && (
+              <div className="space-y-3 pt-2">
+                <div>
+                  <Label className="text-xs font-semibold">Exemption Reason *</Label>
+                  <Select value={pstExemptReason || ""} onValueChange={onPstExemptReasonChange}>
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Select reason..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="status_indian">Status Indian Exemption</SelectItem>
+                      <SelectItem value="government">Government Purchase</SelectItem>
+                      <SelectItem value="resale">Resale / Dealer Exemption</SelectItem>
+                      <SelectItem value="export_province">Export Out of Province</SelectItem>
+                      <SelectItem value="other">Other (see notes)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold">Certificate / Reference #</Label>
+                  <Input 
+                    placeholder="e.g., Certificate number, ID..." 
+                    value={pstExemptReference || ""}
+                    onChange={(e) => onPstExemptReferenceChange?.(e.target.value)}
+                    className="bg-white text-sm"
+                  />
+                </div>
+
+                <div className="flex items-start gap-2 text-xs text-amber-800 bg-amber-100 p-2 rounded">
+                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <p>PST exemption will be logged for audit purposes. Ensure proper documentation is retained.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!canApplyPstExempt && isPstExempt && (
+          <div className="p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
+            PST Exempt (Applied by authorized user)
+          </div>
+        )}
+
         {subtotal > 0 && (
           <div className="space-y-2 pt-3 border-t">
             <div className="flex justify-between items-center">
@@ -125,12 +214,16 @@ export default function CanadianTaxCalculator({ value, onChange, subtotal, taxSt
                   </div>
                 )}
 
-                {taxDetails.pst > 0 && (
+                {CANADIAN_TAX_RATES[selectedProvince].pst > 0 && (
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">
                       {selectedProvince === "QC" ? "QST" : "PST"} ({CANADIAN_TAX_RATES[selectedProvince].pst}%):
                     </span>
-                    <span className="text-sm font-medium">${taxDetails.pst.toFixed(2)}</span>
+                    {isPstExempt ? (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700">Exempt</Badge>
+                    ) : (
+                      <span className="text-sm font-medium">${taxDetails.pst.toFixed(2)}</span>
+                    )}
                   </div>
                 )}
               </>
