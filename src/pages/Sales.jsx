@@ -45,6 +45,7 @@ import AISalesInsights from "../components/sales/AISalesInsights";
 import DateRangeFilter, { getDateRangeValues } from "../components/shared/DateRangeFilter";
 import CompareWithFilter from "../components/shared/CompareWithFilter";
 import BillOfSaleExport from "../components/sales/BillOfSaleExport";
+import { sendBOSCreatedNotification, sendBOSFinalizedNotification } from "../components/sales/SalesNotificationService";
 
 export default function Sales() {
   const [activeMainTab, setActiveMainTab] = useState("sales");
@@ -197,7 +198,7 @@ export default function Sales() {
       const bosData = await generateBOSNumber(selectedCompanyId, locationCode);
       
       // Update sale with BOS details
-      return await base44.entities.Sale.update(sale.id, {
+      const updatedSale = await base44.entities.Sale.update(sale.id, {
         bos_number: bosData.bos_number,
         bos_sequence: bosData.bos_sequence,
         bos_status: 'finalized',
@@ -205,6 +206,11 @@ export default function Sales() {
         bos_issued_by: user.email,
         location_code: bosData.location_code
       });
+
+      // Send BOS finalized notification
+      await sendBOSFinalizedNotification(updatedSale, company);
+
+      return updatedSale;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
@@ -248,6 +254,9 @@ export default function Sales() {
         company_id: selectedCompanyId,
         bos_status: 'draft'
       });
+
+      // Send BOS created notification
+      await sendBOSCreatedNotification(sale, company);
       
       if (data.vehicle_id) {
         const vehicleStatus = data.sale_type === 'export' ? 'exported' : 'sold';

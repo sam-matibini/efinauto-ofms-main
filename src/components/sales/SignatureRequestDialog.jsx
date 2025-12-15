@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { Mail, Loader2, Calendar } from "lucide-react";
+import { sendSignatureRequestNotification } from "./SalesNotificationService";
 
 export default function SignatureRequestDialog({ open, onClose, sale, company }) {
   const [loading, setLoading] = useState(false);
