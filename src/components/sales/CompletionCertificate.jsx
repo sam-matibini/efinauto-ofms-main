@@ -3,9 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Download, Shield, Check } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { sendCompletionCertificateNotification } from "./SalesNotificationService";
 
 export default function CompletionCertificate({ sale, company, signatureMetadata }) {
-  const generateCertificate = () => {
+  const generateCertificate = async () => {
+    // Send notification
+    await sendCompletionCertificateNotification(sale, company);
+
     const certificateHtml = `
       <!DOCTYPE html>
       <html>
