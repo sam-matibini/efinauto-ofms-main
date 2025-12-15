@@ -182,7 +182,6 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
     <div className="bg-white p-8 max-w-4xl mx-auto" id="bill-of-sale">
       <style>{`
         @media print {
-          /* Hide interactive elements */
           .print\\:hidden,
           button,
           .audit-trail-section,
@@ -190,7 +189,6 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             display: none !important; 
           }
           
-          /* Page setup */
           @page {
             size: letter;
             margin: 0.5in;
@@ -207,7 +205,6 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             padding: 20px !important;
           }
           
-          /* Force colors and backgrounds */
           #bill-of-sale,
           #bill-of-sale *,
           #bill-of-sale *::before,
@@ -217,7 +214,6 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             color-adjust: exact !important;
           }
           
-          /* BOS Number box - critical for visibility */
           .bos-number-container { 
             display: inline-block !important; 
             visibility: visible !important;
@@ -240,7 +236,6 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             padding: 0 !important;
           }
           
-          /* Barcode visibility - critical */
           .barcode-container {
             display: block !important;
             visibility: visible !important;
@@ -262,7 +257,6 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             margin: 0 auto !important;
           }
           
-          /* Ensure barcode text is visible */
           .barcode-container text {
             fill: #000 !important;
             color: #000 !important;
@@ -270,12 +264,10 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             font-family: monospace !important;
           }
           
-          /* Ensure barcode rectangles are visible */
           .barcode-container rect {
             fill: #000 !important;
           }
           
-          /* Signature boxes */
           .border-green-200 {
             border-color: #000 !important;
           }
@@ -284,7 +276,6 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             background: #f9fafb !important;
           }
           
-          /* Status badges */
           .bg-blue-100,
           .bg-green-100,
           .bg-red-100,
@@ -293,32 +284,16 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             border: 1px solid #000 !important;
           }
           
-          /* Ensure all borders are visible */
           .border-gray-800,
           .border-b,
           .border-2 {
             border-color: #000 !important;
           }
           
-          /* Table borders */
           .border-r {
             border-right: 1px solid #000 !important;
           }
           
-          /* Page breaks */
-          .page-break-before {
-            page-break-before: always;
-          }
-          
-          .page-break-after {
-            page-break-after: always;
-          }
-          
-          .page-break-inside-avoid {
-            page-break-inside: avoid;
-          }
-          
-          /* Ensure text is black */
           .text-gray-900,
           .text-gray-800,
           .text-gray-700,
@@ -326,20 +301,18 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             color: #000 !important;
           }
           
-          /* Force mono font for BOS number */
           .font-mono {
             font-family: 'Courier New', monospace !important;
           }
         }
       `}</style>
-      {/* Company Logo - Top Center */}
+      
       {company?.logo_url && (
         <div className="flex justify-center mb-4">
           <img src={company.logo_url} alt={company.name} className="h-24 object-contain" />
         </div>
       )}
 
-      {/* Company Header */}
       <div className="text-center mb-6 border-b pb-4">
         <h2 className="text-xl font-bold text-gray-900">{company?.name || 'Company Name'}</h2>
         {companyAddress && (
@@ -356,7 +329,6 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
         </div>
       </div>
 
-      {/* Bill of Sale Title */}
       <div className="flex justify-between items-start mb-8">
         <div className="flex-1">
           {sale?.bos_number && sale.bos_status === 'finalized' && (
@@ -605,7 +577,6 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
       </div>
 
       <div className="grid grid-cols-2 gap-8 mt-12">
-        {/* Buyer Signature */}
         <div>
           <p className="font-semibold mb-2">Purchaser's Signature:</p>
           {buyerSignature ? (
@@ -677,7 +648,6 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           )}
         </div>
 
-        {/* Seller Signature */}
         <div>
           <p className="font-semibold mb-2">Salesman/Seller Signature:</p>
           {sellerSignature ? (
@@ -761,12 +731,10 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
         </div>
       </div>
 
-      {/* Enhanced Audit Trail */}
       <div className="audit-trail-section">
         <EnhancedAuditTrail auditData={signatureMetadata} />
       </div>
 
-      {/* Completion Certificate */}
       <div className="completion-certificate-section">
         <CompletionCertificate 
           sale={sale}
@@ -775,7 +743,6 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
         />
       </div>
 
-      {/* Signature Request Dialog */}
       <SignatureRequestDialog 
         open={showSignatureRequestDialog}
         onClose={() => setShowSignatureRequestDialog(false)}
