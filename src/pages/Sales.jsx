@@ -1201,6 +1201,39 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
           </TabsList>
 
           <TabsContent value="basic" className="space-y-4">
+            {!editingSale && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <FileText className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-blue-900 mb-1">BOS Number Assignment</h4>
+                    <p className="text-sm text-blue-800">
+                      This sale will be created as a <strong>Draft</strong>. A unique BOS number (format: <span className="font-mono">BOS-YYYY-LOC-NNNNNN</span>) will be automatically assigned when you finalize the Bill of Sale.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {editingSale?.bos_number && (
+              <div className="bg-slate-100 border border-slate-300 rounded-lg p-4 mb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-600 mb-1">BOS NUMBER</p>
+                    <p className="text-lg font-bold text-slate-900 font-mono tracking-wider">{editingSale.bos_number}</p>
+                    {editingSale.bos_issued_date && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        Issued: {format(new Date(editingSale.bos_issued_date), 'MMM d, yyyy')} by {editingSale.bos_issued_by}
+                      </p>
+                    )}
+                  </div>
+                  <Badge className={`${editingSale.bos_status === 'finalized' ? 'bg-green-100 text-green-800' : editingSale.bos_status === 'voided' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                    {editingSale.bos_status?.toUpperCase()}
+                  </Badge>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Select Customer *</Label>
               <CustomerSelector
