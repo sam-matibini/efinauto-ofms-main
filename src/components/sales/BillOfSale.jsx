@@ -336,10 +336,21 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
 
         <div className="grid grid-cols-2">
           <div className="p-3 border-b border-gray-800">
-            <div className="flex justify-between">
-              <span className="font-semibold">P.S.T</span>
+            <div className="flex justify-between items-center">
+              <span className="font-semibold">
+                P.S.T
+                {sale.pst_exempt && (
+                  <span className="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded border border-amber-300">EXEMPT</span>
+                )}
+              </span>
               <span>${sale.tax_pst?.toFixed(2) || '0.00'}</span>
             </div>
+            {sale.pst_exempt && sale.pst_exempt_reason && (
+              <div className="text-xs text-gray-600 mt-1 pt-1 border-t border-gray-200">
+                Reason: {sale.pst_exempt_reason.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                {sale.pst_exempt_reference && <span className="block">Ref: {sale.pst_exempt_reference}</span>}
+              </div>
+            )}
           </div>
           <div className="p-3 border-b border-gray-800 border-l border-gray-800"></div>
         </div>
