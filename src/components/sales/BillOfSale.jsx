@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles, Check, Pen, X, Mail, Shield } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import Barcode from "react-barcode";
 import SignaturePad from "@/components/shared/SignaturePad";
 import SignatureRequestDialog from "./SignatureRequestDialog";
 import EnhancedAuditTrail from "./EnhancedAuditTrail";
@@ -210,6 +211,16 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             <div className="border-2 border-gray-800 p-3 inline-block bg-gray-50">
               <p className="text-xs font-semibold text-gray-600 mb-1">BOS NUMBER</p>
               <p className="text-lg font-bold text-gray-900 font-mono tracking-wider">{sale.bos_number}</p>
+              <div className="mt-2">
+                <Barcode 
+                  value={sale.bos_number} 
+                  height={40}
+                  width={1.5}
+                  fontSize={10}
+                  margin={0}
+                  background="#f9fafb"
+                />
+              </div>
               {sale.bos_issued_date && (
                 <p className="text-xs text-gray-500 mt-1">
                   Issued: {format(new Date(sale.bos_issued_date), 'MMM d, yyyy')}
