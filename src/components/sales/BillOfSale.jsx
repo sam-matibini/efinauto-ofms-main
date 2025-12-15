@@ -48,6 +48,8 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
   }, [existingSignatures]);
 
   const uploadSignatureImage = async (dataUrl, type) => {
+    if (!sale || !dataUrl) return;
+
     setUploadingSignature(type);
     try {
       // Convert base64 to blob
@@ -166,6 +168,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
   };
 
   if (!sale) return null;
+  if (!company) return <div>Loading...</div>;
 
   const isExport = sale.sale_type === 'export';
 
@@ -309,7 +312,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
       
       {company?.logo_url && (
         <div className="flex justify-center mb-4">
-          <img src={company.logo_url} alt={company.name} className="h-24 object-contain" />
+          <img src={company.logo_url} alt={company?.name || 'Company'} className="h-24 object-contain" />
         </div>
       )}
 
@@ -397,7 +400,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
         <div className="grid grid-cols-2 gap-4">
           <div className="border-b border-gray-800 pb-1">
             <span className="text-sm font-semibold">Purchaser's Name:</span>
-            <span className="ml-2">{sale.customer_name}</span>
+            <span className="ml-2">{sale.customer_name || ''}</span>
           </div>
           <div className="border-b border-gray-800 pb-1">
             <span className="text-sm font-semibold">Salesman:</span>
@@ -457,7 +460,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           <div className="col-span-3 p-2 font-semibold text-sm">Make & Model</div>
         </div>
         <div className="grid grid-cols-6 border-b border-gray-800">
-          <div className="col-span-2 p-2 border-r border-gray-800">{sale.vehicle_details}</div>
+          <div className="col-span-2 p-2 border-r border-gray-800">{sale.vehicle_details || ''}</div>
           <div className="p-2 border-r border-gray-800">{sale.vehicle_year || ''}</div>
           <div className="col-span-3 p-2">{sale.vehicle_make_model || ''}</div>
         </div>
@@ -586,14 +589,14 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
               ) : (
                 <div className="text-center">
                   <p className="font-signature text-2xl italic text-gray-800" style={{ fontFamily: 'cursive' }}>
-                    {sale.customer_name}
+                    {sale.customer_name || 'Buyer'}
                   </p>
                 </div>
               )}
               <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
                 <span className="flex items-center gap-1">
                   <Check className="w-3 h-3 text-green-600" />
-                  Signed by {signatureMetadata.buyer?.name || sale.customer_name}
+                  Signed by {signatureMetadata.buyer?.name || sale.customer_name || 'Buyer'}
                 </span>
                 <span>{signatureMetadata.buyer?.signedAt ? format(new Date(signatureMetadata.buyer.signedAt), 'MMM d, yyyy h:mm a') : ''}</span>
               </div>
@@ -654,23 +657,23 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             <div className="border-2 border-green-200 bg-green-50 rounded-lg p-3 relative">
               {typeof sellerSignature === 'string' && sellerSignature.startsWith('http') ? (
                 <img src={sellerSignature} alt="Seller Signature" className="h-12 object-contain mx-auto" />
-              ) : sellerSignature.textBased ? (
+              ) : sellerSignature?.textBased ? (
                 <div className="text-center">
                   <p className="font-signature text-2xl italic text-gray-800" style={{ fontFamily: 'cursive' }}>
-                    {sellerSignature.name}
+                    {sellerSignature.name || 'Seller'}
                   </p>
                 </div>
-              ) : (
+              ) : typeof sellerSignature === 'object' && sellerSignature !== null ? (
                 <svg viewBox="0 0 200 60" className="w-full h-12">
                   <path 
-                    d={sellerSignature.pathData || "M10,30 Q30,10 50,30 T90,30 Q110,50 130,30 T170,30"} 
+                    d={sellerSignature?.pathData || "M10,30 Q30,10 50,30 T90,30 Q110,50 130,30 T170,30"} 
                     fill="none" 
                     stroke="#1e3a8a" 
                     strokeWidth="2" 
                     strokeLinecap="round"
                   />
                 </svg>
-              )}
+              ) : null}
               <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
                 <span className="flex items-center gap-1">
                   <Check className="w-3 h-3 text-green-600" />
