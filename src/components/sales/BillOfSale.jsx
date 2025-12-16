@@ -10,6 +10,49 @@ import SignatureRequestDialog from "./SignatureRequestDialog";
 import EnhancedAuditTrail from "./EnhancedAuditTrail";
 import CompletionCertificate from "./CompletionCertificate";
 
+// Compliance-safe data normalizer
+const normalizeSaleData = (sale) => {
+  if (!sale) return null;
+  
+  return {
+    id: sale.id || null,
+    company_id: sale.company_id || null,
+    customer_name: sale.customer_name || '',
+    customer_address: sale.customer_address || '',
+    customer_city: sale.customer_city || '',
+    customer_postal_code: sale.customer_postal_code || '',
+    customer_phone: sale.customer_phone || '',
+    customer_business_phone: sale.customer_business_phone || '',
+    customer_email: sale.customer_email || '',
+    province: sale.province || '',
+    salesman: sale.salesman || '',
+    vehicle_details: sale.vehicle_details || '',
+    vehicle_year: sale.vehicle_year || '',
+    vehicle_make_model: sale.vehicle_make_model || '',
+    vehicle_vin: sale.vehicle_vin || '',
+    vehicle_color: sale.vehicle_color || '',
+    vehicle_mileage: sale.vehicle_mileage || 0,
+    sale_price: typeof sale.sale_price === 'number' ? sale.sale_price : 0,
+    grand_total: typeof sale.grand_total === 'number' ? sale.grand_total : (typeof sale.sale_price === 'number' ? sale.sale_price : 0),
+    balance_due: typeof sale.balance_due === 'number' ? sale.balance_due : 0,
+    tax_gst: typeof sale.tax_gst === 'number' ? sale.tax_gst : 0,
+    tax_pst: typeof sale.tax_pst === 'number' ? sale.tax_pst : 0,
+    tax_hst: typeof sale.tax_hst === 'number' ? sale.tax_hst : 0,
+    tax_total: typeof sale.tax_total === 'number' ? sale.tax_total : 0,
+    deposit_amount: typeof sale.deposit_amount === 'number' ? sale.deposit_amount : 0,
+    sale_date: sale.sale_date || null,
+    sale_type: sale.sale_type || 'domestic',
+    bos_number: sale.bos_number || '',
+    bos_status: sale.bos_status || 'draft',
+    bos_issued_date: sale.bos_issued_date || null,
+    bos_issued_by: sale.bos_issued_by || '',
+    pst_exempt: sale.pst_exempt || false,
+    pst_exempt_reason: sale.pst_exempt_reason || '',
+    pst_exempt_reference: sale.pst_exempt_reference || '',
+    trade_in: sale.trade_in || { net_trade_value: 0 }
+  };
+};
+
 export default function BillOfSale({ sale, company, existingSignatures, onSignaturesUpdate }) {
   const [generatingSignature, setGeneratingSignature] = useState(false);
   const [sellerSignature, setSellerSignature] = useState(existingSignatures?.seller_signature_url || null);
@@ -176,27 +219,21 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
     onSignaturesUpdate?.({ [`${type}_signature_url`]: null });
   };
 
-  if (!sale) return null;
-  if (!company) return <div>Loading company data...</div>;
+  // Normalize data with compliance-safe defaults
+  const safeSale = normalizeSaleData(sale);
   
-  // Validate required fields for security scan
-  if (!sale.customer_name || !sale.vehicle_details || !sale.company_id || sale.sale_price === undefined || sale.sale_price === null) {
-    return <div className="p-8 text-center text-red-600">Missing required sale data. Cannot generate Bill of Sale.</div>;
+  // Validate critical requirements
+  if (!safeSale || !safeSale.id || !safeSale.company_id) {
+    return <div className="p-8 text-center text-red-600">Invalid sale record.</div>;
   }
   
-  // Ensure all numeric fields have valid defaults
-  const safeSale = {
-    ...sale,
-    sale_price: sale.sale_price || 0,
-    grand_total: sale.grand_total || sale.sale_price || 0,
-    balance_due: sale.balance_due || 0,
-    tax_gst: sale.tax_gst || 0,
-    tax_pst: sale.tax_pst || 0,
-    tax_hst: sale.tax_hst || 0,
-    deposit_amount: sale.deposit_amount || 0,
-    vehicle_mileage: sale.vehicle_mileage || 0,
-    vehicle_year: sale.vehicle_year || ''
-  };
+  if (!safeSale.customer_name || !safeSale.vehicle_details) {
+    return <div className="p-8 text-center text-red-600">Missing required fields: customer name and vehicle details.</div>;
+  }
+  
+  if (!company || !company.name) {
+    return <div className="p-8 text-center text-red-600">Missing company information.</div>;
+  }
 
   const isExport = safeSale.sale_type === 'export';
 

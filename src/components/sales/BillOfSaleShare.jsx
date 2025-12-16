@@ -17,6 +17,37 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import AIDocumentSummary from "@/components/shared/AIDocumentSummary";
 
+// Normalize sale data for safe printing
+const normalizePrintData = (sale) => {
+  if (!sale) return null;
+  return {
+    sale_number: sale.sale_number || 'N/A',
+    customer_name: sale.customer_name || 'N/A',
+    customer_email: sale.customer_email || '',
+    customer_address: sale.customer_address || '',
+    customer_city: sale.customer_city || '',
+    customer_phone: sale.customer_phone || '',
+    province: sale.province || '',
+    customer_postal_code: sale.customer_postal_code || '',
+    vehicle_details: sale.vehicle_details || 'N/A',
+    vehicle_year: sale.vehicle_year || '',
+    vehicle_vin: sale.vehicle_vin || '',
+    vehicle_mileage: sale.vehicle_mileage || 0,
+    vehicle_color: sale.vehicle_color || '',
+    sale_price: typeof sale.sale_price === 'number' ? sale.sale_price : 0,
+    grand_total: typeof sale.grand_total === 'number' ? sale.grand_total : 0,
+    balance_due: typeof sale.balance_due === 'number' ? sale.balance_due : 0,
+    deposit_amount: typeof sale.deposit_amount === 'number' ? sale.deposit_amount : 0,
+    tax_pst: typeof sale.tax_pst === 'number' ? sale.tax_pst : 0,
+    tax_gst: typeof sale.tax_gst === 'number' ? sale.tax_gst : 0,
+    tax_hst: typeof sale.tax_hst === 'number' ? sale.tax_hst : 0,
+    tax_total: typeof sale.tax_total === 'number' ? sale.tax_total : 0,
+    sale_date: sale.sale_date || null,
+    sale_type: sale.sale_type || 'domestic',
+    trade_in: sale.trade_in || { net_trade_value: 0 }
+  };
+};
+
 export default function BillOfSaleShare({ sale, company, onClose }) {
   const [activeTab, setActiveTab] = useState("email");
   const [sending, setSending] = useState(false);
@@ -34,7 +65,8 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
       return '<div>Error: Missing required data</div>';
     }
     
-    const isExport = sale?.sale_type === 'export';
+    const printSale = normalizePrintData(sale);
+    const isExport = printSale.sale_type === 'export';
     const companyAddress = [
       company?.address,
       company?.city,
@@ -101,32 +133,32 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
         </div>
 
         <div class="section">
-          <div class="row"><span class="label">Purchaser's Name:</span><span class="value">${sale?.customer_name || ''}</span></div>
-          <div class="row"><span class="label">Address:</span><span class="value">${sale?.customer_address || ''}</span></div>
-          <div class="row"><span class="label">City/Province:</span><span class="value">${sale?.customer_city || ''}, ${sale?.province || ''} ${sale?.customer_postal_code || ''}</span></div>
-          <div class="row"><span class="label">Phone:</span><span class="value">${sale?.customer_phone || ''}</span></div>
-          <div class="row"><span class="label">Sale Date:</span><span class="value">${sale?.sale_date ? (() => { try { return format(new Date(sale.sale_date), 'MMMM d, yyyy'); } catch(e) { return ''; } })() : ''}</span></div>
+          <div class="row"><span class="label">Purchaser's Name:</span><span class="value">${printSale.customer_name}</span></div>
+          <div class="row"><span class="label">Address:</span><span class="value">${printSale.customer_address}</span></div>
+          <div class="row"><span class="label">City/Province:</span><span class="value">${printSale.customer_city}, ${printSale.province} ${printSale.customer_postal_code}</span></div>
+          <div class="row"><span class="label">Phone:</span><span class="value">${printSale.customer_phone}</span></div>
+          <div class="row"><span class="label">Sale Date:</span><span class="value">${printSale.sale_date ? (() => { try { return format(new Date(printSale.sale_date), 'MMMM d, yyyy'); } catch(e) { return 'N/A'; } })() : 'N/A'}</span></div>
         </div>
 
         <table class="vehicle-table">
           <tr><th>Vehicle</th><th>Year</th><th>VIN</th><th>Mileage</th><th>Color</th></tr>
           <tr>
-            <td>${sale?.vehicle_details || ''}</td>
-            <td>${sale?.vehicle_year || ''}</td>
-            <td>${sale?.vehicle_vin || ''}</td>
-            <td>${sale?.vehicle_mileage || ''}</td>
-            <td>${sale?.vehicle_color || ''}</td>
+            <td>${printSale.vehicle_details}</td>
+            <td>${printSale.vehicle_year}</td>
+            <td>${printSale.vehicle_vin}</td>
+            <td>${printSale.vehicle_mileage}</td>
+            <td>${printSale.vehicle_color}</td>
           </tr>
         </table>
 
         <table class="totals-table">
-          <tr><td class="totals-label">Total Price</td><td>$${(sale?.sale_price || 0).toLocaleString()}</td></tr>
-          <tr><td class="totals-label">Less Trade</td><td>$${(sale?.trade_in?.net_trade_value || 0).toLocaleString()}</td></tr>
-          <tr><td class="totals-label">P.S.T</td><td>$${(sale?.tax_pst || 0).toFixed(2)}</td></tr>
-          <tr><td class="totals-label">G.S.T / H.S.T</td><td>$${(sale?.tax_gst || sale?.tax_hst || 0).toFixed(2)}</td></tr>
-          <tr><td class="totals-label"><strong>Grand Total</strong></td><td><strong>$${(sale?.grand_total || 0).toLocaleString()}</strong></td></tr>
-          <tr><td class="totals-label">Less Deposit</td><td>$${(sale?.deposit_amount || 0).toLocaleString()}</td></tr>
-          <tr><td class="totals-label"><strong>Balance Due</strong></td><td><strong>$${(sale?.balance_due || 0).toLocaleString()}</strong></td></tr>
+          <tr><td class="totals-label">Total Price</td><td>$${printSale.sale_price.toLocaleString()}</td></tr>
+          <tr><td class="totals-label">Less Trade</td><td>$${(printSale.trade_in.net_trade_value || 0).toLocaleString()}</td></tr>
+          <tr><td class="totals-label">P.S.T</td><td>$${printSale.tax_pst.toFixed(2)}</td></tr>
+          <tr><td class="totals-label">G.S.T / H.S.T</td><td>$${(printSale.tax_gst || printSale.tax_hst).toFixed(2)}</td></tr>
+          <tr><td class="totals-label"><strong>Grand Total</strong></td><td><strong>$${printSale.grand_total.toLocaleString()}</strong></td></tr>
+          <tr><td class="totals-label">Less Deposit</td><td>$${printSale.deposit_amount.toLocaleString()}</td></tr>
+          <tr><td class="totals-label"><strong>Balance Due</strong></td><td><strong>$${printSale.balance_due.toLocaleString()}</strong></td></tr>
         </table>
 
         <div class="disclaimer">
