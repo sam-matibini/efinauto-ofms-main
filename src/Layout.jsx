@@ -260,8 +260,10 @@ export default function Layout({ children, currentPageName }) {
   });
 
   // Filter navigation items based on user's accessible modules
-  const navigationItems = currentUser?.data?.accessible_modules?.length > 0
-    ? allNavigationItems.filter(item => currentUser.data.accessible_modules.includes(item.pageId))
+  // If user or company has no modules defined, show all items
+  const userModules = currentUser?.data?.accessible_modules;
+  const navigationItems = (userModules && userModules.length > 0)
+    ? allNavigationItems.filter(item => userModules.includes(item.pageId))
     : allNavigationItems;
 
   const updateProfileMutation = useMutation({
