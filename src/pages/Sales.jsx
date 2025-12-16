@@ -34,6 +34,7 @@ import CanadianTaxCalculator, { calculateCanadianTax } from "../components/sales
 import BillOfSale from "../components/sales/BillOfSale";
 import DocumentShareDialog from "../components/sales/DocumentShareDialog";
 import { printDocument } from "../components/sales/DocumentSharingService";
+import AIDocumentSummary from "../components/shared/AIDocumentSummary";
 import { useCompany } from "../components/shared/CompanyContext";
 import { generateBOSNumber, voidBOS } from "../components/sales/BOSNumberingService";
 import CustomersTab from "../components/sales/CustomersTab";
@@ -897,9 +898,16 @@ export default function Sales() {
             <DialogTitle>Bill of Sale</DialogTitle>
           </DialogHeader>
           {selectedSale && company ? (
-            <BillOfSale sale={selectedSale} company={company} existingSignatures={selectedSale} onSignaturesUpdate={(sigs) => {
-              queryClient.invalidateQueries({ queryKey: ['sales'] });
-            }} />
+            <>
+              <AIDocumentSummary 
+                documentType="bill_of_sale"
+                documentData={selectedSale}
+                company={company}
+              />
+              <BillOfSale sale={selectedSale} company={company} existingSignatures={selectedSale} onSignaturesUpdate={(sigs) => {
+                queryClient.invalidateQueries({ queryKey: ['sales'] });
+              }} />
+            </>
           ) : (
             <div className="p-8 text-center text-gray-500">Loading...</div>
           )}
