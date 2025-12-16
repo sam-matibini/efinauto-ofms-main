@@ -45,7 +45,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useCompany } from "../components/shared/CompanyContext";
 import CustomerMap from "../components/customers/CustomerMap";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AIAddressLookup from "../components/shared/AIAddressLookup";
 
 export default function Customers() {
