@@ -299,16 +299,44 @@ export default function IntegrationDiagram() {
                 <div className="mt-4 p-4 bg-white rounded-lg border border-cyan-200">
                   <div className="flex items-center gap-2 mb-2">
                     <CheckCircle className="w-5 h-5 text-green-600" />
-                    <h4 className="font-semibold">Real-Time Carrier Tracking</h4>
+                    <h4 className="font-semibold">Real-Time Carrier Tracking & Monitoring</h4>
                   </div>
                   <ul className="text-sm space-y-1 text-gray-600 grid md:grid-cols-2">
                     <li>• Live shipment status updates</li>
-                    <li>• Timeline tracking events</li>
-                    <li>• ETA monitoring & alerts</li>
-                    <li>• Delay notifications</li>
-                    <li>• Multi-carrier support (Maersk, MSC, FedEx, DHL, etc.)</li>
-                    <li>• Auto-refresh every 60 seconds</li>
+                    <li>• Interactive map visualization</li>
+                    <li>• Geofencing alerts (port, customs, delivery)</li>
+                    <li>• Proactive delay notifications</li>
+                    <li>• Multi-carrier support (Maersk, MSC, CMA CGM, Hapag-Lloyd)</li>
+                    <li>• Auto-refresh every 30 seconds</li>
                   </ul>
+                </div>
+                <div className="mt-4 grid md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-white rounded-lg border border-cyan-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <h4 className="font-semibold">Rate Shopping</h4>
+                    </div>
+                    <ul className="text-sm space-y-1 text-gray-600">
+                      <li>• Multi-carrier rate comparison</li>
+                      <li>• Real-time pricing from 4+ carriers</li>
+                      <li>• Transit time comparison</li>
+                      <li>• One-click booking from comparison</li>
+                      <li>• Cost breakdown analysis</li>
+                    </ul>
+                  </div>
+                  <div className="p-4 bg-white rounded-lg border border-cyan-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <h4 className="font-semibold">AI Document Analysis</h4>
+                    </div>
+                    <ul className="text-sm space-y-1 text-gray-600">
+                      <li>• Auto-extract shipment details</li>
+                      <li>• Document summarization</li>
+                      <li>• Compliance flag detection</li>
+                      <li>• Multi-format support (PDF, images)</li>
+                      <li>• Share via email/WhatsApp/print</li>
+                    </ul>
+                  </div>
                 </div>
               </CardContent>
             </Card>

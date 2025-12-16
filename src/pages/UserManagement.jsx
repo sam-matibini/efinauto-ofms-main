@@ -16,7 +16,10 @@ import {
   Trash2,
   Building2,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Activity,
+  Filter,
+  SortAsc
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -47,6 +50,7 @@ export default function UserManagement() {
   const [userToDelete, setUserToDelete] = useState(null);
   const [viewMode, setViewMode] = useState("all"); // "all" or "users_only"
   const [roleFilter, setRoleFilter] = useState("all"); // "all", "admin", "regular"
+  const [sortBy, setSortBy] = useState("recent"); // "recent", "name", "company"
 
   const queryClient = useQueryClient();
 
@@ -108,6 +112,17 @@ export default function UserManagement() {
   } else if (roleFilter === 'regular') {
     filteredUsers = filteredUsers.filter(u => u.role !== 'admin');
   }
+
+  // Apply sorting
+  filteredUsers = [...filteredUsers].sort((a, b) => {
+    if (sortBy === 'name') {
+      return (a.full_name || '').localeCompare(b.full_name || '');
+    } else if (sortBy === 'company') {
+      return getCompanyName(a.data?.company_id).localeCompare(getCompanyName(b.data?.company_id));
+    } else {
+      return new Date(b.created_date) - new Date(a.created_date);
+    }
+  });
 
   const adminUsers = users.filter(u => u.role === 'admin');
   const regularUsers = users.filter(u => u.role !== 'admin');
@@ -240,22 +255,35 @@ export default function UserManagement() {
       {/* Search and Filter */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex items-center gap-2">
-            <Search className="w-5 h-5 text-gray-400" />
-            <Input
-              placeholder="Search users by name or email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 border-0 focus-visible:ring-0"
-            />
-            <Button 
-              variant={viewMode === "users_only" ? "default" : "outline"}
-              onClick={() => setViewMode(viewMode === "all" ? "users_only" : "all")}
-              className={viewMode === "users_only" ? "bg-blue-600 hover:bg-blue-700" : ""}
-            >
-              <Users className="w-4 h-4 mr-2" />
-              {viewMode === "all" ? "View Users Only" : "View All Roles"}
-            </Button>
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+            <div className="flex items-center gap-2 flex-1">
+              <Search className="w-5 h-5 text-gray-400" />
+              <Input
+                placeholder="Search users by name or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1 border-0 focus-visible:ring-0"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={() => setSortBy(sortBy === 'recent' ? 'name' : sortBy === 'name' ? 'company' : 'recent')}
+                size="sm"
+              >
+                <SortAsc className="w-4 h-4 mr-2" />
+                {sortBy === 'recent' ? 'Recent' : sortBy === 'name' ? 'Name' : 'Company'}
+              </Button>
+              <Button 
+                variant={viewMode === "users_only" ? "default" : "outline"}
+                onClick={() => setViewMode(viewMode === "all" ? "users_only" : "all")}
+                className={viewMode === "users_only" ? "bg-blue-600 hover:bg-blue-700" : ""}
+                size="sm"
+              >
+                <Filter className="w-4 h-4 mr-2" />
+                {viewMode === "all" ? "Users Only" : "All Roles"}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -263,7 +291,15 @@ export default function UserManagement() {
       {/* Users List */}
       <Card>
         <CardHeader>
-          <CardTitle>{viewMode === "users_only" ? "Users Only" : "All Users"}</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5" />
+              {viewMode === "users_only" ? "Users Only" : "All Users"} ({filteredUsers.length})
+            </CardTitle>
+            <Badge variant="outline" className="text-xs">
+              Sorted by: {sortBy === 'recent' ? 'Most Recent' : sortBy === 'name' ? 'Name (A-Z)' : 'Company'}
+            </Badge>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
