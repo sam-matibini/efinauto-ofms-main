@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Ship, FileText, Package, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { Ship, FileText, Package, CheckCircle, Clock, AlertCircle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -18,11 +18,17 @@ import PaymentGateway from "./PaymentGateway";
 import PaymentHistory from "./PaymentHistory";
 import ShipmentBookingDialog from "./ShipmentBookingDialog";
 import { validateExportOrder } from "./ExportValidationService";
+import CarrierScheduleLookup from "./CarrierScheduleLookup";
+import CarrierBookingRequest from "./CarrierBookingRequest";
+import CarrierDocumentExchange from "./CarrierDocumentExchange";
+import { CarrierTrackingSyncService } from "./CarrierTrackingSyncService";
+import { isCarrierAPIEnabled } from "./CarrierAPIRegistry";
 
 export default function ExportOrderDetailDialog({ open, onClose, order, companyId }) {
   const queryClient = useQueryClient();
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [syncingTracking, setSyncingTracking] = useState(false);
 
   const { data: sale } = useQuery({
     queryKey: ['sale', order?.linked_sales_document_id],
@@ -109,6 +115,23 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
     }
   };
 
+  const handleSyncTracking = async () => {
+    setSyncingTracking(true);
+    try {
+      const result = await CarrierTrackingSyncService.refreshTracking(order.id);
+      if (result.success) {
+        queryClient.invalidateQueries({ queryKey: ['exportOrders'] });
+        toast.success("Tracking synchronized from carrier API");
+      } else {
+        toast.error(result.message || "Failed to sync tracking");
+      }
+    } catch (error) {
+      toast.error("Failed to sync tracking");
+    } finally {
+      setSyncingTracking(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -132,10 +155,11 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
           </div>
 
           <Tabs defaultValue="overview">
-            <TabsList className="grid grid-cols-8 w-full">
+            <TabsList className="grid grid-cols-9 w-full text-xs">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="payment">Payment</TabsTrigger>
                 <TabsTrigger value="compliance">Compliance</TabsTrigger>
+                <TabsTrigger value="booking">Booking</TabsTrigger>
                 <TabsTrigger value="tracking">Tracking</TabsTrigger>
                 <TabsTrigger value="ai-check">AI Check</TabsTrigger>
                 <TabsTrigger value="invoice">Invoice</TabsTrigger>
@@ -260,7 +284,54 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
               <PaymentHistory orderId={order.id} />
             </TabsContent>
 
+            <TabsContent value="booking" className="space-y-4">
+              {isCarrierAPIEnabled(order.carrier_code) && (
+                <>
+                  <CarrierScheduleLookup 
+                    carrierCode={order.carrier_code}
+                    onSelectSchedule={(schedule) => {
+                      toast.success(`Selected ${schedule.vessel_name} - ${schedule.voyage_number}`);
+                    }}
+                  />
+                  <CarrierBookingRequest 
+                    order={order}
+                    onBookingConfirmed={() => {
+                      queryClient.invalidateQueries({ queryKey: ['exportOrders'] });
+                    }}
+                  />
+                </>
+              )}
+              {!isCarrierAPIEnabled(order.carrier_code) && (
+                <Card>
+                  <CardContent className="py-8 text-center text-gray-500">
+                    <p>API booking not available for this carrier</p>
+                    <p className="text-sm">Use manual booking in Logistics tab</p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
             <TabsContent value="tracking" className="space-y-4">
+              {isCarrierAPIEnabled(order.carrier_code) && (
+                <Card>
+                  <CardContent className="pt-4 flex justify-between items-center">
+                    <p className="text-sm text-gray-600">
+                      Sync tracking status from carrier API
+                    </p>
+                    <Button 
+                      onClick={handleSyncTracking}
+                      disabled={syncingTracking}
+                      size="sm"
+                    >
+                      {syncingTracking ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Syncing...</>
+                      ) : (
+                        <>Sync Now</>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
               <LiveTrackingDisplay order={order} />
             </TabsContent>
 
@@ -416,8 +487,20 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
             </TabsContent>
 
             <TabsContent value="documents" className="space-y-4">
+              {isCarrierAPIEnabled(order.carrier_code) && (
+                <CarrierDocumentExchange 
+                  order={order}
+                  onDocumentFetched={() => {
+                    queryClient.invalidateQueries({ queryKey: ['exportOrders'] });
+                  }}
+                />
+              )}
+              
               <Card>
-                <CardContent className="pt-6">
+                <CardHeader>
+                  <CardTitle className="text-base">All Documents</CardTitle>
+                </CardHeader>
+                <CardContent>
                   {order.documents?.length > 0 ? (
                     <div className="space-y-2">
                       {order.documents.map((doc, idx) => (
