@@ -203,9 +203,9 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
             <label className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:bg-gray-50 p-2 rounded mb-2 border-b">
               <input
                 type="checkbox"
-                checked={userData.accessible_modules?.length === 27}
+                checked={userData.accessible_modules?.length === 31}
                 onChange={(e) => {
-                  const allModules = ['Landing', 'Dashboard', 'Companies', 'Customers', 'Vehicles', 'Parts', 'ProductsServices', 'Purchases', 'Sales', 'Repairs', 'Technicians', 'Salvage', 'GlobalShipping', 'Reports', 'Analytics', 'VehicleAnalytics', 'Accounting', 'Banking', 'BankingMobile', 'Payroll', 'EmployeePortal', 'CustomerCommunications', 'CustomerSupport', 'Notifications', 'UserManagement', 'Settings', 'Pricing', 'FinancialAssistant'];
+                  const allModules = ['Landing', 'Dashboard', 'Companies', 'Customers', 'InventoryManagement', 'Vehicles', 'Parts', 'ProductsServices', 'Purchases', 'Sales', 'Repairs', 'Technicians', 'Salvage', 'GlobalShipping', 'Projects', 'Reports', 'FinancialReports', 'Analytics', 'VehicleAnalytics', 'Accounting', 'Banking', 'BankingMobile', 'Payroll', 'EmployeePortal', 'CustomerCommunications', 'CustomerSupport', 'Notifications', 'UserManagement', 'Settings', 'BOSSettings', 'AuditLogs', 'Pricing', 'FinancialAssistant', 'IntegrationDiagram'];
                   setUserData({
                     ...userData,
                     accessible_modules: e.target.checked ? allModules : []
@@ -221,8 +221,9 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
                 { id: 'Dashboard', label: 'Dashboard' },
                 { id: 'Companies', label: 'Companies' },
                 { id: 'Customers', label: 'Customers' },
+                { id: 'InventoryManagement', label: 'Inventory Management' },
                 { id: 'Vehicles', label: 'Vehicles' },
-                { id: 'Parts', label: 'Parts Inventory' },
+                { id: 'Parts', label: 'Parts' },
                 { id: 'ProductsServices', label: 'Products & Services' },
                 { id: 'Purchases', label: 'Purchases' },
                 { id: 'Sales', label: 'Sales' },
@@ -230,7 +231,9 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
                 { id: 'Technicians', label: 'Technicians' },
                 { id: 'Salvage', label: 'Salvage & Dismantling' },
                 { id: 'GlobalShipping', label: 'Global Shipping & Logistics' },
+                { id: 'Projects', label: 'Project Management' },
                 { id: 'Reports', label: 'Reports' },
+                { id: 'FinancialReports', label: 'Financial Reports' },
                 { id: 'Analytics', label: 'Analytics' },
                 { id: 'VehicleAnalytics', label: 'Vehicle Analytics' },
                 { id: 'Accounting', label: 'Financials' },
@@ -243,8 +246,11 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
                 { id: 'Notifications', label: 'Notifications' },
                 { id: 'UserManagement', label: 'User Management' },
                 { id: 'Settings', label: 'Settings' },
+                { id: 'BOSSettings', label: 'BOS Settings' },
+                { id: 'AuditLogs', label: 'Audit Logs' },
                 { id: 'Pricing', label: 'Pricing' },
-                { id: 'FinancialAssistant', label: 'AI Assistant' }
+                { id: 'FinancialAssistant', label: 'AI Assistant' },
+                { id: 'IntegrationDiagram', label: 'Integration Diagram' }
               ].map(module => (
                 <label key={module.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded">
                   <input
