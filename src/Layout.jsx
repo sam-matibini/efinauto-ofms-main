@@ -24,7 +24,8 @@ import {
   Settings as SettingsIcon,
   Shield,
   FolderKanban,
-  Ship
+  Ship,
+  MapPin
 } from "lucide-react";
 import {
   Sidebar,
@@ -133,6 +134,12 @@ const allNavigationItems = [
     url: createPageUrl("TrackShipment"),
     icon: Ship,
     pageId: "TrackShipment"
+  },
+  {
+    title: "Customer Tracking",
+    url: createPageUrl("CustomerTracking"),
+    icon: MapPin,
+    pageId: "CustomerTracking"
   },
   {
     title: "Reports",
