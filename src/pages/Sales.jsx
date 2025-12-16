@@ -32,7 +32,7 @@ import TradeInForm from "../components/sales/TradeInForm";
 import FinancingForm from "../components/sales/FinancingForm";
 import CanadianTaxCalculator, { calculateCanadianTax } from "../components/sales/CanadianTaxCalculator";
 import BillOfSale from "../components/sales/BillOfSale";
-import BillOfSaleShare from "../components/sales/BillOfSaleShare";
+import DocumentShareDialog from "../components/sales/DocumentShareDialog";
 import { useCompany } from "../components/shared/CompanyContext";
 import { generateBOSNumber, voidBOS } from "../components/sales/BOSNumberingService";
 import CustomersTab from "../components/sales/CustomersTab";
