@@ -79,11 +79,15 @@ const modules = [
   },
   {
     id: 'shipping',
-    name: 'Global Shipping',
+    name: 'Global Shipping & Export',
     icon: Ship,
     color: 'bg-cyan-500',
     borderColor: 'border-cyan-500',
     transactions: [
+      { action: 'Export Order (Zero-Rated)', type: 'export_sale', debit: 'Accounts Receivable (1100)', credit: 'Export Sales Revenue (4000)' },
+      { action: 'ISO/HS Validation', type: 'compliance_check', debit: 'N/A', credit: 'Automated validation on finalization' },
+      { action: 'Document Generation', type: 'document_creation', debit: 'N/A', credit: 'Auto-generate B/L, COO, Invoice' },
+      { action: 'Real-Time Tracking', type: 'tracking_update', debit: 'N/A', credit: 'Live carrier API integration' },
       { action: 'Freight Charges', type: 'other_expense', debit: 'Shipping & Freight Expense (5400)', credit: 'Accounts Payable (2000)' },
       { action: 'Customs & Duties', type: 'other_expense', debit: 'Customs & Duties Expense (5410)', credit: 'Accounts Payable (2000)' },
       { action: 'Insurance', type: 'other_expense', debit: 'Insurance Expense (5420)', credit: 'Accounts Payable (2000)' }
@@ -242,6 +246,73 @@ export default function IntegrationDiagram() {
           </TabsList>
 
           <TabsContent value="diagram" className="space-y-6">
+            {/* Export Compliance Features */}
+            <Card className="bg-gradient-to-r from-cyan-50 to-blue-50 border-2 border-cyan-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Ship className="w-5 h-5 text-cyan-600" />
+                  Export Module - Advanced Compliance & Tracking
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="bg-white p-4 rounded-lg border border-cyan-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <h4 className="font-semibold">ISO Code Integration</h4>
+                    </div>
+                    <ul className="text-sm space-y-1 text-gray-600">
+                      <li>• Country selectors (ISO 3166-1)</li>
+                      <li>• Subdivision/province (ISO 3166-2)</li>
+                      <li>• Currency codes (ISO 4217)</li>
+                      <li>• Port codes (UN/LOCODE)</li>
+                      <li>• Auto-default logic (country→currency)</li>
+                    </ul>
+                  </div>
+                  <div className="bg-white p-4 rounded-lg border border-cyan-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <h4 className="font-semibold">HS Code Compliance</h4>
+                    </div>
+                    <ul className="text-sm space-y-1 text-gray-600">
+                      <li>• CBSA-compliant classification</li>
+                      <li>• 6/8/10-digit precision levels</li>
+                      <li>• Line-item HS validation</li>
+                      <li>• Blocks approval if non-compliant</li>
+                      <li>• Country of origin tracking</li>
+                    </ul>
+                  </div>
+                  <div className="bg-white p-4 rounded-lg border border-cyan-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <h4 className="font-semibold">Document Engine</h4>
+                    </div>
+                    <ul className="text-sm space-y-1 text-gray-600">
+                      <li>• Commercial Invoice</li>
+                      <li>• Bill of Lading</li>
+                      <li>• Certificate of Origin</li>
+                      <li>• Packing List</li>
+                      <li>• AI field suggestions</li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="mt-4 p-4 bg-white rounded-lg border border-cyan-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <h4 className="font-semibold">Real-Time Carrier Tracking</h4>
+                  </div>
+                  <ul className="text-sm space-y-1 text-gray-600 grid md:grid-cols-2">
+                    <li>• Live shipment status updates</li>
+                    <li>• Timeline tracking events</li>
+                    <li>• ETA monitoring & alerts</li>
+                    <li>• Delay notifications</li>
+                    <li>• Multi-carrier support (Maersk, MSC, FedEx, DHL, etc.)</li>
+                    <li>• Auto-refresh every 60 seconds</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Visual Flow Diagram */}
             <Card>
               <CardHeader>
