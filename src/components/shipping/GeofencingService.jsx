@@ -1,98 +1,140 @@
 /**
- * Geofencing Service
- * Monitors shipment locations and triggers alerts for key milestones
+ * Enhanced Geofencing Service
+ * Monitors shipment locations and triggers alerts based on user-defined geofences
  */
 
 import { base44 } from "@/api/base44Client";
 
-// Define geofence zones for key milestones
-const GEOFENCE_ZONES = {
-  port_arrival: {
-    name: "Port Arrival",
-    radius: 50, // km
-    alert_status: "at_port"
-  },
-  customs_zone: {
-    name: "Customs Clearance Zone",
-    radius: 20,
-    alert_status: "customs_clearance"
-  },
-  delivery_zone: {
-    name: "Final Delivery Zone",
-    radius: 30,
-    alert_status: "out_for_delivery"
-  }
-};
-
 export const GeofencingService = {
   /**
-   * Check if shipment has entered a geofence zone
+   * Calculate distance between two points (Haversine formula)
    */
-  async checkGeofence(tracking, previousLocation, currentLocation) {
-    const alerts = [];
-
-    // Check for port arrival
-    if (this.hasEnteredZone(previousLocation, currentLocation, GEOFENCE_ZONES.port_arrival)) {
-      alerts.push({
-        type: "port_arrival",
-        tracking_id: tracking.id,
-        message: `Shipment ${tracking.tracking_number} has arrived at port`,
-        timestamp: new Date().toISOString(),
-        severity: "info"
-      });
-    }
-
-    // Check for customs zone entry
-    if (this.hasEnteredZone(previousLocation, currentLocation, GEOFENCE_ZONES.customs_zone)) {
-      alerts.push({
-        type: "customs_entry",
-        tracking_id: tracking.id,
-        message: `Shipment ${tracking.tracking_number} is entering customs clearance`,
-        timestamp: new Date().toISOString(),
-        severity: "warning"
-      });
-    }
-
-    // Check for delivery zone entry
-    if (this.hasEnteredZone(previousLocation, currentLocation, GEOFENCE_ZONES.delivery_zone)) {
-      alerts.push({
-        type: "delivery_zone",
-        tracking_id: tracking.id,
-        message: `Shipment ${tracking.tracking_number} is out for delivery`,
-        timestamp: new Date().toISOString(),
-        severity: "success"
-      });
-    }
-
-    // Send alerts
-    for (const alert of alerts) {
-      await this.sendGeofenceAlert(alert, tracking);
-    }
-
-    return alerts;
+  calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
   },
 
   /**
-   * Check if shipment has entered a zone
+   * Check if point is inside circular geofence
    */
-  hasEnteredZone(previousLocation, currentLocation, zone) {
-    // In production, calculate actual distance from zone center
-    // For now, simulate based on status change
-    return previousLocation?.status !== currentLocation?.status;
+  isInsideCircle(pointLat, pointLng, centerLat, centerLng, radiusKm) {
+    const distance = this.calculateDistance(pointLat, pointLng, centerLat, centerLng);
+    return distance <= radiusKm;
+  },
+
+  /**
+   * Check if point is inside polygon geofence (ray casting algorithm)
+   */
+  isInsidePolygon(pointLat, pointLng, polygonCoords) {
+    let inside = false;
+    for (let i = 0, j = polygonCoords.length - 1; i < polygonCoords.length; j = i++) {
+      const xi = polygonCoords[i].lat, yi = polygonCoords[i].lng;
+      const xj = polygonCoords[j].lat, yj = polygonCoords[j].lng;
+      
+      const intersect = ((yi > pointLng) !== (yj > pointLng))
+        && (pointLat < (xj - xi) * (pointLng - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  },
+
+  /**
+   * Check if shipment is inside a geofence
+   */
+  isInsideGeofence(lat, lng, geofence) {
+    if (geofence.shape === 'polygon' && geofence.polygon_coordinates) {
+      return this.isInsidePolygon(lat, lng, geofence.polygon_coordinates);
+    } else {
+      return this.isInsideCircle(lat, lng, geofence.center_latitude, geofence.center_longitude, geofence.radius_km);
+    }
+  },
+  /**
+   * Check geofences for a shipment at specific coordinates
+   */
+  async checkGeofences(companyId, tracking, currentLat, currentLng, previousLat, previousLng) {
+    try {
+      // Get all active geofences for company
+      const geofences = await base44.entities.Geofence.filter({
+        company_id: companyId,
+        active: true
+      });
+
+      const alerts = [];
+
+      for (const geofence of geofences) {
+        const wasInside = previousLat && previousLng ? 
+          this.isInsideGeofence(previousLat, previousLng, geofence) : false;
+        const isInside = this.isInsideGeofence(currentLat, currentLng, geofence);
+
+        // Entry detection
+        if (!wasInside && isInside && geofence.trigger_on_entry) {
+          alerts.push({
+            type: "geofence_entry",
+            geofence_id: geofence.id,
+            geofence_name: geofence.name,
+            location_type: geofence.location_type,
+            tracking_id: tracking.id,
+            message: geofence.alert_message_template || 
+              `Shipment ${tracking.tracking_number} entered ${geofence.name}`,
+            timestamp: new Date().toISOString(),
+            severity: "info"
+          });
+        }
+
+        // Exit detection
+        if (wasInside && !isInside && geofence.trigger_on_exit) {
+          alerts.push({
+            type: "geofence_exit",
+            geofence_id: geofence.id,
+            geofence_name: geofence.name,
+            location_type: geofence.location_type,
+            tracking_id: tracking.id,
+            message: `Shipment ${tracking.tracking_number} left ${geofence.name}`,
+            timestamp: new Date().toISOString(),
+            severity: "info"
+          });
+        }
+      }
+
+      // Send alerts
+      for (const alert of alerts) {
+        const geofence = geofences.find(g => g.id === alert.geofence_id);
+        await this.sendGeofenceAlert(alert, tracking, geofence);
+      }
+
+      return alerts;
+    } catch (error) {
+      console.error("Error checking geofences:", error);
+      return [];
+    }
   },
 
   /**
    * Send geofence alert
    */
-  async sendGeofenceAlert(alert, tracking) {
+  async sendGeofenceAlert(alert, tracking, geofence) {
     try {
       // Get export order details
       const exportOrder = await base44.entities.ExportOrder.filter({ id: tracking.export_order_id });
       const order = exportOrder?.[0];
 
-      if (!order || !order.consignee_email) return;
+      if (!order) return;
 
-      // Create notification record
+      // Determine recipients
+      const recipients = geofence?.alert_recipients?.length > 0 
+        ? geofence.alert_recipients 
+        : [order.consignee_email].filter(Boolean);
+
+      if (recipients.length === 0) return;
+
+      // Create notification records
       await base44.entities.NotificationLog.create({
         company_id: order.company_id,
         notification_type: "export_update",

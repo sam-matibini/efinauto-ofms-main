@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, Polygon } from "react-leaflet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -72,6 +72,12 @@ export default function ShipmentMapDashboard({ companyId }) {
   const { data: exports = [] } = useQuery({
     queryKey: ['exports', companyId],
     queryFn: () => base44.entities.ExportOrder.filter({ company_id: companyId }),
+  });
+
+  const { data: geofences = [] } = useQuery({
+    queryKey: ['geofences', companyId],
+    queryFn: () => base44.entities.Geofence.filter({ company_id: companyId, active: true }),
+    enabled: !!companyId
   });
 
   // Filter active shipments
@@ -191,6 +197,58 @@ export default function ShipmentMapDashboard({ companyId }) {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               
+              {/* Render Geofences */}
+              {geofences.map((geofence) => (
+                <React.Fragment key={geofence.id}>
+                  {geofence.shape === 'circle' ? (
+                    <Circle
+                      center={[geofence.center_latitude, geofence.center_longitude]}
+                      radius={geofence.radius_km * 1000}
+                      pathOptions={{ 
+                        color: geofence.color, 
+                        fillColor: geofence.color,
+                        fillOpacity: 0.15,
+                        weight: 2,
+                        dashArray: '5, 5'
+                      }}
+                    >
+                      <Popup>
+                        <div className="p-2">
+                          <p className="font-semibold">{geofence.name}</p>
+                          <p className="text-xs text-gray-600 capitalize">
+                            {geofence.location_type.replace(/_/g, ' ')}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            Radius: {geofence.radius_km} km
+                          </p>
+                        </div>
+                      </Popup>
+                    </Circle>
+                  ) : geofence.polygon_coordinates ? (
+                    <Polygon
+                      positions={geofence.polygon_coordinates.map(c => [c.lat, c.lng])}
+                      pathOptions={{ 
+                        color: geofence.color,
+                        fillColor: geofence.color,
+                        fillOpacity: 0.15,
+                        weight: 2,
+                        dashArray: '5, 5'
+                      }}
+                    >
+                      <Popup>
+                        <div className="p-2">
+                          <p className="font-semibold">{geofence.name}</p>
+                          <p className="text-xs text-gray-600 capitalize">
+                            {geofence.location_type.replace(/_/g, ' ')}
+                          </p>
+                        </div>
+                      </Popup>
+                    </Polygon>
+                  ) : null}
+                </React.Fragment>
+              ))}
+              
+              {/* Render Shipments */}
               {activeShipments.map((tracking) => {
                 const location = getShipmentLocation(tracking);
                 const order = getExportOrder(tracking.export_order_id);
