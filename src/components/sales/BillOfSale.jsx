@@ -102,6 +102,14 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
       // Convert base64 to blob
       const response = await fetch(dataUrl);
       const blob = await response.blob();
+      
+      // Validate size (max 2MB for security scan)
+      if (blob.size > 2 * 1024 * 1024) {
+        toast.error("Signature image too large. Please try again.");
+        setUploadingSignature(null);
+        return;
+      }
+      
       const file = new File([blob], `signature_${type}_${Date.now()}.png`, { type: 'image/png' });
       
       // Upload to cloud
@@ -403,24 +411,26 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             <div className="border-2 border-gray-800 p-3 inline-block bg-gray-50 bos-number-container">
               <p className="text-xs font-semibold text-gray-600 mb-1">BOS NUMBER</p>
               <p className="text-lg font-bold text-gray-900 font-mono tracking-wider">{safeSale.bos_number}</p>
-              {typeof window !== 'undefined' && safeSale.bos_number && safeSale.bos_number.length > 0 && String(safeSale.bos_number).length > 0 && (
-                <div className="mt-2 barcode-container">
+              {typeof window !== 'undefined' && safeSale.bos_number && safeSale.bos_number.length > 0 && safeSale.bos_status === 'finalized' && (
+                <div className="mt-2 barcode-container print:hidden">
                   {(() => {
                     try {
+                      const cleanBosNumber = String(safeSale.bos_number).replace(/[^A-Z0-9-]/gi, '').substring(0, 30);
+                      if (cleanBosNumber.length < 5) return null;
                       return (
                         <Barcode 
-                          value={String(safeSale.bos_number).substring(0, 50)} 
+                          value={cleanBosNumber} 
                           height={50}
-                          width={2}
-                          fontSize={11}
+                          width={1.5}
+                          fontSize={10}
                           margin={0}
-                          background="#f9fafb"
+                          background="transparent"
                           displayValue={true}
                           textMargin={2}
                         />
                       );
                     } catch (e) {
-                      return <div className="text-xs text-gray-500">Barcode unavailable</div>;
+                      return null;
                     }
                   })()}
                 </div>

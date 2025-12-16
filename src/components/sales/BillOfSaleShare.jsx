@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import AIDocumentSummary from "@/components/shared/AIDocumentSummary";
+import { validateBOSForPrint, sanitizeBOSForPrint } from "./BOSPrintService";
 
 // Normalize sale data for safe printing
 const normalizePrintData = (sale) => {
@@ -192,8 +193,10 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
       return;
     }
 
-    if (!sale || !company || !sale.customer_name || !sale.vehicle_details) {
-      toast.error("Missing required data");
+    // Validate BOS for print
+    const validation = validateBOSForPrint(sale, company);
+    if (!validation.valid) {
+      toast.error(`Cannot send: ${validation.errors[0]}`);
       return;
     }
 
@@ -231,6 +234,11 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
   };
 
   const generateAndUploadPDF = async () => {
+    if (!sale || !company || !sale.customer_name || !sale.vehicle_details || !sale.id) {
+      toast.error("Cannot generate PDF - missing required data");
+      return null;
+    }
+    
     setGeneratingPDF(true);
     try {
       // Create a temporary element to render the HTML content
