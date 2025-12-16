@@ -121,7 +121,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <div className="px-4 md:px-6 py-3 md:py-4" style={{ backgroundColor: '#1e293b' }}>
         <h1 className="text-xl md:text-2xl font-bold text-white">Dashboard</h1>
-        <p className="text-xs md:text-sm text-gray-300 mt-1">Overview of your car dealership operations</p>
+        <p className="text-xs md:text-sm text-gray-300 mt-1">Global Trade Management & Financial Intelligence</p>
       </div>
       
       <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
