@@ -76,6 +76,8 @@ export default function RateShopping() {
         content += `   ETA: ${format(new Date(quote.estimated_arrival), 'MMM d, yyyy')}\n`;
       });
       
+      content += `\n\n---\nRate Quotes are powered by eFinAuto OFMS`;
+      
       return content.trim();
     }
     
@@ -101,6 +103,9 @@ Total Rate: $${selectedQuote.total_rate.toLocaleString()} ${selectedQuote.curren
 📅 ETA: ${format(new Date(selectedQuote.estimated_arrival), 'MMM d, yyyy')}
 
 ✅ Valid until: ${format(new Date(selectedQuote.valid_until), 'MMM d, yyyy')}
+
+---
+Rate Quotes are powered by eFinAuto OFMS
     `.trim();
   };
 
@@ -242,6 +247,7 @@ Total Rate: $${selectedQuote.total_rate.toLocaleString()} ${selectedQuote.curren
             
             <div class="section">
               <p style="font-size: 12px; color: #666;">Generated on ${format(new Date(), 'MMM d, yyyy h:mm a')}</p>
+              <p style="font-size: 12px; color: #1e293b; font-weight: bold; margin-top: 20px;">Rate Quotes are powered by eFinAuto OFMS</p>
             </div>
           </body>
         </html>
