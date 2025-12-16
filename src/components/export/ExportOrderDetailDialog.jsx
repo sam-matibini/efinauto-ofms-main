@@ -13,6 +13,7 @@ import AIComplianceChecker from "./AIComplianceChecker";
 import ExportDocumentGenerator from "./ExportDocumentGenerator";
 import AIInvoiceGenerator from "./AIInvoiceGenerator";
 import EnhancedDocumentGenerator from "./EnhancedDocumentGenerator";
+import LiveTrackingDisplay from "./LiveTrackingDisplay";
 import { validateExportOrder } from "./ExportValidationService";
 
 export default function ExportOrderDetailDialog({ open, onClose, order, companyId }) {
@@ -127,14 +128,15 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
           </div>
 
           <Tabs defaultValue="overview">
-            <TabsList className="grid grid-cols-6 w-full">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="compliance">Compliance</TabsTrigger>
-              <TabsTrigger value="ai-check">AI Check</TabsTrigger>
-              <TabsTrigger value="invoice">Invoice</TabsTrigger>
-              <TabsTrigger value="logistics">Logistics</TabsTrigger>
-              <TabsTrigger value="documents">Documents</TabsTrigger>
-            </TabsList>
+            <TabsList className="grid grid-cols-7 w-full">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="compliance">Compliance</TabsTrigger>
+                <TabsTrigger value="tracking">Tracking</TabsTrigger>
+                <TabsTrigger value="ai-check">AI Check</TabsTrigger>
+                <TabsTrigger value="invoice">Invoice</TabsTrigger>
+                <TabsTrigger value="logistics">Logistics</TabsTrigger>
+                <TabsTrigger value="documents">Documents</TabsTrigger>
+              </TabsList>
 
             <TabsContent value="overview" className="space-y-4">
               <Card>
@@ -243,6 +245,10 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
                   <p><strong>Address:</strong> {order.destination_address || 'N/A'}</p>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="tracking" className="space-y-4">
+              <LiveTrackingDisplay order={order} />
             </TabsContent>
 
             <TabsContent value="compliance" className="space-y-4">
