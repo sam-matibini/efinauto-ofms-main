@@ -9,6 +9,11 @@ import { Loader2, AlertCircle, Ship } from "lucide-react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import ExportLineItemsManager from "./ExportLineItemsManager";
+import CountrySelector from "../shared/CountrySelector";
+import SubdivisionSelector from "../shared/SubdivisionSelector";
+import CurrencySelector from "../shared/CurrencySelector";
+import PortSelector from "../shared/PortSelector";
+import { useQuery } from "@tanstack/react-query";
 
 export default function CreateExportOrderDialog({ open, onClose, sale, onSuccess, companyId }) {
   const [loading, setLoading] = useState(false);
@@ -17,6 +22,7 @@ export default function CreateExportOrderDialog({ open, onClose, sale, onSuccess
     export_type: "vehicle",
     export_reason: "",
     destination_country: "",
+    destination_subdivision: "",
     destination_port: "",
     destination_address: "",
     consignee_name: sale?.customer_name || "",
@@ -36,6 +42,21 @@ export default function CreateExportOrderDialog({ open, onClose, sale, onSuccess
     notes: ""
   });
 
+  // Auto-default currency when country changes
+  const { data: countries = [] } = useQuery({
+    queryKey: ['countries'],
+    queryFn: () => base44.entities.Country.list(),
+  });
+
+  useEffect(() => {
+    if (formData.destination_country && countries.length > 0) {
+      const country = countries.find(c => c.iso2_code === formData.destination_country);
+      if (country?.currency_iso_code && !formData.currency) {
+        setFormData(prev => ({ ...prev, currency: country.currency_iso_code }));
+      }
+    }
+  }, [formData.destination_country, countries]);
+
   useEffect(() => {
     if (open && sale) {
       setFormData(prev => ({
@@ -50,9 +71,17 @@ export default function CreateExportOrderDialog({ open, onClose, sale, onSuccess
   }, [open, sale]);
 
   const handleCreate = async () => {
-    // Validation
-    if (!formData.destination_country) {
-      toast.error("Destination country is required");
+    // ISO + HS Code Validation
+    if (!formData.destination_country || formData.destination_country.length !== 2) {
+      toast.error("Valid ISO 3166-1 destination country code is required (2 letters)");
+      return;
+    }
+    if (!formData.country_of_origin || formData.country_of_origin.length !== 2) {
+      toast.error("Valid ISO 3166-1 country of origin code is required");
+      return;
+    }
+    if (!formData.currency || formData.currency.length !== 3) {
+      toast.error("Valid ISO 4217 currency code is required (3 letters)");
       return;
     }
     if (!formData.consignee_name) {
@@ -61,6 +90,19 @@ export default function CreateExportOrderDialog({ open, onClose, sale, onSuccess
     }
     if (lineItems.length === 0) {
       toast.error("At least one line item is required");
+      return;
+    }
+
+    // Validate all line items have HS codes (6+ digits)
+    const missingHS = lineItems.filter(item => !item.hs_code || item.hs_code.replace(/\./g, '').length < 6);
+    if (missingHS.length > 0) {
+      toast.error(`${missingHS.length} line item(s) missing valid HS code (minimum 6 digits required)`);
+      return;
+    }
+
+    // Validate subdivision if provided
+    if (formData.destination_subdivision && !formData.destination_subdivision.includes('-')) {
+      toast.error("Invalid subdivision code format (should be ISO 3166-2, e.g., CA-ON)");
       return;
     }
 
@@ -168,20 +210,46 @@ export default function CreateExportOrderDialog({ open, onClose, sale, onSuccess
           {/* Destination */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Destination Country * (ISO Code)</Label>
-              <Input
+              <Label>Destination Country * (ISO 3166-1)</Label>
+              <CountrySelector
                 value={formData.destination_country}
-                onChange={(e) => setFormData({...formData, destination_country: e.target.value.toUpperCase()})}
-                placeholder="e.g., US, GB, NG"
-                maxLength={2}
+                onChange={(v) => {
+                  const country = countries.find(c => c.iso2_code === v);
+                  setFormData({
+                    ...formData, 
+                    destination_country: v,
+                    destination_subdivision: "",
+                    currency: country?.currency_iso_code || formData.currency
+                  });
+                }}
               />
             </div>
             <div>
-              <Label>Destination Port</Label>
-              <Input
+              <Label>Province/State (ISO 3166-2)</Label>
+              <SubdivisionSelector
+                countryIso2={formData.destination_country}
+                value={formData.destination_subdivision}
+                onChange={(v) => setFormData({...formData, destination_subdivision: v})}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Destination Port (UN/LOCODE)</Label>
+              <PortSelector
+                countryIso2={formData.destination_country}
                 value={formData.destination_port}
-                onChange={(e) => setFormData({...formData, destination_port: e.target.value})}
-                placeholder="e.g., Port of Lagos"
+                onChange={(v) => setFormData({...formData, destination_port: v})}
+                portType="seaport"
+              />
+            </div>
+            <div>
+              <Label>Destination Address</Label>
+              <Input
+                value={formData.destination_address}
+                onChange={(e) => setFormData({...formData, destination_address: e.target.value})}
+                placeholder="Street address"
               />
             </div>
           </div>
@@ -230,27 +298,18 @@ export default function CreateExportOrderDialog({ open, onClose, sale, onSuccess
             <h4 className="font-semibold mb-3">Customs & Compliance</h4>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Country of Origin</Label>
-                <Input
+                <Label>Country of Origin (ISO 3166-1)</Label>
+                <CountrySelector
                   value={formData.country_of_origin}
-                  onChange={(e) => setFormData({...formData, country_of_origin: e.target.value.toUpperCase()})}
-                  maxLength={2}
+                  onChange={(v) => setFormData({...formData, country_of_origin: v})}
                 />
               </div>
               <div>
-                <Label>Currency</Label>
-                <Select value={formData.currency} onValueChange={(v) => setFormData({...formData, currency: v})}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="CAD">CAD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="NGN">NGN</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Currency (ISO 4217)</Label>
+                <CurrencySelector
+                  value={formData.currency}
+                  onChange={(v) => setFormData({...formData, currency: v})}
+                />
               </div>
             </div>
           </div>

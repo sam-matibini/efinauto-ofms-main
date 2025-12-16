@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import AIComplianceChecker from "./AIComplianceChecker";
 import ExportDocumentGenerator from "./ExportDocumentGenerator";
 import AIInvoiceGenerator from "./AIInvoiceGenerator";
+import { validateExportOrder } from "./ExportValidationService";
 
 export default function ExportOrderDetailDialog({ open, onClose, order, companyId }) {
   const queryClient = useQueryClient();
@@ -48,17 +49,33 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
   const handleApprove = async () => {
     setUpdatingStatus(true);
     try {
+      // Validate ISO + HS codes before approval
+      const validation = validateExportOrder(order, order.line_items || order.items || []);
+      
+      if (!validation.isValid) {
+        toast.error("Cannot approve: Validation failed");
+        validation.errors.forEach(err => toast.error(err, { duration: 5000 }));
+        setUpdatingStatus(false);
+        return;
+      }
+
+      if (validation.warnings.length > 0) {
+        console.warn("Export validation warnings:", validation.warnings);
+      }
+
       const user = await base44.auth.me();
       await base44.entities.ExportOrder.update(order.id, {
         export_status: "approved",
         compliance_reviewed_by: user.email,
         compliance_reviewed_at: new Date().toISOString(),
         approved_by: user.email,
-        approved_at: new Date().toISOString()
+        approved_at: new Date().toISOString(),
+        hs_codes_validated: true,
+        hs_validation_timestamp: new Date().toISOString()
       });
       
       queryClient.invalidateQueries({ queryKey: ['exportOrders'] });
-      toast.success("Export order approved");
+      toast.success("Export order approved with ISO & HS validation");
       onClose();
     } catch (error) {
       toast.error("Failed to approve: " + error.message);
