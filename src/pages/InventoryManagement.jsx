@@ -22,6 +22,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import AIInventoryInsights from "@/components/shared/AIInventoryInsights";
 import VehicleBulkImportDialog from "@/components/vehicles/VehicleBulkImportDialog";
+import PartBulkImportDialog from "@/components/parts/PartBulkImportDialog";
 
 export default function InventoryManagement() {
   const { selectedCompanyId } = useCompany();
@@ -33,6 +34,7 @@ export default function InventoryManagement() {
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [editingPart, setEditingPart] = useState(null);
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
+  const [partBulkImportOpen, setPartBulkImportOpen] = useState(false);
 
   // Fetch all inventory data
   const { data: vehicles = [], isLoading: loadingVehicles } = useQuery({
@@ -462,10 +464,16 @@ export default function InventoryManagement() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Parts Inventory</CardTitle>
-                <Button onClick={() => { setEditingPart(null); setPartDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Part
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={() => setPartBulkImportOpen(true)} variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Bulk Import
+                  </Button>
+                  <Button onClick={() => { setEditingPart(null); setPartDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Part
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -611,11 +619,17 @@ export default function InventoryManagement() {
         }}
       />
 
-      {/* Bulk Import Dialog */}
+      {/* Bulk Import Dialogs */}
       <VehicleBulkImportDialog
         open={bulkImportOpen}
         onClose={() => setBulkImportOpen(false)}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ['vehicles'] })}
+      />
+
+      <PartBulkImportDialog
+        open={partBulkImportOpen}
+        onClose={() => setPartBulkImportOpen(false)}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['parts'] })}
       />
     </div>
   );
