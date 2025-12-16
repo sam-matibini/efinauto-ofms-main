@@ -142,6 +142,12 @@ const allNavigationItems = [
     pageId: "CustomerTracking"
   },
   {
+    title: "Shipment Monitoring",
+    url: createPageUrl("ShipmentMonitoring"),
+    icon: MapPin,
+    pageId: "ShipmentMonitoring"
+  },
+  {
     title: "Reports",
     url: createPageUrl("Reports"),
     icon: BarChart3,

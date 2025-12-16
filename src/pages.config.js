@@ -40,6 +40,7 @@ import BOSSettings from './pages/BOSSettings';
 import SignDocument from './pages/SignDocument';
 import ISODataManagement from './pages/ISODataManagement';
 import TrackShipment from './pages/TrackShipment';
+import ShipmentMonitoring from './pages/ShipmentMonitoring';
 import __Layout from './Layout.jsx';
 
 
@@ -86,6 +87,7 @@ export const PAGES = {
     "SignDocument": SignDocument,
     "ISODataManagement": ISODataManagement,
     "TrackShipment": TrackShipment,
+    "ShipmentMonitoring": ShipmentMonitoring,
 }
 
 export const pagesConfig = {
