@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Ship, FileText, Package, CheckCircle, Clock, AlertCircle, Loader2 } from "lucide-react";
+import { Ship, FileText, Package, CheckCircle, Clock, AlertCircle, Loader2, TrendingDown } from "lucide-react";
 import { format } from "date-fns";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -23,12 +23,14 @@ import CarrierBookingRequest from "./CarrierBookingRequest";
 import CarrierDocumentExchange from "./CarrierDocumentExchange";
 import { CarrierTrackingSyncService } from "./CarrierTrackingSyncService";
 import { isCarrierAPIEnabled } from "./CarrierAPIRegistry";
+import RateShoppingDialog from "./RateShoppingDialog";
 
 export default function ExportOrderDetailDialog({ open, onClose, order, companyId }) {
   const queryClient = useQueryClient();
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [syncingTracking, setSyncingTracking] = useState(false);
+  const [rateShoppingOpen, setRateShoppingOpen] = useState(false);
 
   const { data: sale } = useQuery({
     queryKey: ['sale', order?.linked_sales_document_id],
@@ -536,10 +538,16 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
                 </Button>
               )}
               {order.export_status === 'approved' && !order.booking_reference && (
-                <Button onClick={() => setBookingDialogOpen(true)} className="bg-purple-600 hover:bg-purple-700">
-                  <Ship className="w-4 h-4 mr-2" />
-                  Book Shipment
-                </Button>
+                <>
+                  <Button onClick={() => setRateShoppingOpen(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                    <TrendingDown className="w-4 h-4 mr-2" />
+                    Compare Rates & Book
+                  </Button>
+                  <Button onClick={() => setBookingDialogOpen(true)} variant="outline">
+                    <Ship className="w-4 h-4 mr-2" />
+                    Manual Booking
+                  </Button>
+                </>
               )}
               {order.export_status === 'logistics_booked' && (
                 <Button onClick={handleShip} disabled={updatingStatus} className="bg-blue-600 hover:bg-blue-700">
@@ -555,6 +563,26 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
           open={bookingDialogOpen}
           onClose={() => setBookingDialogOpen(false)}
           exportOrder={order}
+        />
+
+        <RateShoppingDialog
+          open={rateShoppingOpen}
+          onClose={() => setRateShoppingOpen(false)}
+          exportOrder={order}
+          onSelectRate={(quote) => {
+            // Update export order with selected rate details
+            base44.entities.ExportOrder.update(order.id, {
+              carrier_code: quote.carrier_code,
+              carrier_name: quote.carrier_name,
+              freight_cost: quote.total_rate,
+              estimated_departure: quote.estimated_departure,
+              estimated_arrival: quote.estimated_arrival,
+              export_status: 'logistics_booked'
+            }).then(() => {
+              queryClient.invalidateQueries({ queryKey: ['exportOrders'] });
+              toast.success(`Booked with ${quote.carrier_name} - $${quote.total_rate.toLocaleString()}`);
+            });
+          }}
         />
       </DialogContent>
     </Dialog>
