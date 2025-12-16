@@ -7,6 +7,7 @@ import OpportunitiesPipeline from "@/components/crm/OpportunitiesPipeline";
 import CustomerProfile from "@/components/crm/CustomerProfile";
 import CommunicationsTab from "@/components/crm/CommunicationsTab";
 import TasksTab from "@/components/crm/TasksTab";
+import CustomerSegmentation from "@/components/crm/CustomerSegmentation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -211,8 +212,8 @@ export default function Customers() {
       <div className="px-4 md:px-6 py-3 md:py-4" style={{ backgroundColor: '#1e293b' }}>
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-3">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-white">Customer Management</h1>
-            <p className="text-xs md:text-sm text-gray-300 mt-1">{filteredCustomers.length} customers</p>
+            <h1 className="text-xl md:text-2xl font-bold text-white">CRM & Customer Management</h1>
+            <p className="text-xs md:text-sm text-gray-300 mt-1">Manage customers, leads, and sales pipeline</p>
           </div>
         <div className="flex gap-2 flex-wrap">
           <div className="flex bg-white rounded-lg shadow-sm border">
@@ -266,7 +267,40 @@ export default function Customers() {
 
           <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
 
-      <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+      <Tabs defaultValue="customers" className="w-full">
+        <TabsList className="grid grid-cols-7 mb-6 h-auto">
+          <TabsTrigger value="customers" className="flex items-center gap-2">
+            <User className="w-4 h-4" />
+            Customers
+          </TabsTrigger>
+          <TabsTrigger value="leads" className="flex items-center gap-2">
+            <User className="w-4 h-4" />
+            Leads
+          </TabsTrigger>
+          <TabsTrigger value="pipeline" className="flex items-center gap-2">
+            <User className="w-4 h-4" />
+            Pipeline
+          </TabsTrigger>
+          <TabsTrigger value="communications" className="flex items-center gap-2">
+            <Mail className="w-4 h-4" />
+            Communications
+          </TabsTrigger>
+          <TabsTrigger value="tasks" className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4" />
+            Tasks
+          </TabsTrigger>
+          <TabsTrigger value="segments" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Segments
+          </TabsTrigger>
+          <TabsTrigger value="map" className="flex items-center gap-2">
+            <Map className="w-4 h-4" />
+            Map
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="customers" className="space-y-6">
+      <div className="bg-white rounded-xl shadow-md p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -461,6 +495,32 @@ export default function Customers() {
           ))}
         </div>
       )}
+        </TabsContent>
+
+        <TabsContent value="leads">
+          <LeadsTab companyId={selectedCompanyId} />
+        </TabsContent>
+
+        <TabsContent value="pipeline">
+          <OpportunitiesPipeline companyId={selectedCompanyId} />
+        </TabsContent>
+
+        <TabsContent value="communications">
+          <CommunicationsTab companyId={selectedCompanyId} />
+        </TabsContent>
+
+        <TabsContent value="tasks">
+          <TasksTab companyId={selectedCompanyId} />
+        </TabsContent>
+
+        <TabsContent value="segments">
+          <CustomerSegmentation companyId={selectedCompanyId} customers={customers} />
+        </TabsContent>
+
+        <TabsContent value="map">
+          <CustomerMap customers={customers} />
+        </TabsContent>
+      </Tabs>
 
       <CustomerDialog
         open={dialogOpen}
