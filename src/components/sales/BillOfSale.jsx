@@ -179,11 +179,25 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
   if (!company) return <div>Loading company data...</div>;
   
   // Validate required fields for security scan
-  if (!sale.customer_name || !sale.vehicle_details || !sale.company_id) {
+  if (!sale.customer_name || !sale.vehicle_details || !sale.company_id || sale.sale_price === undefined || sale.sale_price === null) {
     return <div className="p-8 text-center text-red-600">Missing required sale data. Cannot generate Bill of Sale.</div>;
   }
+  
+  // Ensure all numeric fields have valid defaults
+  const safeSale = {
+    ...sale,
+    sale_price: sale.sale_price || 0,
+    grand_total: sale.grand_total || sale.sale_price || 0,
+    balance_due: sale.balance_due || 0,
+    tax_gst: sale.tax_gst || 0,
+    tax_pst: sale.tax_pst || 0,
+    tax_hst: sale.tax_hst || 0,
+    deposit_amount: sale.deposit_amount || 0,
+    vehicle_mileage: sale.vehicle_mileage || 0,
+    vehicle_year: sale.vehicle_year || ''
+  };
 
-  const isExport = sale.sale_type === 'export';
+  const isExport = safeSale.sale_type === 'export';
 
   // Build full address
   const companyAddress = [
@@ -365,11 +379,11 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
                   />
                 </div>
               )}
-              {sale.bos_issued_date && (
+              {sale.bos_issued_date && (() => { try { return (
                 <p className="text-xs text-gray-500 mt-1">
                   Issued: {format(new Date(sale.bos_issued_date), 'MMM d, yyyy')}
                 </p>
-              )}
+              ); } catch(e) { return null; } })()}
               {sale.bos_issued_by && (
                 <p className="text-xs text-gray-500">
                   By: {sale.bos_issued_by}
@@ -428,7 +442,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           </div>
           <div className="border-b border-gray-800 pb-1">
             <span className="text-sm font-semibold">Date:</span>
-            <span className="ml-2">{sale.sale_date ? format(new Date(sale.sale_date), 'MMM d, yyyy') : ''}</span>
+            <span className="ml-2">{sale.sale_date ? (() => { try { return format(new Date(sale.sale_date), 'MMM d, yyyy'); } catch(e) { return ''; } })() : ''}</span>
           </div>
         </div>
 
@@ -481,7 +495,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           <div className="col-span-2 p-2 border-r border-gray-800 font-semibold text-sm">Odometer</div>
           <div className="p-2 border-r border-gray-800 font-semibold text-sm">Colour</div>
           <div className="col-span-3 p-2 font-semibold text-sm">
-            VIN: {sale.vehicle_vin ? sale.vehicle_vin.split('').join(' ') : ''}
+            VIN: {sale.vehicle_vin && typeof sale.vehicle_vin === 'string' ? sale.vehicle_vin.split('').join(' ') : ''}
           </div>
         </div>
         <div className="grid grid-cols-6">
@@ -611,7 +625,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
                   <Check className="w-3 h-3 text-green-600" />
                   Signed by {signatureMetadata.buyer?.name || sale.customer_name || 'Buyer'}
                 </span>
-                <span>{signatureMetadata.buyer?.signedAt ? format(new Date(signatureMetadata.buyer.signedAt), 'MMM d, yyyy h:mm a') : ''}</span>
+                <span>{signatureMetadata.buyer?.signedAt ? (() => { try { return format(new Date(signatureMetadata.buyer.signedAt), 'MMM d, yyyy h:mm a'); } catch(e) { return ''; } })() : ''}</span>
               </div>
               <Button
                 variant="ghost"
@@ -692,7 +706,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
                   <Check className="w-3 h-3 text-green-600" />
                   {signatureMetadata.seller?.method === 'ai_generated' ? 'AI Signed' : 'Signed'} by {signatureMetadata.seller?.name}
                 </span>
-                <span>{signatureMetadata.seller?.signedAt ? format(new Date(signatureMetadata.seller.signedAt), 'MMM d, yyyy h:mm a') : ''}</span>
+                <span>{signatureMetadata.seller?.signedAt ? (() => { try { return format(new Date(signatureMetadata.seller.signedAt), 'MMM d, yyyy h:mm a'); } catch(e) { return ''; } })() : ''}</span>
               </div>
               <Button
                 variant="ghost"
