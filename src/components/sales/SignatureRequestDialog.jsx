@@ -41,8 +41,8 @@ export default function SignatureRequestDialog({ open, onClose, sale, company })
       return;
     }
 
-    if (!sale || !sale.id || !sale.company_id) {
-      toast.error("Sale information is missing");
+    if (!sale || !sale.id || !sale.company_id || !company || !company.name) {
+      toast.error("Required information is missing");
       return;
     }
 

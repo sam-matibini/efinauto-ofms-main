@@ -7,7 +7,7 @@ import { sendCompletionCertificateNotification } from "./SalesNotificationServic
 
 export default function CompletionCertificate({ sale, company, signatureMetadata }) {
   const generateCertificate = async () => {
-    if (!sale || !company) {
+    if (!sale || !company || !sale.customer_name || !sale.vehicle_details || !sale.sale_price) {
       toast.error("Required data is missing");
       return;
     }

@@ -48,7 +48,8 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
   }, [existingSignatures]);
 
   const uploadSignatureImage = async (dataUrl, type) => {
-    if (!sale || !dataUrl || !sale.id || !sale.company_id) {
+    if (!sale || !dataUrl || !sale.id || !sale.company_id || uploadingSignature) {
+      if (uploadingSignature) return; // Prevent concurrent uploads
       toast.error("Invalid sale data");
       return;
     }
@@ -365,18 +366,26 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             <div className="border-2 border-gray-800 p-3 inline-block bg-gray-50 bos-number-container">
               <p className="text-xs font-semibold text-gray-600 mb-1">BOS NUMBER</p>
               <p className="text-lg font-bold text-gray-900 font-mono tracking-wider">{safeSale.bos_number}</p>
-              {typeof window !== 'undefined' && safeSale.bos_number && (
+              {typeof window !== 'undefined' && safeSale.bos_number && safeSale.bos_number.length > 0 && String(safeSale.bos_number).length > 0 && (
                 <div className="mt-2 barcode-container">
-                  <Barcode 
-                    value={String(safeSale.bos_number).substring(0, 50)} 
-                    height={50}
-                    width={2}
-                    fontSize={11}
-                    margin={0}
-                    background="#f9fafb"
-                    displayValue={true}
-                    textMargin={2}
-                  />
+                  {(() => {
+                    try {
+                      return (
+                        <Barcode 
+                          value={String(safeSale.bos_number).substring(0, 50)} 
+                          height={50}
+                          width={2}
+                          fontSize={11}
+                          margin={0}
+                          background="#f9fafb"
+                          displayValue={true}
+                          textMargin={2}
+                        />
+                      );
+                    } catch (e) {
+                      return <div className="text-xs text-gray-500">Barcode unavailable</div>;
+                    }
+                  })()}
                 </div>
               )}
               {safeSale.bos_issued_date && (() => { try { return (
