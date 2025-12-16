@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import AIComplianceChecker from "./AIComplianceChecker";
 import ExportDocumentGenerator from "./ExportDocumentGenerator";
 import AIInvoiceGenerator from "./AIInvoiceGenerator";
+import EnhancedDocumentGenerator from "./EnhancedDocumentGenerator";
 import { validateExportOrder } from "./ExportValidationService";
 
 export default function ExportOrderDetailDialog({ open, onClose, order, companyId }) {
@@ -297,7 +298,7 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
 
             <TabsContent value="ai-check" className="space-y-4">
               <AIComplianceChecker order={order} />
-              <ExportDocumentGenerator order={order} sale={sale} company={company} />
+              <EnhancedDocumentGenerator order={order} sale={sale} company={company} />
             </TabsContent>
 
             <TabsContent value="invoice" className="space-y-4">
