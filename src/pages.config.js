@@ -38,6 +38,7 @@ import FinancialReports from './pages/FinancialReports';
 import Projects from './pages/Projects';
 import BOSSettings from './pages/BOSSettings';
 import SignDocument from './pages/SignDocument';
+import ISODataManagement from './pages/ISODataManagement';
 import __Layout from './Layout.jsx';
 
 
@@ -82,6 +83,7 @@ export const PAGES = {
     "Projects": Projects,
     "BOSSettings": BOSSettings,
     "SignDocument": SignDocument,
+    "ISODataManagement": ISODataManagement,
 }
 
 export const pagesConfig = {
