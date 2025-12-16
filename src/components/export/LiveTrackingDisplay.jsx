@@ -11,6 +11,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fetchTrackingData, updateTrackingData, carrierInfo, statusColors } from "./ShipmentTrackingService";
+import { CarrierAPIService } from "./CarrierAPIService";
 
 export default function LiveTrackingDisplay({ order }) {
   const [addingTracking, setAddingTracking] = useState(false);
@@ -45,10 +46,43 @@ export default function LiveTrackingDisplay({ order }) {
   });
 
   const refreshTrackingMutation = useMutation({
-    mutationFn: (trackingId) => updateTrackingData(trackingId, order.company_id),
+    mutationFn: async (trackingRecord) => {
+      // Get real-time update from carrier API
+      const update = await CarrierAPIService.getTrackingUpdate(
+        trackingRecord.carrier,
+        trackingRecord.tracking_number
+      );
+
+      // Update tracking record
+      await base44.entities.ShipmentTracking.update(trackingRecord.id, {
+        current_status: update.current_status,
+        current_location: update.current_location,
+        estimated_delivery: update.estimated_delivery,
+        delay_reason: update.delay_reason,
+        tracking_events: update.tracking_events,
+        last_updated: new Date().toISOString()
+      });
+
+      // Send notification if status changed
+      if (update.current_status !== trackingRecord.current_status) {
+        await base44.integrations.Core.SendEmail({
+          to: order.consignee_email || 'customer@example.com',
+          subject: `Shipment Status Update - ${order.export_order_number}`,
+          body: `Your shipment status has been updated to: ${update.current_status.replace(/_/g, ' ').toUpperCase()}
+          
+Current Location: ${update.current_location}
+Tracking Number: ${trackingRecord.tracking_number}
+Estimated Delivery: ${update.estimated_delivery ? format(new Date(update.estimated_delivery), 'MMM d, yyyy') : 'TBD'}
+
+Track your shipment for real-time updates.`
+        });
+      }
+
+      return update;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shipmentTracking', order.id] });
-      toast.success("Tracking data refreshed");
+      toast.success("Tracking data refreshed from carrier");
     },
     onError: (error) => {
       toast.error("Failed to refresh: " + error.message);
@@ -149,7 +183,7 @@ export default function LiveTrackingDisplay({ order }) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => refreshTrackingMutation.mutate(tracking.id)}
+                    onClick={() => refreshTrackingMutation.mutate(tracking)}
                     disabled={refreshTrackingMutation.isPending}
                   >
                     <RefreshCw className={`w-4 h-4 ${refreshTrackingMutation.isPending ? 'animate-spin' : ''}`} />
