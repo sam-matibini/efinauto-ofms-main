@@ -32,10 +32,16 @@ export default function DocumentShareDialog({ open, onClose, sale }) {
   const [secureLink, setSecureLink] = useState(null);
 
   const handleGeneratePDF = async () => {
+    if (!sale?.id) {
+      toast.error("No sale selected");
+      return;
+    }
     setLoading(true);
     try {
-      await generateDocumentPDF(sale.id, "BOS");
-      toast.success("PDF generated successfully");
+      const result = await generateDocumentPDF(sale.id, "BOS");
+      toast.success("PDF generated and saved");
+      // Refresh the sale data to show updated pdf_file_url
+      setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
       toast.error("Failed to generate PDF: " + error.message);
     } finally {
@@ -72,11 +78,15 @@ export default function DocumentShareDialog({ open, onClose, sale }) {
       toast.error("Please enter recipient email");
       return;
     }
+    if (!sale?.id) {
+      toast.error("No sale selected");
+      return;
+    }
     setLoading(true);
     try {
-      await shareViaEmail(sale.id, emailData.to, sale.customer_name, emailData.message);
-      toast.success(`Email sent to ${emailData.to}`);
-      onClose();
+      await shareViaEmail(sale.id, emailData.to, sale.customer_name || "Customer", emailData.message);
+      toast.success(`📧 Email sent to ${emailData.to}`);
+      setTimeout(() => onClose(), 1500);
     } catch (error) {
       toast.error("Email failed: " + error.message);
     } finally {
@@ -89,10 +99,14 @@ export default function DocumentShareDialog({ open, onClose, sale }) {
       toast.error("Please enter phone number");
       return;
     }
+    if (!sale?.id) {
+      toast.error("No sale selected");
+      return;
+    }
     setLoading(true);
     try {
       const result = await shareViaWhatsApp(sale.id, phoneNumber);
-      toast.success("WhatsApp opened with secure link");
+      toast.success("💬 WhatsApp opened with PDF link");
       setSecureLink(result.link);
     } catch (error) {
       toast.error("WhatsApp share failed: " + error.message);
@@ -106,10 +120,14 @@ export default function DocumentShareDialog({ open, onClose, sale }) {
       toast.error("Please enter phone number");
       return;
     }
+    if (!sale?.id) {
+      toast.error("No sale selected");
+      return;
+    }
     setLoading(true);
     try {
       const result = await shareViaSMS(sale.id, phoneNumber);
-      toast.success("SMS app opened with secure link");
+      toast.success("💬 SMS app opened with PDF link");
       setSecureLink(result.link);
     } catch (error) {
       toast.error("SMS share failed: " + error.message);
@@ -123,11 +141,15 @@ export default function DocumentShareDialog({ open, onClose, sale }) {
       toast.error("Please enter Google Chat webhook URL");
       return;
     }
+    if (!sale?.id) {
+      toast.error("No sale selected");
+      return;
+    }
     setLoading(true);
     try {
       await shareViaGoogleChat(sale.id, webhookUrl);
-      toast.success("Message sent to Google Chat");
-      onClose();
+      toast.success("✅ Message posted to Google Chat");
+      setTimeout(() => onClose(), 1500);
     } catch (error) {
       toast.error("Google Chat failed: " + error.message);
     } finally {
@@ -136,11 +158,15 @@ export default function DocumentShareDialog({ open, onClose, sale }) {
   };
 
   const handleGenerateLink = async () => {
+    if (!sale?.id) {
+      toast.error("No sale selected");
+      return;
+    }
     setLoading(true);
     try {
       const result = await generateSecureDownloadLink(sale.id);
       setSecureLink(result.secure_link);
-      toast.success("Secure link generated");
+      toast.success("🔗 Secure PDF link generated");
     } catch (error) {
       toast.error("Link generation failed: " + error.message);
     } finally {

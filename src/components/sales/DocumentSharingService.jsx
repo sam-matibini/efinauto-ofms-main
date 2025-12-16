@@ -6,8 +6,10 @@ import { generateDocumentPDF } from "./DocumentPDFService";
 
 export const generateSecureDownloadLink = async (documentId, documentType = "BOS", expiresInHours = 72) => {
   try {
-    // Generate PDF if not exists
-    const document = await base44.entities.Sale.get(documentId);
+    // Load document from database
+    const sales = await base44.entities.Sale.filter({ id: documentId });
+    const document = sales[0];
+    if (!document) throw new Error("Sale not found");
     
     let pdfUrl = document.pdf_file_url;
     if (!pdfUrl) {
@@ -15,27 +17,31 @@ export const generateSecureDownloadLink = async (documentId, documentType = "BOS
       pdfUrl = result.pdf_url;
     }
     
-    // Create tokenized secure link
-    const token = btoa(`${documentId}_${Date.now()}_${Math.random()}`);
+    // For secure link, just use the direct PDF URL (it's already secure and public)
     const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
     
-    // Store link metadata
-    await base44.entities.AuditLog.create({
-      company_id: document.company_id,
-      module: "Sale",
-      action: "SECURE_LINK_GENERATED",
-      record_id: documentId,
-      metadata: {
-        token,
-        expires_at: expiresAt.toISOString(),
-        pdf_url: pdfUrl
-      }
-    });
+    // Log link generation
+    const user = await base44.auth.me().catch(() => null);
+    if (user) {
+      await base44.entities.AuditLog.create({
+        company_id: document.company_id,
+        user_id: user.id,
+        user_email: user.email,
+        user_name: user.full_name,
+        module: "Sale",
+        action: "SECURE_LINK_GENERATED",
+        record_id: documentId,
+        metadata: {
+          pdf_url: pdfUrl,
+          expires_at: expiresAt.toISOString()
+        },
+        status: "success"
+      });
+    }
     
-    // Return secure download URL
-    const baseUrl = window.location.origin;
+    // Return direct PDF URL as secure link
     return {
-      secure_link: `${baseUrl}/download/${token}`,
+      secure_link: pdfUrl,
       direct_pdf_url: pdfUrl,
       expires_at: expiresAt
     };
@@ -47,8 +53,13 @@ export const generateSecureDownloadLink = async (documentId, documentType = "BOS
 
 export const shareViaEmail = async (documentId, recipientEmail, recipientName, message = "") => {
   try {
-    const document = await base44.entities.Sale.get(documentId);
-    const company = await base44.entities.Company.get(document.company_id);
+    const sales = await base44.entities.Sale.filter({ id: documentId });
+    const document = sales[0];
+    if (!document) throw new Error("Sale not found");
+    
+    const companies = await base44.entities.Company.filter({ id: document.company_id });
+    const company = companies[0];
+    if (!company) throw new Error("Company not found");
     
     // Ensure PDF exists
     let pdfUrl = document.pdf_file_url;
@@ -114,8 +125,14 @@ export const shareViaEmail = async (documentId, recipientEmail, recipientName, m
 
 export const shareViaWhatsApp = async (documentId, recipientPhone) => {
   try {
-    const document = await base44.entities.Sale.get(documentId);
-    const company = await base44.entities.Company.get(document.company_id);
+    const sales = await base44.entities.Sale.filter({ id: documentId });
+    const document = sales[0];
+    if (!document) throw new Error("Sale not found");
+    
+    const companies = await base44.entities.Company.filter({ id: document.company_id });
+    const company = companies[0];
+    if (!company) throw new Error("Company not found");
+    
     const { secure_link, direct_pdf_url } = await generateSecureDownloadLink(documentId);
     
     const message = encodeURIComponent(
@@ -152,8 +169,14 @@ export const shareViaWhatsApp = async (documentId, recipientPhone) => {
 
 export const shareViaSMS = async (documentId, recipientPhone) => {
   try {
-    const document = await base44.entities.Sale.get(documentId);
-    const company = await base44.entities.Company.get(document.company_id);
+    const sales = await base44.entities.Sale.filter({ id: documentId });
+    const document = sales[0];
+    if (!document) throw new Error("Sale not found");
+    
+    const companies = await base44.entities.Company.filter({ id: document.company_id });
+    const company = companies[0];
+    if (!company) throw new Error("Company not found");
+    
     const { secure_link } = await generateSecureDownloadLink(documentId);
     
     const message = 
@@ -181,8 +204,14 @@ export const shareViaSMS = async (documentId, recipientPhone) => {
 
 export const shareViaGoogleChat = async (documentId, webhookUrl) => {
   try {
-    const document = await base44.entities.Sale.get(documentId);
-    const company = await base44.entities.Company.get(document.company_id);
+    const sales = await base44.entities.Sale.filter({ id: documentId });
+    const document = sales[0];
+    if (!document) throw new Error("Sale not found");
+    
+    const companies = await base44.entities.Company.filter({ id: document.company_id });
+    const company = companies[0];
+    if (!company) throw new Error("Company not found");
+    
     const { secure_link } = await generateSecureDownloadLink(documentId);
     
     // Google Chat webhook message format (Cards V2)
@@ -286,7 +315,9 @@ export const shareViaGoogleChat = async (documentId, webhookUrl) => {
 
 export const printDocument = async (documentId) => {
   try {
-    const document = await base44.entities.Sale.get(documentId);
+    const sales = await base44.entities.Sale.filter({ id: documentId });
+    const document = sales[0];
+    if (!document) throw new Error("Sale not found");
     
     // Ensure PDF exists
     let pdfUrl = document.pdf_file_url;
@@ -298,32 +329,17 @@ export const printDocument = async (documentId) => {
     // Log print action
     await logSharingAction(document, "PRINT", "local_printer");
     
-    // Create iframe for silent printing
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = pdfUrl;
-    document.body.appendChild(iframe);
-    
-    iframe.onload = () => {
-      try {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-        
-        // Clean up after print dialog closes
+    // Open PDF in new window and trigger print
+    const printWindow = window.open(pdfUrl, '_blank');
+    if (printWindow) {
+      printWindow.onload = () => {
         setTimeout(() => {
-          document.body.removeChild(iframe);
-        }, 1000);
-      } catch (e) {
-        // Fallback: open in new window
-        document.body.removeChild(iframe);
-        const printWindow = window.open(pdfUrl, '_blank');
-        if (printWindow) {
-          printWindow.onload = () => {
-            printWindow.print();
-          };
-        }
-      }
-    };
+          printWindow.print();
+        }, 250);
+      };
+    } else {
+      throw new Error("Pop-up blocked. Please allow pop-ups to print.");
+    }
     
     return { success: true };
   } catch (error) {
@@ -334,7 +350,9 @@ export const printDocument = async (documentId) => {
 
 export const downloadDocument = async (documentId) => {
   try {
-    const document = await base44.entities.Sale.get(documentId);
+    const sales = await base44.entities.Sale.filter({ id: documentId });
+    const document = sales[0];
+    if (!document) throw new Error("Sale not found");
     
     // Ensure PDF exists
     let pdfUrl = document.pdf_file_url;
@@ -350,6 +368,7 @@ export const downloadDocument = async (documentId) => {
     const a = document.createElement("a");
     a.href = pdfUrl;
     a.download = `BOS_${document.bos_number || document.id}.pdf`;
+    a.target = "_blank";
     a.click();
     
     return { success: true };

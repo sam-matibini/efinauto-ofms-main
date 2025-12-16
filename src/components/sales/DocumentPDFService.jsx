@@ -31,7 +31,9 @@ export const generateDocumentPDF = async (documentId, documentType = "BOS") => {
     // Step 1: Load fresh document from database
     let document;
     if (documentType === "BOS") {
-      document = await base44.entities.Sale.get(documentId);
+      const sales = await base44.entities.Sale.filter({ id: documentId });
+      document = sales[0];
+      if (!document) throw new Error("Sale not found");
     }
     
     // Step 2: Validate status
@@ -41,7 +43,9 @@ export const generateDocumentPDF = async (documentId, documentType = "BOS") => {
     }
     
     // Step 3: Load company data
-    const company = await base44.entities.Company.get(document.company_id);
+    const companies = await base44.entities.Company.filter({ id: document.company_id });
+    const company = companies[0];
+    if (!company) throw new Error("Company not found");
     
     // Step 4: Generate clean HTML template (null-safe)
     const htmlContent = generateCleanHTMLTemplate(document, company, documentType);
