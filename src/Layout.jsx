@@ -130,6 +130,12 @@ const allNavigationItems = [
     pageId: "GlobalShipping"
   },
   {
+    title: "Rate Shopping",
+    url: createPageUrl("RateShopping"),
+    icon: DollarSign,
+    pageId: "RateShopping"
+  },
+  {
     title: "Track Shipment",
     url: createPageUrl("TrackShipment"),
     icon: Ship,

@@ -41,6 +41,7 @@ import SignDocument from './pages/SignDocument';
 import ISODataManagement from './pages/ISODataManagement';
 import TrackShipment from './pages/TrackShipment';
 import ShipmentMonitoring from './pages/ShipmentMonitoring';
+import RateShopping from './pages/RateShopping';
 import __Layout from './Layout.jsx';
 
 
@@ -88,6 +89,7 @@ export const PAGES = {
     "ISODataManagement": ISODataManagement,
     "TrackShipment": TrackShipment,
     "ShipmentMonitoring": ShipmentMonitoring,
+    "RateShopping": RateShopping,
 }
 
 export const pagesConfig = {
