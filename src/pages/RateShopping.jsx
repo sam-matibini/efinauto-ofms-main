@@ -10,6 +10,7 @@ import { RateComparisonService } from "../components/export/RateComparisonServic
 import { toast } from "sonner";
 import { format } from "date-fns";
 import DocumentAnalyzer from "../components/shipping/DocumentAnalyzer";
+import RateShoppingAI from "../components/shipping/RateShoppingAI";
 import { base44 } from "@/api/base44Client";
 
 export default function RateShopping() {
@@ -369,15 +370,23 @@ Rate Quotes are powered by eFinAuto OFMS
       </div>
 
       <div className="p-6 max-w-7xl mx-auto space-y-6">
-        {/* Document Analyzer */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Document Analyzer & Summarizer</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DocumentAnalyzer />
-          </CardContent>
-        </Card>
+        {/* AI Assistant & Document Analyzer */}
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Document Analyzer & Summarizer</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DocumentAnalyzer />
+            </CardContent>
+          </Card>
+
+          <RateShoppingAI 
+            shipmentDetails={shipmentDetails}
+            comparison={comparison}
+            selectedQuote={selectedQuote}
+          />
+        </div>
 
         {/* Shipment Details Form */}
         <Card>
