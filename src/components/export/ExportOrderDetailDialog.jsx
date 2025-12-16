@@ -175,9 +175,18 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
                               )}
                             </div>
                             <div className="text-xs text-gray-600 space-x-3">
-                              {item.hs_code && <span>HS: {item.hs_code}</span>}
+                              {item.hs_code ? (
+                                <span className={item.hs_code.replace(/\./g, '').length < 6 ? 'text-red-600 font-medium' : ''}>
+                                  HS: {item.hs_code}
+                                  {item.hs_code_level && <span className="ml-1">({item.hs_code_level}-digit)</span>}
+                                </span>
+                              ) : (
+                                <span className="text-red-600 font-medium">⚠ HS Code Missing</span>
+                              )}
                               <span>Qty: {item.quantity} {item.unit_of_measure || ''}</span>
                               {item.weight && <span>Weight: {item.weight} kg</span>}
+                              {item.country_of_origin && <span>Origin: {item.country_of_origin}</span>}
+                              {item.item_condition && <span className="capitalize">Condition: {item.item_condition}</span>}
                               {item.vin && <span>VIN: {item.vin}</span>}
                               {item.part_number && <span>P/N: {item.part_number}</span>}
                             </div>

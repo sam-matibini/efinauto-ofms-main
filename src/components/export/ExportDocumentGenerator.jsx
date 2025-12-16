@@ -83,9 +83,10 @@ export default function ExportDocumentGenerator({ order, sale, company }) {
                     ${item.description || ''}
                     ${item.vin ? `<br>VIN: ${item.vin}` : ''}
                     ${item.part_number ? `<br>P/N: ${item.part_number}` : ''}
+                    ${item.item_condition ? `<br>Condition: ${item.item_condition}` : ''}
                   </td>
                   <td style="text-transform: capitalize;">${item.item_type || 'commodity'}</td>
-                  <td>${item.hs_code || order.hs_code || ''}</td>
+                  <td>${item.hs_code || ''}<br><small>${item.hs_code_level ? item.hs_code_level + '-digit' : ''}</small></td>
                   <td>${item.quantity || 1} ${item.unit_of_measure || ''}</td>
                   <td>${item.country_of_origin || order.country_of_origin || company?.country || 'Canada'}</td>
                 </tr>
@@ -233,9 +234,10 @@ export default function ExportDocumentGenerator({ order, sale, company }) {
                     ${item.description || ''}
                     ${item.vin ? `<br><small>VIN: ${item.vin}</small>` : ''}
                     ${item.part_number ? `<br><small>P/N: ${item.part_number}</small>` : ''}
+                    ${item.item_condition ? `<br><small>Condition: ${item.item_condition}</small>` : ''}
                   </td>
                   <td style="text-align: center; text-transform: capitalize;">${item.item_type || 'commodity'}</td>
-                  <td>${item.hs_code || order.hs_code || ''}</td>
+                  <td>${item.hs_code || ''}<br><small>${item.hs_code_level ? item.hs_code_level + '-digit' : ''}</small></td>
                   <td style="text-align: center;">${item.quantity || 1} ${item.unit_of_measure || ''}</td>
                   <td style="text-align: right;">${order.currency} ${(item.unit_value || 0).toLocaleString()}</td>
                   <td style="text-align: right;">${order.currency} ${(item.total_value || 0).toLocaleString()}</td>

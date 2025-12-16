@@ -15,12 +15,16 @@ export default function VehicleLineItemDialog({ open, onClose, onSave, item, cur
   const [formData, setFormData] = useState({
     item_type: 'vehicle',
     description: '',
-    hs_code: '8703.23',
+    hs_code: '',
+    hs_code_level: '6',
+    hs_code_description: '',
+    hs_verified: false,
     quantity: 1,
     unit_value: 0,
     total_value: 0,
     weight: 0,
     country_of_origin: 'CA',
+    item_condition: 'used',
     vin: '',
     make: '',
     model: '',
@@ -48,12 +52,16 @@ export default function VehicleLineItemDialog({ open, onClose, onSave, item, cur
       setFormData({
         item_type: 'vehicle',
         description: '',
-        hs_code: '8703.23',
+        hs_code: '',
+        hs_code_level: '6',
+        hs_code_description: '',
+        hs_verified: false,
         quantity: 1,
         unit_value: 0,
         total_value: 0,
         weight: 0,
         country_of_origin: 'CA',
+        item_condition: 'used',
         vin: '',
         make: '',
         model: '',
@@ -250,12 +258,82 @@ export default function VehicleLineItemDialog({ open, onClose, onSave, item, cur
               />
             </div>
             <div>
-              <Label>Country of Origin</Label>
+              <Label>Weight (kg)</Label>
               <Input
-                value={formData.country_of_origin}
-                onChange={(e) => setFormData({...formData, country_of_origin: e.target.value.toUpperCase()})}
-                maxLength={2}
+                type="number"
+                value={formData.weight}
+                onChange={(e) => setFormData({...formData, weight: parseFloat(e.target.value) || 0})}
+                min="0"
               />
+            </div>
+          </div>
+
+          <div className="border-t pt-4 space-y-4">
+            <h4 className="font-medium text-sm">CBSA Compliance (Required for Vehicles)</h4>
+            <Alert className="border-blue-300 bg-blue-50">
+              <AlertTriangle className="w-4 h-4 text-blue-600" />
+              <AlertDescription className="text-sm text-blue-800">
+                Vehicles require valid HS codes. Common: 8703 (passenger), 8704 (commercial), 8708 (parts).
+              </AlertDescription>
+            </Alert>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-2">
+                <Label>HS Code * (Min 6 digits)</Label>
+                <Input
+                  value={formData.hs_code}
+                  onChange={(e) => {
+                    const code = e.target.value.replace(/[^0-9.]/g, '');
+                    setFormData({
+                      ...formData, 
+                      hs_code: code,
+                      hs_code_level: code.length >= 10 ? '10' : code.length >= 8 ? '8' : '6'
+                    });
+                  }}
+                  placeholder="e.g., 8703.23.10.00"
+                  minLength={6}
+                  className={formData.hs_code && formData.hs_code.replace(/\./g, '').length < 6 ? 'border-red-300' : ''}
+                />
+                <p className="text-xs text-gray-500 mt-1">Required before vehicle export</p>
+              </div>
+              <div>
+                <Label>HS Level</Label>
+                <Select value={formData.hs_code_level} onValueChange={(v) => setFormData({...formData, hs_code_level: v})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="6">6-digit</SelectItem>
+                    <SelectItem value="8">8-digit</SelectItem>
+                    <SelectItem value="10">10-digit</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Country of Origin *</Label>
+                <Input
+                  value={formData.country_of_origin}
+                  onChange={(e) => setFormData({...formData, country_of_origin: e.target.value.toUpperCase()})}
+                  maxLength={2}
+                  placeholder="CA, US, JP, etc."
+                />
+              </div>
+              <div>
+                <Label>Condition *</Label>
+                <Select value={formData.item_condition} onValueChange={(v) => setFormData({...formData, item_condition: v})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New</SelectItem>
+                    <SelectItem value="used">Used</SelectItem>
+                    <SelectItem value="salvage">Salvage</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
@@ -312,7 +390,7 @@ export default function VehicleLineItemDialog({ open, onClose, onSave, item, cur
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave} disabled={!formData.vin || !formData.description}>
+          <Button onClick={handleSave} disabled={!formData.vin || !formData.description || !formData.hs_code || formData.hs_code.replace(/\./g, '').length < 6}>
             {item ? 'Update' : 'Add'} Vehicle
           </Button>
         </DialogFooter>

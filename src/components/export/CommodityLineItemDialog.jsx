@@ -14,12 +14,16 @@ export default function CommodityLineItemDialog({ open, onClose, onSave, item, c
     item_type: 'commodity',
     description: '',
     hs_code: '',
+    hs_code_level: '6',
+    hs_code_description: '',
+    hs_verified: false,
     quantity: 1,
     unit_of_measure: 'units',
     unit_value: 0,
     total_value: 0,
     weight: 0,
     country_of_origin: 'CA',
+    item_condition: 'new',
     packaging_type: 'pallet',
     export_control_flag: false,
     restricted_goods_warning: ''
@@ -33,12 +37,16 @@ export default function CommodityLineItemDialog({ open, onClose, onSave, item, c
         item_type: 'commodity',
         description: '',
         hs_code: '',
+        hs_code_level: '6',
+        hs_code_description: '',
+        hs_verified: false,
         quantity: 1,
         unit_of_measure: 'units',
         unit_value: 0,
         total_value: 0,
         weight: 0,
         country_of_origin: 'CA',
+        item_condition: 'new',
         packaging_type: 'pallet',
         export_control_flag: false,
         restricted_goods_warning: ''
@@ -76,24 +84,75 @@ export default function CommodityLineItemDialog({ open, onClose, onSave, item, c
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>HS / Tariff Code *</Label>
-              <Input
-                value={formData.hs_code}
-                onChange={(e) => setFormData({...formData, hs_code: e.target.value})}
-                placeholder="e.g., 8703.23"
-              />
-              <p className="text-xs text-gray-500 mt-1">Harmonized System Code for customs</p>
+          <div className="border-t pt-4 space-y-4">
+            <h4 className="font-medium text-sm">CBSA Compliance (Required)</h4>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-2">
+                <Label>HS / Tariff Code * (Min 6 digits)</Label>
+                <Input
+                  value={formData.hs_code}
+                  onChange={(e) => {
+                    const code = e.target.value.replace(/[^0-9.]/g, '');
+                    setFormData({
+                      ...formData, 
+                      hs_code: code,
+                      hs_code_level: code.length >= 10 ? '10' : code.length >= 8 ? '8' : '6'
+                    });
+                  }}
+                  placeholder="e.g., 8703.23.10.00"
+                  minLength={6}
+                  className={formData.hs_code && formData.hs_code.replace(/\./g, '').length < 6 ? 'border-red-300' : ''}
+                />
+                <p className="text-xs text-gray-500 mt-1">CBSA requires min 6 digits, 8-10 recommended</p>
+              </div>
+              <div>
+                <Label>HS Level</Label>
+                <Select value={formData.hs_code_level} onValueChange={(v) => setFormData({...formData, hs_code_level: v})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="6">6-digit (WCO)</SelectItem>
+                    <SelectItem value="8">8-digit (CA)</SelectItem>
+                    <SelectItem value="10">10-digit (Full)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+
             <div>
-              <Label>Country of Origin *</Label>
+              <Label>HS Code Description (Optional)</Label>
               <Input
-                value={formData.country_of_origin}
-                onChange={(e) => setFormData({...formData, country_of_origin: e.target.value.toUpperCase()})}
-                maxLength={2}
-                placeholder="CA"
+                value={formData.hs_code_description}
+                onChange={(e) => setFormData({...formData, hs_code_description: e.target.value})}
+                placeholder="Official HS code description"
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Country of Origin *</Label>
+                <Input
+                  value={formData.country_of_origin}
+                  onChange={(e) => setFormData({...formData, country_of_origin: e.target.value.toUpperCase()})}
+                  maxLength={2}
+                  placeholder="CA"
+                />
+              </div>
+              <div>
+                <Label>Item Condition *</Label>
+                <Select value={formData.item_condition} onValueChange={(v) => setFormData({...formData, item_condition: v})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New</SelectItem>
+                    <SelectItem value="used">Used</SelectItem>
+                    <SelectItem value="salvage">Salvage</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
