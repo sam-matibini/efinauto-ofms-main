@@ -9,6 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { useCompany } from "../components/shared/CompanyContext";
 import { format } from "date-fns";
+import ExportOrderPipeline from "../components/dashboard/ExportOrderPipeline";
+import ShipmentTrackingOverview from "../components/dashboard/ShipmentTrackingOverview";
+import ComplianceStatusSummary from "../components/dashboard/ComplianceStatusSummary";
+import RevenueAndCosts from "../components/dashboard/RevenueAndCosts";
 
 function StatsCard({ title, value, icon: Icon, bgColor, textColor, index = 0 }) {
   return (
@@ -118,6 +122,17 @@ export default function Dashboard() {
       </div>
       
       <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
+
+        {/* Export Analytics Dashboard */}
+        <div className="grid gap-6 md:grid-cols-2 mb-6">
+          <ExportOrderPipeline companyId={selectedCompanyId} />
+          <ShipmentTrackingOverview companyId={selectedCompanyId} />
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2 mb-6">
+          <ComplianceStatusSummary companyId={selectedCompanyId} />
+          <RevenueAndCosts companyId={selectedCompanyId} />
+        </div>
 
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
         <StatsCard
