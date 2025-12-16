@@ -102,6 +102,24 @@ export default function UserManagement() {
     }
   });
 
+  const getRoleBadge = (role) => {
+    const roleConfig = {
+      admin: { label: 'Admin', color: 'bg-purple-100 text-purple-700' },
+      manager: { label: 'Manager', color: 'bg-blue-100 text-blue-700' },
+      sales: { label: 'Sales', color: 'bg-green-100 text-green-700' },
+      technician: { label: 'Technician', color: 'bg-orange-100 text-orange-700' },
+      inventory_manager: { label: 'Inventory', color: 'bg-cyan-100 text-cyan-700' },
+      accountant: { label: 'Accountant', color: 'bg-pink-100 text-pink-700' },
+      user: { label: 'User', color: 'bg-gray-100 text-gray-700' }
+    };
+    return roleConfig[role] || roleConfig.user;
+  };
+
+  const getCompanyName = (companyId) => {
+    const company = companies.find(c => c.id === companyId);
+    return company?.display_name || company?.name || 'No Company';
+  };
+
   let filteredUsers = users.filter(user => 
     user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -136,24 +154,6 @@ export default function UserManagement() {
 
   const adminUsers = users.filter(u => u.role === 'admin');
   const regularUsers = users.filter(u => u.role !== 'admin');
-
-  const getRoleBadge = (role) => {
-    const roleConfig = {
-      admin: { label: 'Admin', color: 'bg-purple-100 text-purple-700' },
-      manager: { label: 'Manager', color: 'bg-blue-100 text-blue-700' },
-      sales: { label: 'Sales', color: 'bg-green-100 text-green-700' },
-      technician: { label: 'Technician', color: 'bg-orange-100 text-orange-700' },
-      inventory_manager: { label: 'Inventory', color: 'bg-cyan-100 text-cyan-700' },
-      accountant: { label: 'Accountant', color: 'bg-pink-100 text-pink-700' },
-      user: { label: 'User', color: 'bg-gray-100 text-gray-700' }
-    };
-    return roleConfig[role] || roleConfig.user;
-  };
-
-  const getCompanyName = (companyId) => {
-    const company = companies.find(c => c.id === companyId);
-    return company?.display_name || company?.name || 'No Company';
-  };
 
   const handleEdit = (user) => {
     setSelectedUser(user);
