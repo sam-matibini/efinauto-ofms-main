@@ -16,27 +16,42 @@ export default function AIComplianceChecker({ order, onIssuesDetected }) {
     
     setChecking(true);
     try {
+      const lineItems = order.line_items || order.items || [];
+      const itemsBreakdown = lineItems.map(item => ({
+        type: item.item_type,
+        description: item.description,
+        hs_code: item.hs_code,
+        origin: item.country_of_origin,
+        value: `${order.currency} ${item.total_value}`,
+        vin: item.vin,
+        part_number: item.part_number,
+        export_control: item.export_control_flag,
+        restrictions: item.restricted_goods_warning
+      }));
+
       const prompt = `You are an international trade compliance expert. Analyze this export order for potential compliance issues:
 
-Export Order Details:
-- HS Code: ${order.hs_code || 'Not provided'}
-- Country of Origin: ${order.country_of_origin || 'Not provided'}
-- Destination Country: ${order.destination_country}
-- Export Type: ${order.export_type}
-- Customs Value: ${order.currency} ${order.customs_value}
-- Incoterms: ${order.incoterms || 'Not specified'}
-- Export Declaration Required: ${order.export_declaration_required ? 'Yes' : 'No'}
-- Items: ${JSON.stringify(order.items || [])}
+Export Order: ${order.export_order_number}
+Export Type: ${order.export_type}
+Destination: ${order.destination_country}
+Country of Origin: ${order.country_of_origin || 'Not provided'}
+Incoterms: ${order.incoterms || 'Not specified'}
+Currency: ${order.currency}
+Total Value: ${order.currency} ${order.total_value}
 
-Analyze for:
-1. HS Code validity and accuracy for the product type
-2. Country of origin compliance and documentation requirements
-3. Destination country import regulations and restrictions
-4. Required export licenses or permits
-5. Sanctions or embargo concerns
-6. Documentation completeness
+LINE ITEMS (${lineItems.length}):
+${JSON.stringify(itemsBreakdown, null, 2)}
 
-Provide a structured compliance assessment with risk level (low/medium/high) and specific actionable recommendations.`;
+ANALYZE FOR:
+1. HS Code Validation - Check each item's HS code for accuracy and validity
+2. Country of Origin - Verify origin compliance and certificate requirements
+3. Destination Regulations - ${order.destination_country} import restrictions, tariffs, licenses
+4. Export Controls - Flag items requiring export licenses or permits
+5. Sanctions/Embargoes - Check for prohibited goods or destinations
+6. Vehicle-Specific - Title requirements, age restrictions, emission standards (if applicable)
+7. Documentation - Required certificates, declarations, permits
+
+Provide detailed compliance assessment with actionable recommendations.`;
 
       const result = await base44.integrations.Core.InvokeLLM({
         prompt,

@@ -139,9 +139,58 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
                       <span className="text-gray-600">Created:</span>
                       <p className="font-medium">{format(new Date(order.created_date), 'MMM d, yyyy')}</p>
                     </div>
+                    <div>
+                      <span className="text-gray-600">Total Items:</span>
+                      <p className="font-medium">{(order.line_items || order.items || []).length}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Total Value:</span>
+                      <p className="font-medium">{order.currency} ${order.total_value?.toLocaleString()}</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Line Items */}
+              {(order.line_items || order.items || []).length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Line Items</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {(order.line_items || order.items).map((item, idx) => (
+                        <div key={idx} className="flex items-start justify-between p-3 border rounded-lg bg-gray-50">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium">{item.description}</span>
+                              {item.item_type && (
+                                <Badge className={
+                                  item.item_type === 'vehicle' ? 'bg-blue-100 text-blue-800' :
+                                  item.item_type === 'part' ? 'bg-purple-100 text-purple-800' :
+                                  'bg-green-100 text-green-800'
+                                }>
+                                  {item.item_type}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-600 space-x-3">
+                              {item.hs_code && <span>HS: {item.hs_code}</span>}
+                              <span>Qty: {item.quantity} {item.unit_of_measure || ''}</span>
+                              {item.weight && <span>Weight: {item.weight} kg</span>}
+                              {item.vin && <span>VIN: {item.vin}</span>}
+                              {item.part_number && <span>P/N: {item.part_number}</span>}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold">{order.currency} ${item.total_value?.toLocaleString()}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               <Card>
                 <CardHeader>

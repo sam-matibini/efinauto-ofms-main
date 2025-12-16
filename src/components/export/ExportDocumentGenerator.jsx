@@ -69,19 +69,25 @@ export default function ExportDocumentGenerator({ order, sale, company }) {
             <div class="section-title">4. ITEM DESCRIPTION</div>
             <table>
               <tr>
-                <th>Marks and Numbers</th>
+                <th>Marks</th>
                 <th>Description</th>
+                <th>Type</th>
                 <th>HS Code</th>
                 <th>Quantity</th>
                 <th>Origin</th>
               </tr>
-              ${(order.items || []).map((item, idx) => `
+              ${(order.line_items || order.items || []).map((item, idx) => `
                 <tr>
                   <td>${idx + 1}</td>
-                  <td>${item.description || ''}</td>
+                  <td>
+                    ${item.description || ''}
+                    ${item.vin ? `<br>VIN: ${item.vin}` : ''}
+                    ${item.part_number ? `<br>P/N: ${item.part_number}` : ''}
+                  </td>
+                  <td style="text-transform: capitalize;">${item.item_type || 'commodity'}</td>
                   <td>${item.hs_code || order.hs_code || ''}</td>
-                  <td>${item.quantity || 1}</td>
-                  <td>${order.country_of_origin || company?.country || 'Canada'}</td>
+                  <td>${item.quantity || 1} ${item.unit_of_measure || ''}</td>
+                  <td>${item.country_of_origin || order.country_of_origin || company?.country || 'Canada'}</td>
                 </tr>
               `).join('')}
             </table>
@@ -214,17 +220,23 @@ export default function ExportDocumentGenerator({ order, sale, company }) {
               <tr>
                 <th style="width: 50px;">#</th>
                 <th>Description</th>
+                <th style="width: 100px;">Type</th>
                 <th style="width: 120px;">HS Code</th>
                 <th style="width: 80px;">Qty</th>
                 <th style="width: 100px;">Unit Price</th>
                 <th style="width: 100px;">Total</th>
               </tr>
-              ${(order.items || []).map((item, idx) => `
+              ${(order.line_items || order.items || []).map((item, idx) => `
                 <tr>
                   <td style="text-align: center;">${idx + 1}</td>
-                  <td>${item.description || ''}</td>
+                  <td>
+                    ${item.description || ''}
+                    ${item.vin ? `<br><small>VIN: ${item.vin}</small>` : ''}
+                    ${item.part_number ? `<br><small>P/N: ${item.part_number}</small>` : ''}
+                  </td>
+                  <td style="text-align: center; text-transform: capitalize;">${item.item_type || 'commodity'}</td>
                   <td>${item.hs_code || order.hs_code || ''}</td>
-                  <td style="text-align: center;">${item.quantity || 1}</td>
+                  <td style="text-align: center;">${item.quantity || 1} ${item.unit_of_measure || ''}</td>
                   <td style="text-align: right;">${order.currency} ${(item.unit_value || 0).toLocaleString()}</td>
                   <td style="text-align: right;">${order.currency} ${(item.total_value || 0).toLocaleString()}</td>
                 </tr>
@@ -341,17 +353,26 @@ export default function ExportDocumentGenerator({ order, sale, company }) {
               <tr>
                 <th>Package #</th>
                 <th>Description</th>
+                <th>Type</th>
+                <th>Packaging</th>
                 <th>Quantity</th>
                 <th>Weight (kg)</th>
                 <th>Dimensions</th>
               </tr>
-              ${(order.items || []).map((item, idx) => `
+              ${(order.line_items || order.items || []).map((item, idx) => `
                 <tr>
                   <td style="text-align: center;">${idx + 1}</td>
-                  <td>${item.description || ''}</td>
-                  <td style="text-align: center;">${item.quantity || 1}</td>
-                  <td style="text-align: right;">${item.weight || order.total_weight || 'N/A'}</td>
-                  <td>N/A</td>
+                  <td>
+                    ${item.description || ''}
+                    ${item.vin ? `<br>VIN: ${item.vin}` : ''}
+                    ${item.part_number ? `<br>P/N: ${item.part_number}` : ''}
+                  </td>
+                  <td style="text-transform: capitalize;">${item.item_type || 'commodity'}</td>
+                  <td style="text-transform: capitalize;">${item.packaging_type || 'N/A'}</td>
+                  <td style="text-align: center;">${item.quantity || 1} ${item.unit_of_measure || ''}</td>
+                  <td style="text-align: right;">${item.weight || 'N/A'}</td>
+                  <td>${item.dimensions?.length && item.dimensions?.width && item.dimensions?.height ? 
+                    `${item.dimensions.length}x${item.dimensions.width}x${item.dimensions.height} ${item.dimensions.unit}` : 'N/A'}</td>
                 </tr>
               `).join('')}
             </table>
@@ -359,12 +380,12 @@ export default function ExportDocumentGenerator({ order, sale, company }) {
 
           <div class="summary">
             <h3 style="margin-top: 0;">SHIPMENT SUMMARY</h3>
-            <p><strong>Total Packages:</strong> ${order.items?.length || 1}</p>
+            <p><strong>Total Packages:</strong> ${(order.line_items || order.items || []).length}</p>
             <p><strong>Total Weight:</strong> ${order.total_weight || 'N/A'} kg</p>
             <p><strong>Total Volume:</strong> ${order.total_volume || 'N/A'} m³</p>
             <p><strong>Container Type:</strong> ${order.container_type || 'N/A'}</p>
             <p><strong>Container Number:</strong> ${order.container_number || 'TBD'}</p>
-            <p><strong>Seal Number:</strong> TBD</p>
+            <p><strong>Seal Number:</strong> ${order.seal_number || 'TBD'}</p>
           </div>
 
           <div style="margin-top: 40px;">
