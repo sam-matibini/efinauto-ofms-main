@@ -5,15 +5,17 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Ship, Search, Loader2, MapPin, Clock, Package, Calendar } from "lucide-react";
+import { Ship, Search, Loader2, MapPin, Clock, Package, Calendar, Share2 } from "lucide-react";
 import { MSCAPIService } from "../components/export/MSCAPIService";
 import { format } from "date-fns";
+import ShipmentShareDialog from "../components/shipping/ShipmentShareDialog";
 
 export default function TrackShipment() {
   const [trackingNumber, setTrackingNumber] = useState("MEDURS030563");
   const [carrier, setCarrier] = useState("MSC");
   const [loading, setLoading] = useState(false);
   const [trackingData, setTrackingData] = useState(null);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   const handleTrack = async () => {
     setLoading(true);
@@ -118,9 +120,19 @@ export default function TrackShipment() {
                       <p className="text-sm text-gray-600">Carrier: {carrier}</p>
                     </div>
                   </div>
-                  <Badge className={`${statusColors[trackingData.status]} text-lg px-4 py-2`}>
-                    {trackingData.status.replace(/_/g, ' ').toUpperCase()}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={`${statusColors[trackingData.status]} text-lg px-4 py-2`}>
+                      {trackingData.status.replace(/_/g, ' ').toUpperCase()}
+                    </Badge>
+                    <Button 
+                      onClick={() => setShareDialogOpen(true)}
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Share2 className="w-4 h-4 mr-2" />
+                      Share
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 mt-6">
@@ -194,6 +206,14 @@ export default function TrackShipment() {
             )}
           </div>
         )}
+
+        <ShipmentShareDialog
+          open={shareDialogOpen}
+          onClose={() => setShareDialogOpen(false)}
+          trackingData={trackingData}
+          trackingNumber={trackingNumber}
+          carrier={carrier}
+        />
       </div>
     </div>
   );
