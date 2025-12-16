@@ -5,12 +5,16 @@
  */
 
 import { MSCAPIService } from "./MSCAPIService";
+import { MaerskAPIService } from "./MaerskAPIService";
+import { CMACGMAPIService } from "./CMACGMAPIService";
+import { HapagLloydAPIService } from "./HapagLloydAPIService";
 
 export const CarrierAPIRegistry = {
   MSC: MSCAPIService,
-  MAERSK: null, // Future implementation
-  CMA_CGM: null, // Future implementation
-  HAPAG: null, // Future implementation
+  MAERSK: MaerskAPIService,
+  CMA_CGM: CMACGMAPIService,
+  HAPAG: HapagLloydAPIService,
+  HAPAG_LLOYD: HapagLloydAPIService,
 };
 
 /**
