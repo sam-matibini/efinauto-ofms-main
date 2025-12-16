@@ -361,14 +361,14 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
 
       <div className="flex justify-between items-start mb-8">
         <div className="flex-1">
-          {sale?.bos_number && sale.bos_status === 'finalized' && sale.bos_number.length > 0 && (
+          {safeSale?.bos_number && safeSale.bos_status === 'finalized' && safeSale.bos_number.length > 0 && (
             <div className="border-2 border-gray-800 p-3 inline-block bg-gray-50 bos-number-container">
               <p className="text-xs font-semibold text-gray-600 mb-1">BOS NUMBER</p>
-              <p className="text-lg font-bold text-gray-900 font-mono tracking-wider">{sale.bos_number}</p>
-              {typeof window !== 'undefined' && sale.bos_number && (
+              <p className="text-lg font-bold text-gray-900 font-mono tracking-wider">{safeSale.bos_number}</p>
+              {typeof window !== 'undefined' && safeSale.bos_number && (
                 <div className="mt-2 barcode-container">
                   <Barcode 
-                    value={String(sale.bos_number).substring(0, 50)} 
+                    value={String(safeSale.bos_number).substring(0, 50)} 
                     height={50}
                     width={2}
                     fontSize={11}
@@ -379,14 +379,14 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
                   />
                 </div>
               )}
-              {sale.bos_issued_date && (() => { try { return (
+              {safeSale.bos_issued_date && (() => { try { return (
                 <p className="text-xs text-gray-500 mt-1">
-                  Issued: {format(new Date(sale.bos_issued_date), 'MMM d, yyyy')}
+                  Issued: {format(new Date(safeSale.bos_issued_date), 'MMM d, yyyy')}
                 </p>
               ); } catch(e) { return null; } })()}
-              {sale.bos_issued_by && (
+              {safeSale.bos_issued_by && (
                 <p className="text-xs text-gray-500">
-                  By: {sale.bos_issued_by}
+                  By: {safeSale.bos_issued_by}
                 </p>
               )}
             </div>
@@ -394,13 +394,13 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
         </div>
         <div className="text-center flex-1">
           <h1 className="text-2xl font-bold">BILL OF SALE</h1>
-          {sale?.bos_status && (
+          {safeSale?.bos_status && (
             <div className="mt-2 flex justify-center gap-2">
-              {sale.bos_status === 'voided' ? (
+              {safeSale.bos_status === 'voided' ? (
                 <span className="inline-block px-3 py-1 rounded text-sm font-semibold bg-red-100 text-red-800">
                   ⚠ VOIDED
                 </span>
-              ) : sale.bos_status === 'finalized' ? (
+              ) : safeSale.bos_status === 'finalized' ? (
                 <span className="inline-block px-3 py-1 rounded text-sm font-semibold bg-green-100 text-green-800">
                   ✓ FINALIZED
                 </span>
@@ -427,55 +427,55 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
         <div className="grid grid-cols-2 gap-4">
           <div className="border-b border-gray-800 pb-1">
             <span className="text-sm font-semibold">Purchaser's Name:</span>
-            <span className="ml-2">{sale.customer_name || ''}</span>
+            <span className="ml-2">{safeSale.customer_name || ''}</span>
           </div>
           <div className="border-b border-gray-800 pb-1">
             <span className="text-sm font-semibold">Salesman:</span>
-            <span className="ml-2">{sale.salesman || ''}</span>
+            <span className="ml-2">{safeSale.salesman || ''}</span>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="border-b border-gray-800 pb-1">
             <span className="text-sm font-semibold">Purchaser's Address:</span>
-            <span className="ml-2">{sale.customer_address || ''}</span>
+            <span className="ml-2">{safeSale.customer_address || ''}</span>
           </div>
           <div className="border-b border-gray-800 pb-1">
             <span className="text-sm font-semibold">Date:</span>
-            <span className="ml-2">{sale.sale_date ? (() => { try { return format(new Date(sale.sale_date), 'MMM d, yyyy'); } catch(e) { return ''; } })() : ''}</span>
+            <span className="ml-2">{safeSale.sale_date ? (() => { try { return format(new Date(safeSale.sale_date), 'MMM d, yyyy'); } catch(e) { return ''; } })() : ''}</span>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-4">
           <div className="border-b border-gray-800 pb-1">
             <span className="text-sm font-semibold">City:</span>
-            <span className="ml-2">{sale.customer_city || ''}</span>
+            <span className="ml-2">{safeSale.customer_city || ''}</span>
           </div>
           <div className="border-b border-gray-800 pb-1">
             <span className="text-sm font-semibold">Province:</span>
-            <span className="ml-2">{sale.province || ''}</span>
+            <span className="ml-2">{safeSale.province || ''}</span>
           </div>
           <div className="border-b border-gray-800 pb-1">
             <span className="text-sm font-semibold">Postal Code:</span>
-            <span className="ml-2">{sale.customer_postal_code || ''}</span>
+            <span className="ml-2">{safeSale.customer_postal_code || ''}</span>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="border-b border-gray-800 pb-1">
             <span className="text-sm font-semibold">Residential Phone:</span>
-            <span className="ml-2">{sale.customer_phone || ''}</span>
+            <span className="ml-2">{safeSale.customer_phone || ''}</span>
           </div>
           <div className="border-b border-gray-800 pb-1">
             <span className="text-sm font-semibold">Business Phone:</span>
-            <span className="ml-2">{sale.customer_business_phone || ''}</span>
+            <span className="ml-2">{safeSale.customer_business_phone || ''}</span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4">
           <div className="border-b border-gray-800 pb-1">
             <span className="text-sm font-semibold">Email Address:</span>
-            <span className="ml-2">{sale.customer_email || ''}</span>
+            <span className="ml-2">{safeSale.customer_email || ''}</span>
           </div>
         </div>
       </div>
@@ -487,20 +487,20 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           <div className="col-span-3 p-2 font-semibold text-sm">Make & Model</div>
         </div>
         <div className="grid grid-cols-6 border-b border-gray-800">
-          <div className="col-span-2 p-2 border-r border-gray-800">{sale.vehicle_details || ''}</div>
-          <div className="p-2 border-r border-gray-800">{sale.vehicle_year || ''}</div>
-          <div className="col-span-3 p-2">{sale.vehicle_make_model || ''}</div>
+          <div className="col-span-2 p-2 border-r border-gray-800">{safeSale.vehicle_details || ''}</div>
+          <div className="p-2 border-r border-gray-800">{safeSale.vehicle_year || ''}</div>
+          <div className="col-span-3 p-2">{safeSale.vehicle_make_model || ''}</div>
         </div>
         <div className="grid grid-cols-6">
           <div className="col-span-2 p-2 border-r border-gray-800 font-semibold text-sm">Odometer</div>
           <div className="p-2 border-r border-gray-800 font-semibold text-sm">Colour</div>
           <div className="col-span-3 p-2 font-semibold text-sm">
-            VIN: {sale.vehicle_vin && typeof sale.vehicle_vin === 'string' ? sale.vehicle_vin.split('').join(' ') : ''}
+            VIN: {safeSale.vehicle_vin && typeof safeSale.vehicle_vin === 'string' ? safeSale.vehicle_vin.split('').join(' ') : ''}
           </div>
         </div>
         <div className="grid grid-cols-6">
-          <div className="col-span-2 p-2 border-r border-gray-800">{sale.vehicle_mileage || ''}</div>
-          <div className="p-2 border-r border-gray-800">{sale.vehicle_color || ''}</div>
+          <div className="col-span-2 p-2 border-r border-gray-800">{safeSale.vehicle_mileage || ''}</div>
+          <div className="p-2 border-r border-gray-800">{safeSale.vehicle_color || ''}</div>
           <div className="col-span-3 p-2"></div>
         </div>
       </div>
@@ -510,7 +510,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           <div className="p-3 border-b border-gray-800">
             <div className="flex justify-between">
               <span className="font-semibold">Total Price</span>
-              <span>${(sale.sale_price || 0).toLocaleString()}</span>
+              <span>${safeSale.sale_price.toLocaleString()}</span>
             </div>
           </div>
           <div className="p-3 border-b border-gray-800 border-l border-gray-800"></div>
@@ -520,7 +520,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           <div className="p-3 border-b border-gray-800">
             <div className="flex justify-between">
               <span className="font-semibold">Less Trade</span>
-              <span>${sale.trade_in?.net_trade_value?.toLocaleString() || '0'}</span>
+              <span>${safeSale.trade_in?.net_trade_value?.toLocaleString() || '0'}</span>
             </div>
           </div>
           <div className="p-3 border-b border-gray-800 border-l border-gray-800"></div>
@@ -531,16 +531,16 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             <div className="flex justify-between items-center">
               <span className="font-semibold">
                 P.S.T
-                {sale.pst_exempt && (
+                {safeSale.pst_exempt && (
                   <span className="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded border border-amber-300">EXEMPT</span>
                 )}
               </span>
-              <span>${sale.tax_pst?.toFixed(2) || '0.00'}</span>
+              <span>${safeSale.tax_pst.toFixed(2)}</span>
             </div>
-            {sale.pst_exempt && sale.pst_exempt_reason && (
+            {safeSale.pst_exempt && safeSale.pst_exempt_reason && (
               <div className="text-xs text-gray-600 mt-1 pt-1 border-t border-gray-200">
-                Reason: {sale.pst_exempt_reason.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                {sale.pst_exempt_reference && <span className="block">Ref: {sale.pst_exempt_reference}</span>}
+                Reason: {safeSale.pst_exempt_reason.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                {safeSale.pst_exempt_reference && <span className="block">Ref: {safeSale.pst_exempt_reference}</span>}
               </div>
             )}
           </div>
@@ -551,7 +551,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           <div className="p-3 border-b border-gray-800">
             <div className="flex justify-between">
               <span className="font-semibold">G.S.T / H.S.T</span>
-              <span>${(sale.tax_gst || sale.tax_hst)?.toFixed(2) || '0.00'}</span>
+              <span>${(safeSale.tax_gst || safeSale.tax_hst).toFixed(2)}</span>
             </div>
           </div>
           <div className="p-3 border-b border-gray-800 border-l border-gray-800"></div>
@@ -561,7 +561,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           <div className="p-3 border-b border-gray-800">
             <div className="flex justify-between">
               <span className="font-semibold">Total</span>
-              <span>${(sale.grand_total || 0).toLocaleString()}</span>
+              <span>${safeSale.grand_total.toLocaleString()}</span>
             </div>
           </div>
           <div className="p-3 border-b border-gray-800 border-l border-gray-800"></div>
@@ -571,7 +571,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           <div className="p-3 border-b border-gray-800">
             <div className="flex justify-between">
               <span className="font-semibold">Less Deposit</span>
-              <span>${sale.deposit_amount?.toLocaleString() || '0'}</span>
+              <span>${safeSale.deposit_amount.toLocaleString()}</span>
             </div>
           </div>
           <div className="p-3 border-b border-gray-800 border-l border-gray-800"></div>
@@ -581,7 +581,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           <div className="p-3">
             <div className="flex justify-between">
               <span className="font-semibold">Balance Due</span>
-              <span>${(sale.balance_due || 0).toLocaleString()}</span>
+              <span>${safeSale.balance_due.toLocaleString()}</span>
             </div>
           </div>
           <div className="p-3 border-l border-gray-800"></div>
