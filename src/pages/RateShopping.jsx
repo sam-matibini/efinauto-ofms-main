@@ -173,6 +173,7 @@ Rate Quotes are powered by eFinAuto OFMS
             
             <div class="section">
               <p style="font-size: 12px; color: #666;">Generated on ${format(new Date(), 'MMM d, yyyy h:mm a')}</p>
+              <p style="font-size: 12px; color: #1e293b; font-weight: bold; margin-top: 20px;">Rate Quotes are powered by eFinAuto OFMS</p>
             </div>
           </body>
         </html>
