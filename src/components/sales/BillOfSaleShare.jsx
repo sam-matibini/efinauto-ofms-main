@@ -30,6 +30,10 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
   });
 
   const generateBillOfSaleHTML = () => {
+    if (!sale || !company || !sale.customer_name || !sale.vehicle_details) {
+      return '<div>Error: Missing required data</div>';
+    }
+    
     const isExport = sale?.sale_type === 'export';
     const companyAddress = [
       company?.address,
@@ -101,7 +105,7 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
           <div class="row"><span class="label">Address:</span><span class="value">${sale?.customer_address || ''}</span></div>
           <div class="row"><span class="label">City/Province:</span><span class="value">${sale?.customer_city || ''}, ${sale?.province || ''} ${sale?.customer_postal_code || ''}</span></div>
           <div class="row"><span class="label">Phone:</span><span class="value">${sale?.customer_phone || ''}</span></div>
-          <div class="row"><span class="label">Sale Date:</span><span class="value">${sale?.sale_date ? format(new Date(sale.sale_date), 'MMMM d, yyyy') : ''}</span></div>
+          <div class="row"><span class="label">Sale Date:</span><span class="value">${sale?.sale_date ? (() => { try { return format(new Date(sale.sale_date), 'MMMM d, yyyy'); } catch(e) { return ''; } })() : ''}</span></div>
         </div>
 
         <table class="vehicle-table">
@@ -116,13 +120,13 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
         </table>
 
         <table class="totals-table">
-          <tr><td class="totals-label">Total Price</td><td>$${sale?.sale_price?.toLocaleString() || '0'}</td></tr>
-          <tr><td class="totals-label">Less Trade</td><td>$${sale?.trade_in?.net_trade_value?.toLocaleString() || '0'}</td></tr>
-          <tr><td class="totals-label">P.S.T</td><td>$${sale?.tax_pst?.toFixed(2) || '0.00'}</td></tr>
-          <tr><td class="totals-label">G.S.T / H.S.T</td><td>$${(sale?.tax_gst || sale?.tax_hst)?.toFixed(2) || '0.00'}</td></tr>
-          <tr><td class="totals-label"><strong>Grand Total</strong></td><td><strong>$${sale?.grand_total?.toLocaleString() || '0'}</strong></td></tr>
-          <tr><td class="totals-label">Less Deposit</td><td>$${sale?.deposit_amount?.toLocaleString() || '0'}</td></tr>
-          <tr><td class="totals-label"><strong>Balance Due</strong></td><td><strong>$${sale?.balance_due?.toLocaleString() || '0'}</strong></td></tr>
+          <tr><td class="totals-label">Total Price</td><td>$${(sale?.sale_price || 0).toLocaleString()}</td></tr>
+          <tr><td class="totals-label">Less Trade</td><td>$${(sale?.trade_in?.net_trade_value || 0).toLocaleString()}</td></tr>
+          <tr><td class="totals-label">P.S.T</td><td>$${(sale?.tax_pst || 0).toFixed(2)}</td></tr>
+          <tr><td class="totals-label">G.S.T / H.S.T</td><td>$${(sale?.tax_gst || sale?.tax_hst || 0).toFixed(2)}</td></tr>
+          <tr><td class="totals-label"><strong>Grand Total</strong></td><td><strong>$${(sale?.grand_total || 0).toLocaleString()}</strong></td></tr>
+          <tr><td class="totals-label">Less Deposit</td><td>$${(sale?.deposit_amount || 0).toLocaleString()}</td></tr>
+          <tr><td class="totals-label"><strong>Balance Due</strong></td><td><strong>$${(sale?.balance_due || 0).toLocaleString()}</strong></td></tr>
         </table>
 
         <div class="disclaimer">
@@ -153,6 +157,11 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
   const handleSendEmail = async () => {
     if (!emailData.to) {
       toast.error("Please enter an email address");
+      return;
+    }
+
+    if (!sale || !company || !sale.customer_name || !sale.vehicle_details) {
+      toast.error("Missing required data");
       return;
     }
 
@@ -299,7 +308,7 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
 ${company?.name || 'Company'}
 
 *Sale #:* ${sale?.sale_number || ''}
-*Date:* ${sale?.sale_date ? format(new Date(sale.sale_date), 'MMMM d, yyyy') : ''}
+*Date:* ${sale?.sale_date ? (() => { try { return format(new Date(sale.sale_date), 'MMMM d, yyyy'); } catch(e) { return ''; } })() : ''}
 *Type:* ${isExport ? 'Export Sale (Zero-Rated)' : 'Domestic Sale'}
 
 *Customer:* ${sale?.customer_name || ''}
