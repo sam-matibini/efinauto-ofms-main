@@ -125,16 +125,16 @@ Provide practical, actionable advice. Be concise but thorough. If predicting del
 
   return (
     <Card className="h-[600px] flex flex-col">
-      <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-blue-50">
+      <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-blue-50 flex-shrink-0">
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-purple-600" />
           AI Shipping Advisor
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="flex-1 flex flex-col p-0">
+      <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
           {messages.map((msg, idx) => (
             <div
               key={idx}
@@ -180,7 +180,7 @@ Provide practical, actionable advice. Be concise but thorough. If predicting del
 
         {/* Quick Actions */}
         {messages.length <= 1 && (
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-4 flex-shrink-0">
             <p className="text-xs text-gray-500 mb-2">Quick actions:</p>
             <div className="grid grid-cols-2 gap-2">
               {quickActions.map((action, idx) => (
@@ -201,7 +201,7 @@ Provide practical, actionable advice. Be concise but thorough. If predicting del
         )}
 
         {/* Input */}
-        <div className="border-t p-4">
+        <div className="border-t p-4 flex-shrink-0">
           <div className="flex gap-2">
             <Input
               value={input}
