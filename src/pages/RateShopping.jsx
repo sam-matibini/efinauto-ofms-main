@@ -21,8 +21,10 @@ export default function RateShopping() {
   const [showEmailInput, setShowEmailInput] = useState(false);
 
   const [shipmentDetails, setShipmentDetails] = useState({
+    origin_city: "",
     origin_port: "",
     destination_port: "",
+    destination_city: "",
     container_type: "40HC",
     cargo_weight: 15000,
     cargo_volume: 50,
@@ -30,6 +32,53 @@ export default function RateShopping() {
     cargo_type: "general",
     hazardous: false
   });
+
+  const [inlandCosts, setInlandCosts] = useState(null);
+  const [calculatingInland, setCalculatingInland] = useState(false);
+
+  const calculateInlandCosts = async () => {
+    if (!shipmentDetails.origin_city || !shipmentDetails.destination_city) {
+      return;
+    }
+
+    setCalculatingInland(true);
+    try {
+      const prompt = `Estimate inland freight costs for container shipment:
+
+Origin: ${shipmentDetails.origin_city} to ${shipmentDetails.origin_port}
+Destination: ${shipmentDetails.destination_port} to ${shipmentDetails.destination_city}
+Container: ${shipmentDetails.container_type}
+Weight: ${shipmentDetails.cargo_weight} kg
+
+Provide realistic cost estimates in USD for:
+1. Inland transport from origin city to port (trucking/rail)
+2. Inland transport from destination port to city (trucking/rail)
+
+Consider typical rates, distance, and local market conditions.`;
+
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt,
+        add_context_from_internet: true,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            origin_inland_cost: { type: "number" },
+            destination_inland_cost: { type: "number" },
+            origin_notes: { type: "string" },
+            destination_notes: { type: "string" }
+          }
+        }
+      });
+
+      setInlandCosts(response);
+      toast.success("Inland costs calculated");
+    } catch (error) {
+      toast.error("Failed to calculate inland costs");
+      console.error(error);
+    } finally {
+      setCalculatingInland(false);
+    }
+  };
 
   const handleCompareRates = async () => {
     if (!shipmentDetails.origin_port || !shipmentDetails.destination_port) {
@@ -46,6 +95,11 @@ export default function RateShopping() {
         toast.error("No rates available for this route");
       } else {
         toast.success(`Found ${result.quotes.length} rates. Best rate: $${result.best_rate.total_rate}`);
+      }
+
+      // Auto-calculate inland costs if cities are provided
+      if (shipmentDetails.origin_city && shipmentDetails.destination_city) {
+        calculateInlandCosts();
       }
     } catch (error) {
       toast.error("Failed to compare rates");
@@ -404,6 +458,15 @@ Rate Quotes are powered by eFinAuto OFMS
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
+                <Label>Origin City (Optional)</Label>
+                <Input
+                  placeholder="e.g., Detroit, MI"
+                  value={shipmentDetails.origin_city}
+                  onChange={(e) => setShipmentDetails({...shipmentDetails, origin_city: e.target.value})}
+                />
+                <p className="text-xs text-gray-500 mt-1">For inland cost estimate</p>
+              </div>
+              <div>
                 <Label>Origin Port *</Label>
                 <Input
                   placeholder="e.g., CATOR (Toronto)"
@@ -418,6 +481,15 @@ Rate Quotes are powered by eFinAuto OFMS
                   value={shipmentDetails.destination_port}
                   onChange={(e) => setShipmentDetails({...shipmentDetails, destination_port: e.target.value})}
                 />
+              </div>
+              <div>
+                <Label>Destination City (Optional)</Label>
+                <Input
+                  placeholder="e.g., Dubai"
+                  value={shipmentDetails.destination_city}
+                  onChange={(e) => setShipmentDetails({...shipmentDetails, destination_city: e.target.value})}
+                />
+                <p className="text-xs text-gray-500 mt-1">For inland cost estimate</p>
               </div>
               <div>
                 <Label>Container Type</Label>
@@ -480,6 +552,92 @@ Rate Quotes are powered by eFinAuto OFMS
             </Button>
           </CardContent>
         </Card>
+
+        {/* Inland Costs Summary */}
+        {inlandCosts && (
+          <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-300">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Ship className="w-5 h-5 text-blue-600" />
+                Door-to-Door Cost Breakdown
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                    <p className="text-sm font-semibold text-gray-700">Inland Origin</p>
+                  </div>
+                  <p className="text-2xl font-bold text-blue-900">
+                    ${inlandCosts.origin_inland_cost.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    {shipmentDetails.origin_city} → {shipmentDetails.origin_port}
+                  </p>
+                  {inlandCosts.origin_notes && (
+                    <p className="text-xs text-gray-500 mt-2">{inlandCosts.origin_notes}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                    <p className="text-sm font-semibold text-gray-700">Ocean Freight</p>
+                  </div>
+                  <p className="text-2xl font-bold text-green-900">
+                    {comparison?.best_rate ? `$${comparison.best_rate.total_rate.toLocaleString()}` : 'N/A'}
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    {shipmentDetails.origin_port} → {shipmentDetails.destination_port}
+                  </p>
+                  {comparison?.best_rate && (
+                    <p className="text-xs text-gray-500 mt-2">{comparison.best_rate.carrier_name} • {comparison.best_rate.transit_time_days} days</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
+                    <p className="text-sm font-semibold text-gray-700">Inland Destination</p>
+                  </div>
+                  <p className="text-2xl font-bold text-purple-900">
+                    ${inlandCosts.destination_inland_cost.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    {shipmentDetails.destination_port} → {shipmentDetails.destination_city}
+                  </p>
+                  {inlandCosts.destination_notes && (
+                    <p className="text-xs text-gray-500 mt-2">{inlandCosts.destination_notes}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-blue-200">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm text-gray-600">Total Door-to-Door Estimate</p>
+                    <p className="text-xs text-gray-500 mt-1">Inland + Ocean Freight</p>
+                  </div>
+                  <p className="text-4xl font-bold text-gray-900">
+                    ${(
+                      inlandCosts.origin_inland_cost + 
+                      (comparison?.best_rate?.total_rate || 0) + 
+                      inlandCosts.destination_inland_cost
+                    ).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-xs text-yellow-800">
+                  <strong>Note:</strong> Inland costs are AI-generated estimates based on typical market rates. 
+                  Actual costs may vary based on specific routing, carrier, and current market conditions.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Rate Comparison Results */}
         {comparison && (
@@ -695,11 +853,26 @@ Rate Quotes are powered by eFinAuto OFMS
                         </div>
 
                         <div className="text-right pl-6">
-                          <p className="text-sm text-gray-600 mb-1">Total Rate</p>
-                          <p className="text-4xl font-bold text-gray-900">
-                            ${quote.total_rate.toLocaleString()}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-2">
+                          <div className="space-y-2">
+                            <div>
+                              <p className="text-xs text-gray-500">Ocean Freight</p>
+                              <p className="text-2xl font-bold text-gray-900">
+                                ${quote.total_rate.toLocaleString()}
+                              </p>
+                            </div>
+                            {inlandCosts && (
+                              <div className="pt-2 border-t">
+                                <p className="text-xs text-gray-500 mb-1">Door-to-Door Total</p>
+                                <p className="text-3xl font-bold text-blue-600">
+                                  ${(quote.total_rate + inlandCosts.origin_inland_cost + inlandCosts.destination_inland_cost).toLocaleString()}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Incl. inland: ${(inlandCosts.origin_inland_cost + inlandCosts.destination_inland_cost).toLocaleString()}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-3">
                             Valid until {format(new Date(quote.valid_until), 'MMM d, yyyy')}
                           </p>
                           {selectedQuote?.quote_id === quote.quote_id && (
