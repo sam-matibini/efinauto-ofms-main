@@ -23,7 +23,8 @@ import {
   Send,
   Settings as SettingsIcon,
   Shield,
-  FolderKanban
+  FolderKanban,
+  Ship
 } from "lucide-react";
 import {
   Sidebar,
