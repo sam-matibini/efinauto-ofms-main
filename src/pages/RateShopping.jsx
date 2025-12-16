@@ -175,10 +175,10 @@ Rate Quotes are powered by eFinAuto OFMS
             </table>
             
             <div class="section">
-              <p style="font-size: 12px; color: #666;">Generated on ${format(new Date(), 'MMM d, yyyy h:mm a')}</p>
-              <p style="font-size: 12px; color: #1e293b; font-weight: bold; margin-top: 20px;">Rate Quotes are powered by eFinAuto OFMS</p>
-              <div style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 5px;">
-                <p style="font-size: 11px; color: #856404; margin: 0;"><strong>⚠️ DISCLAIMER:</strong> These rates are estimates only and subject to change without notice. Final rates, terms, and conditions must be verified directly with the respective shipping carrier before booking. eFinAuto OFMS does not guarantee rate accuracy and assumes no liability for rate discrepancies or changes.</p>
+              <p style="font-size: 12px; color: #666; margin-bottom: 10px;">Generated on ${format(new Date(), 'MMM d, yyyy h:mm a')}</p>
+              <p style="font-size: 12px; color: #1e293b; font-weight: bold; margin-bottom: 20px;">Rate Quotes are powered by eFinAuto OFMS</p>
+              <div style="padding: 15px; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+                <p style="font-size: 11px; color: #856404; margin: 0; line-height: 1.6;"><strong>⚠️ DISCLAIMER:</strong> These rates are estimates only and subject to change without notice. Final rates, terms, and conditions must be verified directly with the respective shipping carrier before booking. eFinAuto OFMS does not guarantee rate accuracy and assumes no liability for rate discrepancies or changes.</p>
               </div>
             </div>
           </body>
