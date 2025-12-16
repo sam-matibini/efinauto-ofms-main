@@ -140,6 +140,11 @@ export default function ExportReportsTab({ companyId }) {
   }, [filteredOrders]);
 
   const exportToCSV = () => {
+    if (filteredOrders.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+
     const headers = [
       'Export Order #',
       'Date',
@@ -159,13 +164,13 @@ export default function ExportReportsTab({ companyId }) {
       const hsCodes = [...new Set(lineItems.map(item => item.hs_code).filter(Boolean))].join('; ');
       
       return [
-        order.export_order_number,
+        order.export_order_number || '',
         order.created_date?.split('T')[0] || '',
-        order.export_status,
-        order.export_type,
-        order.consignee_name,
-        order.destination_country,
-        order.currency,
+        order.export_status || '',
+        order.export_type || '',
+        order.consignee_name || '',
+        order.destination_country || '',
+        order.currency || 'USD',
         order.total_value || 0,
         order.total_weight || 0,
         lineItems.length,
@@ -175,18 +180,20 @@ export default function ExportReportsTab({ companyId }) {
 
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
     ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `export_report_${filters.startDate}_${filters.endDate}.csv`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
     
-    toast.success("Report exported to CSV");
+    toast.success(`Report exported: ${filteredOrders.length} orders`);
   };
 
   return (
@@ -196,7 +203,7 @@ export default function ExportReportsTab({ companyId }) {
           <h3 className="text-xl font-bold">Export Reports & Analytics</h3>
           <p className="text-sm text-gray-600">Analyze export performance and compliance</p>
         </div>
-        <Button onClick={exportToCSV} variant="outline">
+        <Button onClick={exportToCSV} variant="outline" disabled={filteredOrders.length === 0}>
           <Download className="w-4 h-4 mr-2" />
           Export to CSV
         </Button>
@@ -215,16 +222,23 @@ export default function ExportReportsTab({ companyId }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={reportData.hsByVolume.slice(0, 10)}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="hs_code" angle={-45} textAnchor="end" height={80} />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="value" fill="#3b82f6" name="Total Value" />
-            </BarChart>
-          </ResponsiveContainer>
+          {reportData.hsByVolume.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={reportData.hsByVolume.slice(0, 10)}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="hs_code" angle={-45} textAnchor="end" height={80} />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="value" fill="#3b82f6" name="Total Value" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <Package className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p>No HS code data available</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -297,24 +311,31 @@ export default function ExportReportsTab({ companyId }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            {filteredOrders.map(order => (
-              <div key={order.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50">
-                <div>
-                  <p className="font-medium">{order.export_order_number}</p>
-                  <p className="text-xs text-gray-600">
-                    {order.consignee_name} → {order.destination_country}
-                    {' • '}
-                    {(order.line_items || order.items || []).length} items
-                  </p>
+          {filteredOrders.length > 0 ? (
+            <div className="space-y-2">
+              {filteredOrders.map(order => (
+                <div key={order.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50">
+                  <div>
+                    <p className="font-medium">{order.export_order_number}</p>
+                    <p className="text-xs text-gray-600">
+                      {order.consignee_name} → {order.destination_country}
+                      {' • '}
+                      {(order.line_items || order.items || []).length} items
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold">{order.currency} ${order.total_value?.toLocaleString()}</p>
+                    <p className="text-xs text-gray-600">{order.export_status?.replace(/_/g, ' ')}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold">{order.currency} ${order.total_value?.toLocaleString()}</p>
-                  <p className="text-xs text-gray-600">{order.export_status?.replace(/_/g, ' ')}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p>No export orders match the selected filters</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
