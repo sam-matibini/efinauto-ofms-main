@@ -199,7 +199,7 @@ export default function UserManagement() {
       <div className="p-6 space-y-6">
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card 
           className={`cursor-pointer transition-all ${roleFilter === 'all' ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:shadow-md'}`}
           onClick={() => setRoleFilter('all')}
@@ -208,10 +208,11 @@ export default function UserManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Users</p>
-                <h3 className="text-2xl font-bold text-gray-900">{users.length}</h3>
+                <h3 className="text-3xl font-bold text-gray-900">{users.length}</h3>
+                <p className="text-xs text-gray-500 mt-1">All system users</p>
               </div>
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${roleFilter === 'all' ? 'bg-blue-600' : 'bg-blue-100'}`}>
-                <Users className={`w-6 h-6 ${roleFilter === 'all' ? 'text-white' : 'text-blue-600'}`} />
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center ${roleFilter === 'all' ? 'bg-blue-600' : 'bg-blue-100'}`}>
+                <Users className={`w-7 h-7 ${roleFilter === 'all' ? 'text-white' : 'text-blue-600'}`} />
               </div>
             </div>
           </CardContent>
@@ -225,10 +226,11 @@ export default function UserManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Administrators</p>
-                <h3 className="text-2xl font-bold text-gray-900">{adminUsers.length}</h3>
+                <h3 className="text-3xl font-bold text-gray-900">{adminUsers.length}</h3>
+                <p className="text-xs text-gray-500 mt-1">Full access</p>
               </div>
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${roleFilter === 'admin' ? 'bg-purple-600' : 'bg-purple-100'}`}>
-                <Shield className={`w-6 h-6 ${roleFilter === 'admin' ? 'text-white' : 'text-purple-600'}`} />
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center ${roleFilter === 'admin' ? 'bg-purple-600' : 'bg-purple-100'}`}>
+                <Shield className={`w-7 h-7 ${roleFilter === 'admin' ? 'text-white' : 'text-purple-600'}`} />
               </div>
             </div>
           </CardContent>
@@ -242,10 +244,32 @@ export default function UserManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Regular Users</p>
-                <h3 className="text-2xl font-bold text-gray-900">{regularUsers.length}</h3>
+                <h3 className="text-3xl font-bold text-gray-900">{regularUsers.length}</h3>
+                <p className="text-xs text-gray-500 mt-1">Standard access</p>
               </div>
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${roleFilter === 'regular' ? 'bg-green-600' : 'bg-green-100'}`}>
-                <Users className={`w-6 h-6 ${roleFilter === 'regular' ? 'text-white' : 'text-green-600'}`} />
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center ${roleFilter === 'regular' ? 'bg-green-600' : 'bg-green-100'}`}>
+                <Users className={`w-7 h-7 ${roleFilter === 'regular' ? 'text-white' : 'text-green-600'}`} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 border-indigo-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-indigo-700 font-medium">Active Today</p>
+                <h3 className="text-3xl font-bold text-indigo-900">
+                  {users.filter(u => {
+                    const lastActive = new Date(u.updated_date || u.created_date);
+                    const today = new Date();
+                    return lastActive.toDateString() === today.toDateString();
+                  }).length}
+                </h3>
+                <p className="text-xs text-indigo-600 mt-1">Recent activity</p>
+              </div>
+              <div className="w-14 h-14 rounded-full bg-indigo-600 flex items-center justify-center">
+                <Activity className="w-7 h-7 text-white" />
               </div>
             </div>
           </CardContent>
@@ -314,45 +338,58 @@ export default function UserManagement() {
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
                 >
                   <div className="flex items-center gap-4 flex-1">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                      <span className="text-white font-semibold text-sm">
-                        {user.full_name?.charAt(0).toUpperCase() || 'U'}
-                      </span>
+                    <div className="relative">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center ring-2 ring-blue-100">
+                        <span className="text-white font-semibold text-lg">
+                          {user.full_name?.charAt(0).toUpperCase() || 'U'}
+                        </span>
+                      </div>
+                      {(() => {
+                        const lastActive = new Date(user.updated_date || user.created_date);
+                        const hoursSinceActive = (new Date() - lastActive) / (1000 * 60 * 60);
+                        return hoursSinceActive < 24 && (
+                          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-2 border-white rounded-full" 
+                               title="Active recently" />
+                        );
+                      })()}
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h4 className="font-semibold text-gray-900">{user.full_name || 'Unnamed User'}</h4>
                         <Badge className={getRoleBadge(user.role).color}>
                           {user.role === 'admin' && <Shield className="w-3 h-3 mr-1" />}
                           {getRoleBadge(user.role).label}
                         </Badge>
+                        {user.id === currentUser?.id && (
+                          <Badge variant="outline" className="text-xs">You</Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
                         <Mail className="w-4 h-4" />
-                        {user.email}
+                        <span className="truncate">{user.email}</span>
                       </div>
-                      <div className="flex items-center gap-3 mt-2 flex-wrap">
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
                         {user.data?.company_id && (
-                          <div className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
+                          <div className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">
                             <Building2 className="w-3 h-3" />
-                            {getCompanyName(user.data.company_id)}
+                            <span className="truncate max-w-[120px]">{getCompanyName(user.data.company_id)}</span>
                           </div>
                         )}
-                        <div className="flex items-center gap-1 text-xs text-gray-500">
-                          <Clock className="w-3 h-3" />
-                          Joined {new Date(user.created_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </div>
+                        {user.data?.department && (
+                          <div className="flex items-center gap-1 text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full">
+                            {user.data.department}
+                          </div>
+                        )}
                         {user.data?.accessible_modules?.length > 0 && (
-                          <div className="flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2 py-1 rounded">
+                          <div className="flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">
                             <CheckCircle className="w-3 h-3" />
                             {user.data.accessible_modules.length} modules
                           </div>
                         )}
-                        {user.data?.department && (
-                          <div className="flex items-center gap-1 text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded">
-                            {user.data.department}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-1 text-xs text-gray-500 px-2 py-1">
+                          <Clock className="w-3 h-3" />
+                          {new Date(user.created_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </div>
                       </div>
                     </div>
                   </div>
