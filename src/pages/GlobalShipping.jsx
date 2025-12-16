@@ -28,6 +28,7 @@ import CargoTab from "@/components/shipping/CargoTab.jsx";
 import TrackingTab from "@/components/shipping/TrackingTab.jsx";
 import FeesChargesTab from "@/components/shipping/FeesChargesTab.jsx";
 import DocumentsTab from "@/components/shipping/DocumentsTab.jsx";
+import GeofenceManager from "@/components/shipping/GeofenceManager";
 
 export default function GlobalShipping() {
   const { selectedCompanyId } = useCompany();
@@ -157,7 +158,7 @@ export default function GlobalShipping() {
 
       <div className="p-6 md:p-8 max-w-7xl mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-10 lg:grid-cols-10 mb-6 h-auto p-1 bg-white shadow-sm">
+          <TabsList className="grid grid-cols-10 lg:grid-cols-11 mb-6 h-auto p-1 bg-white shadow-sm">
             <TabsTrigger value="dashboard" className="flex flex-col sm:flex-row items-center gap-1 py-2 text-xs">
               <TrendingUp className="w-4 h-4" />
               <span className="hidden sm:inline">Dashboard</span>
@@ -189,6 +190,10 @@ export default function GlobalShipping() {
             <TabsTrigger value="tracking" className="flex flex-col sm:flex-row items-center gap-1 py-2 text-xs">
               <MapPin className="w-4 h-4" />
               <span className="hidden sm:inline">Tracking</span>
+            </TabsTrigger>
+            <TabsTrigger value="geofences" className="flex flex-col sm:flex-row items-center gap-1 py-2 text-xs">
+              <Anchor className="w-4 h-4" />
+              <span className="hidden sm:inline">Geofences</span>
             </TabsTrigger>
             <TabsTrigger value="fees" className="flex flex-col sm:flex-row items-center gap-1 py-2 text-xs">
               <DollarSign className="w-4 h-4" />
@@ -270,6 +275,10 @@ export default function GlobalShipping() {
               containers={containers}
               vehicles={vehiclesInTransit}
             />
+          </TabsContent>
+
+          <TabsContent value="geofences">
+            <GeofenceManager companyId={selectedCompanyId} />
           </TabsContent>
 
           <TabsContent value="fees">
