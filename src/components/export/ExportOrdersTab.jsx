@@ -9,11 +9,13 @@ import { Ship, FileText, Search, Plus, Eye, Edit, Lock, Unlock } from "lucide-re
 import { format } from "date-fns";
 import { toast } from "sonner";
 import ExportOrderDetailDialog from "./ExportOrderDetailDialog";
+import CreateExportOrderDialog from "./CreateExportOrderDialog";
 
 export default function ExportOrdersTab({ companyId }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: exportOrders = [], isLoading } = useQuery({
@@ -40,6 +42,18 @@ export default function ExportOrdersTab({ companyId }) {
     cancelled: "bg-red-100 text-red-800"
   };
 
+  const createExportOrderMutation = useMutation({
+    mutationFn: (data) => base44.entities.ExportOrder.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exportOrders', companyId] });
+      toast.success("Export order created successfully");
+      setCreateDialogOpen(false);
+    },
+    onError: () => {
+      toast.error("Failed to create export order");
+    }
+  });
+
   const handleViewOrder = (order) => {
     setSelectedOrder(order);
     setDetailDialogOpen(true);
@@ -52,6 +66,10 @@ export default function ExportOrdersTab({ companyId }) {
           <h3 className="text-xl font-bold">Export Orders</h3>
           <p className="text-sm text-gray-600">Manage international shipments and compliance</p>
         </div>
+        <Button onClick={() => setCreateDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="w-4 h-4 mr-2" />
+          Create Export Order
+        </Button>
       </div>
 
       <div className="flex gap-4">
@@ -183,6 +201,14 @@ export default function ExportOrdersTab({ companyId }) {
         }}
         order={selectedOrder}
         companyId={companyId}
+      />
+
+      <CreateExportOrderDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        companyId={companyId}
+        onSubmit={(data) => createExportOrderMutation.mutate(data)}
+        isLoading={createExportOrderMutation.isPending}
       />
     </div>
   );
