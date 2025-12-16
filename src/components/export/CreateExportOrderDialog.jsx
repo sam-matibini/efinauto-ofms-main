@@ -8,9 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, AlertCircle, Ship } from "lucide-react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
+import ExportLineItemsManager from "./ExportLineItemsManager";
 
-export default function CreateExportOrderDialog({ open, onClose, sale, onSuccess }) {
+export default function CreateExportOrderDialog({ open, onClose, sale, onSuccess, companyId }) {
   const [loading, setLoading] = useState(false);
+  const [lineItems, setLineItems] = useState([]);
   const [formData, setFormData] = useState({
     export_type: "vehicle",
     export_reason: "",
@@ -57,8 +59,8 @@ export default function CreateExportOrderDialog({ open, onClose, sale, onSuccess
       toast.error("Consignee name is required");
       return;
     }
-    if (!formData.hs_code) {
-      toast.error("HS Code is required for customs");
+    if (lineItems.length === 0) {
+      toast.error("At least one line item is required");
       return;
     }
 
@@ -71,33 +73,32 @@ export default function CreateExportOrderDialog({ open, onClose, sale, onSuccess
       const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
       const exportOrderNumber = `EXP-${year}-${random}`;
 
-      // Prepare items from sale
-      const items = [{
-        description: sale.vehicle_details || "Vehicle",
-        hs_code: formData.hs_code,
-        quantity: 1,
-        unit_value: sale.sale_price || 0,
-        total_value: sale.sale_price || 0,
-        weight: sale.vehicle_weight || 0,
-        vin: sale.vehicle_vin || ""
-      }];
+      // Calculate totals from line items
+      const totalValue = lineItems.reduce((sum, item) => sum + (item.total_value || 0), 0);
+      const totalWeight = lineItems.reduce((sum, item) => sum + (item.weight || 0), 0);
+      
+      // Determine export type based on line items
+      const itemTypes = [...new Set(lineItems.map(item => item.item_type))];
+      const exportType = itemTypes.length > 1 ? 'mixed' : itemTypes[0];
 
       // Create export order
       const exportOrder = await base44.entities.ExportOrder.create({
-        company_id: sale.company_id,
+        company_id: sale?.company_id || companyId,
         export_order_number: exportOrderNumber,
-        linked_sales_document_id: sale.id,
-        linked_sale_number: sale.bos_number || sale.sale_number,
+        linked_sales_document_id: sale?.id,
+        linked_sale_number: sale?.bos_number || sale?.sale_number,
         export_status: "compliance_review",
         ...formData,
-        items,
-        total_value: formData.customs_value,
-        total_weight: sale.vehicle_weight || 0
+        export_type: exportType,
+        line_items: lineItems,
+        total_value: totalValue,
+        total_weight: totalWeight,
+        customs_value: totalValue
       });
 
       // Log creation
       await base44.entities.AuditLog.create({
-        company_id: sale.company_id,
+        company_id: sale?.company_id || companyId,
         user_id: user.id,
         user_email: user.email,
         user_name: user.full_name,
@@ -106,8 +107,10 @@ export default function CreateExportOrderDialog({ open, onClose, sale, onSuccess
         record_id: exportOrder.id,
         record_identifier: exportOrderNumber,
         metadata: {
-          from_sale: sale.bos_number || sale.sale_number,
-          destination_country: formData.destination_country
+          from_sale: sale?.bos_number || sale?.sale_number,
+          destination_country: formData.destination_country,
+          line_items_count: lineItems.length,
+          total_value: totalValue
         },
         status: "success"
       });
@@ -134,38 +137,32 @@ export default function CreateExportOrderDialog({ open, onClose, sale, onSuccess
         </DialogHeader>
 
         <div className="space-y-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              <AlertCircle className="w-4 h-4 inline mr-2" />
-              Converting sale <strong>{sale?.bos_number || sale?.sale_number}</strong> to export order. 
-              This will apply zero-rated tax treatment and enable international shipping.
-            </p>
-          </div>
+          {sale && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                <AlertCircle className="w-4 h-4 inline mr-2" />
+                Converting sale <strong>{sale.bos_number || sale.sale_number}</strong> to export order. 
+                This will apply zero-rated tax treatment and enable international shipping.
+              </p>
+            </div>
+          )}
 
-          {/* Export Type & Reason */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Export Type *</Label>
-              <Select value={formData.export_type} onValueChange={(v) => setFormData({...formData, export_type: v})}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="vehicle">Vehicle</SelectItem>
-                  <SelectItem value="parts">Parts</SelectItem>
-                  <SelectItem value="salvage">Salvage</SelectItem>
-                  <SelectItem value="mixed">Mixed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Export Reason *</Label>
-              <Input
-                value={formData.export_reason}
-                onChange={(e) => setFormData({...formData, export_reason: e.target.value})}
-                placeholder="e.g., Commercial sale"
-              />
-            </div>
+          {/* Line Items Manager */}
+          <ExportLineItemsManager
+            lineItems={lineItems}
+            onChange={setLineItems}
+            currency={formData.currency}
+            companyId={companyId}
+          />
+
+          {/* Export Reason */}
+          <div>
+            <Label>Export Reason *</Label>
+            <Input
+              value={formData.export_reason}
+              onChange={(e) => setFormData({...formData, export_reason: e.target.value})}
+              placeholder="e.g., Commercial sale"
+            />
           </div>
 
           {/* Destination */}
@@ -233,27 +230,11 @@ export default function CreateExportOrderDialog({ open, onClose, sale, onSuccess
             <h4 className="font-semibold mb-3">Customs & Compliance</h4>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>HS Code * (Harmonized System)</Label>
-                <Input
-                  value={formData.hs_code}
-                  onChange={(e) => setFormData({...formData, hs_code: e.target.value})}
-                  placeholder="e.g., 8703.23"
-                />
-              </div>
-              <div>
                 <Label>Country of Origin</Label>
                 <Input
                   value={formData.country_of_origin}
                   onChange={(e) => setFormData({...formData, country_of_origin: e.target.value.toUpperCase()})}
                   maxLength={2}
-                />
-              </div>
-              <div>
-                <Label>Customs Value</Label>
-                <Input
-                  type="number"
-                  value={formData.customs_value}
-                  onChange={(e) => setFormData({...formData, customs_value: parseFloat(e.target.value) || 0})}
                 />
               </div>
               <div>

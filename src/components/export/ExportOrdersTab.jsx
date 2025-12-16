@@ -42,18 +42,6 @@ export default function ExportOrdersTab({ companyId }) {
     cancelled: "bg-red-100 text-red-800"
   };
 
-  const createExportOrderMutation = useMutation({
-    mutationFn: (data) => base44.entities.ExportOrder.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['exportOrders', companyId] });
-      toast.success("Export order created successfully");
-      setCreateDialogOpen(false);
-    },
-    onError: () => {
-      toast.error("Failed to create export order");
-    }
-  });
-
   const handleViewOrder = (order) => {
     setSelectedOrder(order);
     setDetailDialogOpen(true);
@@ -207,8 +195,10 @@ export default function ExportOrdersTab({ companyId }) {
         open={createDialogOpen}
         onClose={() => setCreateDialogOpen(false)}
         companyId={companyId}
-        onSubmit={(data) => createExportOrderMutation.mutate(data)}
-        isLoading={createExportOrderMutation.isPending}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['exportOrders', companyId] });
+          setCreateDialogOpen(false);
+        }}
       />
     </div>
   );
