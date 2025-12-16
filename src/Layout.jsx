@@ -128,6 +128,12 @@ const allNavigationItems = [
     pageId: "GlobalShipping"
   },
   {
+    title: "Track Shipment",
+    url: createPageUrl("TrackShipment"),
+    icon: Ship,
+    pageId: "TrackShipment"
+  },
+  {
     title: "Reports",
     url: createPageUrl("Reports"),
     icon: BarChart3,
