@@ -14,6 +14,8 @@ import ExportDocumentGenerator from "./ExportDocumentGenerator";
 import AIInvoiceGenerator from "./AIInvoiceGenerator";
 import EnhancedDocumentGenerator from "./EnhancedDocumentGenerator";
 import LiveTrackingDisplay from "./LiveTrackingDisplay";
+import PaymentGateway from "./PaymentGateway";
+import PaymentHistory from "./PaymentHistory";
 import { validateExportOrder } from "./ExportValidationService";
 
 export default function ExportOrderDetailDialog({ open, onClose, order, companyId }) {
@@ -128,8 +130,9 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
           </div>
 
           <Tabs defaultValue="overview">
-            <TabsList className="grid grid-cols-7 w-full">
+            <TabsList className="grid grid-cols-8 w-full">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="payment">Payment</TabsTrigger>
                 <TabsTrigger value="compliance">Compliance</TabsTrigger>
                 <TabsTrigger value="tracking">Tracking</TabsTrigger>
                 <TabsTrigger value="ai-check">AI Check</TabsTrigger>
@@ -245,6 +248,14 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
                   <p><strong>Address:</strong> {order.destination_address || 'N/A'}</p>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="payment" className="space-y-4">
+              <PaymentGateway 
+                order={order} 
+                onPaymentComplete={() => queryClient.invalidateQueries({ queryKey: ['exportOrders'] })}
+              />
+              <PaymentHistory orderId={order.id} />
             </TabsContent>
 
             <TabsContent value="tracking" className="space-y-4">
