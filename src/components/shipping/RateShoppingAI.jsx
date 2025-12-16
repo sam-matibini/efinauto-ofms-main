@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, Loader2, TrendingUp, AlertTriangle, Route, DollarSign } from "lucide-react";
+import { Sparkles, Send, Loader2, TrendingUp, AlertTriangle, Route, DollarSign, MessageCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -123,13 +123,50 @@ Provide practical, actionable advice. Be concise but thorough. If predicting del
     handleSend(prompt);
   };
 
+  const handleWhatsAppShare = () => {
+    if (messages.length <= 1) {
+      toast.error("No conversation to share yet");
+      return;
+    }
+
+    let content = "🚢 AI Shipping Advisor Conversation\n\n";
+    content += `Route: ${shipmentDetails.origin_port} → ${shipmentDetails.destination_port}\n`;
+    content += `Container: ${shipmentDetails.container_type}\n\n`;
+    content += "---\n\n";
+
+    messages.forEach((msg, idx) => {
+      if (idx === 0) return; // Skip initial greeting
+      const label = msg.role === "user" ? "Question" : "AI Advisor";
+      content += `${label}:\n${msg.content}\n\n`;
+    });
+
+    content += "---\nPowered by eFinAuto OFMS";
+
+    const message = encodeURIComponent(content);
+    window.open(`https://wa.me/?text=${message}`, '_blank');
+    toast.success("Opening WhatsApp...");
+  };
+
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-blue-50 flex-shrink-0">
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-purple-600" />
-          AI Shipping Advisor
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-purple-600" />
+            AI Shipping Advisor
+          </CardTitle>
+          {messages.length > 1 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleWhatsAppShare}
+              className="bg-green-50 hover:bg-green-100"
+            >
+              <MessageCircle className="w-4 h-4 mr-2" />
+              Share on WhatsApp
+            </Button>
+          )}
+        </div>
       </CardHeader>
       
       <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
