@@ -33,6 +33,7 @@ import FinancingForm from "../components/sales/FinancingForm";
 import CanadianTaxCalculator, { calculateCanadianTax } from "../components/sales/CanadianTaxCalculator";
 import BillOfSale from "../components/sales/BillOfSale";
 import DocumentShareDialog from "../components/sales/DocumentShareDialog";
+import { printDocument } from "../components/sales/DocumentSharingService";
 import { useCompany } from "../components/shared/CompanyContext";
 import { generateBOSNumber, voidBOS } from "../components/sales/BOSNumberingService";
 import CustomersTab from "../components/sales/CustomersTab";
@@ -911,11 +912,22 @@ export default function Sales() {
                 setShareDialogOpen(true);
               }}
               className="border-green-600 text-green-600 hover:bg-green-50"
+              disabled={selectedSale?.bos_status !== 'finalized'}
             >
               <Mail className="w-4 h-4 mr-2" />
               Share
             </Button>
-            <Button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700">
+            <Button 
+              onClick={async () => {
+                try {
+                  await printDocument(selectedSale.id);
+                } catch (error) {
+                  toast.error("Print failed: " + error.message);
+                }
+              }} 
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={selectedSale?.bos_status !== 'finalized'}
+            >
               Print
             </Button>
             </div>
