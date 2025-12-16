@@ -565,6 +565,10 @@ Rate Quotes are powered by eFinAuto OFMS
                         <span className="font-semibold text-purple-900">Share All Rates (Decision Support)</span>
                       </div>
                       <div className="flex gap-2 flex-wrap">
+                        <Button onClick={() => handleEmailShare(true)} variant="outline" size="sm">
+                          <Mail className="w-4 h-4 mr-2" />
+                          Email All
+                        </Button>
                         <Button onClick={() => handleWhatsAppShare(true)} variant="outline" size="sm" className="bg-green-50 hover:bg-green-100">
                           <MessageCircle className="w-4 h-4 mr-2" />
                           WhatsApp All
