@@ -48,6 +48,7 @@ import DateRangeFilter, { getDateRangeValues } from "../components/shared/DateRa
 import CompareWithFilter from "../components/shared/CompareWithFilter";
 import BillOfSaleExport from "../components/sales/BillOfSaleExport";
 import { sendBOSCreatedNotification, sendBOSFinalizedNotification } from "../components/sales/SalesNotificationService";
+import CreateExportOrderDialog from "../components/export/CreateExportOrderDialog";
 
 export default function Sales() {
   const [activeMainTab, setActiveMainTab] = useState("sales");
@@ -64,6 +65,8 @@ export default function Sales() {
   const [compareWith, setCompareWith] = useState(null);
   const [finalizingBOS, setFinalizingBOS] = useState(null);
   const [voidingBOS, setVoidingBOS] = useState(null);
+  const [exportOrderDialogOpen, setExportOrderDialogOpen] = useState(false);
+  const [selectedSaleForExport, setSelectedSaleForExport] = useState(null);
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
 
@@ -692,16 +695,30 @@ export default function Sales() {
                           >
                             <FileText className="w-4 h-4 mr-2" />
                             View
-                          </Button>
-                          <Button
+                            </Button>
+                            {sale.sale_type === 'export' && sale.bos_status === 'finalized' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedSaleForExport(sale);
+                                setExportOrderDialogOpen(true);
+                              }}
+                              className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                            >
+                              <Ship className="w-4 h-4 mr-2" />
+                              Export Order
+                            </Button>
+                            )}
+                            <Button
                             variant="outline"
                             size="sm"
                             onClick={() => { setEditingSale(sale); setDialogOpen(true); }}
                             disabled={sale.bos_status === 'finalized'}
-                          >
+                            >
                             <Edit className="w-4 h-4 mr-2" />
                             Edit
-                          </Button>
+                            </Button>
                           <Button
                             variant="outline"
                             size="sm"
@@ -1006,11 +1023,24 @@ export default function Sales() {
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
-            </AlertDialog>
-            </div>
-            </div>
-            );
-            }
+              </AlertDialog>
+
+              <CreateExportOrderDialog
+              open={exportOrderDialogOpen}
+              onClose={() => {
+                setExportOrderDialogOpen(false);
+                setSelectedSaleForExport(null);
+              }}
+              sale={selectedSaleForExport}
+              onSuccess={(exportOrder) => {
+                toast.success(`Export order ${exportOrder.export_order_number} created`);
+                queryClient.invalidateQueries({ queryKey: ['exportOrders'] });
+              }}
+              />
+              </div>
+              </div>
+              );
+              }
 
 function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
   const [activeTab, setActiveTab] = useState("basic");
