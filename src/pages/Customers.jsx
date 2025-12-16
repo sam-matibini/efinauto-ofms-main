@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, User, Edit, Trash2, Phone, Mail, MapPin, Loader2, Upload, Map, List, CheckCircle, AlertCircle, LayoutGrid, ArrowUpDown } from "lucide-react";
+import { Plus, Search, User, Edit, Trash2, Phone, Mail, MapPin, Loader2, Upload, Map, List, CheckCircle, AlertCircle, LayoutGrid, ArrowUpDown, Users } from "lucide-react";
 import ExportButton from "../components/shared/ExportButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { motion } from "framer-motion";
