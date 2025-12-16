@@ -16,11 +16,13 @@ import EnhancedDocumentGenerator from "./EnhancedDocumentGenerator";
 import LiveTrackingDisplay from "./LiveTrackingDisplay";
 import PaymentGateway from "./PaymentGateway";
 import PaymentHistory from "./PaymentHistory";
+import ShipmentBookingDialog from "./ShipmentBookingDialog";
 import { validateExportOrder } from "./ExportValidationService";
 
 export default function ExportOrderDetailDialog({ open, onClose, order, companyId }) {
   const queryClient = useQueryClient();
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
 
   const { data: sale } = useQuery({
     queryKey: ['sale', order?.linked_sales_document_id],
@@ -450,7 +452,13 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
                   Approve for Export
                 </Button>
               )}
-              {order.export_status === 'approved' && (
+              {order.export_status === 'approved' && !order.booking_reference && (
+                <Button onClick={() => setBookingDialogOpen(true)} className="bg-purple-600 hover:bg-purple-700">
+                  <Ship className="w-4 h-4 mr-2" />
+                  Book Shipment
+                </Button>
+              )}
+              {order.export_status === 'logistics_booked' && (
                 <Button onClick={handleShip} disabled={updatingStatus} className="bg-blue-600 hover:bg-blue-700">
                   <Ship className="w-4 h-4 mr-2" />
                   Mark as Shipped
@@ -458,6 +466,13 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
               )}
             </div>
           )}
+          </div>
+
+          <ShipmentBookingDialog
+          open={bookingDialogOpen}
+          onClose={() => setBookingDialogOpen(false)}
+          exportOrder={order}
+          />
         </div>
       </DialogContent>
     </Dialog>
