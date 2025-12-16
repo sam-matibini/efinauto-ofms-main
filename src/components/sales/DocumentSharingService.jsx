@@ -57,41 +57,49 @@ export const shareViaEmail = async (documentId, recipientEmail, recipientName, m
       pdfUrl = result.pdf_url;
     }
     
-    // Fetch PDF as blob
-    const response = await fetch(pdfUrl);
-    const blob = await response.blob();
-    const file = new File([blob], `BOS_${document.bos_number}.pdf`, { type: "application/pdf" });
+    // Send email with PDF link (avoid attachment issues)
+    const emailBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          ${company.logo_url ? `<img src="${company.logo_url}" alt="${company.name}" style="max-height: 60px; margin-bottom: 10px;">` : ''}
+          <h2 style="color: #1e3a8a; margin: 10px 0;">Bill of Sale</h2>
+        </div>
+        
+        <p style="font-size: 16px;">Hello ${recipientName},</p>
+        ${message ? `<p style="font-size: 14px; color: #555;">${message}</p>` : ''}
+        
+        <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #1e3a8a;">
+          <p style="margin: 8px 0; font-size: 14px;"><strong>BOS Number:</strong> ${document.bos_number || 'N/A'}</p>
+          <p style="margin: 8px 0; font-size: 14px;"><strong>Vehicle:</strong> ${document.vehicle_details || 'N/A'}</p>
+          <p style="margin: 8px 0; font-size: 14px;"><strong>VIN:</strong> ${document.vehicle_vin || 'N/A'}</p>
+          <p style="margin: 8px 0; font-size: 14px;"><strong>Customer:</strong> ${document.customer_name || 'N/A'}</p>
+          <p style="margin: 8px 0; font-size: 14px;"><strong>Sale Date:</strong> ${document.sale_date || 'N/A'}</p>
+          <p style="margin: 8px 0; font-size: 14px; color: #059669;"><strong>Total:</strong> $${(document.grand_total || 0).toLocaleString()}</p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${pdfUrl}" 
+             style="display: inline-block; background: #1e3a8a; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">
+            📄 Download Bill of Sale PDF
+          </a>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+        
+        <div style="color: #666; font-size: 12px; text-align: center;">
+          <p style="margin: 5px 0;"><strong>${company.name}</strong></p>
+          <p style="margin: 5px 0;">${company.address || ''} ${company.city || ''}, ${company.province || ''} ${company.postal_code || ''}</p>
+          <p style="margin: 5px 0;">Phone: ${company.phone || 'N/A'} | Email: ${company.email || 'N/A'}</p>
+          ${company.gst_number ? `<p style="margin: 5px 0;">GST #: ${company.gst_number}</p>` : ''}
+        </div>
+      </div>
+    `;
     
-    // Upload for email attachment
-    const { file_url: attachmentUrl } = await base44.integrations.Core.UploadFile({ file });
-    
-    // Send email with PDF attachment
     await base44.integrations.Core.SendEmail({
       to: recipientEmail,
-      subject: `Bill of Sale - ${document.bos_number || document.sale_number}`,
-      body: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1e3a8a;">Bill of Sale</h2>
-          <p>Hello ${recipientName},</p>
-          ${message ? `<p>${message}</p>` : ''}
-          
-          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p style="margin: 5px 0;"><strong>BOS Number:</strong> ${document.bos_number || 'N/A'}</p>
-            <p style="margin: 5px 0;"><strong>Vehicle:</strong> ${document.vehicle_details || 'N/A'}</p>
-            <p style="margin: 5px 0;"><strong>Customer:</strong> ${document.customer_name || 'N/A'}</p>
-            <p style="margin: 5px 0;"><strong>Total:</strong> $${(document.grand_total || 0).toLocaleString()}</p>
-          </div>
-
-          <p>Please find the Bill of Sale PDF attached to this email.</p>
-          
-          <p style="color: #666; font-size: 12px; margin-top: 30px;">
-            Best regards,<br>
-            ${company.name}<br>
-            ${company.email} | ${company.phone}
-          </p>
-        </div>
-      `,
-      attachments: [attachmentUrl]
+      subject: `Bill of Sale - ${document.bos_number || document.sale_number} - ${company.name}`,
+      body: emailBody,
+      from_name: company.name
     });
     
     // Log action
@@ -107,22 +115,32 @@ export const shareViaEmail = async (documentId, recipientEmail, recipientName, m
 export const shareViaWhatsApp = async (documentId, recipientPhone) => {
   try {
     const document = await base44.entities.Sale.get(documentId);
-    const { secure_link } = await generateSecureDownloadLink(documentId);
+    const company = await base44.entities.Company.get(document.company_id);
+    const { secure_link, direct_pdf_url } = await generateSecureDownloadLink(documentId);
     
     const message = encodeURIComponent(
-      `📄 Bill of Sale - ${document.bos_number}\n\n` +
-      `Vehicle: ${document.vehicle_details}\n` +
-      `Customer: ${document.customer_name}\n` +
-      `Total: $${(document.grand_total || 0).toLocaleString()}\n\n` +
-      `🔒 Secure Download Link:\n${secure_link}\n\n` +
-      `Link expires in 72 hours.`
+      `*📄 BILL OF SALE*\n` +
+      `${company.name}\n\n` +
+      `*BOS #:* ${document.bos_number || 'N/A'}\n` +
+      `*Vehicle:* ${document.vehicle_details || 'N/A'}\n` +
+      `*VIN:* ${document.vehicle_vin || 'N/A'}\n` +
+      `*Customer:* ${document.customer_name || 'N/A'}\n` +
+      `*Sale Date:* ${document.sale_date || 'N/A'}\n` +
+      `*Total:* $${(document.grand_total || 0).toLocaleString()}\n\n` +
+      `🔒 *Download PDF:*\n${secure_link}\n\n` +
+      `_Link expires in 72 hours_\n\n` +
+      `${company.phone || ''} | ${company.email || ''}`
     );
     
     // Log action
     await logSharingAction(document, "WHATSAPP", recipientPhone);
     
     // Open WhatsApp
-    const whatsappUrl = `https://wa.me/${recipientPhone.replace(/[^0-9]/g, '')}?text=${message}`;
+    const cleanPhone = recipientPhone.replace(/[^0-9]/g, '');
+    const whatsappUrl = cleanPhone 
+      ? `https://wa.me/${cleanPhone}?text=${message}`
+      : `https://wa.me/?text=${message}`;
+    
     window.open(whatsappUrl, "_blank");
     
     return { success: true, link: secure_link };
@@ -135,24 +153,23 @@ export const shareViaWhatsApp = async (documentId, recipientPhone) => {
 export const shareViaSMS = async (documentId, recipientPhone) => {
   try {
     const document = await base44.entities.Sale.get(documentId);
+    const company = await base44.entities.Company.get(document.company_id);
     const { secure_link } = await generateSecureDownloadLink(documentId);
     
-    const message = `Bill of Sale ${document.bos_number} - ${document.vehicle_details}. Download: ${secure_link}`;
-    
-    // Note: SMS sending requires SMS provider configuration in company settings
-    const company = await base44.entities.Company.get(document.company_id);
-    
-    if (company.sms_provider === "twilio" && company.sms_settings?.twilio_account_sid) {
-      // Use Twilio via integration
-      // This would need a custom integration or use of SendEmail as fallback
-      console.log("SMS via Twilio not yet implemented");
-    }
+    const message = 
+      `${company.name}\n` +
+      `Bill of Sale: ${document.bos_number || document.sale_number}\n` +
+      `Vehicle: ${document.vehicle_details}\n` +
+      `Total: $${(document.grand_total || 0).toLocaleString()}\n\n` +
+      `Download PDF: ${secure_link}\n` +
+      `Expires in 72 hours`;
     
     // Log action
     await logSharingAction(document, "SMS", recipientPhone);
     
-    // Fallback: Open SMS app on mobile
-    const smsUrl = `sms:${recipientPhone}?body=${encodeURIComponent(message)}`;
+    // Open SMS app (works on mobile devices)
+    const cleanPhone = recipientPhone.replace(/[^0-9]/g, '');
+    const smsUrl = `sms:${cleanPhone}${/iPhone|iPad|iPod/.test(navigator.userAgent) ? '&' : '?'}body=${encodeURIComponent(message)}`;
     window.open(smsUrl, "_blank");
     
     return { success: true, link: secure_link };
@@ -168,38 +185,94 @@ export const shareViaGoogleChat = async (documentId, webhookUrl) => {
     const company = await base44.entities.Company.get(document.company_id);
     const { secure_link } = await generateSecureDownloadLink(documentId);
     
-    // Google Chat webhook message format
+    // Google Chat webhook message format (Cards V2)
     const chatMessage = {
-      text: `📄 *Bill of Sale Generated*`,
-      cards: [{
-        header: {
-          title: `BOS #${document.bos_number}`,
-          subtitle: company.name
-        },
-        sections: [{
-          widgets: [
-            { keyValue: { topLabel: "Vehicle", content: document.vehicle_details } },
-            { keyValue: { topLabel: "Customer", content: document.customer_name } },
-            { keyValue: { topLabel: "Total", content: `$${(document.grand_total || 0).toLocaleString()}` } },
-            { 
-              buttons: [{
-                textButton: {
-                  text: "🔒 DOWNLOAD PDF",
-                  onClick: { openLink: { url: secure_link } }
+      cardsV2: [{
+        cardId: `bos-${documentId}`,
+        card: {
+          header: {
+            title: `📄 Bill of Sale - ${document.bos_number || document.sale_number}`,
+            subtitle: company.name,
+            imageUrl: company.logo_url || undefined,
+            imageType: "CIRCLE"
+          },
+          sections: [
+            {
+              header: "Document Details",
+              widgets: [
+                {
+                  decoratedText: {
+                    topLabel: "Vehicle",
+                    text: document.vehicle_details || 'N/A'
+                  }
+                },
+                {
+                  decoratedText: {
+                    topLabel: "VIN",
+                    text: document.vehicle_vin || 'N/A'
+                  }
+                },
+                {
+                  decoratedText: {
+                    topLabel: "Customer",
+                    text: document.customer_name || 'N/A'
+                  }
+                },
+                {
+                  decoratedText: {
+                    topLabel: "Sale Date",
+                    text: document.sale_date || 'N/A'
+                  }
+                },
+                {
+                  decoratedText: {
+                    topLabel: "Total Amount",
+                    text: `$${(document.grand_total || 0).toLocaleString()}`,
+                    startIcon: {
+                      knownIcon: "DOLLAR"
+                    }
+                  }
                 }
-              }]
+              ]
+            },
+            {
+              widgets: [
+                {
+                  buttonList: {
+                    buttons: [
+                      {
+                        text: "🔒 Download PDF",
+                        onClick: {
+                          openLink: {
+                            url: secure_link
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  textParagraph: {
+                    text: `<font color="#666666">Secure link expires in 72 hours</font>`
+                  }
+                }
+              ]
             }
           ]
-        }]
+        }
       }]
     };
     
     // Send to Google Chat webhook
-    await fetch(webhookUrl, {
+    const response = await fetch(webhookUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json; charset=UTF-8" },
       body: JSON.stringify(chatMessage)
     });
+    
+    if (!response.ok) {
+      throw new Error(`Google Chat API error: ${response.status}`);
+    }
     
     // Log action
     await logSharingAction(document, "GOOGLE_CHAT", webhookUrl);
@@ -225,13 +298,32 @@ export const printDocument = async (documentId) => {
     // Log print action
     await logSharingAction(document, "PRINT", "local_printer");
     
-    // Open PDF in new window for printing
-    const printWindow = window.open(pdfUrl, "_blank");
-    if (printWindow) {
-      printWindow.onload = () => {
-        printWindow.print();
-      };
-    }
+    // Create iframe for silent printing
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = pdfUrl;
+    document.body.appendChild(iframe);
+    
+    iframe.onload = () => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        
+        // Clean up after print dialog closes
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 1000);
+      } catch (e) {
+        // Fallback: open in new window
+        document.body.removeChild(iframe);
+        const printWindow = window.open(pdfUrl, '_blank');
+        if (printWindow) {
+          printWindow.onload = () => {
+            printWindow.print();
+          };
+        }
+      }
+    };
     
     return { success: true };
   } catch (error) {
