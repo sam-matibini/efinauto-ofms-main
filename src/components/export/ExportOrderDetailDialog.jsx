@@ -6,13 +6,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Ship, FileText, Package, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import AIComplianceChecker from "./AIComplianceChecker";
+import ExportDocumentGenerator from "./ExportDocumentGenerator";
 
 export default function ExportOrderDetailDialog({ open, onClose, order, companyId }) {
   const queryClient = useQueryClient();
   const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  const { data: sale } = useQuery({
+    queryKey: ['sale', order?.linked_sales_document_id],
+    queryFn: () => base44.entities.Sale.filter({ id: order.linked_sales_document_id }),
+    enabled: !!order?.linked_sales_document_id,
+    select: (data) => data?.[0]
+  });
+
+  const { data: company } = useQuery({
+    queryKey: ['company', companyId],
+    queryFn: () => base44.entities.Company.filter({ id: companyId }),
+    enabled: !!companyId,
+    select: (data) => data?.[0]
+  });
 
   if (!order) return null;
 
@@ -92,9 +108,10 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
           </div>
 
           <Tabs defaultValue="overview">
-            <TabsList className="grid grid-cols-4 w-full">
+            <TabsList className="grid grid-cols-5 w-full">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="compliance">Compliance</TabsTrigger>
+              <TabsTrigger value="ai-check">AI Check</TabsTrigger>
               <TabsTrigger value="logistics">Logistics</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
             </TabsList>
@@ -199,6 +216,11 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
                   </CardContent>
                 </Card>
               )}
+            </TabsContent>
+
+            <TabsContent value="ai-check" className="space-y-4">
+              <AIComplianceChecker order={order} />
+              <ExportDocumentGenerator order={order} sale={sale} company={company} />
             </TabsContent>
 
             <TabsContent value="logistics" className="space-y-4">
