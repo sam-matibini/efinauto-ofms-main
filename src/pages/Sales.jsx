@@ -922,18 +922,11 @@ export default function Sales() {
             </DialogContent>
             </Dialog>
 
-            <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Share Bill of Sale</DialogTitle>
-                </DialogHeader>
-                <BillOfSaleShare 
-                  sale={selectedSale} 
-                  company={company} 
-                  onClose={() => setShareDialogOpen(false)} 
-                />
-              </DialogContent>
-            </Dialog>
+            <DocumentShareDialog
+              open={shareDialogOpen}
+              onClose={() => setShareDialogOpen(false)}
+              sale={selectedSale}
+            />
 
             {/* Finalize BOS Confirmation */}
             <AlertDialog open={!!finalizingBOS} onOpenChange={() => setFinalizingBOS(null)}>
