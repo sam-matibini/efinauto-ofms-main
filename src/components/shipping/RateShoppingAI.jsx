@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, Loader2, TrendingUp, AlertTriangle, Route, DollarSign, MessageCircle } from "lucide-react";
+import { Sparkles, Send, Loader2, TrendingUp, AlertTriangle, Route, DollarSign, MessageCircle, RotateCcw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -147,6 +147,17 @@ Provide practical, actionable advice. Be concise but thorough. If predicting del
     toast.success("Opening WhatsApp...");
   };
 
+  const handleRefresh = () => {
+    setMessages([
+      {
+        role: "assistant",
+        content: "👋 Hi! I'm your AI shipping advisor. I can help you:\n\n• Analyze rate comparisons\n• Suggest optimal routes\n• Predict delays or cost increases\n• Compare carrier reliability\n• Recommend cost-saving strategies\n\nWhat would you like to know?"
+      }
+    ]);
+    setInput("");
+    toast.success("Conversation cleared");
+  };
+
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-blue-50 flex-shrink-0">
@@ -156,15 +167,26 @@ Provide practical, actionable advice. Be concise but thorough. If predicting del
             AI Shipping Advisor
           </CardTitle>
           {messages.length > 1 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleWhatsAppShare}
-              className="bg-green-50 hover:bg-green-100"
-            >
-              <MessageCircle className="w-4 h-4 mr-2" />
-              Share on WhatsApp
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                className="hover:bg-gray-100"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleWhatsAppShare}
+                className="bg-green-50 hover:bg-green-100"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Share
+              </Button>
+            </div>
           )}
         </div>
       </CardHeader>
