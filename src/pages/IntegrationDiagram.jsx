@@ -88,6 +88,8 @@ const modules = [
       { action: 'ISO/HS Validation', type: 'compliance_check', debit: 'N/A', credit: 'Automated validation on finalization' },
       { action: 'Document Generation', type: 'document_creation', debit: 'N/A', credit: 'Auto-generate B/L, COO, Invoice' },
       { action: 'Real-Time Tracking', type: 'tracking_update', debit: 'N/A', credit: 'Live carrier API integration' },
+      { action: 'Geofencing Alert', type: 'location_alert', debit: 'N/A', credit: 'Automated boundary notifications' },
+      { action: 'Rate Shopping', type: 'rate_comparison', debit: 'N/A', credit: 'Multi-carrier rate comparison' },
       { action: 'Freight Charges', type: 'other_expense', debit: 'Shipping & Freight Expense (5400)', credit: 'Accounts Payable (2000)' },
       { action: 'Customs & Duties', type: 'other_expense', debit: 'Customs & Duties Expense (5410)', credit: 'Accounts Payable (2000)' },
       { action: 'Insurance', type: 'other_expense', debit: 'Insurance Expense (5420)', credit: 'Accounts Payable (2000)' }
@@ -337,6 +339,20 @@ export default function IntegrationDiagram() {
                       <li>• Share via email/WhatsApp/print</li>
                     </ul>
                   </div>
+                </div>
+                <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border-2 border-purple-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="w-5 h-5 text-purple-600" />
+                    <h4 className="font-semibold text-purple-900">Geofencing & Location Intelligence</h4>
+                  </div>
+                  <ul className="text-sm space-y-1 text-gray-700 grid md:grid-cols-2 gap-x-4">
+                    <li>• Custom geofence zones (ports, warehouses, customer sites)</li>
+                    <li>• Circular and polygon boundaries</li>
+                    <li>• Automated entry/exit alerts</li>
+                    <li>• Real-time location monitoring</li>
+                    <li>• Interactive map visualization</li>
+                    <li>• Multi-recipient notifications</li>
+                  </ul>
                 </div>
               </CardContent>
             </Card>

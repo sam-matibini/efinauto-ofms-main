@@ -348,6 +348,11 @@ export default function UserManagement() {
                             {user.data.accessible_modules.length} modules
                           </div>
                         )}
+                        {user.data?.department && (
+                          <div className="flex items-center gap-1 text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded">
+                            {user.data.department}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
