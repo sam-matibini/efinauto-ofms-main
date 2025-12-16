@@ -214,6 +214,10 @@ export default function GlobalShipping() {
             <ExportOrdersTab companyId={selectedCompanyId} />
           </TabsContent>
 
+          <TabsContent value="reports">
+            <ExportReportsTab companyId={selectedCompanyId} />
+          </TabsContent>
+
           <TabsContent value="shipments">
             <ShipmentsTab 
               shipments={shipments}
