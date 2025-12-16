@@ -9,6 +9,7 @@ import { Ship, Search, Loader2, MapPin, Clock, Package, Calendar, Share2 } from 
 import { MSCAPIService } from "../components/export/MSCAPIService";
 import { format } from "date-fns";
 import ShipmentShareDialog from "../components/shipping/ShipmentShareDialog";
+import DocumentAnalyzer from "../components/shipping/DocumentAnalyzer";
 
 export default function TrackShipment() {
   const [trackingNumber, setTrackingNumber] = useState("MEDURS030563");
@@ -105,6 +106,9 @@ export default function TrackShipment() {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Document Analyzer */}
+        <DocumentAnalyzer />
 
         {/* Tracking Results */}
         {trackingData && (
