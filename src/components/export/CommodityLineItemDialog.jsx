@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
+import HSCodeLookup from "./HSCodeLookup";
 
 export default function CommodityLineItemDialog({ open, onClose, onSave, item, currency }) {
   const [formData, setFormData] = useState({
@@ -87,39 +88,12 @@ export default function CommodityLineItemDialog({ open, onClose, onSave, item, c
           <div className="border-t pt-4 space-y-4">
             <h4 className="font-medium text-sm">CBSA Compliance (Required)</h4>
             
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2">
-                <Label>HS / Tariff Code * (Min 6 digits)</Label>
-                <Input
-                  value={formData.hs_code}
-                  onChange={(e) => {
-                    const code = e.target.value.replace(/[^0-9.]/g, '');
-                    setFormData({
-                      ...formData, 
-                      hs_code: code,
-                      hs_code_level: code.length >= 10 ? '10' : code.length >= 8 ? '8' : '6'
-                    });
-                  }}
-                  placeholder="e.g., 8703.23.10.00"
-                  minLength={6}
-                  className={formData.hs_code && formData.hs_code.replace(/\./g, '').length < 6 ? 'border-red-300' : ''}
-                />
-                <p className="text-xs text-gray-500 mt-1">CBSA requires min 6 digits, 8-10 recommended</p>
-              </div>
-              <div>
-                <Label>HS Level</Label>
-                <Select value={formData.hs_code_level} onValueChange={(v) => setFormData({...formData, hs_code_level: v})}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="6">6-digit (WCO)</SelectItem>
-                    <SelectItem value="8">8-digit (CA)</SelectItem>
-                    <SelectItem value="10">10-digit (Full)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <HSCodeLookup
+              value={formData.hs_code}
+              onChange={(data) => setFormData({...formData, ...data})}
+              itemType="commodity"
+              level={formData.hs_code_level}
+            />
 
             <div>
               <Label>HS Code Description (Optional)</Label>

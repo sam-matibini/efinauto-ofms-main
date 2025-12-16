@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Car, AlertTriangle, CheckCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import HSCodeLookup from "./HSCodeLookup";
 
 export default function VehicleLineItemDialog({ open, onClose, onSave, item, currency, companyId }) {
   const [formData, setFormData] = useState({
@@ -277,39 +278,12 @@ export default function VehicleLineItemDialog({ open, onClose, onSave, item, cur
               </AlertDescription>
             </Alert>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2">
-                <Label>HS Code * (Min 6 digits)</Label>
-                <Input
-                  value={formData.hs_code}
-                  onChange={(e) => {
-                    const code = e.target.value.replace(/[^0-9.]/g, '');
-                    setFormData({
-                      ...formData, 
-                      hs_code: code,
-                      hs_code_level: code.length >= 10 ? '10' : code.length >= 8 ? '8' : '6'
-                    });
-                  }}
-                  placeholder="e.g., 8703.23.10.00"
-                  minLength={6}
-                  className={formData.hs_code && formData.hs_code.replace(/\./g, '').length < 6 ? 'border-red-300' : ''}
-                />
-                <p className="text-xs text-gray-500 mt-1">Required before vehicle export</p>
-              </div>
-              <div>
-                <Label>HS Level</Label>
-                <Select value={formData.hs_code_level} onValueChange={(v) => setFormData({...formData, hs_code_level: v})}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="6">6-digit</SelectItem>
-                    <SelectItem value="8">8-digit</SelectItem>
-                    <SelectItem value="10">10-digit</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <HSCodeLookup
+              value={formData.hs_code}
+              onChange={(data) => setFormData({...formData, ...data})}
+              itemType="vehicle"
+              level={formData.hs_code_level}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div>
