@@ -23,6 +23,8 @@ import { toast } from "sonner";
 import AIInventoryInsights from "@/components/shared/AIInventoryInsights";
 import VehicleBulkImportDialog from "@/components/vehicles/VehicleBulkImportDialog";
 import PartBulkImportDialog from "@/components/parts/PartBulkImportDialog";
+import InventoryExport from "@/components/shared/InventoryExport";
+import CustomReportBuilder from "@/components/inventory/CustomReportBuilder";
 
 export default function InventoryManagement() {
   const { selectedCompanyId } = useCompany();
@@ -296,11 +298,12 @@ export default function InventoryManagement() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-5 w-full max-w-2xl">
+          <TabsList className="grid grid-cols-6 w-full max-w-3xl">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="vehicles">Vehicles ({inStockVehicles.length})</TabsTrigger>
             <TabsTrigger value="parts">Parts ({parts.length})</TabsTrigger>
             <TabsTrigger value="products">Products ({products.length})</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
             <TabsTrigger value="ai-insights">AI Insights</TabsTrigger>
           </TabsList>
 
@@ -400,6 +403,7 @@ export default function InventoryManagement() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Vehicle Inventory</CardTitle>
                 <div className="flex gap-2">
+                  <InventoryExport vehicles={vehicles} type="vehicles" />
                   <Button onClick={() => setBulkImportOpen(true)} variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50">
                     <Upload className="w-4 h-4 mr-2" />
                     Bulk Import
@@ -465,6 +469,7 @@ export default function InventoryManagement() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Parts Inventory</CardTitle>
                 <div className="flex gap-2">
+                  <InventoryExport parts={parts} type="parts" />
                   <Button onClick={() => setPartBulkImportOpen(true)} variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50">
                     <Upload className="w-4 h-4 mr-2" />
                     Bulk Import
@@ -575,6 +580,10 @@ export default function InventoryManagement() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="reports" className="mt-6">
+            <CustomReportBuilder vehicles={vehicles} parts={parts} />
           </TabsContent>
 
           <TabsContent value="ai-insights" className="mt-6">
