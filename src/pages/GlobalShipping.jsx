@@ -21,6 +21,7 @@ import {
 import ShippingDashboard from "@/components/shipping/ShippingDashboard.jsx";
 import ShipmentsTab from "@/components/shipping/ShipmentsTab.jsx";
 import ContainersTab from "@/components/shipping/ContainersTab.jsx";
+import ExportOrdersTab from "@/components/export/ExportOrdersTab";
 import VehiclesInTransitTab from "@/components/shipping/VehiclesInTransitTab.jsx";
 import CargoTab from "@/components/shipping/CargoTab.jsx";
 import TrackingTab from "@/components/shipping/TrackingTab.jsx";
@@ -155,10 +156,14 @@ export default function GlobalShipping() {
 
       <div className="p-6 md:p-8 max-w-7xl mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-8 lg:grid-cols-8 mb-6 h-auto p-1 bg-white shadow-sm">
+          <TabsList className="grid grid-cols-9 lg:grid-cols-9 mb-6 h-auto p-1 bg-white shadow-sm">
             <TabsTrigger value="dashboard" className="flex flex-col sm:flex-row items-center gap-1 py-2 text-xs">
               <TrendingUp className="w-4 h-4" />
               <span className="hidden sm:inline">Dashboard</span>
+            </TabsTrigger>
+            <TabsTrigger value="export-orders" className="flex flex-col sm:flex-row items-center gap-1 py-2 text-xs">
+              <Plane className="w-4 h-4" />
+              <span className="hidden sm:inline">Export Orders</span>
             </TabsTrigger>
             <TabsTrigger value="shipments" className="flex flex-col sm:flex-row items-center gap-1 py-2 text-xs">
               <Ship className="w-4 h-4" />
@@ -203,6 +208,10 @@ export default function GlobalShipping() {
               onAddVehicle={() => setActiveTab("vehicles")}
               onUploadDocument={() => { setActiveTab("documents"); setShowDocumentDialog(true); }}
             />
+          </TabsContent>
+
+          <TabsContent value="export-orders">
+            <ExportOrdersTab companyId={selectedCompanyId} />
           </TabsContent>
 
           <TabsContent value="shipments">
