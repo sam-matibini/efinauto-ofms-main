@@ -895,7 +895,13 @@ export default function Sales() {
           <DialogHeader>
             <DialogTitle>Bill of Sale</DialogTitle>
           </DialogHeader>
-          <BillOfSale sale={selectedSale} company={company} />
+          {selectedSale && company ? (
+            <BillOfSale sale={selectedSale} company={company} existingSignatures={selectedSale} onSignaturesUpdate={(sigs) => {
+              queryClient.invalidateQueries({ queryKey: ['sales'] });
+            }} />
+          ) : (
+            <div className="p-8 text-center text-gray-500">Loading...</div>
+          )}
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button variant="outline" onClick={() => setBillOfSaleOpen(false)}>Close</Button>
             <Button 
