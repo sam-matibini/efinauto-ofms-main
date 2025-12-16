@@ -13,7 +13,10 @@ import {
   Mail,
   MoreVertical,
   Edit,
-  Trash2
+  Trash2,
+  Building2,
+  Clock,
+  CheckCircle
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -57,6 +60,12 @@ export default function UserManagement() {
     queryFn: async () => {
       return await base44.entities.User.list('-created_date');
     },
+    initialData: [],
+  });
+
+  const { data: companies = [] } = useQuery({
+    queryKey: ['companies'],
+    queryFn: () => base44.entities.Company.list(),
     initialData: [],
   });
 
@@ -114,6 +123,11 @@ export default function UserManagement() {
       user: { label: 'User', color: 'bg-gray-100 text-gray-700' }
     };
     return roleConfig[role] || roleConfig.user;
+  };
+
+  const getCompanyName = (companyId) => {
+    const company = companies.find(c => c.id === companyId);
+    return company?.display_name || company?.name || 'No Company';
   };
 
   const handleEdit = (user) => {
@@ -281,24 +295,22 @@ export default function UserManagement() {
                         <Mail className="w-4 h-4" />
                         {user.email}
                       </div>
-                      <div className="flex items-center gap-3 mt-1 flex-wrap">
-                        <p className="text-xs text-gray-400">
-                          Joined {new Date(user.created_date).toLocaleDateString()}
-                        </p>
+                      <div className="flex items-center gap-3 mt-2 flex-wrap">
                         {user.data?.company_id && (
-                          <Badge variant="outline" className="text-xs">
-                            Company Assigned
-                          </Badge>
+                          <div className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
+                            <Building2 className="w-3 h-3" />
+                            {getCompanyName(user.data.company_id)}
+                          </div>
                         )}
-                        {user.department && (
-                          <Badge variant="outline" className="text-xs">
-                            {user.department}
-                          </Badge>
-                        )}
-                        {user.employee_id && (
-                          <Badge variant="outline" className="text-xs">
-                            ID: {user.employee_id}
-                          </Badge>
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <Clock className="w-3 h-3" />
+                          Joined {new Date(user.created_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </div>
+                        {user.data?.accessible_modules?.length > 0 && (
+                          <div className="flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2 py-1 rounded">
+                            <CheckCircle className="w-3 h-3" />
+                            {user.data.accessible_modules.length} modules
+                          </div>
                         )}
                       </div>
                     </div>
