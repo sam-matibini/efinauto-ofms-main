@@ -466,14 +466,13 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
               )}
             </div>
           )}
-          </div>
+        </div>
 
-          <ShipmentBookingDialog
+        <ShipmentBookingDialog
           open={bookingDialogOpen}
           onClose={() => setBookingDialogOpen(false)}
           exportOrder={order}
-          />
-        </div>
+        />
       </DialogContent>
     </Dialog>
   );

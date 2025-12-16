@@ -199,7 +199,7 @@ export default function TaskDetailDialog({
                             {st.title}
                           </p>
                           <div className="flex gap-2 mt-1">
-                            <Badge className={STATUS_CONFIG[st.status]?.color} variant="secondary" className="text-xs">
+                            <Badge className={`${STATUS_CONFIG[st.status]?.color} text-xs`} variant="secondary">
                               {st.status}
                             </Badge>
                             {st.due_date && (
