@@ -51,6 +51,7 @@ export default function UserManagement() {
   const [viewMode, setViewMode] = useState("all"); // "all" or "users_only"
   const [roleFilter, setRoleFilter] = useState("all"); // "all", "admin", "regular"
   const [sortBy, setSortBy] = useState("recent"); // "recent", "name", "company"
+  const [showActiveOnly, setShowActiveOnly] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -111,6 +112,15 @@ export default function UserManagement() {
     filteredUsers = filteredUsers.filter(u => u.role === 'admin');
   } else if (roleFilter === 'regular') {
     filteredUsers = filteredUsers.filter(u => u.role !== 'admin');
+  }
+
+  // Apply active filter
+  if (showActiveOnly) {
+    filteredUsers = filteredUsers.filter(user => {
+      const lastActive = new Date(user.updated_date || user.created_date);
+      const daysSinceActive = (new Date() - lastActive) / (1000 * 60 * 60 * 24);
+      return daysSinceActive < 30;
+    });
   }
 
   // Apply sorting
@@ -289,7 +299,7 @@ export default function UserManagement() {
                 className="flex-1 border-0 focus-visible:ring-0"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button 
                 variant="outline"
                 onClick={() => setSortBy(sortBy === 'recent' ? 'name' : sortBy === 'name' ? 'company' : 'recent')}
@@ -297,6 +307,15 @@ export default function UserManagement() {
               >
                 <SortAsc className="w-4 h-4 mr-2" />
                 {sortBy === 'recent' ? 'Recent' : sortBy === 'name' ? 'Name' : 'Company'}
+              </Button>
+              <Button 
+                variant={showActiveOnly ? "default" : "outline"}
+                onClick={() => setShowActiveOnly(!showActiveOnly)}
+                className={showActiveOnly ? "bg-green-600 hover:bg-green-700" : ""}
+                size="sm"
+              >
+                <Activity className="w-4 h-4 mr-2" />
+                {showActiveOnly ? "Active Only" : "All Users"}
               </Button>
               <Button 
                 variant={viewMode === "users_only" ? "default" : "outline"}
