@@ -5,15 +5,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Ship, TrendingDown, Clock, Calendar, CheckCircle, Loader2, AlertCircle } from "lucide-react";
+import { Ship, TrendingDown, Clock, Calendar, CheckCircle, Loader2, AlertCircle, Share2, Mail, Printer, Download, MessageCircle } from "lucide-react";
 import { RateComparisonService } from "../components/export/RateComparisonService";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import DocumentAnalyzer from "../components/shipping/DocumentAnalyzer";
+import { base44 } from "@/api/base44Client";
 
 export default function RateShopping() {
   const [loading, setLoading] = useState(false);
   const [comparison, setComparison] = useState(null);
   const [selectedQuote, setSelectedQuote] = useState(null);
+  const [emailAddress, setEmailAddress] = useState("");
+  const [showEmailInput, setShowEmailInput] = useState(false);
 
   const [shipmentDetails, setShipmentDetails] = useState({
     origin_port: "",
@@ -60,6 +64,200 @@ export default function RateShopping() {
     return logos[carrierCode] || "🚢";
   };
 
+  const generateShareContent = () => {
+    if (!selectedQuote) return "";
+    
+    return `
+🚢 Shipping Rate Quote
+
+Carrier: ${selectedQuote.carrier_name}
+Route: ${selectedQuote.route}
+Container: ${shipmentDetails.container_type}
+
+💰 Rate Breakdown:
+- Ocean Freight: $${selectedQuote.ocean_freight.toLocaleString()}
+- Fuel Surcharge: $${selectedQuote.fuel_surcharge.toLocaleString()}
+- THC: $${(selectedQuote.thc_origin + selectedQuote.thc_destination).toLocaleString()}
+- Other Fees: $${(selectedQuote.documentation_fee + selectedQuote.security_fee).toLocaleString()}
+
+Total Rate: $${selectedQuote.total_rate.toLocaleString()} ${selectedQuote.currency}
+
+⏱️ Transit Time: ${selectedQuote.transit_time_days} days
+📅 ETD: ${format(new Date(selectedQuote.estimated_departure), 'MMM d, yyyy')}
+📅 ETA: ${format(new Date(selectedQuote.estimated_arrival), 'MMM d, yyyy')}
+
+✅ Valid until: ${format(new Date(selectedQuote.valid_until), 'MMM d, yyyy')}
+    `.trim();
+  };
+
+  const handlePrint = () => {
+    if (!selectedQuote) {
+      toast.error("Please select a rate first");
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    const content = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Rate Quote - ${selectedQuote.carrier_name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 40px; }
+            h1 { color: #1e293b; }
+            .section { margin: 20px 0; }
+            .label { font-weight: bold; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #1e293b; color: white; }
+            .total { font-size: 24px; font-weight: bold; color: #059669; }
+          </style>
+        </head>
+        <body>
+          <h1>Shipping Rate Quote</h1>
+          <div class="section">
+            <p><span class="label">Carrier:</span> ${selectedQuote.carrier_name}</p>
+            <p><span class="label">Route:</span> ${selectedQuote.route}</p>
+            <p><span class="label">Container Type:</span> ${shipmentDetails.container_type}</p>
+            <p><span class="label">Service Type:</span> ${selectedQuote.service_type}</p>
+          </div>
+          
+          <table>
+            <tr>
+              <th>Charge</th>
+              <th>Amount</th>
+            </tr>
+            <tr>
+              <td>Ocean Freight</td>
+              <td>$${selectedQuote.ocean_freight.toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td>Fuel Surcharge</td>
+              <td>$${selectedQuote.fuel_surcharge.toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td>THC Origin</td>
+              <td>$${selectedQuote.thc_origin.toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td>THC Destination</td>
+              <td>$${selectedQuote.thc_destination.toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td>Documentation Fee</td>
+              <td>$${selectedQuote.documentation_fee.toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td>Security Fee</td>
+              <td>$${selectedQuote.security_fee.toLocaleString()}</td>
+            </tr>
+            <tr>
+              <th>Total Rate</th>
+              <th class="total">$${selectedQuote.total_rate.toLocaleString()} ${selectedQuote.currency}</th>
+            </tr>
+          </table>
+          
+          <div class="section">
+            <p><span class="label">Transit Time:</span> ${selectedQuote.transit_time_days} days</p>
+            <p><span class="label">Estimated Departure:</span> ${format(new Date(selectedQuote.estimated_departure), 'MMM d, yyyy')}</p>
+            <p><span class="label">Estimated Arrival:</span> ${format(new Date(selectedQuote.estimated_arrival), 'MMM d, yyyy')}</p>
+            <p><span class="label">Valid Until:</span> ${format(new Date(selectedQuote.valid_until), 'MMM d, yyyy')}</p>
+          </div>
+          
+          <div class="section">
+            <p style="font-size: 12px; color: #666;">Generated on ${format(new Date(), 'MMM d, yyyy h:mm a')}</p>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(content);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+    
+    toast.success("Opening print dialog...");
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!selectedQuote) {
+      toast.error("Please select a rate first");
+      return;
+    }
+
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const jsPDF = (await import('jspdf')).default;
+
+      const element = document.getElementById('rate-comparison-content');
+      const canvas = await html2canvas(element);
+      const imgData = canvas.toDataURL('image/png');
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`rate-quote-${selectedQuote.carrier_code}-${Date.now()}.pdf`);
+      
+      toast.success("PDF downloaded successfully");
+    } catch (error) {
+      toast.error("Failed to generate PDF");
+      console.error(error);
+    }
+  };
+
+  const handleEmailShare = async () => {
+    if (!selectedQuote) {
+      toast.error("Please select a rate first");
+      return;
+    }
+
+    if (!emailAddress) {
+      setShowEmailInput(true);
+      return;
+    }
+
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: emailAddress,
+        subject: `Shipping Rate Quote - ${selectedQuote.carrier_name}`,
+        body: `<html><body><pre style="font-family: Arial, sans-serif;">${generateShareContent()}</pre></body></html>`
+      });
+
+      toast.success(`Rate quote sent to ${emailAddress}`);
+      setShowEmailInput(false);
+      setEmailAddress("");
+    } catch (error) {
+      toast.error("Failed to send email");
+      console.error(error);
+    }
+  };
+
+  const handleWhatsAppShare = () => {
+    if (!selectedQuote) {
+      toast.error("Please select a rate first");
+      return;
+    }
+
+    const message = encodeURIComponent(generateShareContent());
+    window.open(`https://wa.me/?text=${message}`, '_blank');
+    toast.success("Opening WhatsApp...");
+  };
+
+  const handleGoogleChatShare = () => {
+    if (!selectedQuote) {
+      toast.error("Please select a rate first");
+      return;
+    }
+
+    const message = encodeURIComponent(generateShareContent());
+    window.open(`https://mail.google.com/chat/?text=${message}`, '_blank');
+    toast.success("Opening Google Chat...");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
@@ -68,6 +266,16 @@ export default function RateShopping() {
       </div>
 
       <div className="p-6 max-w-7xl mx-auto space-y-6">
+        {/* Document Analyzer */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Document Analyzer & Summarizer</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DocumentAnalyzer />
+          </CardContent>
+        </Card>
+
         {/* Shipment Details Form */}
         <Card>
           <CardHeader>
@@ -188,8 +396,64 @@ export default function RateShopping() {
               </Card>
             )}
 
+            {/* Sharing Options */}
+            {selectedQuote && (
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Share2 className="w-5 h-5 text-blue-600" />
+                      <span className="font-semibold text-blue-900">Share Selected Rate</span>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {showEmailInput ? (
+                        <div className="flex gap-2">
+                          <Input
+                            type="email"
+                            placeholder="Enter email address"
+                            value={emailAddress}
+                            onChange={(e) => setEmailAddress(e.target.value)}
+                            className="w-64"
+                          />
+                          <Button onClick={handleEmailShare} size="sm">
+                            Send
+                          </Button>
+                          <Button onClick={() => setShowEmailInput(false)} variant="outline" size="sm">
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <Button onClick={() => setShowEmailInput(true)} variant="outline" size="sm">
+                            <Mail className="w-4 h-4 mr-2" />
+                            Email
+                          </Button>
+                          <Button onClick={handleWhatsAppShare} variant="outline" size="sm" className="bg-green-50 hover:bg-green-100">
+                            <MessageCircle className="w-4 h-4 mr-2" />
+                            WhatsApp
+                          </Button>
+                          <Button onClick={handleGoogleChatShare} variant="outline" size="sm">
+                            <MessageCircle className="w-4 h-4 mr-2" />
+                            Google Chat
+                          </Button>
+                          <Button onClick={handlePrint} variant="outline" size="sm">
+                            <Printer className="w-4 h-4 mr-2" />
+                            Print
+                          </Button>
+                          <Button onClick={handleDownloadPDF} variant="outline" size="sm">
+                            <Download className="w-4 h-4 mr-2" />
+                            PDF
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* All Rates */}
-            <div className="space-y-4">
+            <div id="rate-comparison-content" className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-lg">All Available Rates ({comparison.quotes.length})</h3>
                 {selectedQuote && (
