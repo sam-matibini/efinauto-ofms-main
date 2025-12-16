@@ -11,6 +11,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import AIComplianceChecker from "./AIComplianceChecker";
 import ExportDocumentGenerator from "./ExportDocumentGenerator";
+import AIInvoiceGenerator from "./AIInvoiceGenerator";
 
 export default function ExportOrderDetailDialog({ open, onClose, order, companyId }) {
   const queryClient = useQueryClient();
@@ -108,10 +109,11 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
           </div>
 
           <Tabs defaultValue="overview">
-            <TabsList className="grid grid-cols-5 w-full">
+            <TabsList className="grid grid-cols-6 w-full">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="compliance">Compliance</TabsTrigger>
               <TabsTrigger value="ai-check">AI Check</TabsTrigger>
+              <TabsTrigger value="invoice">Invoice</TabsTrigger>
               <TabsTrigger value="logistics">Logistics</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
             </TabsList>
@@ -279,6 +281,17 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
             <TabsContent value="ai-check" className="space-y-4">
               <AIComplianceChecker order={order} />
               <ExportDocumentGenerator order={order} sale={sale} company={company} />
+            </TabsContent>
+
+            <TabsContent value="invoice" className="space-y-4">
+              <AIInvoiceGenerator 
+                order={order} 
+                sale={sale} 
+                company={company}
+                onInvoiceCreated={() => {
+                  toast.success("Navigate to Financials > Transactions to view the invoice");
+                }}
+              />
             </TabsContent>
 
             <TabsContent value="logistics" className="space-y-4">
