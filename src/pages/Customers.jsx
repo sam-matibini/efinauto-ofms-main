@@ -1,6 +1,12 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import LeadsTab from "@/components/crm/LeadsTab";
+import OpportunitiesPipeline from "@/components/crm/OpportunitiesPipeline";
+import CustomerProfile from "@/components/crm/CustomerProfile";
+import CommunicationsTab from "@/components/crm/CommunicationsTab";
+import TasksTab from "@/components/crm/TasksTab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
