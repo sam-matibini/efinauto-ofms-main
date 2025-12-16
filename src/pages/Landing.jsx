@@ -260,7 +260,8 @@ Keep each item concise.`,
               </h1>
               <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
                 Your trusted Canadian automotive partner. Complete dealership management, 
-                vehicle exports, financing solutions, and AI-powered business tools.
+                global shipping & logistics with real-time tracking, geofencing alerts, 
+                rate shopping, vehicle exports, financing solutions, and AI-powered business tools.
               </p>
               <div className="flex gap-4 justify-center">
                 {user ? (
@@ -574,8 +575,8 @@ Keep each item concise.`,
               <div className="w-14 h-14 bg-purple-600 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <Globe className="w-7 h-7 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Global Ready</h3>
-              <p className="text-gray-400">Export management and multi-currency support built-in</p>
+              <h3 className="text-xl font-semibold text-white mb-2">Global Logistics</h3>
+              <p className="text-gray-400">Export management, real-time tracking, geofencing, rate shopping, and multi-currency support</p>
             </div>
           </div>
         </div>
