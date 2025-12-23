@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Edit, UserPlus, FileText, Sparkles, Loader2, ShieldOff } from "lucide-react";
+import { Plus, Search, Edit, UserPlus, FileText, Sparkles, Loader2, ShieldOff, Grid, List, Download, Eye } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -17,9 +17,11 @@ export default function EmployeeManagement({ company, employees, queryClient }) 
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [td1DialogOpen, setTd1DialogOpen] = useState(false);
+  const [viewDetailsDialog, setViewDetailsDialog] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [td1Editing, setTd1Editing] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [viewMode, setViewMode] = useState("grid");
   const [td1FormData, setTd1FormData] = useState({
     province: "",
     federal: { basic_personal_amount: 15000, additional_amount: 0 },
@@ -187,6 +189,11 @@ ${company?.name || "eFinAuto OFMS"} HR Team`
     setDialogOpen(true);
   };
 
+  const handleViewDetails = (employee) => {
+    setSelectedEmployee(employee);
+    setViewDetailsDialog(true);
+  };
+
   const handleTD1Form = (employee) => {
     setSelectedEmployee(employee);
     setTd1FormData({
@@ -196,6 +203,36 @@ ${company?.name || "eFinAuto OFMS"} HR Team`
     });
     setTd1Editing(false);
     setTd1DialogOpen(true);
+  };
+
+  const handleExportEmployees = () => {
+    const csvContent = [
+      ['Employee Number', 'First Name', 'Last Name', 'Position', 'Department', 'Email', 'Phone', 'Pay Type', 'Pay Rate', 'Status', 'Hire Date'],
+      ...filteredEmployees.map(emp => [
+        emp.employee_number || '',
+        emp.first_name || '',
+        emp.last_name || '',
+        emp.position || '',
+        emp.department || '',
+        emp.email || '',
+        emp.phone || '',
+        emp.pay_type || '',
+        emp.pay_rate || '',
+        emp.employment_status || '',
+        emp.hire_date || ''
+      ])
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `employees-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    toast.success('Employee list exported successfully');
   };
 
   const handleSaveTD1 = () => {
@@ -295,15 +332,21 @@ Provide the exact amounts in Canadian dollars.`,
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>Employee Directory</CardTitle>
-            <Button onClick={() => { resetForm(); setDialogOpen(true); }} className="bg-blue-600">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Employee
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleExportEmployees}>
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+              <Button onClick={() => { resetForm(); setDialogOpen(true); }} className="bg-blue-600">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Employee
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="mb-4">
-            <div className="relative">
+          <div className="mb-4 flex gap-3">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search employees..."
@@ -312,49 +355,127 @@ Provide the exact amounts in Canadian dollars.`,
                 className="pl-10"
               />
             </div>
+            <div className="flex gap-1 border rounded-lg p-1">
+              <Button
+                variant={viewMode === "grid" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+              >
+                <Grid className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+              >
+                <List className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
-          <div className="grid gap-4">
-            {filteredEmployees.map((employee) => (
-              <Card key={employee.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                        <span className="text-white font-semibold">
-                          {employee.first_name?.charAt(0)}{employee.last_name?.charAt(0)}
-                        </span>
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold">{employee.first_name} {employee.last_name}</h3>
-                          <Badge className={getStatusColor(employee.employment_status)}>
-                            {employee.employment_status}
-                          </Badge>
+          {viewMode === "grid" ? (
+            <div className="grid gap-4">
+              {filteredEmployees.map((employee) => (
+                <Card key={employee.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-semibold">
+                            {employee.first_name?.charAt(0)}{employee.last_name?.charAt(0)}
+                          </span>
                         </div>
-                        <p className="text-sm text-gray-600">{employee.position} • {employee.department}</p>
-                        <p className="text-xs text-gray-500">
-                          {employee.pay_type === 'hourly' 
-                            ? `$${employee.pay_rate}/hr` 
-                            : `$${employee.pay_rate?.toLocaleString()}/year`}
-                        </p>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold">{employee.first_name} {employee.last_name}</h3>
+                            <Badge className={getStatusColor(employee.employment_status)}>
+                              {employee.employment_status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600">{employee.position} • {employee.department}</p>
+                          <p className="text-xs text-gray-500">
+                            {employee.pay_type === 'hourly' 
+                              ? `$${employee.pay_rate}/hr` 
+                              : `$${employee.pay_rate?.toLocaleString()}/year`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleViewDetails(employee)}>
+                          <Eye className="w-4 h-4 mr-1" />
+                          View
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleTD1Form(employee)}>
+                          <FileText className="w-4 h-4 mr-1" />
+                          TD1
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(employee)}>
+                          <Edit className="w-4 h-4 mr-1" />
+                          Edit
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleTD1Form(employee)}>
-                        <FileText className="w-4 h-4 mr-1" />
-                        TD1
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(employee)}>
-                        <Edit className="w-4 h-4 mr-1" />
-                        Edit
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b bg-gray-50">
+                    <th className="text-left p-3 text-sm font-semibold">Name</th>
+                    <th className="text-left p-3 text-sm font-semibold">Position</th>
+                    <th className="text-left p-3 text-sm font-semibold">Department</th>
+                    <th className="text-left p-3 text-sm font-semibold">Pay Rate</th>
+                    <th className="text-left p-3 text-sm font-semibold">Status</th>
+                    <th className="text-left p-3 text-sm font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredEmployees.map((employee) => (
+                    <tr key={employee.id} className="border-b hover:bg-gray-50">
+                      <td className="p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs font-semibold">
+                              {employee.first_name?.charAt(0)}{employee.last_name?.charAt(0)}
+                            </span>
+                          </div>
+                          <span className="font-medium">{employee.first_name} {employee.last_name}</span>
+                        </div>
+                      </td>
+                      <td className="p-3 text-sm">{employee.position}</td>
+                      <td className="p-3 text-sm">{employee.department}</td>
+                      <td className="p-3 text-sm">
+                        {employee.pay_type === 'hourly' 
+                          ? `$${employee.pay_rate}/hr` 
+                          : `$${employee.pay_rate?.toLocaleString()}/year`}
+                      </td>
+                      <td className="p-3">
+                        <Badge className={getStatusColor(employee.employment_status)}>
+                          {employee.employment_status}
+                        </Badge>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => handleViewDetails(employee)}>
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleTD1Form(employee)}>
+                            <FileText className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleEdit(employee)}>
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -552,6 +673,139 @@ Provide the exact amounts in Canadian dollars.`,
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Employee Details Dialog */}
+      <Dialog open={viewDetailsDialog} onOpenChange={setViewDetailsDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <DialogTitle>Employee Details</DialogTitle>
+              <Button variant="outline" size="sm" onClick={() => {
+                setViewDetailsDialog(false);
+                handleEdit(selectedEmployee);
+              }}>
+                <Edit className="w-4 h-4 mr-1" />
+                Edit
+              </Button>
+            </div>
+          </DialogHeader>
+          
+          {selectedEmployee && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-4 pb-4 border-b">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-2xl font-semibold">
+                    {selectedEmployee.first_name?.charAt(0)}{selectedEmployee.last_name?.charAt(0)}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">{selectedEmployee.first_name} {selectedEmployee.last_name}</h3>
+                  <p className="text-gray-600">{selectedEmployee.position}</p>
+                  <Badge className={getStatusColor(selectedEmployee.employment_status)}>
+                    {selectedEmployee.employment_status}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold text-sm text-gray-700 mb-3">Personal Information</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Employee #:</span>
+                      <span className="font-medium">{selectedEmployee.employee_number}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">SIN:</span>
+                      <span className="font-medium">{selectedEmployee.sin || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Date of Birth:</span>
+                      <span className="font-medium">{selectedEmployee.date_of_birth || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Email:</span>
+                      <span className="font-medium">{selectedEmployee.email || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Phone:</span>
+                      <span className="font-medium">{selectedEmployee.phone || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Address:</span>
+                      <span className="font-medium text-right">{selectedEmployee.address || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-sm text-gray-700 mb-3">Employment Details</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Department:</span>
+                      <span className="font-medium">{selectedEmployee.department}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Hire Date:</span>
+                      <span className="font-medium">{selectedEmployee.hire_date || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Pay Type:</span>
+                      <span className="font-medium">{selectedEmployee.pay_type}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Pay Rate:</span>
+                      <span className="font-medium">
+                        {selectedEmployee.pay_type === 'hourly' 
+                          ? `$${selectedEmployee.pay_rate}/hr` 
+                          : `$${selectedEmployee.pay_rate?.toLocaleString()}/year`}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Pay Frequency:</span>
+                      <span className="font-medium">{selectedEmployee.pay_frequency?.replace('_', '-')}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-sm text-gray-700 mb-3">Tax Exemptions</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Checkbox checked={selectedEmployee.ei_exempt} disabled />
+                    <span className="text-sm">EI Exempt</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox checked={selectedEmployee.cpp_exempt} disabled />
+                    <span className="text-sm">CPP Exempt</span>
+                  </div>
+                </div>
+              </div>
+
+              {(selectedEmployee.td1_federal || selectedEmployee.td1_provincial) && (
+                <div>
+                  <h4 className="font-semibold text-sm text-gray-700 mb-3">TD1 Tax Credits</h4>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {selectedEmployee.td1_federal && (
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <p className="text-xs text-blue-700 font-semibold mb-2">Federal</p>
+                        <p className="text-sm">Total Claim: ${selectedEmployee.td1_federal.total_claim_amount?.toLocaleString()}</p>
+                      </div>
+                    )}
+                    {selectedEmployee.td1_provincial && (
+                      <div className="bg-purple-50 p-3 rounded-lg">
+                        <p className="text-xs text-purple-700 font-semibold mb-2">Provincial ({selectedEmployee.province})</p>
+                        <p className="text-sm">Total Claim: ${selectedEmployee.td1_provincial.total_claim_amount?.toLocaleString()}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
