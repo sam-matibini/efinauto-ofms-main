@@ -10,8 +10,9 @@ import { base44 } from "@/api/base44Client";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlertTriangle, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Plus, Trash2, ArrowLeftRight } from "lucide-react";
 import RouteMapEstimator from "./RouteMapEstimator";
+import AIAddressLookup from "@/components/shared/AIAddressLookup";
 
 export default function ShipmentDialog({ open, onClose, shipment, drivers, trucks }) {
   const { selectedCompanyId } = useCompany();
@@ -19,6 +20,10 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
   
   const [formData, setFormData] = useState({
     shipment_type: "LOCAL",
+    shipper_name: "",
+    shipper_phone: "",
+    receiver_name: "",
+    receiver_phone: "",
     origin_address: "",
     origin_city: "",
     origin_province: "",
@@ -28,12 +33,18 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
     driver_id: "",
     truck_id: "",
     trailer_id: "",
+    trailer_type: "",
+    seal_number: "",
+    container_number: "",
+    bol_number: "",
     commodities: [{ product_name: "", weight_kg: 0, hazmat: false }],
     customer_name: "",
     customer_phone: "",
     special_instructions: "",
     tracking_enabled: true
   });
+
+  const [weightUnit, setWeightUnit] = useState("kg");
 
   useEffect(() => {
     if (shipment) {
@@ -44,6 +55,10 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
     } else {
       setFormData({
         shipment_type: "LOCAL",
+        shipper_name: "",
+        shipper_phone: "",
+        receiver_name: "",
+        receiver_phone: "",
         origin_address: "",
         origin_city: "",
         origin_province: "",
@@ -53,6 +68,10 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
         driver_id: "",
         truck_id: "",
         trailer_id: "",
+        trailer_type: "",
+        seal_number: "",
+        container_number: "",
+        bol_number: "",
         commodities: [{ product_name: "", weight_kg: 0, hazmat: false }],
         customer_name: "",
         customer_phone: "",
@@ -108,6 +127,37 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
     setFormData({ ...formData, commodities: updated });
   };
 
+  const convertWeight = (value, fromUnit) => {
+    if (fromUnit === "lbs") {
+      return value * 0.453592; // lbs to kg
+    }
+    return value / 0.453592; // kg to lbs
+  };
+
+  const handleAddressSelect = (addressData, type) => {
+    if (type === "origin") {
+      setFormData({
+        ...formData,
+        origin_address: addressData.street || "",
+        origin_city: addressData.city || "",
+        origin_province: addressData.province || addressData.state || "",
+        origin_postal_code: addressData.postal_code || addressData.zip || "",
+        origin_lat: addressData.lat,
+        origin_lng: addressData.lng
+      });
+    } else {
+      setFormData({
+        ...formData,
+        destination_address: addressData.street || "",
+        destination_city: addressData.city || "",
+        destination_province: addressData.province || addressData.state || "",
+        destination_postal_code: addressData.postal_code || addressData.zip || "",
+        destination_lat: addressData.lat,
+        destination_lng: addressData.lng
+      });
+    }
+  };
+
   const hasHazmat = formData.commodities.some(c => c.hazmat);
 
   return (
@@ -119,7 +169,7 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
 
         <div className="space-y-6 py-4">
           {/* Basic Info */}
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-3 gap-4">
             <div>
               <Label>Shipment Type</Label>
               <Select value={formData.shipment_type} onValueChange={(value) => setFormData({ ...formData, shipment_type: value })}>
@@ -133,14 +183,47 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
               </Select>
             </div>
             <div>
+              <Label>BOL Number</Label>
+              <Input value={formData.bol_number} onChange={(e) => setFormData({ ...formData, bol_number: e.target.value })} placeholder="Bill of Lading #" />
+            </div>
+            <div>
               <Label>Customer Name</Label>
               <Input value={formData.customer_name} onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })} />
             </div>
           </div>
 
+          {/* Shipper & Receiver */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-3 p-3 bg-green-50 rounded-lg border border-green-200">
+              <h3 className="font-semibold text-green-900">Shipper Information</h3>
+              <div>
+                <Label>Shipper Name</Label>
+                <Input value={formData.shipper_name} onChange={(e) => setFormData({ ...formData, shipper_name: e.target.value })} placeholder="Company/Person name" />
+              </div>
+              <div>
+                <Label>Shipper Phone</Label>
+                <Input value={formData.shipper_phone} onChange={(e) => setFormData({ ...formData, shipper_phone: e.target.value })} placeholder="Contact number" />
+              </div>
+            </div>
+            <div className="space-y-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <h3 className="font-semibold text-blue-900">Receiver Information</h3>
+              <div>
+                <Label>Receiver Name</Label>
+                <Input value={formData.receiver_name} onChange={(e) => setFormData({ ...formData, receiver_name: e.target.value })} placeholder="Company/Person name" />
+              </div>
+              <div>
+                <Label>Receiver Phone</Label>
+                <Input value={formData.receiver_phone} onChange={(e) => setFormData({ ...formData, receiver_phone: e.target.value })} placeholder="Contact number" />
+              </div>
+            </div>
+          </div>
+
           {/* Origin */}
           <div className="space-y-3">
-            <h3 className="font-semibold">Origin</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold">Pickup Location</h3>
+              <AIAddressLookup onAddressSelect={(data) => handleAddressSelect(data, "origin")} />
+            </div>
             <div className="grid md:grid-cols-3 gap-3">
               <div className="md:col-span-3">
                 <Label>Address</Label>
@@ -163,7 +246,10 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
 
           {/* Destination */}
           <div className="space-y-3">
-            <h3 className="font-semibold">Destination</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold">Delivery Location</h3>
+              <AIAddressLookup onAddressSelect={(data) => handleAddressSelect(data, "destination")} />
+            </div>
             <div className="grid md:grid-cols-3 gap-3">
               <div className="md:col-span-3">
                 <Label>Address</Label>
@@ -195,7 +281,7 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
           )}
 
           {/* Assignment */}
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-2 gap-4">
             <div>
               <Label>Driver</Label>
               <Select value={formData.driver_id} onValueChange={(value) => setFormData({ ...formData, driver_id: value })}>
@@ -222,9 +308,39 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-2 pt-6">
-              <Switch checked={formData.tracking_enabled} onCheckedChange={(checked) => setFormData({ ...formData, tracking_enabled: checked })} />
-              <Label>Enable GPS Tracking</Label>
+          </div>
+
+          {/* Trailer & Container Details */}
+          <div className="p-3 bg-gray-50 rounded-lg border space-y-3">
+            <h3 className="font-semibold text-sm">Trailer & Container Details</h3>
+            <div className="grid md:grid-cols-4 gap-3">
+              <div>
+                <Label className="text-xs">Trailer Type</Label>
+                <Select value={formData.trailer_type} onValueChange={(value) => setFormData({ ...formData, trailer_type: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="dry_van">Dry Van</SelectItem>
+                    <SelectItem value="flatbed">Flatbed</SelectItem>
+                    <SelectItem value="refrigerated">Refrigerated</SelectItem>
+                    <SelectItem value="tanker">Tanker</SelectItem>
+                    <SelectItem value="container">Container</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Seal Number</Label>
+                <Input value={formData.seal_number} onChange={(e) => setFormData({ ...formData, seal_number: e.target.value })} placeholder="Seal #" />
+              </div>
+              <div>
+                <Label className="text-xs">Container Number</Label>
+                <Input value={formData.container_number} onChange={(e) => setFormData({ ...formData, container_number: e.target.value })} placeholder="Container #" />
+              </div>
+              <div className="flex items-center gap-2 pt-5">
+                <Switch checked={formData.tracking_enabled} onCheckedChange={(checked) => setFormData({ ...formData, tracking_enabled: checked })} />
+                <Label className="text-xs">GPS Tracking</Label>
+              </div>
             </div>
           </div>
 
@@ -232,10 +348,21 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold">Commodities</h3>
-              <Button onClick={addCommodity} size="sm" variant="outline">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Item
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => setWeightUnit(weightUnit === "kg" ? "lbs" : "kg")}
+                  size="sm" 
+                  variant="outline"
+                  type="button"
+                >
+                  <ArrowLeftRight className="w-3 h-3 mr-1" />
+                  {weightUnit === "kg" ? "Switch to lbs" : "Switch to kg"}
+                </Button>
+                <Button onClick={addCommodity} size="sm" variant="outline">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Item
+                </Button>
+              </div>
             </div>
 
             {formData.commodities.map((commodity, index) => (
@@ -247,8 +374,19 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
                       <Input value={commodity.product_name} onChange={(e) => updateCommodity(index, 'product_name', e.target.value)} />
                     </div>
                     <div>
-                      <Label>Weight (kg)</Label>
-                      <Input type="number" value={commodity.weight_kg} onChange={(e) => updateCommodity(index, 'weight_kg', parseFloat(e.target.value))} />
+                      <Label>Weight ({weightUnit})</Label>
+                      <Input 
+                        type="number" 
+                        value={weightUnit === "kg" ? commodity.weight_kg : (commodity.weight_kg / 0.453592).toFixed(2)} 
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value) || 0;
+                          const kgValue = weightUnit === "lbs" ? value * 0.453592 : value;
+                          updateCommodity(index, 'weight_kg', kgValue);
+                        }} 
+                      />
+                      {weightUnit === "lbs" && commodity.weight_kg > 0 && (
+                        <p className="text-xs text-gray-500 mt-1">{commodity.weight_kg.toFixed(2)} kg</p>
+                      )}
                     </div>
                     <div className="md:col-span-3 flex items-center gap-2">
                       <Switch checked={commodity.hazmat} onCheckedChange={(checked) => updateCommodity(index, 'hazmat', checked)} />
