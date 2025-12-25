@@ -131,6 +131,13 @@ export const defaultModuleCategories = [
   }
 ];
 
+// Icon mapping for restoration
+const iconMap = {
+  LayoutDashboard, Car, Wrench, DollarSign, Package, 
+  Plane, UserCog, BarChart3, Settings, Users, Send, MessageCircle, Bell, Globe,
+  FolderKanban, FileText, Landmark, Shield, Trash2, HardHat, LineChart, Brain
+};
+
 // Load saved pricing from localStorage, restoring icon references
 export function loadSavedPricing() {
   const saved = localStorage.getItem('customPricing');
