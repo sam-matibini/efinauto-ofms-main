@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Sparkles, Search, TrendingDown, TrendingUp, ShieldCheck, AlertTriangle, FileText, Loader2, MapPin, Globe, ChevronDown, ChevronUp, Filter, Truck, Car, Printer, Download, Mail, MessageCircle, Share2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -24,9 +25,11 @@ export default function AIVehicleSearch({ onSelectListing }) {
   const [yearRange, setYearRange] = useState({ min: "", max: "" });
   const [maxDistance, setMaxDistance] = useState("500");
   const [showFilters, setShowFilters] = useState(false);
-  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareScope, setShareScope] = useState("single");
+  const [shareListing, setShareListing] = useState(null);
   const [emailAddress, setEmailAddress] = useState("");
-  const [selectedListing, setSelectedListing] = useState(null);
+  const [phoneNumber, setPhoneNumber] = useState("");
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -156,6 +159,19 @@ Make diverse listings with varying quality, prices, and locations.`,
     if (score >= 0.6) return { color: "bg-blue-100 text-blue-800", label: "Good" };
     if (score >= 0.4) return { color: "bg-yellow-100 text-yellow-800", label: "Fair" };
     return { color: "bg-red-100 text-red-800", label: "Poor" };
+  };
+
+  const getShareListings = (scope, listing = null) => {
+    if (scope === "single" && listing) {
+      return [listing];
+    }
+    if (scope === "top_5") {
+      return filteredListings.slice(0, 5);
+    }
+    if (scope === "all") {
+      return filteredListings;
+    }
+    return [];
   };
 
   const generateShareContent = (singleListing = null) => {
@@ -328,30 +344,131 @@ Make diverse listings with varying quality, prices, and locations.`,
     }
   };
 
-  const handleEmailShare = async (listing = null) => {
-    if (!emailAddress) {
-      setSelectedListing(listing);
-      setEmailDialogOpen(true);
+  const formatEmailHTML = (listings) => {
+    let html = `
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h2 { color: #1e293b; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+            th { background-color: #1e293b; color: white; }
+            .price { font-weight: bold; color: #2563eb; }
+            .score { color: #059669; }
+            .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <h2>eFinAuto OFMS - AI Search Results</h2>
+          <p><strong>Search:</strong> ${searchQuery}</p>
+          <p><strong>Results:</strong> ${listings.length} ${searchType === "vehicle" ? "vehicles" : "equipment items"}</p>
+          <table>
+            <tr>
+              <th>Item</th>
+              <th>Price</th>
+              <th>AI Fair Price</th>
+              <th>Condition</th>
+              <th>AI Score</th>
+              <th>Seller</th>
+              <th>Location</th>
+            </tr>`;
+
+    listings.forEach(listing => {
+      html += `
+        <tr>
+          <td><strong>${listing.year || 'N/A'} ${listing.make || 'N/A'} ${listing.model || 'N/A'}</strong><br>
+              <small>${listing.vin_serial || 'N/A'}</small></td>
+          <td class="price">$${(listing.asking_price || 0).toLocaleString()}</td>
+          <td>$${(listing.median_market_price || 0).toLocaleString()}<br>
+              <small>${(listing.price_variance_pct || 0) > 0 ? "+" : ""}${(listing.price_variance_pct || 0).toFixed(1)}%</small></td>
+          <td>${listing.condition || 'N/A'}<br>
+              <small>${Math.round((listing.ai_scores?.condition_score || 0) * 100)}%</small></td>
+          <td class="score">${Math.round((listing.ai_scores?.overall_score || 0) * 100)}%</td>
+          <td>${listing.seller_name || 'N/A'}<br>
+              <small>⭐ ${(listing.seller_rating || 0).toFixed(2)}</small></td>
+          <td>${listing.location_city || 'N/A'}, ${listing.location_state || 'N/A'}<br>
+              <small>${(listing.distance_km || 0).toLocaleString()} km</small></td>
+        </tr>`;
+    });
+
+    html += `
+          </table>
+          <div class="footer">
+            <p>Powered by eFinAuto OFMS AI Search Engine</p>
+            <p>Generated on ${new Date().toLocaleString()}</p>
+          </div>
+        </body>
+      </html>`;
+
+    return html;
+  };
+
+  const handleShare = async (channel) => {
+    const listings = getShareListings(shareScope, shareListing);
+
+    if (listings.length === 0) {
+      toast.error("No results to share");
+      return;
+    }
+
+    // Safeguard for large datasets
+    if (listings.length > 20 && channel !== "email") {
+      toast.error(`${listings.length} results is too many for ${channel}. Please use email or select fewer results.`);
       return;
     }
 
     try {
-      const subject = listing 
-        ? `${listing.year || ''} ${listing.make || ''} ${listing.model || ''} - Listing`
-        : `${searchType === "vehicle" ? "Vehicle" : "Equipment"} Search Results - ${searchQuery}`;
-      
-      await base44.integrations.Core.SendEmail({
-        to: emailAddress,
-        subject,
-        body: `<html><body><pre style="font-family: Arial, sans-serif; white-space: pre-wrap;">${generateShareContent(listing)}</pre></body></html>`
-      });
+      if (channel === "email") {
+        if (!emailAddress) {
+          toast.error("Please enter an email address");
+          return;
+        }
 
-      toast.success(`${listing ? "Listing" : "Results"} sent to ${emailAddress}`);
-      setEmailDialogOpen(false);
-      setEmailAddress("");
-      setSelectedListing(null);
+        const subject = shareScope === "single" 
+          ? `${listings[0].year || ''} ${listings[0].make || ''} ${listings[0].model || ''} - Listing`
+          : `${searchType === "vehicle" ? "Vehicle" : "Equipment"} Search Results (${listings.length} items)`;
+
+        await base44.integrations.Core.SendEmail({
+          to: emailAddress,
+          subject,
+          body: formatEmailHTML(listings)
+        });
+
+        toast.success(`${listings.length} result(s) sent to ${emailAddress}`);
+        setShareDialogOpen(false);
+        setEmailAddress("");
+      } else if (channel === "whatsapp") {
+        const content = listings.length === 1 
+          ? generateShareContent(listings[0])
+          : generateShareContent(null);
+        const message = encodeURIComponent(content);
+        window.open(`https://wa.me/${phoneNumber ? phoneNumber : ''}?text=${message}`, '_blank');
+        toast.success(`Sharing ${listings.length} result(s) via WhatsApp`);
+        setShareDialogOpen(false);
+      } else if (channel === "google_chat") {
+        const content = listings.length === 1 
+          ? generateShareContent(listings[0])
+          : generateShareContent(null);
+        const message = encodeURIComponent(content);
+        window.open(`https://mail.google.com/chat/?text=${message}`, '_blank');
+        toast.success(`Sharing ${listings.length} result(s) via Google Chat`);
+        setShareDialogOpen(false);
+      } else if (channel === "sms") {
+        if (!phoneNumber) {
+          toast.error("Please enter a phone number");
+          return;
+        }
+        const content = listings.length === 1 
+          ? generateShareContent(listings[0]).substring(0, 500)
+          : generateShareContent(null).substring(0, 500);
+        const message = encodeURIComponent(content + "...");
+        window.open(`sms:${phoneNumber}?body=${message}`, '_blank');
+        toast.success(`Sharing ${listings.length} result(s) via SMS`);
+        setShareDialogOpen(false);
+      }
     } catch (error) {
-      toast.error("Failed to send email");
+      toast.error("Failed to share");
       console.error(error);
     }
   };
@@ -634,21 +751,13 @@ Make diverse listings with varying quality, prices, and locations.`,
                   <Download className="w-4 h-4 mr-2" />
                   PDF
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setEmailDialogOpen(true)}>
-                  <Mail className="w-4 h-4 mr-2" />
-                  Email
+                <Button variant="outline" size="sm" onClick={() => openShareDialog("top_5")}>
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share Best 5
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleWhatsAppShare} className="bg-green-50 hover:bg-green-100">
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  WhatsApp
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleGoogleChatShare}>
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Google Chat
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleSMSShare}>
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  SMS
+                <Button variant="outline" size="sm" onClick={() => openShareDialog("all")}>
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share All
                 </Button>
               </div>
             </div>
@@ -1005,20 +1114,33 @@ Make diverse listings with varying quality, prices, and locations.`,
                           <span className="text-gray-400">•</span>
                           <span>{listing.seller_total_sales || 0} sales</span>
                         </div>
-                        <Button
-                          onClick={() => onSelectListing(listing)}
-                          className={`${
-                            listing.recommendation?.toLowerCase().includes("avoid")
-                              ? "bg-gray-500 hover:bg-gray-600"
-                              : listing.recommendation?.toLowerCase().includes("buy")
-                              ? "bg-green-600 hover:bg-green-700"
-                              : "bg-blue-600 hover:bg-blue-700"
-                          }`}
-                          size="sm"
-                        >
-                          <FileText className="w-4 h-4 mr-2" />
-                          Generate Auto-PO
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openShareDialog("single", listing);
+                            }}
+                            size="sm"
+                          >
+                            <Share2 className="w-4 h-4 mr-1" />
+                            Share
+                          </Button>
+                          <Button
+                            onClick={() => onSelectListing(listing)}
+                            className={`${
+                              listing.recommendation?.toLowerCase().includes("avoid")
+                                ? "bg-gray-500 hover:bg-gray-600"
+                                : listing.recommendation?.toLowerCase().includes("buy")
+                                ? "bg-green-600 hover:bg-green-700"
+                                : "bg-blue-600 hover:bg-blue-700"
+                            }`}
+                            size="sm"
+                          >
+                            <FileText className="w-4 h-4 mr-2" />
+                            Generate Auto-PO
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -1054,35 +1176,117 @@ Make diverse listings with varying quality, prices, and locations.`,
         )}
       </CardContent>
 
-      {/* Email Dialog */}
-      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
-        <DialogContent>
+      {/* Share Dialog */}
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Email Search Results</DialogTitle>
+            <DialogTitle>Share Search Results</DialogTitle>
+            <DialogDescription>
+              Choose what to share and where to send it
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-6 py-4">
+            {/* Share Scope */}
             <div>
-              <Label>Email Address</Label>
-              <Input
-                type="email"
-                placeholder="Enter email address"
-                value={emailAddress}
-                onChange={(e) => setEmailAddress(e.target.value)}
-              />
+              <Label className="text-sm font-semibold mb-3 block">What to share?</Label>
+              <RadioGroup value={shareScope} onValueChange={setShareScope}>
+                <div className="flex items-center space-x-2 p-3 border rounded hover:bg-gray-50">
+                  <RadioGroupItem value="single" id="single" disabled={!shareListing} />
+                  <Label htmlFor="single" className="flex-1 cursor-pointer">
+                    This listing only
+                    {shareListing && <span className="block text-xs text-gray-500 mt-1">{shareListing.year} {shareListing.make} {shareListing.model}</span>}
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 p-3 border rounded hover:bg-gray-50">
+                  <RadioGroupItem value="top_5" id="top_5" />
+                  <Label htmlFor="top_5" className="flex-1 cursor-pointer">
+                    Best 5 AI-Recommended
+                    <span className="block text-xs text-gray-500 mt-1">Top ranked by AI scores</span>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 p-3 border rounded hover:bg-gray-50">
+                  <RadioGroupItem value="all" id="all" />
+                  <Label htmlFor="all" className="flex-1 cursor-pointer">
+                    All Results ({filteredListings.length} items)
+                    <span className="block text-xs text-gray-500 mt-1">
+                      {filteredListings.length > 20 ? "⚠️ Large dataset - Email recommended" : "Complete search results"}
+                    </span>
+                  </Label>
+                </div>
+              </RadioGroup>
             </div>
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => {
-                setEmailDialogOpen(false);
-                setSelectedListing(null);
-                setEmailAddress("");
-              }}>
-                Cancel
-              </Button>
-              <Button onClick={() => handleEmailShare(selectedListing)} className="bg-blue-600 hover:bg-blue-700">
-                <Mail className="w-4 h-4 mr-2" />
-                Send Email
-              </Button>
+
+            {/* Contact Info */}
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Email Address (for email sharing)</Label>
+                <Input
+                  type="email"
+                  placeholder="recipient@example.com"
+                  value={emailAddress}
+                  onChange={(e) => setEmailAddress(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Phone Number (optional, for WhatsApp/SMS)</Label>
+                <Input
+                  type="tel"
+                  placeholder="+1234567890"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
             </div>
+
+            {/* Share Channels */}
+            <div>
+              <Label className="text-sm font-semibold mb-3 block">Share via:</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  onClick={() => handleShare("email")}
+                  variant="outline"
+                  className="h-auto py-3 flex flex-col gap-1"
+                >
+                  <Mail className="w-5 h-5" />
+                  <span className="text-xs">Email</span>
+                </Button>
+                <Button
+                  onClick={() => handleShare("whatsapp")}
+                  variant="outline"
+                  className="h-auto py-3 flex flex-col gap-1 bg-green-50 hover:bg-green-100"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  <span className="text-xs">WhatsApp</span>
+                </Button>
+                <Button
+                  onClick={() => handleShare("google_chat")}
+                  variant="outline"
+                  className="h-auto py-3 flex flex-col gap-1"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  <span className="text-xs">Google Chat</span>
+                </Button>
+                <Button
+                  onClick={() => handleShare("sms")}
+                  variant="outline"
+                  className="h-auto py-3 flex flex-col gap-1"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  <span className="text-xs">SMS</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Safeguard Warning */}
+            {shareScope === "all" && filteredListings.length > 20 && (
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-xs text-yellow-800">
+                  <strong>⚠️ Large Dataset:</strong> {filteredListings.length} results detected. Email is recommended for sharing large datasets. Other channels may truncate or fail.
+                </p>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
