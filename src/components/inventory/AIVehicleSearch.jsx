@@ -473,27 +473,10 @@ Make diverse listings with varying quality, prices, and locations.`,
     }
   };
 
-  const handleWhatsAppShare = (listing = null) => {
-    if (!listing && filteredListings.length === 0) {
-      toast.error("No results to share");
-      return;
-    }
-    const content = generateShareContent(listing);
-    const message = encodeURIComponent(content);
-    window.open(`https://wa.me/?text=${message}`, '_blank');
-    toast.success("Report shared via WhatsApp");
-  };
-
-  const handleGoogleChatShare = (listing = null) => {
-    const message = encodeURIComponent(generateShareContent(listing));
-    window.open(`https://mail.google.com/chat/?text=${message}`, '_blank');
-    toast.success("Opening Google Chat...");
-  };
-
-  const handleSMSShare = (listing = null) => {
-    const message = encodeURIComponent(generateShareContent(listing).substring(0, 500) + "..."); // SMS character limit
-    window.open(`sms:?body=${message}`, '_blank');
-    toast.success("Opening SMS...");
+  const openShareDialog = (scope, listing = null) => {
+    setShareScope(scope);
+    setShareListing(listing);
+    setShareDialogOpen(true);
   };
 
   const handlePrintListing = (listing) => {
