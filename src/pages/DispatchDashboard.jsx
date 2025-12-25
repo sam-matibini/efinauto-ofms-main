@@ -15,6 +15,7 @@ import FleetManagement from "@/components/dispatch/FleetManagement";
 import HazmatCompliance from "@/components/dispatch/HazmatCompliance";
 import DocumentManager from "@/components/dispatch/DocumentManager";
 import ThirdPartyCarriers from "@/components/dispatch/ThirdPartyCarriers";
+import DriverPerformanceAnalytics from "@/components/dispatch/DriverPerformanceAnalytics";
 import { predictShipmentETA, updateShipmentETA } from "@/components/dispatch/AIETAPrediction";
 
 export default function DispatchDashboard() {
@@ -145,6 +146,7 @@ export default function DispatchDashboard() {
             <TabsTrigger value="drivers">Drivers</TabsTrigger>
             <TabsTrigger value="fleet">Fleet</TabsTrigger>
             <TabsTrigger value="carriers">3rd Party Carriers</TabsTrigger>
+            <TabsTrigger value="performance">Performance Analytics</TabsTrigger>
             <TabsTrigger value="hazmat">HAZMAT Compliance</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
           </TabsList>
@@ -278,6 +280,10 @@ export default function DispatchDashboard() {
 
           <TabsContent value="carriers">
             <ThirdPartyCarriers />
+          </TabsContent>
+
+          <TabsContent value="performance">
+            <DriverPerformanceAnalytics />
           </TabsContent>
 
           <TabsContent value="hazmat">
