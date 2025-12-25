@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Truck, MapPin, Package, AlertTriangle, Clock, CheckCircle, Plus } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tantml:parameter>
-<parameter name="base44 } from "@/api/base44Client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { toast } from "sonner";
 import ShipmentDialog from "@/components/dispatch/ShipmentDialog";
