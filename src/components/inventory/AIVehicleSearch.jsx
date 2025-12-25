@@ -161,7 +161,7 @@ Make diverse listings with varying quality, prices, and locations.`,
   const generateShareContent = (singleListing = null) => {
     if (singleListing) {
       let content = `🚗 ${searchType === "vehicle" ? "VEHICLE" : "EQUIPMENT"} LISTING\n\n`;
-      content += `${singleListing.year || ''} ${singleListing.make || ''} ${singleListing.model || ''}\n`;
+      content += `${singleListing.year || 'N/A'} ${singleListing.make || 'N/A'} ${singleListing.model || 'N/A'}\n`;
       content += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
       content += `💰 Price: ${singleListing.currency || 'USD'} $${(singleListing.asking_price || 0).toLocaleString()}\n`;
       if (singleListing.median_market_price) {
@@ -171,11 +171,14 @@ Make diverse listings with varying quality, prices, and locations.`,
       content += `\n${searchType === "vehicle" ? "VIN" : "Serial"}: ${singleListing.vin_serial || 'N/A'}\n`;
       content += `${searchType === "vehicle" ? "Mileage" : "Hours"}: ${(singleListing.mileage_hours || 0).toLocaleString()}\n`;
       content += `Condition: ${singleListing.condition || 'N/A'}\n`;
-      content += `\n📍 Location: ${singleListing.location_city || ''}, ${singleListing.location_state || ''}, ${singleListing.location_country || ''}\n`;
-      content += `Distance: ${singleListing.distance_km || 0} km\n`;
+      content += `\n📍 Location: ${singleListing.location_city || 'N/A'}, ${singleListing.location_state || 'N/A'}, ${singleListing.location_country || 'N/A'}\n`;
+      content += `Distance: ${(singleListing.distance_km || 0).toLocaleString()} km\n`;
       content += `\n👤 Seller: ${singleListing.seller_name || 'N/A'}\n`;
       content += `Type: ${singleListing.seller_type || 'N/A'}\n`;
       content += `Rating: ⭐ ${(singleListing.seller_rating || 0).toFixed(2)}/1.0\n`;
+      if (singleListing.seller_contact) {
+        content += `Contact: ${singleListing.seller_contact}\n`;
+      }
       content += `\n🤖 AI SCORES:\n`;
       content += `Overall: ${Math.round((singleListing.ai_scores?.overall_score || 0) * 100)}%\n`;
       content += `Relevance: ${Math.round((singleListing.ai_scores?.relevance_score || 0) * 100)}%\n`;
