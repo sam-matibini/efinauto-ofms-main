@@ -1,0 +1,310 @@
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Truck, Plus, Star, Phone, Mail, Shield, AlertCircle } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { useCompany } from "@/components/shared/CompanyContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+
+export default function ThirdPartyCarriers() {
+  const { selectedCompanyId } = useCompany();
+  const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedCarrier, setSelectedCarrier] = useState(null);
+  
+  const [formData, setFormData] = useState({
+    carrier_name: "",
+    carrier_code: "",
+    contact_name: "",
+    contact_email: "",
+    contact_phone: "",
+    service_types: [],
+    hazmat_certified: false,
+    insurance_verified: false,
+    insurance_expiry: "",
+    rating: 0,
+    base_rate_per_km: 0,
+    status: "active",
+    notes: ""
+  });
+
+  const { data: carriers = [] } = useQuery({
+    queryKey: ['thirdPartyCarriers', selectedCompanyId],
+    queryFn: () => base44.entities.ThirdPartyCarrier.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+  });
+
+  const saveCarrierMutation = useMutation({
+    mutationFn: (data) => {
+      const carrierData = { ...data, company_id: selectedCompanyId };
+      if (selectedCarrier) {
+        return base44.entities.ThirdPartyCarrier.update(selectedCarrier.id, carrierData);
+      }
+      return base44.entities.ThirdPartyCarrier.create(carrierData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['thirdPartyCarriers'] });
+      toast.success(selectedCarrier ? "Carrier updated" : "Carrier added");
+      setDialogOpen(false);
+      setSelectedCarrier(null);
+    },
+    onError: () => toast.error("Failed to save carrier")
+  });
+
+  const openDialog = (carrier = null) => {
+    if (carrier) {
+      setSelectedCarrier(carrier);
+      setFormData(carrier);
+    } else {
+      setSelectedCarrier(null);
+      setFormData({
+        carrier_name: "",
+        carrier_code: "",
+        contact_name: "",
+        contact_email: "",
+        contact_phone: "",
+        service_types: [],
+        hazmat_certified: false,
+        insurance_verified: false,
+        insurance_expiry: "",
+        rating: 0,
+        base_rate_per_km: 0,
+        status: "active",
+        notes: ""
+      });
+    }
+    setDialogOpen(true);
+  };
+
+  const toggleServiceType = (type) => {
+    const current = formData.service_types || [];
+    if (current.includes(type)) {
+      setFormData({ ...formData, service_types: current.filter(t => t !== type) });
+    } else {
+      setFormData({ ...formData, service_types: [...current, type] });
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">3rd Party Carriers</h2>
+        <Button onClick={() => openDialog()} className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="w-4 h-4 mr-2" />
+          Add Carrier
+        </Button>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-4">
+        {carriers.map(carrier => (
+          <Card key={carrier.id} className="hover:shadow-lg transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Truck className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold">{carrier.carrier_name}</h3>
+                    <p className="text-xs text-gray-500">{carrier.carrier_code}</p>
+                  </div>
+                </div>
+                <Badge className={
+                  carrier.status === 'active' ? 'bg-green-100 text-green-800' :
+                  carrier.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
+                  'bg-red-100 text-red-800'
+                }>
+                  {carrier.status}
+                </Badge>
+              </div>
+
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-3 h-3 text-gray-500" />
+                  <span className="text-xs">{carrier.contact_phone}</span>
+                </div>
+                {carrier.contact_email && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-3 h-3 text-gray-500" />
+                    <span className="text-xs">{carrier.contact_email}</span>
+                  </div>
+                )}
+
+                {carrier.rating > 0 && (
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                    <span className="text-xs font-semibold">{carrier.rating.toFixed(1)}/5</span>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {carrier.hazmat_certified && (
+                    <Badge variant="outline" className="text-xs">
+                      <Shield className="w-3 h-3 mr-1" />
+                      HAZMAT
+                    </Badge>
+                  )}
+                  {carrier.insurance_verified && (
+                    <Badge variant="outline" className="text-xs bg-green-50">
+                      ✓ Insured
+                    </Badge>
+                  )}
+                  {carrier.insurance_expiry && new Date(carrier.insurance_expiry) < new Date() && (
+                    <Badge className="bg-red-100 text-red-800 text-xs">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      Expired
+                    </Badge>
+                  )}
+                </div>
+
+                {carrier.base_rate_per_km > 0 && (
+                  <p className="text-xs text-gray-600 mt-2">
+                    Rate: ${carrier.base_rate_per_km.toFixed(2)}/km
+                  </p>
+                )}
+              </div>
+
+              <Button onClick={() => openDialog(carrier)} variant="outline" size="sm" className="w-full mt-3">
+                Edit Details
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {carriers.length === 0 && (
+        <Card>
+          <CardContent className="py-12 text-center text-gray-500">
+            <Truck className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <p>No 3rd party carriers added yet</p>
+          </CardContent>
+        </Card>
+      )}
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{selectedCarrier ? "Edit Carrier" : "Add 3rd Party Carrier"}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4 max-h-[600px] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Carrier Name *</Label>
+                <Input value={formData.carrier_name} onChange={(e) => setFormData({ ...formData, carrier_name: e.target.value })} />
+              </div>
+              <div>
+                <Label>Carrier Code</Label>
+                <Input value={formData.carrier_code} onChange={(e) => setFormData({ ...formData, carrier_code: e.target.value })} placeholder="e.g., ABC-123" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Contact Name</Label>
+                <Input value={formData.contact_name} onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })} />
+              </div>
+              <div>
+                <Label>Contact Phone *</Label>
+                <Input value={formData.contact_phone} onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })} />
+              </div>
+            </div>
+
+            <div>
+              <Label>Contact Email</Label>
+              <Input type="email" value={formData.contact_email} onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })} />
+            </div>
+
+            <div>
+              <Label className="mb-2 block">Service Types</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {["local_delivery", "long_haul", "expedited", "refrigerated", "hazmat_certified", "oversized"].map(type => (
+                  <div key={type} className="flex items-center gap-2">
+                    <Checkbox
+                      checked={formData.service_types?.includes(type)}
+                      onCheckedChange={() => toggleServiceType(type)}
+                      id={type}
+                    />
+                    <Label htmlFor={type} className="text-sm cursor-pointer">
+                      {type.replace(/_/g, ' ')}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={formData.hazmat_certified}
+                  onCheckedChange={(checked) => setFormData({ ...formData, hazmat_certified: checked })}
+                  id="hazmat"
+                />
+                <Label htmlFor="hazmat" className="cursor-pointer">HAZMAT Certified</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={formData.insurance_verified}
+                  onCheckedChange={(checked) => setFormData({ ...formData, insurance_verified: checked })}
+                  id="insurance"
+                />
+                <Label htmlFor="insurance" className="cursor-pointer">Insurance Verified</Label>
+              </div>
+            </div>
+
+            {formData.insurance_verified && (
+              <div>
+                <Label>Insurance Expiry Date</Label>
+                <Input type="date" value={formData.insurance_expiry || ''} onChange={(e) => setFormData({ ...formData, insurance_expiry: e.target.value })} />
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Rating (0-5)</Label>
+                <Input type="number" min="0" max="5" step="0.1" value={formData.rating} onChange={(e) => setFormData({ ...formData, rating: parseFloat(e.target.value) })} />
+              </div>
+              <div>
+                <Label>Base Rate ($/km)</Label>
+                <Input type="number" min="0" step="0.01" value={formData.base_rate_per_km} onChange={(e) => setFormData({ ...formData, base_rate_per_km: parseFloat(e.target.value) })} />
+              </div>
+            </div>
+
+            <div>
+              <Label>Status</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Notes</Label>
+              <Input value={formData.notes || ''} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Additional notes..." />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button onClick={() => saveCarrierMutation.mutate(formData)} disabled={saveCarrierMutation.isPending}>
+                {saveCarrierMutation.isPending ? "Saving..." : "Save Carrier"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
