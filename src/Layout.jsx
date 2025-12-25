@@ -26,7 +26,8 @@ import {
   FolderKanban,
   Ship,
   MapPin,
-  Truck
+  Truck,
+  Navigation
 } from "lucide-react";
 import {
   Sidebar,
@@ -159,6 +160,12 @@ const allNavigationItems = [
     url: createPageUrl("DispatchDashboard"),
     icon: Truck,
     pageId: "DispatchDashboard"
+  },
+  {
+    title: "Driver Mobile",
+    url: createPageUrl("DriverMobile"),
+    icon: Navigation,
+    pageId: "DriverMobile"
   },
   {
     title: "Reports",
