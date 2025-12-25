@@ -154,6 +154,12 @@ const allNavigationItems = [
     pageId: "ShipmentMonitoring"
   },
   {
+    title: "Dispatch & Tracking",
+    url: createPageUrl("DispatchDashboard"),
+    icon: Truck,
+    pageId: "DispatchDashboard"
+  },
+  {
     title: "Reports",
     url: createPageUrl("Reports"),
     icon: BarChart3,
