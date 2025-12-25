@@ -25,6 +25,8 @@ import VehicleBulkImportDialog from "@/components/vehicles/VehicleBulkImportDial
 import PartBulkImportDialog from "@/components/parts/PartBulkImportDialog";
 import InventoryExport from "@/components/shared/InventoryExport";
 import CustomReportBuilder from "@/components/inventory/CustomReportBuilder";
+import AIVehicleSearch from "@/components/inventory/AIVehicleSearch";
+import AIPurchaseOrderGenerator from "@/components/inventory/AIPurchaseOrderGenerator";
 
 export default function InventoryManagement() {
   const { selectedCompanyId } = useCompany();
@@ -37,6 +39,8 @@ export default function InventoryManagement() {
   const [editingPart, setEditingPart] = useState(null);
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [partBulkImportOpen, setPartBulkImportOpen] = useState(false);
+  const [selectedListing, setSelectedListing] = useState(null);
+  const [poDialogOpen, setPoDialogOpen] = useState(false);
 
   // Fetch all inventory data
   const { data: vehicles = [], isLoading: loadingVehicles } = useQuery({
@@ -398,7 +402,15 @@ export default function InventoryManagement() {
             )}
           </TabsContent>
 
-          <TabsContent value="vehicles" className="mt-6">
+          <TabsContent value="vehicles" className="mt-6 space-y-6">
+            {/* AI Vehicle Search & Auto-PO */}
+            <AIVehicleSearch
+              onSelectListing={(listing) => {
+                setSelectedListing(listing);
+                setPoDialogOpen(true);
+              }}
+            />
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Vehicle Inventory</CardTitle>
@@ -640,6 +652,21 @@ export default function InventoryManagement() {
         onClose={() => setPartBulkImportOpen(false)}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ['parts'] })}
       />
+
+      {/* AI Purchase Order Generator */}
+      {selectedListing && (
+        <AIPurchaseOrderGenerator
+          listing={selectedListing}
+          open={poDialogOpen}
+          onClose={() => {
+            setPoDialogOpen(false);
+            setSelectedListing(null);
+          }}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['purchases'] });
+          }}
+        />
+      )}
     </div>
   );
 }
