@@ -11,6 +11,7 @@ import { useCompany } from "@/components/shared/CompanyContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertTriangle, Plus, Trash2 } from "lucide-react";
+import RouteMapEstimator from "./RouteMapEstimator";
 
 export default function ShipmentDialog({ open, onClose, shipment, drivers, trucks }) {
   const { selectedCompanyId } = useCompany();
@@ -182,6 +183,16 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
               </div>
             </div>
           </div>
+
+          {/* Route Map & Cost Estimator */}
+          {(formData.origin_address || formData.origin_city) && (formData.destination_address || formData.destination_city) && (
+            <RouteMapEstimator
+              originAddress={`${formData.origin_address || ''} ${formData.origin_city || ''} ${formData.origin_province || ''}`.trim()}
+              destinationAddress={`${formData.destination_address || ''} ${formData.destination_city || ''} ${formData.destination_province || ''}`.trim()}
+              weight={formData.commodities?.reduce((sum, c) => sum + (c.weight_kg || 0), 0)}
+              shipmentType={formData.shipment_type}
+            />
+          )}
 
           {/* Assignment */}
           <div className="grid md:grid-cols-3 gap-4">
