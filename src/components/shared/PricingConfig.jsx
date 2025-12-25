@@ -133,10 +133,18 @@ export const defaultModuleCategories = [
 
 // Load saved pricing from localStorage, restoring icon references
 export function loadSavedPricing() {
+  // Clear any corrupted pricing data from before Brain icon was added
   const saved = localStorage.getItem('customPricing');
   if (saved) {
     try {
-      const { subscriptionPlans: savedPlans, moduleCategories: savedModules } = JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      // Check if data needs migration (no version or old format)
+      if (!parsed.version || parsed.version < 2) {
+        localStorage.removeItem('customPricing');
+        return { subscriptionPlans: defaultSubscriptionPlans, moduleCategories: defaultModuleCategories };
+      }
+      
+      const { subscriptionPlans: savedPlans, moduleCategories: savedModules } = parsed;
       
       // Always restore icon components from defaults to avoid missing icon errors
       const restoredPlans = savedPlans ? savedPlans.map((plan) => {
@@ -170,7 +178,6 @@ export function loadSavedPricing() {
       return { subscriptionPlans: restoredPlans, moduleCategories: restoredModules };
     } catch (e) {
       console.error("Failed to load saved pricing:", e);
-      // If parsing fails, clear corrupted data and return defaults
       localStorage.removeItem('customPricing');
     }
   }
