@@ -131,13 +131,6 @@ export const defaultModuleCategories = [
   }
 ];
 
-// Icon mapping for restoration
-const iconMap = {
-  LayoutDashboard, Car, Wrench, DollarSign, Package, 
-  Plane, UserCog, BarChart3, Settings, Users, Send, MessageCircle, Bell, Globe,
-  FolderKanban, FileText, Landmark, Shield, Trash2, HardHat, LineChart, Brain
-};
-
 // Load saved pricing from localStorage, restoring icon references
 export function loadSavedPricing() {
   const saved = localStorage.getItem('customPricing');
@@ -145,21 +138,31 @@ export function loadSavedPricing() {
     try {
       const { subscriptionPlans: savedPlans, moduleCategories: savedModules } = JSON.parse(saved);
       
-      // Restore icon components for subscription plans
-      const restoredPlans = savedPlans ? savedPlans.map((plan, idx) => ({
-        ...plan,
-        icon: defaultSubscriptionPlans[idx]?.icon || LayoutDashboard
-      })) : defaultSubscriptionPlans;
+      // Always restore icon components from defaults to avoid missing icon errors
+      const restoredPlans = savedPlans ? savedPlans.map((plan) => {
+        const defaultPlan = defaultSubscriptionPlans.find(p => p.id === plan.id);
+        return {
+          ...plan,
+          icon: defaultPlan?.icon || LayoutDashboard
+        };
+      }) : defaultSubscriptionPlans;
       
       // Restore icon components for module categories
-      const restoredModules = savedModules ? savedModules.map((cat, catIdx) => ({
+      const restoredModules = savedModules ? savedModules.map((cat) => ({
         ...cat,
-        modules: cat.modules.map((mod, modIdx) => {
-          const defaultCat = defaultModuleCategories[catIdx];
-          const defaultMod = defaultCat?.modules.find(m => m.id === mod.id);
+        modules: cat.modules.map((mod) => {
+          // Find the default module by ID across all categories
+          let defaultIcon = Package;
+          for (const defaultCat of defaultModuleCategories) {
+            const defaultMod = defaultCat.modules.find(m => m.id === mod.id);
+            if (defaultMod?.icon) {
+              defaultIcon = defaultMod.icon;
+              break;
+            }
+          }
           return {
             ...mod,
-            icon: defaultMod?.icon || Package
+            icon: defaultIcon
           };
         })
       })) : defaultModuleCategories;
@@ -167,6 +170,8 @@ export function loadSavedPricing() {
       return { subscriptionPlans: restoredPlans, moduleCategories: restoredModules };
     } catch (e) {
       console.error("Failed to load saved pricing:", e);
+      // If parsing fails, clear corrupted data and return defaults
+      localStorage.removeItem('customPricing');
     }
   }
   return { subscriptionPlans: defaultSubscriptionPlans, moduleCategories: defaultModuleCategories };
