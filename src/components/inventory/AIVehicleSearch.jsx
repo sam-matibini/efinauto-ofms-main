@@ -693,10 +693,27 @@ Make diverse listings with varying quality, prices, and locations.`,
                             📍 {listing.location_city || ''}, {listing.location_state || ''}, {listing.location_country || ''} • {listing.distance_km || 0} km away
                           </p>
                           <div className="mt-2 pt-2 border-t">
-                            <p className="text-xs font-semibold text-gray-700">👤 Seller: {listing.seller_name || 'N/A'}</p>
-                            {listing.seller_contact && (
-                              <p className="text-xs text-gray-600 mt-0.5">📞 {listing.seller_contact}</p>
-                            )}
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1">
+                                <p className="text-xs font-semibold text-gray-700">👤 Seller: {listing.seller_name || 'N/A'}</p>
+                                {listing.seller_contact && (
+                                  <p className="text-xs text-gray-600 mt-0.5">📞 {listing.seller_contact}</p>
+                                )}
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const address = `${listing.location_city || ''}, ${listing.location_state || ''}, ${listing.location_country || ''}`;
+                                  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
+                                }}
+                              >
+                                <MapPin className="w-3 h-3 mr-1" />
+                                Map
+                              </Button>
+                            </div>
                           </div>
                         </div>
                         <div className="text-right">
