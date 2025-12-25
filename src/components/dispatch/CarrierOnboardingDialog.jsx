@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Upload, CheckCircle, XCircle, AlertCircle, FileText, 
-  Shield, Calendar, Loader2 
+  Shield, Calendar, Loader2, Brain 
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
