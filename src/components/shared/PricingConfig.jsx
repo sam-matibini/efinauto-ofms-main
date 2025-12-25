@@ -106,7 +106,7 @@ export const defaultModuleCategories = [
       { id: "FinancialReports", name: "Financial Reports", icon: FileText, price: 29 },
       { id: "Payroll", name: "Payroll & HR", icon: Users, price: 39 },
       { id: "Banking", name: "Banking Integration", icon: Landmark, price: 29 },
-      { id: "FinancialAssistant", name: "AI Financial Assistant", icon: MessageCircle, price: 25 },
+      { id: "FinancialAssistant", name: "AI Financial Assistant", icon: Brain, price: 25 },
     ]
   },
   {
