@@ -1,7 +1,7 @@
 import { 
   LayoutDashboard, Car, Wrench, DollarSign, Package, 
   Plane, UserCog, BarChart3, Settings, Users, Send, MessageCircle, Bell, Globe,
-  FolderKanban, FileText, Landmark, Shield, Trash2, HardHat, LineChart, Brain
+  FolderKanban, FileText, Landmark, Shield, Trash2, HardHat, LineChart, Brain, Truck, Navigation
 } from "lucide-react";
 
 // Clear corrupted pricing data immediately on load
@@ -56,7 +56,7 @@ export const defaultSubscriptionPlans = [
       "Customer Communications Hub",
       "Unlimited users"
     ],
-    modules: ["Dashboard", "Vehicles", "Sales", "Parts", "Repairs", "GlobalShipping", "Customers", "Reports", "CustomerCommunications"]
+    modules: ["Dashboard", "Vehicles", "Sales", "Parts", "Repairs", "GlobalShipping", "Customers", "Reports", "CustomerCommunications", "DispatchDashboard"]
   },
   {
     id: "enterprise",
@@ -77,7 +77,7 @@ export const defaultSubscriptionPlans = [
       "Priority Support",
       "Dedicated Account Manager"
     ],
-    modules: ["Dashboard", "Companies", "Vehicles", "Sales", "Parts", "Repairs", "GlobalShipping", "Salvage", "Customers", "Reports", "Analytics", "VehicleAnalytics", "Accounting", "FinancialReports", "Payroll", "Banking", "CustomerCommunications", "CustomerSupport", "Notifications", "UserManagement", "Settings", "FinancialAssistant", "Projects", "InventoryManagement", "ProductsServices", "Technicians", "AuditLogs"]
+    modules: ["Dashboard", "Companies", "Vehicles", "Sales", "Parts", "Repairs", "GlobalShipping", "Salvage", "Customers", "Reports", "Analytics", "VehicleAnalytics", "Accounting", "FinancialReports", "Payroll", "Banking", "CustomerCommunications", "CustomerSupport", "Notifications", "UserManagement", "Settings", "FinancialAssistant", "Projects", "InventoryManagement", "ProductsServices", "Technicians", "AuditLogs", "DispatchDashboard", "DriverMobile"]
   }
 ];
 
@@ -106,6 +106,8 @@ export const defaultModuleCategories = [
       { id: "GlobalShipping", name: "Global Shipping & Logistics", icon: Globe, price: 79 },
       { id: "Salvage", name: "Salvage & Dismantling", icon: Trash2, price: 29 },
       { id: "InventoryManagement", name: "Inventory Management", icon: Package, price: 35 },
+      { id: "DispatchDashboard", name: "Dispatch & Tracking", icon: Truck, price: 49 },
+      { id: "DriverMobile", name: "Driver Mobile App", icon: Navigation, price: 19 },
     ]
   },
   {
