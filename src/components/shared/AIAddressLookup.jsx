@@ -25,6 +25,7 @@ export default function AIAddressLookup({ onAddressSelected }) {
         prompt: `You are a geocoding assistant. Look up this address and provide structured location data: "${searchQuery}"
         
 Return the address components in a structured format. If the address is ambiguous, provide the most likely match.
+If the address belongs to a business, include the business name and contact information if available.
 If you cannot find the address, indicate that clearly.`,
         add_context_from_internet: true,
         response_json_schema: {
@@ -39,7 +40,10 @@ If you cannot find the address, indicate that clearly.`,
             country: { type: "string" },
             latitude: { type: "number" },
             longitude: { type: "number" },
-            confidence: { type: "string", enum: ["high", "medium", "low"] }
+            confidence: { type: "string", enum: ["high", "medium", "low"] },
+            business_name: { type: "string", description: "Business or company name if applicable" },
+            contact_phone: { type: "string", description: "Phone number if available" },
+            contact_person: { type: "string", description: "Contact person name if available" }
           }
         }
       });
@@ -62,7 +66,10 @@ If you cannot find the address, indicate that clearly.`,
         postal_code: results.postal_code || "",
         country: results.country || "",
         latitude: results.latitude,
-        longitude: results.longitude
+        longitude: results.longitude,
+        business_name: results.business_name || "",
+        contact_phone: results.contact_phone || "",
+        contact_person: results.contact_person || ""
       });
       setResults(null);
       setSearchQuery("");
@@ -120,6 +127,9 @@ If you cannot find the address, indicate that clearly.`,
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                  {results.business_name && <p className="col-span-2"><strong>Business:</strong> {results.business_name}</p>}
+                  {results.contact_person && <p className="col-span-2"><strong>Contact:</strong> {results.contact_person}</p>}
+                  {results.contact_phone && <p className="col-span-2"><strong>Phone:</strong> {results.contact_phone}</p>}
                   {results.city && <p><strong>City:</strong> {results.city}</p>}
                   {results.province && <p><strong>Province:</strong> {results.province}</p>}
                   {results.postal_code && <p><strong>Postal Code:</strong> {results.postal_code}</p>}

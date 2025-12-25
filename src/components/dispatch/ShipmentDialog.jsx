@@ -138,6 +138,8 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
     if (type === "origin") {
       setFormData({
         ...formData,
+        shipper_name: addressData.business_name || formData.shipper_name,
+        shipper_phone: addressData.contact_phone || formData.shipper_phone,
         origin_address: addressData.address || "",
         origin_city: addressData.city || "",
         origin_province: addressData.province || "",
@@ -148,6 +150,8 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
     } else {
       setFormData({
         ...formData,
+        receiver_name: addressData.business_name || formData.receiver_name,
+        receiver_phone: addressData.contact_phone || formData.receiver_phone,
         destination_address: addressData.address || "",
         destination_city: addressData.city || "",
         destination_province: addressData.province || "",
