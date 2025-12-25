@@ -26,6 +26,7 @@ export default function AIVehicleSearch({ onSelectListing }) {
   const [showFilters, setShowFilters] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [emailAddress, setEmailAddress] = useState("");
+  const [selectedListing, setSelectedListing] = useState(null);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -157,7 +158,41 @@ Make diverse listings with varying quality, prices, and locations.`,
     return { color: "bg-red-100 text-red-800", label: "Poor" };
   };
 
-  const generateShareContent = () => {
+  const generateShareContent = (singleListing = null) => {
+    if (singleListing) {
+      let content = `🚗 ${searchType === "vehicle" ? "VEHICLE" : "EQUIPMENT"} LISTING\n\n`;
+      content += `${singleListing.year} ${singleListing.make} ${singleListing.model}\n`;
+      content += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+      content += `💰 Price: ${singleListing.currency} $${singleListing.asking_price.toLocaleString()}\n`;
+      if (singleListing.median_market_price) {
+        content += `📊 Market Price: $${singleListing.median_market_price.toLocaleString()}\n`;
+        content += `📈 Variance: ${singleListing.price_variance_pct > 0 ? "+" : ""}${singleListing.price_variance_pct.toFixed(1)}%\n`;
+      }
+      content += `\n${searchType === "vehicle" ? "VIN" : "Serial"}: ${singleListing.vin_serial}\n`;
+      content += `${searchType === "vehicle" ? "Mileage" : "Hours"}: ${singleListing.mileage_hours.toLocaleString()}\n`;
+      content += `Condition: ${singleListing.condition}\n`;
+      content += `\n📍 Location: ${singleListing.location_city}, ${singleListing.location_state}, ${singleListing.location_country}\n`;
+      content += `Distance: ${singleListing.distance_km} km\n`;
+      content += `\n👤 Seller: ${singleListing.seller_name}\n`;
+      content += `Type: ${singleListing.seller_type}\n`;
+      content += `Rating: ⭐ ${singleListing.seller_rating.toFixed(2)}/1.0\n`;
+      content += `\n🤖 AI SCORES:\n`;
+      content += `Overall: ${Math.round((singleListing.ai_scores?.overall_score || 0) * 100)}%\n`;
+      content += `Relevance: ${Math.round((singleListing.ai_scores?.relevance_score || 0) * 100)}%\n`;
+      content += `Price: ${Math.round((singleListing.ai_scores?.price_score || 0) * 100)}%\n`;
+      content += `Condition: ${Math.round((singleListing.ai_scores?.condition_score || 0) * 100)}%\n`;
+      content += `Seller: ${Math.round((singleListing.ai_scores?.seller_trust_score || 0) * 100)}%\n`;
+      if (singleListing.recommendation) {
+        content += `\n💡 AI Recommendation:\n${singleListing.recommendation}\n`;
+      }
+      if (singleListing.risk_flags?.length > 0) {
+        content += `\n⚠️ Risk Flags:\n${singleListing.risk_flags.join(", ")}\n`;
+      }
+      content += `\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+      content += `Powered by eFinAuto OFMS AI Search Engine`;
+      return content;
+    }
+
     let content = `🔍 ${searchType === "vehicle" ? "VEHICLE" : "EQUIPMENT"} SEARCH RESULTS\n`;
     content += `Search: ${searchQuery}\n`;
     content += `Scope: ${geoScope.toUpperCase()}\n`;
@@ -290,44 +325,132 @@ Make diverse listings with varying quality, prices, and locations.`,
     }
   };
 
-  const handleEmailShare = async () => {
+  const handleEmailShare = async (listing = null) => {
     if (!emailAddress) {
+      setSelectedListing(listing);
       setEmailDialogOpen(true);
       return;
     }
 
     try {
+      const subject = listing 
+        ? `${listing.year} ${listing.make} ${listing.model} - Listing`
+        : `${searchType === "vehicle" ? "Vehicle" : "Equipment"} Search Results - ${searchQuery}`;
+      
       await base44.integrations.Core.SendEmail({
         to: emailAddress,
-        subject: `${searchType === "vehicle" ? "Vehicle" : "Equipment"} Search Results - ${searchQuery}`,
-        body: `<html><body><pre style="font-family: Arial, sans-serif; white-space: pre-wrap;">${generateShareContent()}</pre></body></html>`
+        subject,
+        body: `<html><body><pre style="font-family: Arial, sans-serif; white-space: pre-wrap;">${generateShareContent(listing)}</pre></body></html>`
       });
 
-      toast.success(`Results sent to ${emailAddress}`);
+      toast.success(`${listing ? "Listing" : "Results"} sent to ${emailAddress}`);
       setEmailDialogOpen(false);
       setEmailAddress("");
+      setSelectedListing(null);
     } catch (error) {
       toast.error("Failed to send email");
       console.error(error);
     }
   };
 
-  const handleWhatsAppShare = () => {
-    const message = encodeURIComponent(generateShareContent());
+  const handleWhatsAppShare = (listing = null) => {
+    const message = encodeURIComponent(generateShareContent(listing));
     window.open(`https://wa.me/?text=${message}`, '_blank');
     toast.success("Opening WhatsApp...");
   };
 
-  const handleGoogleChatShare = () => {
-    const message = encodeURIComponent(generateShareContent());
+  const handleGoogleChatShare = (listing = null) => {
+    const message = encodeURIComponent(generateShareContent(listing));
     window.open(`https://mail.google.com/chat/?text=${message}`, '_blank');
     toast.success("Opening Google Chat...");
   };
 
-  const handleSMSShare = () => {
-    const message = encodeURIComponent(generateShareContent().substring(0, 500) + "..."); // SMS character limit
+  const handleSMSShare = (listing = null) => {
+    const message = encodeURIComponent(generateShareContent(listing).substring(0, 500) + "..."); // SMS character limit
     window.open(`sms:?body=${message}`, '_blank');
     toast.success("Opening SMS...");
+  };
+
+  const handlePrintListing = (listing) => {
+    const printWindow = window.open('', '_blank');
+    const overallBadge = getScoreBadge(listing.ai_scores?.overall_score || 0);
+    let html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${listing.year} ${listing.make} ${listing.model}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+            h1 { color: #1e293b; margin-bottom: 20px; }
+            .price { font-size: 32px; font-weight: bold; color: #2563eb; margin: 20px 0; }
+            .section { margin: 20px 0; padding: 15px; background: #f9fafb; border-radius: 8px; }
+            .section-title { font-weight: bold; margin-bottom: 10px; color: #374151; }
+            .detail { margin: 8px 0; font-size: 14px; }
+            .label { color: #666; display: inline-block; width: 150px; }
+            .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+            .score-excellent { background: #d1fae5; color: #065f46; }
+            .score-good { background: #dbeafe; color: #1e40af; }
+            .score-fair { background: #fef3c7; color: #92400e; }
+            .score-poor { background: #fee2e2; color: #991b1b; }
+            .recommendation { background: #dbeafe; padding: 15px; border-radius: 4px; margin-top: 15px; }
+            .risk { background: #fee2e2; padding: 15px; border-radius: 4px; margin-top: 15px; color: #991b1b; }
+            .scores-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+          </style>
+        </head>
+        <body>
+          <h1>${listing.year} ${listing.make} ${listing.model}</h1>
+          <div class="price">${listing.currency} $${listing.asking_price.toLocaleString()}</div>
+          
+          <div class="section">
+            <div class="section-title">Vehicle Details</div>
+            <div class="detail"><span class="label">${searchType === "vehicle" ? "VIN" : "Serial"}:</span> ${listing.vin_serial}</div>
+            <div class="detail"><span class="label">${searchType === "vehicle" ? "Mileage" : "Hours"}:</span> ${listing.mileage_hours.toLocaleString()}</div>
+            <div class="detail"><span class="label">Condition:</span> ${listing.condition}</div>
+            ${listing.median_market_price ? `<div class="detail"><span class="label">Market Price:</span> $${listing.median_market_price.toLocaleString()} (${listing.price_variance_pct > 0 ? "+" : ""}${listing.price_variance_pct.toFixed(1)}% variance)</div>` : ""}
+          </div>
+
+          <div class="section">
+            <div class="section-title">Location</div>
+            <div class="detail"><span class="label">City:</span> ${listing.location_city}, ${listing.location_state}</div>
+            <div class="detail"><span class="label">Country:</span> ${listing.location_country}</div>
+            <div class="detail"><span class="label">Distance:</span> ${listing.distance_km} km</div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Seller Information</div>
+            <div class="detail"><span class="label">Name:</span> ${listing.seller_name}</div>
+            <div class="detail"><span class="label">Type:</span> ${listing.seller_type}</div>
+            <div class="detail"><span class="label">Rating:</span> ${listing.seller_rating.toFixed(2)}/1.0</div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">AI Scores</div>
+            <div class="scores-grid">
+              <div class="detail"><span class="label">Overall:</span> <span class="badge score-${overallBadge.label.toLowerCase()}">${Math.round((listing.ai_scores?.overall_score || 0) * 100)}% - ${overallBadge.label}</span></div>
+              <div class="detail"><span class="label">Relevance:</span> ${Math.round((listing.ai_scores?.relevance_score || 0) * 100)}%</div>
+              <div class="detail"><span class="label">Price:</span> ${Math.round((listing.ai_scores?.price_score || 0) * 100)}%</div>
+              <div class="detail"><span class="label">Condition:</span> ${Math.round((listing.ai_scores?.condition_score || 0) * 100)}%</div>
+              <div class="detail"><span class="label">Seller Trust:</span> ${Math.round((listing.ai_scores?.seller_trust_score || 0) * 100)}%</div>
+              <div class="detail"><span class="label">Geography:</span> ${Math.round((listing.ai_scores?.geography_score || 0) * 100)}%</div>
+            </div>
+          </div>
+
+          ${listing.recommendation ? `<div class="recommendation"><strong>AI Recommendation:</strong><br>${listing.recommendation}</div>` : ""}
+          ${listing.risk_flags?.length > 0 ? `<div class="risk"><strong>⚠️ Risk Flags:</strong><br>${listing.risk_flags.join(", ")}</div>` : ""}
+
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 12px;">
+            Generated: ${new Date().toLocaleString()}<br>
+            Powered by eFinAuto OFMS AI Search Engine
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 250);
+    toast.success("Opening print dialog...");
   };
 
   const filteredListings = listings.filter(listing => {
@@ -917,10 +1040,14 @@ Make diverse listings with varying quality, prices, and locations.`,
               />
             </div>
             <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
+              <Button variant="outline" onClick={() => {
+                setEmailDialogOpen(false);
+                setSelectedListing(null);
+                setEmailAddress("");
+              }}>
                 Cancel
               </Button>
-              <Button onClick={handleEmailShare} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={() => handleEmailShare(selectedListing)} className="bg-blue-600 hover:bg-blue-700">
                 <Mail className="w-4 h-4 mr-2" />
                 Send Email
               </Button>
