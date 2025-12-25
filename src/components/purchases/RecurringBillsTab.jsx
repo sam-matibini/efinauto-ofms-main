@@ -1,14 +1,37 @@
-import React from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import RecurringBillDialog from "./RecurringBillDialog";
 
 export default function RecurringBillsTab({ recurringBills, selectedCompanyId }) {
   const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingBill, setEditingBill] = useState(null);
+
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.RecurringBill.create({ ...data, company_id: selectedCompanyId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recurringBills'] });
+      setDialogOpen(false);
+      setEditingBill(null);
+      toast.success("Recurring bill created!");
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.RecurringBill.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recurringBills'] });
+      setDialogOpen(false);
+      setEditingBill(null);
+      toast.success("Recurring bill updated!");
+    },
+  });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.RecurringBill.delete(id),
@@ -29,7 +52,7 @@ export default function RecurringBillsTab({ recurringBills, selectedCompanyId })
     <>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Recurring Bills</h2>
-        <Button className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={() => { setEditingBill(null); setDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
           <Plus className="w-4 h-4 mr-2" />
           New Recurring Bill
         </Button>
@@ -58,16 +81,36 @@ export default function RecurringBillsTab({ recurringBills, selectedCompanyId })
                 <div className="text-right">
                   <p className="text-2xl font-bold text-red-600">${recurring.amount?.toLocaleString()}</p>
                   <p className="text-xs text-gray-500">per {recurring.frequency}</p>
-                  <Button variant="outline" size="sm" className="mt-2 text-red-600" onClick={() => deleteMutation.mutate(recurring.id)}>
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </Button>
+                  <div className="flex gap-2 mt-2">
+                    <Button variant="outline" size="sm" onClick={() => { setEditingBill(recurring); setDialogOpen(true); }}>
+                      <Edit className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
+                    <Button variant="outline" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(recurring.id)}>
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      <RecurringBillDialog
+        open={dialogOpen}
+        onClose={() => { setDialogOpen(false); setEditingBill(null); }}
+        recurringBill={editingBill}
+        onSave={(data) => {
+          if (editingBill) {
+            updateMutation.mutate({ id: editingBill.id, data });
+          } else {
+            createMutation.mutate(data);
+          }
+        }}
+        isSaving={createMutation.isPending || updateMutation.isPending}
+      />
     </>
   );
 }
