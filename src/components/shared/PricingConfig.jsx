@@ -1,7 +1,7 @@
 import { 
   LayoutDashboard, Car, Wrench, DollarSign, Package, 
   Plane, UserCog, BarChart3, Settings, Users, Send, MessageCircle, Bell, Globe,
-  FolderKanban, FileText, Landmark, Shield, Trash2, HardHat, LineChart
+  FolderKanban, FileText, Landmark, Shield, Trash2, HardHat, LineChart, Brain
 } from "lucide-react";
 
 export const defaultSubscriptionPlans = [
