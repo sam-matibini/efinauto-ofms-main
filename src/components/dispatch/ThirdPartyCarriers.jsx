@@ -7,16 +7,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Truck, Plus, Star, Phone, Mail, Shield, AlertCircle } from "lucide-react";
+import { Truck, Plus, Star, Phone, Mail, Shield, AlertCircle, FileCheck, Calendar } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import CarrierOnboardingDialog from "./CarrierOnboardingDialog";
 
 export default function ThirdPartyCarriers() {
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [onboardingDialogOpen, setOnboardingDialogOpen] = useState(false);
   const [selectedCarrier, setSelectedCarrier] = useState(null);
   
   const [formData, setFormData] = useState({
@@ -77,10 +79,20 @@ export default function ThirdPartyCarriers() {
         rating: 0,
         base_rate_per_km: 0,
         status: "active",
+        onboarding_status: "pending",
         notes: ""
       });
     }
     setDialogOpen(true);
+  };
+
+  const openOnboardingDialog = (carrier) => {
+    setSelectedCarrier(carrier);
+    setOnboardingDialogOpen(true);
+  };
+
+  const refreshCarriers = () => {
+    queryClient.invalidateQueries({ queryKey: ['thirdPartyCarriers'] });
   };
 
   const toggleServiceType = (type) => {
@@ -126,6 +138,17 @@ export default function ThirdPartyCarriers() {
               </div>
 
               <div className="space-y-2 text-sm">
+                {carrier.onboarding_status && (
+                  <Badge className={
+                    carrier.onboarding_status === 'approved' ? 'bg-green-100 text-green-800' :
+                    carrier.onboarding_status === 'review' ? 'bg-yellow-100 text-yellow-800' :
+                    carrier.onboarding_status === 'rejected' ? 'bg-red-100 text-red-800' :
+                    'bg-blue-100 text-blue-800'
+                  }>
+                    {carrier.onboarding_status.replace(/_/g, ' ')}
+                  </Badge>
+                )}
+
                 <div className="flex items-center gap-2">
                   <Phone className="w-3 h-3 text-gray-500" />
                   <span className="text-xs">{carrier.contact_phone}</span>
@@ -162,6 +185,12 @@ export default function ThirdPartyCarriers() {
                       Expired
                     </Badge>
                   )}
+                  {carrier.compliance_documents?.length > 0 && (
+                    <Badge variant="outline" className="text-xs">
+                      <FileCheck className="w-3 h-3 mr-1" />
+                      {carrier.compliance_documents.length} Docs
+                    </Badge>
+                  )}
                 </div>
 
                 {carrier.base_rate_per_km > 0 && (
@@ -171,9 +200,15 @@ export default function ThirdPartyCarriers() {
                 )}
               </div>
 
-              <Button onClick={() => openDialog(carrier)} variant="outline" size="sm" className="w-full mt-3">
-                Edit Details
-              </Button>
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                <Button onClick={() => openDialog(carrier)} variant="outline" size="sm">
+                  Edit
+                </Button>
+                <Button onClick={() => openOnboardingDialog(carrier)} size="sm" className="bg-blue-600 hover:bg-blue-700">
+                  <FileCheck className="w-3 h-3 mr-1" />
+                  Onboarding
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -277,18 +312,123 @@ export default function ThirdPartyCarriers() {
               </div>
             </div>
 
-            <div>
-              <Label>Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Status</Label>
+                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Onboarding Status</Label>
+                <Select value={formData.onboarding_status || 'pending'} onValueChange={(value) => setFormData({ ...formData, onboarding_status: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="documents_pending">Documents Pending</SelectItem>
+                    <SelectItem value="review">Under Review</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="p-3 bg-gray-50 rounded border">
+              <Label className="text-xs font-semibold mb-2 block">Operating Authority</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <Label className="text-xs">DOT Number</Label>
+                  <Input
+                    value={formData.operating_authority?.dot_number || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      operating_authority: { ...formData.operating_authority, dot_number: e.target.value }
+                    })}
+                    placeholder="DOT#"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">MC Number</Label>
+                  <Input
+                    value={formData.operating_authority?.mc_number || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      operating_authority: { ...formData.operating_authority, mc_number: e.target.value }
+                    })}
+                    placeholder="MC#"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">SCAC Code</Label>
+                  <Input
+                    value={formData.operating_authority?.scac_code || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      operating_authority: { ...formData.operating_authority, scac_code: e.target.value }
+                    })}
+                    placeholder="SCAC"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3 bg-gray-50 rounded border">
+              <Label className="text-xs font-semibold mb-2 block">Insurance Details</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Provider</Label>
+                  <Input
+                    value={formData.insurance_details?.provider || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      insurance_details: { ...formData.insurance_details, provider: e.target.value }
+                    })}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Policy Number</Label>
+                  <Input
+                    value={formData.insurance_details?.policy_number || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      insurance_details: { ...formData.insurance_details, policy_number: e.target.value }
+                    })}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Coverage Amount ($)</Label>
+                  <Input
+                    type="number"
+                    value={formData.insurance_details?.coverage_amount || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      insurance_details: { ...formData.insurance_details, coverage_amount: parseFloat(e.target.value) }
+                    })}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Expiry Date</Label>
+                  <Input
+                    type="date"
+                    value={formData.insurance_details?.expiry_date || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      insurance_details: { ...formData.insurance_details, expiry_date: e.target.value }
+                    })}
+                  />
+                </div>
+              </div>
             </div>
 
             <div>
@@ -305,6 +445,13 @@ export default function ThirdPartyCarriers() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <CarrierOnboardingDialog
+        carrier={selectedCarrier}
+        open={onboardingDialogOpen}
+        onClose={() => setOnboardingDialogOpen(false)}
+        onUpdate={refreshCarriers}
+      />
     </div>
   );
 }
