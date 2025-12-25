@@ -203,9 +203,9 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
             <label className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:bg-gray-50 p-2 rounded mb-2 border-b">
               <input
                 type="checkbox"
-                checked={userData.accessible_modules?.length === 35}
+                checked={userData.accessible_modules?.length === 37}
                 onChange={(e) => {
-                  const allModules = ['Landing', 'Dashboard', 'Companies', 'Customers', 'InventoryManagement', 'Vehicles', 'Parts', 'ProductsServices', 'Purchases', 'Sales', 'Repairs', 'Technicians', 'Salvage', 'GlobalShipping', 'RateShopping', 'TrackShipment', 'CustomerTracking', 'ShipmentMonitoring', 'Projects', 'Reports', 'FinancialReports', 'Analytics', 'VehicleAnalytics', 'Accounting', 'Banking', 'BankingMobile', 'Payroll', 'EmployeePortal', 'CustomerCommunications', 'CustomerSupport', 'Notifications', 'UserManagement', 'Settings', 'BOSSettings', 'AuditLogs', 'Pricing', 'FinancialAssistant', 'IntegrationDiagram'];
+                  const allModules = ['Landing', 'Dashboard', 'Companies', 'Customers', 'InventoryManagement', 'Vehicles', 'Parts', 'ProductsServices', 'Purchases', 'Sales', 'Repairs', 'Technicians', 'Salvage', 'GlobalShipping', 'RateShopping', 'TrackShipment', 'CustomerTracking', 'ShipmentMonitoring', 'DispatchDashboard', 'DriverMobile', 'Projects', 'Reports', 'FinancialReports', 'Analytics', 'VehicleAnalytics', 'Accounting', 'Banking', 'BankingMobile', 'Payroll', 'EmployeePortal', 'CustomerCommunications', 'CustomerSupport', 'Notifications', 'UserManagement', 'Settings', 'BOSSettings', 'AuditLogs', 'Pricing', 'FinancialAssistant', 'IntegrationDiagram'];
                   setUserData({
                     ...userData,
                     accessible_modules: e.target.checked ? allModules : []
@@ -235,6 +235,8 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
                 { id: 'TrackShipment', label: 'Track Shipment' },
                 { id: 'CustomerTracking', label: 'Customer Tracking' },
                 { id: 'ShipmentMonitoring', label: 'Shipment Monitoring' },
+                { id: 'DispatchDashboard', label: 'Dispatch & Tracking' },
+                { id: 'DriverMobile', label: 'Driver Mobile' },
                 { id: 'Projects', label: 'Project Management' },
                 { id: 'Reports', label: 'Reports' },
                 { id: 'FinancialReports', label: 'Financial Reports' },
