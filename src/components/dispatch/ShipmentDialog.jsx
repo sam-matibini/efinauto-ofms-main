@@ -138,22 +138,22 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
     if (type === "origin") {
       setFormData({
         ...formData,
-        origin_address: addressData.street || "",
+        origin_address: addressData.address || "",
         origin_city: addressData.city || "",
-        origin_province: addressData.province || addressData.state || "",
-        origin_postal_code: addressData.postal_code || addressData.zip || "",
-        origin_lat: addressData.lat,
-        origin_lng: addressData.lng
+        origin_province: addressData.province || "",
+        origin_postal_code: addressData.postal_code || "",
+        origin_lat: addressData.latitude,
+        origin_lng: addressData.longitude
       });
     } else {
       setFormData({
         ...formData,
-        destination_address: addressData.street || "",
+        destination_address: addressData.address || "",
         destination_city: addressData.city || "",
-        destination_province: addressData.province || addressData.state || "",
-        destination_postal_code: addressData.postal_code || addressData.zip || "",
-        destination_lat: addressData.lat,
-        destination_lng: addressData.lng
+        destination_province: addressData.province || "",
+        destination_postal_code: addressData.postal_code || "",
+        destination_lat: addressData.latitude,
+        destination_lng: addressData.longitude
       });
     }
   };
@@ -222,7 +222,7 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold">Pickup Location</h3>
-              <AIAddressLookup onAddressSelect={(data) => handleAddressSelect(data, "origin")} />
+              <AIAddressLookup onAddressSelected={(data) => handleAddressSelect(data, "origin")} />
             </div>
             <div className="grid md:grid-cols-3 gap-3">
               <div className="md:col-span-3">
@@ -248,7 +248,7 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold">Delivery Location</h3>
-              <AIAddressLookup onAddressSelect={(data) => handleAddressSelect(data, "destination")} />
+              <AIAddressLookup onAddressSelected={(data) => handleAddressSelect(data, "destination")} />
             </div>
             <div className="grid md:grid-cols-3 gap-3">
               <div className="md:col-span-3">
