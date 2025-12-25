@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import AICarrierDocumentAnalyzer from "./AICarrierDocumentAnalyzer";
+import ThirdPartyDrivers from "./ThirdPartyDrivers";
 
 export default function CarrierOnboardingDialog({ carrier, open, onClose, onUpdate }) {
   const [uploading, setUploading] = useState(false);
@@ -163,6 +165,8 @@ export default function CarrierOnboardingDialog({ carrier, open, onClose, onUpda
             <TabsList>
               <TabsTrigger value="checklist">Compliance Checklist</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
+              <TabsTrigger value="ai_analyzer">AI Document Analyzer</TabsTrigger>
+              <TabsTrigger value="drivers">Drivers</TabsTrigger>
               <TabsTrigger value="details">Carrier Details</TabsTrigger>
             </TabsList>
 
@@ -308,6 +312,14 @@ export default function CarrierOnboardingDialog({ carrier, open, onClose, onUpda
                   <p className="text-sm text-gray-500 text-center py-4">No documents uploaded yet</p>
                 )}
               </div>
+            </TabsContent>
+
+            <TabsContent value="ai_analyzer" className="mt-4">
+              <AICarrierDocumentAnalyzer carrier={carrier} onDocumentAdded={onUpdate} />
+            </TabsContent>
+
+            <TabsContent value="drivers" className="mt-4">
+              <ThirdPartyDrivers carrierId={carrier?.id} />
             </TabsContent>
 
             <TabsContent value="details" className="space-y-4 mt-4">

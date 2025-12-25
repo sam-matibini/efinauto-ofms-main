@@ -43,9 +43,24 @@ export default function ThirdPartyCarriers() {
     enabled: !!selectedCompanyId,
   });
 
+  const { data: vendors = [] } = useQuery({
+    queryKey: ['vendors', selectedCompanyId],
+    queryFn: () => base44.entities.Vendor.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId,
+  });
+
   const saveCarrierMutation = useMutation({
-    mutationFn: (data) => {
+    mutationFn: async (data) => {
       const carrierData = { ...data, company_id: selectedCompanyId };
+      
+      // Create vendor if checkbox is checked and no vendor_id
+      if (data.create_vendor && !data.vendor_id) {
+        const vendorId = await createVendorFromCarrier(carrierData);
+        if (vendorId) {
+          carrierData.vendor_id = vendorId;
+        }
+      }
+      
       if (selectedCarrier) {
         return base44.entities.ThirdPartyCarrier.update(selectedCarrier.id, carrierData);
       }
@@ -53,6 +68,7 @@ export default function ThirdPartyCarriers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['thirdPartyCarriers'] });
+      queryClient.invalidateQueries({ queryKey: ['vendors'] });
       toast.success(selectedCarrier ? "Carrier updated" : "Carrier added");
       setDialogOpen(false);
       setSelectedCarrier(null);
@@ -80,10 +96,30 @@ export default function ThirdPartyCarriers() {
         base_rate_per_km: 0,
         status: "active",
         onboarding_status: "pending",
+        vendor_id: "",
         notes: ""
       });
     }
     setDialogOpen(true);
+  };
+
+  const createVendorFromCarrier = async (carrierData) => {
+    try {
+      const vendor = await base44.entities.Vendor.create({
+        company_id: selectedCompanyId,
+        vendor_name: carrierData.carrier_name,
+        vendor_type: "logistics",
+        contact_person: carrierData.contact_name,
+        email: carrierData.contact_email,
+        phone: carrierData.contact_phone,
+        status: "active",
+        notes: `Linked to 3rd party carrier: ${carrierData.carrier_code}`
+      });
+      return vendor.id;
+    } catch (error) {
+      console.error("Failed to create vendor:", error);
+      return null;
+    }
   };
 
   const openOnboardingDialog = (carrier) => {
@@ -430,6 +466,36 @@ export default function ThirdPartyCarriers() {
                 </div>
               </div>
             </div>
+
+            <div>
+              <Label>Link to Vendor (Accounting)</Label>
+              <Select value={formData.vendor_id || ''} onValueChange={(value) => setFormData({ ...formData, vendor_id: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select vendor or create new" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={null}>None</SelectItem>
+                  {vendors.map(vendor => (
+                    <SelectItem key={vendor.id} value={vendor.id}>
+                      {vendor.vendor_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {!selectedCarrier && !formData.vendor_id && (
+              <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded">
+                <Checkbox
+                  checked={formData.create_vendor || false}
+                  onCheckedChange={(checked) => setFormData({ ...formData, create_vendor: checked })}
+                  id="create_vendor"
+                />
+                <Label htmlFor="create_vendor" className="cursor-pointer text-sm">
+                  Automatically create vendor record for accounting
+                </Label>
+              </div>
+            )}
 
             <div>
               <Label>Notes</Label>
