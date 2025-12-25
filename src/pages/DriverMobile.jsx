@@ -4,16 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Navigation, MapPin, CheckCircle, Upload, Camera, AlertTriangle, Phone, Clock, TrendingUp } from "lucide-react";
+import { Navigation, MapPin, CheckCircle, Upload, Camera, AlertTriangle, Phone, Clock, TrendingUp, Shield } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { predictShipmentETA, updateShipmentETA, calculateAverageSpeed } from "@/components/dispatch/AIETAPrediction";
+import IncidentReportDialog from "@/components/dispatch/IncidentReportDialog";
+import { checkWeatherHazards } from "@/components/dispatch/HazmatWeatherAlerts";
 
 export default function DriverMobile() {
   const queryClient = useQueryClient();
   const [trackingActive, setTrackingActive] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [incidentDialogOpen, setIncidentDialogOpen] = useState(false);
+  const [weatherAlerts, setWeatherAlerts] = useState(null);
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
@@ -75,6 +79,27 @@ export default function DriverMobile() {
     },
     onError: () => toast.error("Failed to update ETA")
   });
+
+  // Check weather hazards for HAZMAT shipments
+  useEffect(() => {
+    if (activeShipment?.[0]?.contains_hazmat && trackingActive) {
+      checkWeatherHazards(activeShipment[0]).then(alerts => {
+        if (alerts.has_alerts) {
+          setWeatherAlerts(alerts);
+        }
+      });
+      
+      const interval = setInterval(() => {
+        checkWeatherHazards(activeShipment[0]).then(alerts => {
+          if (alerts.has_alerts) {
+            setWeatherAlerts(alerts);
+          }
+        });
+      }, 300000); // Check every 5 minutes
+
+      return () => clearInterval(interval);
+    }
+  }, [activeShipment, trackingActive]);
 
   useEffect(() => {
     if (trackingActive && activeShipment?.[0]) {
@@ -138,10 +163,38 @@ export default function DriverMobile() {
                 </div>
 
                 {activeShipment[0].contains_hazmat && (
-                  <Badge className="bg-red-100 text-red-800">
-                    <AlertTriangle className="w-3 h-3 mr-1" />
-                    HAZMAT - Follow Safety Protocols
-                  </Badge>
+                  <>
+                    <Badge className="bg-red-100 text-red-800">
+                      <AlertTriangle className="w-3 h-3 mr-1" />
+                      HAZMAT - Follow Safety Protocols
+                    </Badge>
+                    <Button
+                      onClick={() => setIncidentDialogOpen(true)}
+                      className="bg-red-600 hover:bg-red-700 w-full mt-2"
+                    >
+                      <Shield className="w-4 h-4 mr-2" />
+                      Report Safety Incident
+                    </Button>
+                  </>
+                )}
+
+                {weatherAlerts?.has_alerts && (
+                  <div className="p-3 bg-orange-50 border-2 border-orange-400 rounded-lg mt-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle className="w-5 h-5 text-orange-700" />
+                      <span className="font-bold text-orange-900">Weather/Road Alerts</span>
+                    </div>
+                    {weatherAlerts.alerts.map((alert, idx) => (
+                      <div key={idx} className="text-sm mb-2 pb-2 border-b border-orange-200 last:border-0">
+                        <p className="font-semibold text-orange-900">{alert.type}</p>
+                        <p className="text-orange-800 text-xs">{alert.description}</p>
+                        <p className="text-orange-700 text-xs mt-1">📍 {alert.location}</p>
+                      </div>
+                    ))}
+                    <p className="text-xs text-orange-900 mt-2 font-semibold">
+                      ⚠️ {weatherAlerts.overall_recommendation}
+                    </p>
+                  </div>
                 )}
 
                 {activeShipment[0].estimated_arrival && (
@@ -232,6 +285,15 @@ export default function DriverMobile() {
               <p className="text-sm">Contact dispatch for your next assignment</p>
             </CardContent>
           </Card>
+        )}
+
+        {activeShipment?.[0] && driver && (
+          <IncidentReportDialog
+            open={incidentDialogOpen}
+            onClose={() => setIncidentDialogOpen(false)}
+            shipment={activeShipment[0]}
+            driver={driver}
+          />
         )}
       </div>
     </div>

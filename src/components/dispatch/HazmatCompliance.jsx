@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,15 +6,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, Shield, CheckCircle, XCircle, FileText } from "lucide-react";
+import { AlertTriangle, Shield, CheckCircle, XCircle, FileText, Cloud } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { checkWeatherHazards } from "./HazmatWeatherAlerts";
 
 export default function HazmatCompliance({ shipments }) {
   const queryClient = useQueryClient();
   const [selectedShipment, setSelectedShipment] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [weatherAlerts, setWeatherAlerts] = useState({});
   const [checklist, setChecklist] = useState({
     placards_displayed: false,
     driver_hazmat_certified: false,
@@ -23,6 +25,21 @@ export default function HazmatCompliance({ shipments }) {
     vehicle_inspected: false,
     compliance_notes: ""
   });
+
+  const { data: incidents = [] } = useQuery({
+    queryKey: ['hazmatIncidents'],
+    queryFn: () => base44.entities.HazmatIncident.list('-reported_at', 50),
+  });
+
+  // Check weather for active HAZMAT shipments
+  useEffect(() => {
+    shipments.filter(s => s.status === 'in_transit').forEach(async (shipment) => {
+      const alerts = await checkWeatherHazards(shipment);
+      if (alerts.has_alerts) {
+        setWeatherAlerts(prev => ({ ...prev, [shipment.id]: alerts }));
+      }
+    });
+  }, [shipments]);
 
   const updateComplianceMutation = useMutation({
     mutationFn: async (data) => {
@@ -71,19 +88,36 @@ export default function HazmatCompliance({ shipments }) {
                      checklist.spill_kit_onboard &&
                      checklist.vehicle_inspected;
 
+  const criticalIncidents = incidents.filter(i => i.severity === 'critical' || i.severity === 'high');
+
   return (
     <div className="space-y-4">
       <Card className="bg-red-50 border-red-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-red-900">
             <AlertTriangle className="w-5 h-5" />
-            HAZMAT Compliance Management
+            HAZMAT Compliance & Safety Management
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-red-700">
+          <p className="text-sm text-red-700 mb-3">
             All shipments containing hazardous materials require completed compliance checklist before dispatch.
+            Real-time monitoring active for weather and road hazards.
           </p>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="p-2 bg-white rounded border border-red-300">
+              <p className="text-xs text-gray-600">Active Incidents</p>
+              <p className="text-xl font-bold text-red-700">{incidents.filter(i => i.status === 'reported').length}</p>
+            </div>
+            <div className="p-2 bg-white rounded border border-red-300">
+              <p className="text-xs text-gray-600">Critical Alerts</p>
+              <p className="text-xl font-bold text-red-700">{criticalIncidents.length}</p>
+            </div>
+            <div className="p-2 bg-white rounded border border-red-300">
+              <p className="text-xs text-gray-600">Weather Alerts</p>
+              <p className="text-xl font-bold text-orange-700">{Object.keys(weatherAlerts).length}</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -168,6 +202,26 @@ export default function HazmatCompliance({ shipments }) {
                             {new Date(shipment.hazmat_compliance.compliance_checked_at).toLocaleString()}
                           </p>
                         )}
+                      </div>
+                    )}
+
+                    {weatherAlerts[shipment.id]?.has_alerts && (
+                      <div className="mt-3 p-2 bg-orange-100 border border-orange-300 rounded">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Cloud className="w-4 h-4 text-orange-700" />
+                          <span className="text-xs font-semibold text-orange-900">Active Weather/Road Alerts</span>
+                        </div>
+                        {weatherAlerts[shipment.id].alerts.slice(0, 2).map((alert, idx) => (
+                          <p key={idx} className="text-xs text-orange-800">• {alert.description}</p>
+                        ))}
+                      </div>
+                    )}
+
+                    {incidents.filter(i => i.shipment_id === shipment.id && i.status === 'reported').length > 0 && (
+                      <div className="mt-3 p-2 bg-red-100 border border-red-300 rounded">
+                        <p className="text-xs font-semibold text-red-900">
+                          🚨 {incidents.filter(i => i.shipment_id === shipment.id && i.status === 'reported').length} Active Incident(s)
+                        </p>
                       </div>
                     )}
                   </div>
