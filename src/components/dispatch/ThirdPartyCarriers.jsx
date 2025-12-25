@@ -7,12 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Truck, Plus, Star, Phone, Mail, Shield, AlertCircle, FileCheck, Calendar } from "lucide-react";
+import { Truck, Plus, Star, Phone, Mail, Shield, AlertCircle, FileCheck, Calendar, Upload, FileText, Sparkles } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import CarrierOnboardingDialog from "./CarrierOnboardingDialog";
+import AIDocumentSummary from "@/components/shared/AIDocumentSummary";
 
 export default function ThirdPartyCarriers() {
   const { selectedCompanyId } = useCompany();
@@ -20,6 +21,9 @@ export default function ThirdPartyCarriers() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [onboardingDialogOpen, setOnboardingDialogOpen] = useState(false);
   const [selectedCarrier, setSelectedCarrier] = useState(null);
+  const [uploadingCOI, setUploadingCOI] = useState(false);
+  const [uploadingPackage, setUploadingPackage] = useState(false);
+  const [analyzingDoc, setAnalyzingDoc] = useState(false);
   
   const [formData, setFormData] = useState({
     carrier_name: "",
@@ -296,7 +300,7 @@ export default function ThirdPartyCarriers() {
             <div>
               <Label className="mb-2 block">Service Types</Label>
               <div className="grid grid-cols-2 gap-2">
-                {["local_delivery", "long_haul", "expedited", "refrigerated", "hazmat_certified", "oversized"].map(type => (
+                {["local_delivery", "long_haul", "expedited", "refrigerated", "hazmat_certified", "oversized", "intermodal", "container_services"].map(type => (
                   <div key={type} className="flex items-center gap-2">
                     <Checkbox
                       checked={formData.service_types?.includes(type)}
@@ -310,6 +314,71 @@ export default function ThirdPartyCarriers() {
                 ))}
               </div>
             </div>
+
+            {(formData.service_types?.includes('intermodal') || formData.service_types?.includes('container_services')) && (
+              <div className="p-3 bg-blue-50 rounded border border-blue-200">
+                <Label className="text-xs font-semibold mb-2 block">Intermodal & Container Capabilities</Label>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={formData.intermodal_capabilities?.rail_capable || false}
+                      onCheckedChange={(checked) => setFormData({
+                        ...formData,
+                        intermodal_capabilities: { 
+                          ...formData.intermodal_capabilities, 
+                          rail_capable: checked 
+                        }
+                      })}
+                      id="rail_capable"
+                    />
+                    <Label htmlFor="rail_capable" className="text-sm cursor-pointer">Rail Capable</Label>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={formData.intermodal_capabilities?.chassis_pool || false}
+                      onCheckedChange={(checked) => setFormData({
+                        ...formData,
+                        intermodal_capabilities: { 
+                          ...formData.intermodal_capabilities, 
+                          chassis_pool: checked 
+                        }
+                      })}
+                      id="chassis_pool"
+                    />
+                    <Label htmlFor="chassis_pool" className="text-sm cursor-pointer">Chassis Pool Access</Label>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Container Types</Label>
+                    <div className="grid grid-cols-3 gap-2 mt-1">
+                      {["20GP", "40GP", "40HC", "45HC", "20RF", "40RF"].map(type => (
+                        <div key={type} className="flex items-center gap-1">
+                          <Checkbox
+                            checked={formData.intermodal_capabilities?.container_types?.includes(type) || false}
+                            onCheckedChange={(checked) => {
+                              const current = formData.intermodal_capabilities?.container_types || [];
+                              const updated = checked 
+                                ? [...current, type]
+                                : current.filter(t => t !== type);
+                              setFormData({
+                                ...formData,
+                                intermodal_capabilities: { 
+                                  ...formData.intermodal_capabilities, 
+                                  container_types: updated 
+                                }
+                              });
+                            }}
+                            id={`container_${type}`}
+                          />
+                          <Label htmlFor={`container_${type}`} className="text-xs cursor-pointer">{type}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center gap-2">
@@ -464,6 +533,176 @@ export default function ThirdPartyCarriers() {
                     })}
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border-2 border-blue-200">
+              <div className="flex items-center gap-2 mb-3">
+                <Upload className="w-5 h-5 text-blue-600" />
+                <Label className="font-semibold">Document Uploads</Label>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs">Certificate of Insurance (COI)</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setUploadingCOI(true);
+                          try {
+                            const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                            setFormData({ 
+                              ...formData, 
+                              coi_url: file_url,
+                              insurance_details: {
+                                ...formData.insurance_details,
+                                certificate_url: file_url
+                              }
+                            });
+                            toast.success("COI uploaded successfully");
+                          } catch (error) {
+                            toast.error("Upload failed");
+                          } finally {
+                            setUploadingCOI(false);
+                          }
+                        }
+                      }}
+                      disabled={uploadingCOI}
+                      className="flex-1"
+                    />
+                    {formData.coi_url && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(formData.coi_url, '_blank')}
+                      >
+                        <FileText className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                  {formData.coi_url && (
+                    <div className="mt-2">
+                      <Input
+                        type="date"
+                        placeholder="COI Expiry Date"
+                        value={formData.coi_expiry || ''}
+                        onChange={(e) => setFormData({ ...formData, coi_expiry: e.target.value })}
+                        className="text-xs"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <Label className="text-xs">Carrier Package (Complete Info)</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      type="file"
+                      accept=".pdf"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setUploadingPackage(true);
+                          try {
+                            const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                            setFormData({ ...formData, carrier_package_url: file_url });
+                            toast.success("Carrier package uploaded");
+                          } catch (error) {
+                            toast.error("Upload failed");
+                          } finally {
+                            setUploadingPackage(false);
+                          }
+                        }
+                      }}
+                      disabled={uploadingPackage}
+                      className="flex-1"
+                    />
+                    {formData.carrier_package_url && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(formData.carrier_package_url, '_blank')}
+                      >
+                        <FileText className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {(formData.coi_url || formData.carrier_package_url) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      setAnalyzingDoc(true);
+                      try {
+                        const url = formData.coi_url || formData.carrier_package_url;
+                        const result = await base44.integrations.Core.InvokeLLM({
+                          prompt: `Analyze this carrier document (COI or carrier package). Extract: insurance provider, policy number, coverage amount, expiry dates, DOT/MC numbers, SCAC code, service capabilities, and any compliance issues.`,
+                          file_urls: [url],
+                          response_json_schema: {
+                            type: "object",
+                            properties: {
+                              insurance_provider: { type: "string" },
+                              policy_number: { type: "string" },
+                              coverage_amount: { type: "number" },
+                              expiry_date: { type: "string" },
+                              dot_number: { type: "string" },
+                              mc_number: { type: "string" },
+                              scac_code: { type: "string" },
+                              services: { type: "array", items: { type: "string" } },
+                              compliance_issues: { type: "array", items: { type: "string" } },
+                              summary: { type: "string" }
+                            }
+                          }
+                        });
+                        
+                        // Auto-populate form fields
+                        setFormData({
+                          ...formData,
+                          insurance_details: {
+                            ...formData.insurance_details,
+                            provider: result.insurance_provider || formData.insurance_details?.provider,
+                            policy_number: result.policy_number || formData.insurance_details?.policy_number,
+                            coverage_amount: result.coverage_amount || formData.insurance_details?.coverage_amount,
+                            expiry_date: result.expiry_date || formData.insurance_details?.expiry_date
+                          },
+                          operating_authority: {
+                            ...formData.operating_authority,
+                            dot_number: result.dot_number || formData.operating_authority?.dot_number,
+                            mc_number: result.mc_number || formData.operating_authority?.mc_number,
+                            scac_code: result.scac_code || formData.operating_authority?.scac_code
+                          },
+                          coi_expiry: result.expiry_date || formData.coi_expiry
+                        });
+                        
+                        toast.success("Document analyzed and fields populated");
+                      } catch (error) {
+                        toast.error("Analysis failed");
+                      } finally {
+                        setAnalyzingDoc(false);
+                      }
+                    }}
+                    disabled={analyzingDoc}
+                    className="w-full"
+                  >
+                    {analyzingDoc ? (
+                      <>Analyzing...</>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        AI Analyze & Auto-Fill
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
 
