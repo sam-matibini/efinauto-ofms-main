@@ -8,10 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Search, TrendingDown, TrendingUp, ShieldCheck, AlertTriangle, FileText, Loader2, MapPin, Globe, ChevronDown, ChevronUp, Filter, Truck, Car, Printer, Download, Mail, MessageCircle, Share2 } from "lucide-react";
+import { Sparkles, Search, TrendingDown, TrendingUp, ShieldCheck, AlertTriangle, FileText, Loader2, MapPin, Globe, ChevronDown, ChevronUp, Filter, Truck, Car, Printer, Download, Mail, MessageCircle, Share2, Heart } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function AIVehicleSearch({ onSelectListing }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -30,6 +31,52 @@ export default function AIVehicleSearch({ onSelectListing }) {
   const [shareListing, setShareListing] = useState(null);
   const [emailAddress, setEmailAddress] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+
+  const queryClient = useQueryClient();
+
+  const { data: favorites = [] } = useQuery({
+    queryKey: ['favoriteListings'],
+    queryFn: () => base44.entities.FavoriteVehicleListing.list(),
+  });
+
+  const addFavoriteMutation = useMutation({
+    mutationFn: (listing) => base44.entities.FavoriteVehicleListing.create({
+      listing_data: listing,
+      search_query: searchQuery,
+      search_type: searchType
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['favoriteListings'] });
+      toast.success("Added to favorites");
+    },
+    onError: () => toast.error("Failed to add favorite")
+  });
+
+  const removeFavoriteMutation = useMutation({
+    mutationFn: (favoriteId) => base44.entities.FavoriteVehicleListing.delete(favoriteId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['favoriteListings'] });
+      toast.success("Removed from favorites");
+    },
+    onError: () => toast.error("Failed to remove favorite")
+  });
+
+  const isFavorite = (listing) => {
+    return favorites.some(fav => fav.listing_data?.listing_id === listing.listing_id);
+  };
+
+  const getFavoriteId = (listing) => {
+    return favorites.find(fav => fav.listing_data?.listing_id === listing.listing_id)?.id;
+  };
+
+  const toggleFavorite = (listing) => {
+    if (isFavorite(listing)) {
+      const favoriteId = getFavoriteId(listing);
+      if (favoriteId) removeFavoriteMutation.mutate(favoriteId);
+    } else {
+      addFavoriteMutation.mutate(listing);
+    }
+  };
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -561,13 +608,15 @@ Make diverse listings with varying quality, prices, and locations.`,
     toast.success("Opening print dialog...");
   };
 
-  const filteredListings = listings.filter(listing => {
-    if (viewMode === "best_price") return listing.ai_scores?.price_score >= 0.7;
-    if (viewMode === "best_condition") return listing.ai_scores?.condition_score >= 0.8;
-    if (viewMode === "closest") return listing.distance_km <= 100;
-    if (viewMode === "top_rated") return listing.seller_rating >= 0.8;
-    return true;
-  });
+  const filteredListings = viewMode === "favorites" 
+    ? favorites.map(fav => fav.listing_data)
+    : listings.filter(listing => {
+        if (viewMode === "best_price") return listing.ai_scores?.price_score >= 0.7;
+        if (viewMode === "best_condition") return listing.ai_scores?.condition_score >= 0.8;
+        if (viewMode === "closest") return listing.distance_km <= 100;
+        if (viewMode === "top_rated") return listing.seller_rating >= 0.8;
+        return true;
+      });
 
   return (
     <Card className="border-purple-200 shadow-lg">
@@ -746,12 +795,16 @@ Make diverse listings with varying quality, prices, and locations.`,
             </div>
             
             <Tabs value={viewMode} onValueChange={setViewMode} className="w-auto">
-              <TabsList className="grid grid-cols-5 w-auto">
+              <TabsList className="grid grid-cols-6 w-auto">
                 <TabsTrigger value="all" className="text-xs">All Results</TabsTrigger>
                 <TabsTrigger value="best_price" className="text-xs">Best Deals</TabsTrigger>
                 <TabsTrigger value="best_condition" className="text-xs">Best Condition</TabsTrigger>
                 <TabsTrigger value="closest" className="text-xs">Closest</TabsTrigger>
                 <TabsTrigger value="top_rated" className="text-xs">Top Sellers</TabsTrigger>
+                <TabsTrigger value="favorites" className="text-xs">
+                  <Heart className="w-3 h-3 mr-1 inline" />
+                  Saved ({favorites.length})
+                </TabsTrigger>
               </TabsList>
             </Tabs>
 
@@ -1098,6 +1151,18 @@ Make diverse listings with varying quality, prices, and locations.`,
                           <span>{listing.seller_total_sales || 0} sales</span>
                         </div>
                         <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(listing);
+                            }}
+                            size="sm"
+                            className={isFavorite(listing) ? "bg-red-50 hover:bg-red-100 border-red-300" : ""}
+                          >
+                            <Heart className={`w-4 h-4 mr-1 ${isFavorite(listing) ? "fill-red-500 text-red-500" : ""}`} />
+                            {isFavorite(listing) ? "Saved" : "Save"}
+                          </Button>
                           <Button
                             variant="outline"
                             onClick={(e) => {
