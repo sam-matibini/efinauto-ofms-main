@@ -695,17 +695,17 @@ Make diverse listings with varying quality, prices, and locations.`,
                         </div>
                         <div className="text-right">
                           <p className="text-2xl font-bold text-blue-600">
-                            {listing.currency} ${listing.asking_price.toLocaleString()}
+                            {listing.currency || 'USD'} ${(listing.asking_price || 0).toLocaleString()}
                           </p>
                           {listing.median_market_price && (
                             <div className="text-xs mt-1 space-y-0.5">
                               <div>
-                                <span className="text-gray-500">Market: ${listing.median_market_price.toLocaleString()}</span>
+                                <span className="text-gray-500">Market: ${(listing.median_market_price || 0).toLocaleString()}</span>
                               </div>
                               {listing.price_variance_pct !== undefined && (
-                                <div className={listing.price_variance_pct < -10 ? "text-green-600 font-semibold" : listing.price_variance_pct > 10 ? "text-red-600 font-semibold" : "text-gray-600"}>
-                                  {listing.price_variance_pct < -10 && "💰 "}
-                                  {listing.price_variance_pct > 0 ? "+" : ""}{listing.price_variance_pct.toFixed(1)}% vs market
+                                <div className={(listing.price_variance_pct || 0) < -10 ? "text-green-600 font-semibold" : (listing.price_variance_pct || 0) > 10 ? "text-red-600 font-semibold" : "text-gray-600"}>
+                                  {(listing.price_variance_pct || 0) < -10 && "💰 "}
+                                  {(listing.price_variance_pct || 0) > 0 ? "+" : ""}{(listing.price_variance_pct || 0).toFixed(1)}% vs market
                                 </div>
                               )}
                               {listing.market_trend && (
@@ -720,11 +720,11 @@ Make diverse listings with varying quality, prices, and locations.`,
 
                       {/* Quick Info */}
                       <div className="flex flex-wrap gap-2 text-xs">
-                        <Badge variant="outline" className="capitalize">{listing.condition}</Badge>
+                        <Badge variant="outline" className="capitalize">{listing.condition || 'N/A'}</Badge>
                         <Badge variant="outline">
-                          {searchType === "vehicle" ? "📏" : "⏱️"} {listing.mileage_hours.toLocaleString()} {searchType === "vehicle" ? "km" : "hrs"}
+                          {searchType === "vehicle" ? "📏" : "⏱️"} {(listing.mileage_hours || 0).toLocaleString()} {searchType === "vehicle" ? "km" : "hrs"}
                         </Badge>
-                        <Badge variant="outline">{listing.seller_type}</Badge>
+                        <Badge variant="outline">{listing.seller_type || 'N/A'}</Badge>
                       </div>
 
                       {/* AI Scores Grid */}
@@ -820,7 +820,7 @@ Make diverse listings with varying quality, prices, and locations.`,
                               <div className="space-y-1 text-xs">
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">Condition:</span>
-                                  <span className="font-medium">{listing.condition}</span>
+                                  <span className="font-medium">{listing.condition || 'N/A'}</span>
                                 </div>
                                 {listing.condition_details && (
                                   <p className="text-gray-600 mt-1">{listing.condition_details}</p>
@@ -838,19 +838,19 @@ Make diverse listings with varying quality, prices, and locations.`,
                               <div className="space-y-1 text-xs">
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">Name:</span>
-                                  <span className="font-medium">{listing.seller_name}</span>
+                                  <span className="font-medium">{listing.seller_name || 'N/A'}</span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">Type:</span>
-                                  <span className="font-medium capitalize">{listing.seller_type}</span>
+                                  <span className="font-medium capitalize">{listing.seller_type || 'N/A'}</span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">Rating:</span>
-                                  <span className="font-medium">{listing.seller_rating.toFixed(2)}/1.0</span>
+                                  <span className="font-medium">{(listing.seller_rating || 0).toFixed(2)}/1.0</span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">Total Sales:</span>
-                                  <span className="font-medium">{listing.seller_total_sales}</span>
+                                  <span className="font-medium">{listing.seller_total_sales || 0}</span>
                                 </div>
                                 {listing.seller_contact && (
                                   <div className="mt-2">
@@ -968,11 +968,11 @@ Make diverse listings with varying quality, prices, and locations.`,
                       <div className="flex items-center justify-between pt-2 border-t gap-2">
                         <div className="text-xs text-gray-600 flex items-center gap-2">
                           <ShieldCheck className="w-3 h-3" />
-                          <span>{listing.seller_name}</span>
+                          <span>{listing.seller_name || 'N/A'}</span>
                           <span className="text-gray-400">•</span>
-                          <span>⭐ {listing.seller_rating.toFixed(2)}</span>
+                          <span>⭐ {(listing.seller_rating || 0).toFixed(2)}</span>
                           <span className="text-gray-400">•</span>
-                          <span>{listing.seller_total_sales} sales</span>
+                          <span>{listing.seller_total_sales || 0} sales</span>
                         </div>
                         <Button
                           onClick={() => onSelectListing(listing)}
