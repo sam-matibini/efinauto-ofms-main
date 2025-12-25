@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Truck, Plus, Wrench, CheckCircle, AlertCircle } from "lucide-react";
+import { Truck, Plus, Wrench, CheckCircle, AlertCircle, Package } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
