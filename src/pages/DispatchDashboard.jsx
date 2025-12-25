@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Truck, MapPin, Package, AlertTriangle, Clock, CheckCircle, Plus } from "lucide-react";
+import { Truck, MapPin, Package, AlertTriangle, Clock, CheckCircle, Plus, TrendingUp } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useCompany } from "@/components/shared/CompanyContext";
@@ -14,6 +14,7 @@ import DriverManagement from "@/components/dispatch/DriverManagement";
 import FleetManagement from "@/components/dispatch/FleetManagement";
 import HazmatCompliance from "@/components/dispatch/HazmatCompliance";
 import DocumentManager from "@/components/dispatch/DocumentManager";
+import { predictShipmentETA, updateShipmentETA } from "@/components/dispatch/AIETAPrediction";
 
 export default function DispatchDashboard() {
   const { selectedCompanyId } = useCompany();
@@ -37,6 +38,29 @@ export default function DispatchDashboard() {
     queryKey: ['trucks', selectedCompanyId],
     queryFn: () => base44.entities.TruckVehicle.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
+  });
+
+  const predictETAMutation = useMutation({
+    mutationFn: async (shipmentId) => {
+      const shipment = shipments.find(s => s.id === shipmentId);
+      const gpsPoints = await base44.entities.GPSTrackingPoint.filter(
+        { shipment_id: shipmentId },
+        '-timestamp',
+        20
+      );
+      const prediction = await predictShipmentETA(shipment, gpsPoints);
+      if (prediction.success) {
+        await updateShipmentETA(shipmentId, prediction);
+      }
+      return prediction;
+    },
+    onSuccess: (prediction) => {
+      queryClient.invalidateQueries({ queryKey: ['localShipments'] });
+      if (prediction.success) {
+        toast.success(`ETA updated: ${new Date(prediction.predicted_eta).toLocaleString()}`);
+      }
+    },
+    onError: () => toast.error("Failed to predict ETA")
   });
 
   // KPIs
@@ -181,17 +205,47 @@ export default function DispatchDashboard() {
                             </div>
                           )}
                         </div>
+                        {shipment.estimated_arrival && (
+                          <div className="mt-3 pt-3 border-t">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Clock className="w-4 h-4 text-blue-600" />
+                              <span className="text-xs text-gray-600 font-semibold">AI Predicted ETA:</span>
+                            </div>
+                            <p className="font-bold text-blue-700">
+                              {new Date(shipment.estimated_arrival).toLocaleString()}
+                            </p>
+                            {shipment.eta_confidence && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Confidence: {Math.round(shipment.eta_confidence * 100)}%
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <Button
-                        onClick={() => {
-                          setSelectedShipment(shipment);
-                          setShipmentDialogOpen(true);
-                        }}
-                        variant="outline"
-                        size="sm"
-                      >
-                        View Details
-                      </Button>
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          onClick={() => {
+                            setSelectedShipment(shipment);
+                            setShipmentDialogOpen(true);
+                          }}
+                          variant="outline"
+                          size="sm"
+                        >
+                          View Details
+                        </Button>
+                        {(shipment.status === 'in_transit' || shipment.status === 'near_destination') && (
+                          <Button
+                            onClick={() => predictETAMutation.mutate(shipment.id)}
+                            disabled={predictETAMutation.isPending}
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700"
+                            title="Update AI ETA"
+                          >
+                            <TrendingUp className="w-4 h-4 mr-1" />
+                            Update ETA
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
