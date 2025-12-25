@@ -25,7 +25,8 @@ import {
   Shield,
   FolderKanban,
   Ship,
-  MapPin
+  MapPin,
+  Truck
 } from "lucide-react";
 import {
   Sidebar,
