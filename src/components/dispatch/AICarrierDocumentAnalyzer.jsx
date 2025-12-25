@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Upload, FileText, Brain, CheckCircle, AlertCircle, Sparkles } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { updateCarrierCompliance } from "./CarrierComplianceScoring";
 
 export default function AICarrierDocumentAnalyzer({ carrier, onDocumentAdded }) {
   const [file, setFile] = useState(null);
@@ -100,7 +101,11 @@ Return as JSON with fields: document_type, carrier_name, reference_number, expir
       onDocumentAdded();
       setAnalysis(null);
       setFile(null);
-      toast.success("Document saved with AI analysis");
+      
+      // Automatically recalculate compliance score
+      await updateCarrierCompliance(carrier.id);
+      
+      toast.success("Document saved with AI analysis - Compliance score updated");
     } catch (error) {
       toast.error("Failed to save document");
       console.error(error);

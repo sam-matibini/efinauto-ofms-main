@@ -15,6 +15,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import AICarrierDocumentAnalyzer from "./AICarrierDocumentAnalyzer";
 import ThirdPartyDrivers from "./ThirdPartyDrivers";
+import { updateCarrierCompliance } from "./CarrierComplianceScoring";
 
 export default function CarrierOnboardingDialog({ carrier, open, onClose, onUpdate }) {
   const [uploading, setUploading] = useState(false);
@@ -45,8 +46,12 @@ export default function CarrierOnboardingDialog({ carrier, open, onClose, onUpda
     await base44.entities.ThirdPartyCarrier.update(carrier.id, {
       compliance_checklist: updatedChecklist
     });
+    
+    // Recalculate compliance score
+    await updateCarrierCompliance(carrier.id);
+    
     onUpdate();
-    toast.success("Checklist updated");
+    toast.success("Checklist updated - Score recalculated");
   };
 
   const handleDocumentUpload = async () => {
@@ -98,13 +103,22 @@ export default function CarrierOnboardingDialog({ carrier, open, onClose, onUpda
     await base44.entities.ThirdPartyCarrier.update(carrier.id, {
       compliance_documents: updatedDocs
     });
+    
+    // Recalculate compliance score
+    await updateCarrierCompliance(carrier.id);
+    
     onUpdate();
-    toast.success(verified ? "Document verified" : "Verification removed");
+    toast.success(verified ? "Document verified - Score updated" : "Verification removed");
   };
 
   const handleApproveCarrier = async () => {
     if (progress < 100) {
       toast.error("Complete all required checklist items before approval");
+      return;
+    }
+
+    if ((carrier?.compliance_score || 0) < 60) {
+      toast.error("Compliance score too low for approval (minimum 60 required)");
       return;
     }
 
@@ -160,6 +174,71 @@ export default function CarrierOnboardingDialog({ carrier, open, onClose, onUpda
             </div>
             <Progress value={progress} className="h-2" />
           </div>
+
+          {/* AI Compliance Score */}
+          <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Brain className="w-5 h-5 text-purple-600" />
+                <p className="font-semibold text-purple-900">AI Compliance Score</p>
+              </div>
+              <div className="text-right">
+                <p className="text-3xl font-bold text-purple-900">{carrier?.compliance_score || 0}</p>
+                <p className="text-xs text-purple-600">out of 100</p>
+              </div>
+            </div>
+            {carrier?.compliance_score_breakdown && (
+              <div className="grid grid-cols-4 gap-2 mt-3 text-xs">
+                <div className="text-center p-2 bg-white rounded">
+                  <p className="text-gray-600">Completeness</p>
+                  <p className="font-bold text-purple-900">{carrier.compliance_score_breakdown.document_completeness}</p>
+                </div>
+                <div className="text-center p-2 bg-white rounded">
+                  <p className="text-gray-600">Validity</p>
+                  <p className="font-bold text-purple-900">{carrier.compliance_score_breakdown.document_validity}</p>
+                </div>
+                <div className="text-center p-2 bg-white rounded">
+                  <p className="text-gray-600">AI Confidence</p>
+                  <p className="font-bold text-purple-900">{carrier.compliance_score_breakdown.ai_confidence}</p>
+                </div>
+                <div className="text-center p-2 bg-white rounded">
+                  <p className="text-gray-600">Expiry</p>
+                  <p className="font-bold text-purple-900">{carrier.compliance_score_breakdown.expiry_status}</p>
+                </div>
+              </div>
+            )}
+            {carrier?.auto_approval_eligible && (
+              <div className="mt-3 p-2 bg-green-100 border border-green-300 rounded flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-700" />
+                <p className="text-xs font-semibold text-green-900">Eligible for Auto-Approval</p>
+              </div>
+            )}
+          </div>
+
+          {/* Expiry Alerts */}
+          {carrier?.expiry_alerts && carrier.expiry_alerts.length > 0 && (
+            <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertCircle className="w-5 h-5 text-orange-600" />
+                <p className="font-semibold text-orange-900">Document Expiry Alerts</p>
+              </div>
+              <div className="space-y-2">
+                {carrier.expiry_alerts.map((alert, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-2 bg-white rounded text-xs">
+                    <div>
+                      <p className="font-medium">{alert.document_type}</p>
+                      <p className="text-gray-600">Expires: {new Date(alert.expiry_date).toLocaleDateString()}</p>
+                    </div>
+                    <Badge className={
+                      alert.days_until_expiry < 0 ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
+                    }>
+                      {alert.days_until_expiry < 0 ? 'EXPIRED' : `${alert.days_until_expiry}d left`}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <Tabs defaultValue="checklist">
             <TabsList>
