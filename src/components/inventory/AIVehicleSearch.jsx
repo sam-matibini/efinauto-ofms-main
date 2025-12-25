@@ -354,9 +354,14 @@ Make diverse listings with varying quality, prices, and locations.`,
   };
 
   const handleWhatsAppShare = (listing = null) => {
-    const message = encodeURIComponent(generateShareContent(listing));
+    if (!listing && filteredListings.length === 0) {
+      toast.error("No results to share");
+      return;
+    }
+    const content = generateShareContent(listing);
+    const message = encodeURIComponent(content);
     window.open(`https://wa.me/?text=${message}`, '_blank');
-    toast.success("Opening WhatsApp...");
+    toast.success("Report shared via WhatsApp");
   };
 
   const handleGoogleChatShare = (listing = null) => {
