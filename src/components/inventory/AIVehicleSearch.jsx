@@ -161,21 +161,21 @@ Make diverse listings with varying quality, prices, and locations.`,
   const generateShareContent = (singleListing = null) => {
     if (singleListing) {
       let content = `🚗 ${searchType === "vehicle" ? "VEHICLE" : "EQUIPMENT"} LISTING\n\n`;
-      content += `${singleListing.year} ${singleListing.make} ${singleListing.model}\n`;
+      content += `${singleListing.year || ''} ${singleListing.make || ''} ${singleListing.model || ''}\n`;
       content += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-      content += `💰 Price: ${singleListing.currency} $${singleListing.asking_price.toLocaleString()}\n`;
+      content += `💰 Price: ${singleListing.currency || 'USD'} $${(singleListing.asking_price || 0).toLocaleString()}\n`;
       if (singleListing.median_market_price) {
-        content += `📊 Market Price: $${singleListing.median_market_price.toLocaleString()}\n`;
-        content += `📈 Variance: ${singleListing.price_variance_pct > 0 ? "+" : ""}${singleListing.price_variance_pct.toFixed(1)}%\n`;
+        content += `📊 Market Price: $${(singleListing.median_market_price || 0).toLocaleString()}\n`;
+        content += `📈 Variance: ${(singleListing.price_variance_pct || 0) > 0 ? "+" : ""}${(singleListing.price_variance_pct || 0).toFixed(1)}%\n`;
       }
-      content += `\n${searchType === "vehicle" ? "VIN" : "Serial"}: ${singleListing.vin_serial}\n`;
-      content += `${searchType === "vehicle" ? "Mileage" : "Hours"}: ${singleListing.mileage_hours.toLocaleString()}\n`;
-      content += `Condition: ${singleListing.condition}\n`;
-      content += `\n📍 Location: ${singleListing.location_city}, ${singleListing.location_state}, ${singleListing.location_country}\n`;
-      content += `Distance: ${singleListing.distance_km} km\n`;
-      content += `\n👤 Seller: ${singleListing.seller_name}\n`;
-      content += `Type: ${singleListing.seller_type}\n`;
-      content += `Rating: ⭐ ${singleListing.seller_rating.toFixed(2)}/1.0\n`;
+      content += `\n${searchType === "vehicle" ? "VIN" : "Serial"}: ${singleListing.vin_serial || 'N/A'}\n`;
+      content += `${searchType === "vehicle" ? "Mileage" : "Hours"}: ${(singleListing.mileage_hours || 0).toLocaleString()}\n`;
+      content += `Condition: ${singleListing.condition || 'N/A'}\n`;
+      content += `\n📍 Location: ${singleListing.location_city || ''}, ${singleListing.location_state || ''}, ${singleListing.location_country || ''}\n`;
+      content += `Distance: ${singleListing.distance_km || 0} km\n`;
+      content += `\n👤 Seller: ${singleListing.seller_name || 'N/A'}\n`;
+      content += `Type: ${singleListing.seller_type || 'N/A'}\n`;
+      content += `Rating: ⭐ ${(singleListing.seller_rating || 0).toFixed(2)}/1.0\n`;
       content += `\n🤖 AI SCORES:\n`;
       content += `Overall: ${Math.round((singleListing.ai_scores?.overall_score || 0) * 100)}%\n`;
       content += `Relevance: ${Math.round((singleListing.ai_scores?.relevance_score || 0) * 100)}%\n`;
@@ -200,17 +200,17 @@ Make diverse listings with varying quality, prices, and locations.`,
     content += "━━━━━━━━━━━━━━━━━━━━━━\n\n";
 
     filteredListings.forEach((listing, idx) => {
-      content += `${idx + 1}. ${listing.year} ${listing.make} ${listing.model}\n`;
-      content += `   ${listing.currency} $${listing.asking_price.toLocaleString()}\n`;
-      content += `   📍 ${listing.location_city}, ${listing.location_state} (${listing.distance_km} km)\n`;
-      content += `   ${searchType === "vehicle" ? "VIN" : "Serial"}: ${listing.vin_serial}\n`;
-      content += `   ${searchType === "vehicle" ? "Mileage" : "Hours"}: ${listing.mileage_hours.toLocaleString()}\n`;
-      content += `   Condition: ${listing.condition} (${Math.round((listing.ai_scores?.condition_score || 0) * 100)}%)\n`;
+      content += `${idx + 1}. ${listing.year || ''} ${listing.make || ''} ${listing.model || ''}\n`;
+      content += `   ${listing.currency || 'USD'} $${(listing.asking_price || 0).toLocaleString()}\n`;
+      content += `   📍 ${listing.location_city || ''}, ${listing.location_state || ''} (${listing.distance_km || 0} km)\n`;
+      content += `   ${searchType === "vehicle" ? "VIN" : "Serial"}: ${listing.vin_serial || 'N/A'}\n`;
+      content += `   ${searchType === "vehicle" ? "Mileage" : "Hours"}: ${(listing.mileage_hours || 0).toLocaleString()}\n`;
+      content += `   Condition: ${listing.condition || 'N/A'} (${Math.round((listing.ai_scores?.condition_score || 0) * 100)}%)\n`;
       content += `   AI Score: ${Math.round((listing.ai_scores?.overall_score || 0) * 100)}%\n`;
-      content += `   Seller: ${listing.seller_name} (⭐ ${listing.seller_rating.toFixed(2)})\n`;
+      content += `   Seller: ${listing.seller_name || 'N/A'} (⭐ ${(listing.seller_rating || 0).toFixed(2)})\n`;
       if (listing.median_market_price) {
-        content += `   Market Price: $${listing.median_market_price.toLocaleString()}\n`;
-        content += `   Variance: ${listing.price_variance_pct > 0 ? "+" : ""}${listing.price_variance_pct.toFixed(1)}%\n`;
+        content += `   Market Price: $${(listing.median_market_price || 0).toLocaleString()}\n`;
+        content += `   Variance: ${(listing.price_variance_pct || 0) > 0 ? "+" : ""}${(listing.price_variance_pct || 0).toFixed(1)}%\n`;
       }
       if (listing.recommendation) {
         content += `   💡 ${listing.recommendation}\n`;
@@ -261,14 +261,14 @@ Make diverse listings with varying quality, prices, and locations.`,
       const overallBadge = getScoreBadge(listing.ai_scores?.overall_score || 0);
       html += `
         <div class="listing">
-          <h2>${idx + 1}. ${listing.year} ${listing.make} ${listing.model}</h2>
-          <div class="price">${listing.currency} $${listing.asking_price.toLocaleString()}</div>
-          ${listing.median_market_price ? `<div class="detail"><span class="label">Market Price:</span> $${listing.median_market_price.toLocaleString()} (${listing.price_variance_pct > 0 ? "+" : ""}${listing.price_variance_pct.toFixed(1)}% variance)</div>` : ""}
-          <div class="detail"><span class="label">${searchType === "vehicle" ? "VIN" : "Serial"}:</span> ${listing.vin_serial}</div>
-          <div class="detail"><span class="label">${searchType === "vehicle" ? "Mileage" : "Hours"}:</span> ${listing.mileage_hours.toLocaleString()}</div>
-          <div class="detail"><span class="label">Condition:</span> ${listing.condition}</div>
-          <div class="detail"><span class="label">Location:</span> ${listing.location_city}, ${listing.location_state}, ${listing.location_country} (${listing.distance_km} km)</div>
-          <div class="detail"><span class="label">Seller:</span> ${listing.seller_name} (${listing.seller_type}) - Rating: ${listing.seller_rating.toFixed(2)}/1.0</div>
+          <h2>${idx + 1}. ${listing.year || ''} ${listing.make || ''} ${listing.model || ''}</h2>
+          <div class="price">${listing.currency || 'USD'} $${(listing.asking_price || 0).toLocaleString()}</div>
+          ${listing.median_market_price ? `<div class="detail"><span class="label">Market Price:</span> $${(listing.median_market_price || 0).toLocaleString()} (${(listing.price_variance_pct || 0) > 0 ? "+" : ""}${(listing.price_variance_pct || 0).toFixed(1)}% variance)</div>` : ""}
+          <div class="detail"><span class="label">${searchType === "vehicle" ? "VIN" : "Serial"}:</span> ${listing.vin_serial || 'N/A'}</div>
+          <div class="detail"><span class="label">${searchType === "vehicle" ? "Mileage" : "Hours"}:</span> ${(listing.mileage_hours || 0).toLocaleString()}</div>
+          <div class="detail"><span class="label">Condition:</span> ${listing.condition || 'N/A'}</div>
+          <div class="detail"><span class="label">Location:</span> ${listing.location_city || ''}, ${listing.location_state || ''}, ${listing.location_country || ''} (${listing.distance_km || 0} km)</div>
+          <div class="detail"><span class="label">Seller:</span> ${listing.seller_name || 'N/A'} (${listing.seller_type || 'N/A'}) - Rating: ${(listing.seller_rating || 0).toFixed(2)}/1.0</div>
           <div class="detail"><span class="label">AI Overall Score:</span> <span class="badge score-${overallBadge.label.toLowerCase()}">${Math.round((listing.ai_scores?.overall_score || 0) * 100)}% - ${overallBadge.label}</span></div>
           ${listing.recommendation ? `<div class="recommendation"><strong>AI Recommendation:</strong> ${listing.recommendation}</div>` : ""}
           ${listing.risk_flags?.length > 0 ? `<div class="risk"><strong>⚠️ Risk Flags:</strong> ${listing.risk_flags.join(", ")}</div>` : ""}
@@ -398,29 +398,29 @@ Make diverse listings with varying quality, prices, and locations.`,
           </style>
         </head>
         <body>
-          <h1>${listing.year} ${listing.make} ${listing.model}</h1>
-          <div class="price">${listing.currency} $${listing.asking_price.toLocaleString()}</div>
+          <h1>${listing.year || ''} ${listing.make || ''} ${listing.model || ''}</h1>
+          <div class="price">${listing.currency || 'USD'} $${(listing.asking_price || 0).toLocaleString()}</div>
           
           <div class="section">
             <div class="section-title">Vehicle Details</div>
-            <div class="detail"><span class="label">${searchType === "vehicle" ? "VIN" : "Serial"}:</span> ${listing.vin_serial}</div>
-            <div class="detail"><span class="label">${searchType === "vehicle" ? "Mileage" : "Hours"}:</span> ${listing.mileage_hours.toLocaleString()}</div>
-            <div class="detail"><span class="label">Condition:</span> ${listing.condition}</div>
-            ${listing.median_market_price ? `<div class="detail"><span class="label">Market Price:</span> $${listing.median_market_price.toLocaleString()} (${listing.price_variance_pct > 0 ? "+" : ""}${listing.price_variance_pct.toFixed(1)}% variance)</div>` : ""}
+            <div class="detail"><span class="label">${searchType === "vehicle" ? "VIN" : "Serial"}:</span> ${listing.vin_serial || 'N/A'}</div>
+            <div class="detail"><span class="label">${searchType === "vehicle" ? "Mileage" : "Hours"}:</span> ${(listing.mileage_hours || 0).toLocaleString()}</div>
+            <div class="detail"><span class="label">Condition:</span> ${listing.condition || 'N/A'}</div>
+            ${listing.median_market_price ? `<div class="detail"><span class="label">Market Price:</span> $${(listing.median_market_price || 0).toLocaleString()} (${(listing.price_variance_pct || 0) > 0 ? "+" : ""}${(listing.price_variance_pct || 0).toFixed(1)}% variance)</div>` : ""}
           </div>
 
           <div class="section">
             <div class="section-title">Location</div>
-            <div class="detail"><span class="label">City:</span> ${listing.location_city}, ${listing.location_state}</div>
-            <div class="detail"><span class="label">Country:</span> ${listing.location_country}</div>
-            <div class="detail"><span class="label">Distance:</span> ${listing.distance_km} km</div>
+            <div class="detail"><span class="label">City:</span> ${listing.location_city || ''}, ${listing.location_state || ''}</div>
+            <div class="detail"><span class="label">Country:</span> ${listing.location_country || 'N/A'}</div>
+            <div class="detail"><span class="label">Distance:</span> ${listing.distance_km || 0} km</div>
           </div>
 
           <div class="section">
             <div class="section-title">Seller Information</div>
-            <div class="detail"><span class="label">Name:</span> ${listing.seller_name}</div>
-            <div class="detail"><span class="label">Type:</span> ${listing.seller_type}</div>
-            <div class="detail"><span class="label">Rating:</span> ${listing.seller_rating.toFixed(2)}/1.0</div>
+            <div class="detail"><span class="label">Name:</span> ${listing.seller_name || 'N/A'}</div>
+            <div class="detail"><span class="label">Type:</span> ${listing.seller_type || 'N/A'}</div>
+            <div class="detail"><span class="label">Rating:</span> ${(listing.seller_rating || 0).toFixed(2)}/1.0</div>
           </div>
 
           <div class="section">
