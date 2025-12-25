@@ -43,6 +43,7 @@ import TrackShipment from './pages/TrackShipment';
 import UserManagement from './pages/UserManagement';
 import VehicleAnalytics from './pages/VehicleAnalytics';
 import Vehicles from './pages/Vehicles';
+import DispatchDashboard from './pages/DispatchDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -92,6 +93,7 @@ export const PAGES = {
     "UserManagement": UserManagement,
     "VehicleAnalytics": VehicleAnalytics,
     "Vehicles": Vehicles,
+    "DispatchDashboard": DispatchDashboard,
 }
 
 export const pagesConfig = {
