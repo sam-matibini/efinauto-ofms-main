@@ -77,9 +77,38 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.SalesInvoice.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: async (data) => {
+      const invoice = await base44.entities.SalesInvoice.create({ ...data, company_id: selectedCompanyId });
+      
+      // Create GL transaction for invoice (AR and revenue) when sent or paid
+      if (invoice.total_amount > 0 && (data.status === 'sent' || data.status === 'paid')) {
+        await base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: invoice.invoice_number,
+          transaction_type: 'service_revenue',
+          category: 'revenue',
+          amount: invoice.total_amount || 0,
+          account_code: '1100',
+          account_name: 'Accounts Receivable',
+          account_type: 'asset',
+          contra_account_code: '4200',
+          contra_account_name: 'Service Revenue',
+          reference_type: 'SalesInvoice',
+          reference_id: invoice.id,
+          reference_number: invoice.invoice_number,
+          customer_name: invoice.customer_name,
+          description: `Invoice for services: ${invoice.invoice_number}`,
+          transaction_date: invoice.invoice_date,
+          status: data.status === 'paid' ? 'completed' : 'pending',
+          tax_amount: invoice.tax_amount || 0
+        });
+      }
+      
+      return invoice;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setDialogOpen(false);
       setEditingInvoice(null);
       toast.success("Invoice created!");

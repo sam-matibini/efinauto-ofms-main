@@ -21,6 +21,42 @@ export default function PaymentsTab({ payments, selectedCompanyId }) {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const queryClient = useQueryClient();
 
+  const createMutation = useMutation({
+    mutationFn: async (data) => {
+      const payment = await base44.entities.PaymentReceived.create({ ...data, company_id: selectedCompanyId });
+      
+      // Create GL transaction for payment received
+      await base44.entities.Transaction.create({
+        company_id: selectedCompanyId,
+        transaction_number: payment.payment_number || `PMT-${payment.id.slice(0, 8)}`,
+        transaction_type: 'payment_received',
+        category: 'asset',
+        amount: payment.amount || 0,
+        account_code: '1000',
+        account_name: 'Cash',
+        account_type: 'asset',
+        contra_account_code: '1100',
+        contra_account_name: 'Accounts Receivable',
+        reference_type: 'PaymentReceived',
+        reference_id: payment.id,
+        reference_number: payment.payment_number,
+        customer_name: payment.customer_name,
+        description: `Payment received from ${payment.customer_name}${payment.invoice_number ? ` for Invoice ${payment.invoice_number}` : ''}`,
+        transaction_date: payment.payment_date,
+        payment_method: payment.payment_method,
+        status: 'completed'
+      });
+      
+      return payment;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      setDialogOpen(false);
+      toast.success("Payment recorded!");
+    },
+  });
+
   const { data: company } = useQuery({
     queryKey: ['company', selectedCompanyId],
     queryFn: async () => {

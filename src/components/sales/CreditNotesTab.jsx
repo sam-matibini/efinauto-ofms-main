@@ -18,6 +18,40 @@ export default function CreditNotesTab({ creditNotes, selectedCompanyId }) {
   const [sortOrder, setSortOrder] = useState("desc");
   const queryClient = useQueryClient();
 
+  const createMutation = useMutation({
+    mutationFn: async (data) => {
+      const credit = await base44.entities.CreditNote.create({ ...data, company_id: selectedCompanyId });
+      
+      // Create GL transaction for credit note (reduces AR)
+      await base44.entities.Transaction.create({
+        company_id: selectedCompanyId,
+        transaction_number: credit.credit_note_number || `CN-${credit.id.slice(0, 8)}`,
+        transaction_type: 'other_expense',
+        category: 'asset',
+        amount: -(credit.total_amount || 0),
+        account_code: '1100',
+        account_name: 'Accounts Receivable',
+        account_type: 'asset',
+        reference_type: 'CreditNote',
+        reference_id: credit.id,
+        reference_number: credit.credit_note_number,
+        customer_name: credit.customer_name,
+        description: `Credit note for ${credit.customer_name} - ${credit.reason}`,
+        transaction_date: credit.credit_date,
+        status: 'completed',
+        tax_amount: credit.tax_amount || 0
+      });
+      
+      return credit;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['creditNotes'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      setDialogOpen(false);
+      toast.success("Credit note created!");
+    },
+  });
+
   const filteredCreditNotes = creditNotes.filter(c =>
     c.credit_note_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.customer_name?.toLowerCase().includes(searchTerm.toLowerCase())
