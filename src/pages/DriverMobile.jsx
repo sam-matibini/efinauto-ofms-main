@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Navigation, MapPin, CheckCircle, Upload, Camera, AlertTriangle, Phone } from "lucide-react";
+import { Navigation, MapPin, CheckCircle, Upload, Camera, AlertTriangle, Phone, Clock, TrendingUp } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { predictShipmentETA, updateShipmentETA, calculateAverageSpeed } from "@/components/dispatch/AIETAPrediction";
 
 export default function DriverMobile() {
   const queryClient = useQueryClient();
@@ -45,6 +46,34 @@ export default function DriverMobile() {
       timestamp: new Date().toISOString()
     }),
     onError: () => console.error("Failed to record GPS point")
+  });
+
+  const { data: recentGPS = [] } = useQuery({
+    queryKey: ['recentGPS', activeShipment?.[0]?.id],
+    queryFn: () => base44.entities.GPSTrackingPoint.filter(
+      { shipment_id: activeShipment[0].id },
+      '-timestamp',
+      10
+    ),
+    enabled: !!activeShipment?.[0]?.id,
+    refetchInterval: 30000
+  });
+
+  const updateETAMutation = useMutation({
+    mutationFn: async () => {
+      const prediction = await predictShipmentETA(activeShipment[0], recentGPS);
+      if (prediction.success) {
+        await updateShipmentETA(activeShipment[0].id, prediction);
+      }
+      return prediction;
+    },
+    onSuccess: (prediction) => {
+      queryClient.invalidateQueries({ queryKey: ['activeShipment'] });
+      if (prediction.success) {
+        toast.success("ETA updated successfully");
+      }
+    },
+    onError: () => toast.error("Failed to update ETA")
   });
 
   useEffect(() => {
@@ -113,6 +142,40 @@ export default function DriverMobile() {
                     <AlertTriangle className="w-3 h-3 mr-1" />
                     HAZMAT - Follow Safety Protocols
                   </Badge>
+                )}
+
+                {activeShipment[0].estimated_arrival && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm font-semibold text-blue-900">AI Predicted ETA</span>
+                      </div>
+                      <Button
+                        onClick={() => updateETAMutation.mutate()}
+                        disabled={updateETAMutation.isPending}
+                        size="sm"
+                        variant="outline"
+                        className="h-7"
+                      >
+                        <TrendingUp className="w-3 h-3 mr-1" />
+                        Update
+                      </Button>
+                    </div>
+                    <p className="font-bold text-lg text-blue-700">
+                      {new Date(activeShipment[0].estimated_arrival).toLocaleString()}
+                    </p>
+                    {activeShipment[0].eta_confidence && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        Confidence: {Math.round(activeShipment[0].eta_confidence * 100)}%
+                      </p>
+                    )}
+                    {recentGPS.length > 0 && (
+                      <p className="text-xs text-gray-600 mt-1">
+                        Avg Speed: {calculateAverageSpeed(recentGPS).toFixed(1)} km/h
+                      </p>
+                    )}
+                  </div>
                 )}
 
                 <div>
