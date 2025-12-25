@@ -184,7 +184,11 @@ export function loadSavedPricing() {
   return { subscriptionPlans: defaultSubscriptionPlans, moduleCategories: defaultModuleCategories };
 }
 
-// Save pricing to localStorage
+// Save pricing to localStorage with version for migration support
 export function savePricing(subscriptionPlans, moduleCategories) {
-  localStorage.setItem('customPricing', JSON.stringify({ subscriptionPlans, moduleCategories }));
+  localStorage.setItem('customPricing', JSON.stringify({ 
+    version: 2,
+    subscriptionPlans, 
+    moduleCategories 
+  }));
 }
