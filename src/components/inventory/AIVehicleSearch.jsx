@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sparkles, Search, TrendingDown, TrendingUp, ShieldCheck, AlertTriangle, FileText, Loader2, MapPin, Globe, ChevronDown, ChevronUp, Filter, Truck, Car } from "lucide-react";
+import { Sparkles, Search, TrendingDown, TrendingUp, ShieldCheck, AlertTriangle, FileText, Loader2, MapPin, Globe, ChevronDown, ChevronUp, Filter, Truck, Car, Printer, Download, Mail, MessageCircle, Share2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -22,6 +22,8 @@ export default function AIVehicleSearch({ onSelectListing }) {
   const [yearRange, setYearRange] = useState({ min: "", max: "" });
   const [maxDistance, setMaxDistance] = useState("500");
   const [showFilters, setShowFilters] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailAddress, setEmailAddress] = useState("");
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -151,6 +153,179 @@ Make diverse listings with varying quality, prices, and locations.`,
     if (score >= 0.6) return { color: "bg-blue-100 text-blue-800", label: "Good" };
     if (score >= 0.4) return { color: "bg-yellow-100 text-yellow-800", label: "Fair" };
     return { color: "bg-red-100 text-red-800", label: "Poor" };
+  };
+
+  const generateShareContent = () => {
+    let content = `🔍 ${searchType === "vehicle" ? "VEHICLE" : "EQUIPMENT"} SEARCH RESULTS\n`;
+    content += `Search: ${searchQuery}\n`;
+    content += `Scope: ${geoScope.toUpperCase()}\n`;
+    content += `Results: ${filteredListings.length}\n\n`;
+    content += "━━━━━━━━━━━━━━━━━━━━━━\n\n";
+
+    filteredListings.forEach((listing, idx) => {
+      content += `${idx + 1}. ${listing.year} ${listing.make} ${listing.model}\n`;
+      content += `   ${listing.currency} $${listing.asking_price.toLocaleString()}\n`;
+      content += `   📍 ${listing.location_city}, ${listing.location_state} (${listing.distance_km} km)\n`;
+      content += `   ${searchType === "vehicle" ? "VIN" : "Serial"}: ${listing.vin_serial}\n`;
+      content += `   ${searchType === "vehicle" ? "Mileage" : "Hours"}: ${listing.mileage_hours.toLocaleString()}\n`;
+      content += `   Condition: ${listing.condition} (${Math.round((listing.ai_scores?.condition_score || 0) * 100)}%)\n`;
+      content += `   AI Score: ${Math.round((listing.ai_scores?.overall_score || 0) * 100)}%\n`;
+      content += `   Seller: ${listing.seller_name} (⭐ ${listing.seller_rating.toFixed(2)})\n`;
+      if (listing.median_market_price) {
+        content += `   Market Price: $${listing.median_market_price.toLocaleString()}\n`;
+        content += `   Variance: ${listing.price_variance_pct > 0 ? "+" : ""}${listing.price_variance_pct.toFixed(1)}%\n`;
+      }
+      if (listing.recommendation) {
+        content += `   💡 ${listing.recommendation}\n`;
+      }
+      content += `\n`;
+    });
+
+    content += "━━━━━━━━━━━━━━━━━━━━━━\n";
+    content += "Powered by eFinAuto OFMS AI Search Engine\n";
+    return content;
+  };
+
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    let html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Search Results - ${searchQuery}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 40px; }
+            h1 { color: #1e293b; margin-bottom: 10px; }
+            .meta { color: #666; margin-bottom: 30px; }
+            .listing { border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; border-radius: 8px; }
+            .listing h2 { margin: 0 0 10px 0; color: #1e293b; }
+            .price { font-size: 24px; font-weight: bold; color: #2563eb; }
+            .detail { margin: 5px 0; font-size: 14px; }
+            .label { color: #666; }
+            .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 5px; }
+            .score-excellent { background: #d1fae5; color: #065f46; }
+            .score-good { background: #dbeafe; color: #1e40af; }
+            .score-fair { background: #fef3c7; color: #92400e; }
+            .recommendation { background: #dbeafe; padding: 10px; border-radius: 4px; margin-top: 10px; }
+            .risk { background: #fee2e2; padding: 10px; border-radius: 4px; margin-top: 10px; color: #991b1b; }
+          </style>
+        </head>
+        <body>
+          <h1>${searchType === "vehicle" ? "Vehicle" : "Equipment"} Search Results</h1>
+          <div class="meta">
+            <strong>Search:</strong> ${searchQuery}<br>
+            <strong>Scope:</strong> ${geoScope.toUpperCase()}<br>
+            <strong>Results:</strong> ${filteredListings.length}<br>
+            <strong>Generated:</strong> ${new Date().toLocaleString()}
+          </div>
+    `;
+
+    filteredListings.forEach((listing, idx) => {
+      const overallBadge = getScoreBadge(listing.ai_scores?.overall_score || 0);
+      html += `
+        <div class="listing">
+          <h2>${idx + 1}. ${listing.year} ${listing.make} ${listing.model}</h2>
+          <div class="price">${listing.currency} $${listing.asking_price.toLocaleString()}</div>
+          ${listing.median_market_price ? `<div class="detail"><span class="label">Market Price:</span> $${listing.median_market_price.toLocaleString()} (${listing.price_variance_pct > 0 ? "+" : ""}${listing.price_variance_pct.toFixed(1)}% variance)</div>` : ""}
+          <div class="detail"><span class="label">${searchType === "vehicle" ? "VIN" : "Serial"}:</span> ${listing.vin_serial}</div>
+          <div class="detail"><span class="label">${searchType === "vehicle" ? "Mileage" : "Hours"}:</span> ${listing.mileage_hours.toLocaleString()}</div>
+          <div class="detail"><span class="label">Condition:</span> ${listing.condition}</div>
+          <div class="detail"><span class="label">Location:</span> ${listing.location_city}, ${listing.location_state}, ${listing.location_country} (${listing.distance_km} km)</div>
+          <div class="detail"><span class="label">Seller:</span> ${listing.seller_name} (${listing.seller_type}) - Rating: ${listing.seller_rating.toFixed(2)}/1.0</div>
+          <div class="detail"><span class="label">AI Overall Score:</span> <span class="badge score-${overallBadge.label.toLowerCase()}">${Math.round((listing.ai_scores?.overall_score || 0) * 100)}% - ${overallBadge.label}</span></div>
+          ${listing.recommendation ? `<div class="recommendation"><strong>AI Recommendation:</strong> ${listing.recommendation}</div>` : ""}
+          ${listing.risk_flags?.length > 0 ? `<div class="risk"><strong>⚠️ Risk Flags:</strong> ${listing.risk_flags.join(", ")}</div>` : ""}
+        </div>
+      `;
+    });
+
+    html += `
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 12px;">
+            Powered by eFinAuto OFMS AI Search Engine
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 250);
+    toast.success("Opening print dialog...");
+  };
+
+  const handleDownloadPDF = async () => {
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const jsPDF = (await import('jspdf')).default;
+
+      const element = document.getElementById('search-results-content');
+      const canvas = await html2canvas(element, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 0;
+      
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= 297;
+      
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= 297;
+      }
+      
+      pdf.save(`search-results-${Date.now()}.pdf`);
+      toast.success("PDF downloaded successfully");
+    } catch (error) {
+      toast.error("Failed to generate PDF");
+      console.error(error);
+    }
+  };
+
+  const handleEmailShare = async () => {
+    if (!emailAddress) {
+      setEmailDialogOpen(true);
+      return;
+    }
+
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: emailAddress,
+        subject: `${searchType === "vehicle" ? "Vehicle" : "Equipment"} Search Results - ${searchQuery}`,
+        body: `<html><body><pre style="font-family: Arial, sans-serif; white-space: pre-wrap;">${generateShareContent()}</pre></body></html>`
+      });
+
+      toast.success(`Results sent to ${emailAddress}`);
+      setEmailDialogOpen(false);
+      setEmailAddress("");
+    } catch (error) {
+      toast.error("Failed to send email");
+      console.error(error);
+    }
+  };
+
+  const handleWhatsAppShare = () => {
+    const message = encodeURIComponent(generateShareContent());
+    window.open(`https://wa.me/?text=${message}`, '_blank');
+    toast.success("Opening WhatsApp...");
+  };
+
+  const handleGoogleChatShare = () => {
+    const message = encodeURIComponent(generateShareContent());
+    window.open(`https://mail.google.com/chat/?text=${message}`, '_blank');
+    toast.success("Opening Google Chat...");
+  };
+
+  const handleSMSShare = () => {
+    const message = encodeURIComponent(generateShareContent().substring(0, 500) + "..."); // SMS character limit
+    window.open(`sms:?body=${message}`, '_blank');
+    toast.success("Opening SMS...");
   };
 
   const filteredListings = listings.filter(listing => {
@@ -312,21 +487,48 @@ Make diverse listings with varying quality, prices, and locations.`,
         </div>
 
         {listings.length > 0 && (
-          <div className="space-y-4">
+          <div className="space-y-4" id="search-results-content">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <p className="text-sm text-gray-600">
                 Found {listings.length} {searchType === "vehicle" ? "vehicles" : "equipment items"} • Showing {filteredListings.length}
               </p>
-              <Tabs value={viewMode} onValueChange={setViewMode} className="w-auto">
-                <TabsList className="grid grid-cols-5 w-auto">
-                  <TabsTrigger value="all" className="text-xs">All Results</TabsTrigger>
-                  <TabsTrigger value="best_price" className="text-xs">Best Deals</TabsTrigger>
-                  <TabsTrigger value="best_condition" className="text-xs">Best Condition</TabsTrigger>
-                  <TabsTrigger value="closest" className="text-xs">Closest</TabsTrigger>
-                  <TabsTrigger value="top_rated" className="text-xs">Top Sellers</TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <div className="flex gap-2 flex-wrap">
+                <Button variant="outline" size="sm" onClick={handlePrint}>
+                  <Printer className="w-4 h-4 mr-2" />
+                  Print
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
+                  <Download className="w-4 h-4 mr-2" />
+                  PDF
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setEmailDialogOpen(true)}>
+                  <Mail className="w-4 h-4 mr-2" />
+                  Email
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleWhatsAppShare} className="bg-green-50 hover:bg-green-100">
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  WhatsApp
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleGoogleChatShare}>
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Google Chat
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleSMSShare}>
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  SMS
+                </Button>
+              </div>
             </div>
+            
+            <Tabs value={viewMode} onValueChange={setViewMode} className="w-auto">
+              <TabsList className="grid grid-cols-5 w-auto">
+                <TabsTrigger value="all" className="text-xs">All Results</TabsTrigger>
+                <TabsTrigger value="best_price" className="text-xs">Best Deals</TabsTrigger>
+                <TabsTrigger value="best_condition" className="text-xs">Best Condition</TabsTrigger>
+                <TabsTrigger value="closest" className="text-xs">Closest</TabsTrigger>
+                <TabsTrigger value="top_rated" className="text-xs">Top Sellers</TabsTrigger>
+              </TabsList>
+            </Tabs>
 
             {filteredListings.map((listing, idx) => {
               const overallBadge = getScoreBadge(listing.ai_scores?.overall_score || 0);
@@ -695,6 +897,35 @@ Make diverse listings with varying quality, prices, and locations.`,
           </div>
         )}
       </CardContent>
+
+      {/* Email Dialog */}
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Email Search Results</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Email Address</Label>
+              <Input
+                type="email"
+                placeholder="Enter email address"
+                value={emailAddress}
+                onChange={(e) => setEmailAddress(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleEmailShare} className="bg-blue-600 hover:bg-blue-700">
+                <Mail className="w-4 h-4 mr-2" />
+                Send Email
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
