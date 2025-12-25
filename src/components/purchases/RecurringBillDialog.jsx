@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
+import VendorSelector from "../shared/VendorSelector";
 
 export default function RecurringBillDialog({ open, onClose, recurringBill, onSave, isSaving }) {
   const [formData, setFormData] = useState({
     template_name: "",
+    vendor_id: null,
     vendor_name: "",
     line_items: [{ description: "", quantity: 1, unit_price: 0, total: 0 }],
     amount: 0,
@@ -93,12 +95,10 @@ export default function RecurringBillDialog({ open, onClose, recurringBill, onSa
               />
             </div>
             <div>
-              <Label>Vendor Name *</Label>
-              <Input
-                value={formData.vendor_name}
-                onChange={(e) => setFormData({ ...formData, vendor_name: e.target.value })}
-                placeholder="Enter vendor name"
-                required
+              <Label>Select Vendor *</Label>
+              <VendorSelector
+                value={formData.vendor_id}
+                onSelect={(vendor) => setFormData({ ...formData, vendor_id: vendor.id, vendor_name: vendor.vendor_name })}
               />
             </div>
           </div>

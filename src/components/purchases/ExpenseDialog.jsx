@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import VendorSelector from "../shared/VendorSelector";
 
 export default function ExpenseDialog({ open, onClose, expense, onSave, isSaving }) {
   const [formData, setFormData] = useState({
+    vendor_id: null,
     vendor_name: "",
     category: "other",
     description: "",
@@ -61,11 +63,10 @@ export default function ExpenseDialog({ open, onClose, expense, onSave, isSaving
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Vendor Name</Label>
-              <Input
-                value={formData.vendor_name}
-                onChange={(e) => setFormData({ ...formData, vendor_name: e.target.value })}
-                placeholder="Enter vendor name"
+              <Label>Select Vendor</Label>
+              <VendorSelector
+                value={formData.vendor_id}
+                onSelect={(vendor) => setFormData({ ...formData, vendor_id: vendor.id, vendor_name: vendor.vendor_name })}
               />
             </div>
             <div>
