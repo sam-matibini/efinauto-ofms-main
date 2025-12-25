@@ -7,7 +7,7 @@ import {
   Car, Wrench, Package, Ship, DollarSign, Users, Trash2, 
   ArrowRight, ArrowDown, Database, CheckCircle, AlertCircle,
   FileText, CreditCard, Receipt, Building2, Briefcase, BarChart3, Landmark,
-  FolderKanban
+  FolderKanban, Truck, Navigation
 } from "lucide-react";
 
 const modules = [
@@ -150,6 +150,21 @@ const modules = [
       { action: 'Project Overhead', type: 'project_overhead', debit: 'Project Overhead (6160)', credit: 'Accounts Payable (2000)' },
       { action: 'Work in Progress', type: 'wip', debit: 'Work in Progress (1250)', credit: 'Project Costs Applied' }
     ]
+  },
+  {
+    id: 'dispatch',
+    name: 'Dispatch & Local Logistics',
+    icon: Truck,
+    color: 'bg-violet-500',
+    borderColor: 'border-violet-500',
+    transactions: [
+      { action: 'Local Shipment Created', type: 'shipment_revenue', debit: 'Accounts Receivable (1100)', credit: 'Local Freight Revenue (4200)' },
+      { action: '3rd Party Carrier Fee', type: 'carrier_expense', debit: 'Carrier Service Expense (5450)', credit: 'Accounts Payable (2000)' },
+      { action: 'Driver Performance Tracking', type: 'operational_metric', debit: 'N/A', credit: 'Real-time GPS and analytics' },
+      { action: 'HAZMAT Compliance', type: 'compliance_check', debit: 'N/A', credit: 'Automated checklist validation' },
+      { action: 'Proof of Delivery', type: 'pod_capture', debit: 'N/A', credit: 'Digital signature & photo capture' },
+      { action: 'Fleet Management', type: 'fleet_tracking', debit: 'N/A', credit: 'Vehicle & driver assignment' }
+    ]
   }
 ];
 
@@ -195,6 +210,7 @@ const glAccounts = [
   { code: '5400', name: 'Shipping & Freight Expense', type: 'Expense' },
   { code: '5410', name: 'Customs & Duties Expense', type: 'Expense' },
   { code: '5420', name: 'Insurance Expense (Shipping)', type: 'Expense' },
+  { code: '5450', name: 'Carrier Service Expense (3rd Party)', type: 'Expense' },
   { code: '5500', name: 'Inventory Shrinkage', type: 'Expense' },
   { code: '5510', name: 'Inventory Write-Off', type: 'Expense' },
   // Operating Expenses (6000-6999)
