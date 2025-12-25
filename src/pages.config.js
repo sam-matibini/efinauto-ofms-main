@@ -12,6 +12,7 @@ import CustomerTracking from './pages/CustomerTracking';
 import Customers from './pages/Customers';
 import Dashboard from './pages/Dashboard';
 import DispatchDashboard from './pages/DispatchDashboard';
+import DriverMobile from './pages/DriverMobile';
 import EmployeePortal from './pages/EmployeePortal';
 import FinancialAssistant from './pages/FinancialAssistant';
 import FinancialReports from './pages/FinancialReports';
@@ -44,7 +45,6 @@ import TrackShipment from './pages/TrackShipment';
 import UserManagement from './pages/UserManagement';
 import VehicleAnalytics from './pages/VehicleAnalytics';
 import Vehicles from './pages/Vehicles';
-import DriverMobile from './pages/DriverMobile';
 import __Layout from './Layout.jsx';
 
 
@@ -63,6 +63,7 @@ export const PAGES = {
     "Customers": Customers,
     "Dashboard": Dashboard,
     "DispatchDashboard": DispatchDashboard,
+    "DriverMobile": DriverMobile,
     "EmployeePortal": EmployeePortal,
     "FinancialAssistant": FinancialAssistant,
     "FinancialReports": FinancialReports,
@@ -95,7 +96,6 @@ export const PAGES = {
     "UserManagement": UserManagement,
     "VehicleAnalytics": VehicleAnalytics,
     "Vehicles": Vehicles,
-    "DriverMobile": DriverMobile,
 }
 
 export const pagesConfig = {

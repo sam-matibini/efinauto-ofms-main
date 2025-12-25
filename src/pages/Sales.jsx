@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, DollarSign, TrendingUp, ChevronDown, ChevronUp, FileText, Users, FileCheck, Receipt, RefreshCw, CreditCard, FileX, Mail, Edit, Trash2, LayoutGrid, List, Download, FileSpreadsheet, Loader2, XCircle } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, ChevronDown, ChevronUp, FileText, Users, FileCheck, Receipt, RefreshCw, CreditCard, FileX, Mail, Edit, Trash2, LayoutGrid, List, Download, FileSpreadsheet, Loader2, XCircle, Ship } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   AlertDialog,
