@@ -334,7 +334,7 @@ Make diverse listings with varying quality, prices, and locations.`,
 
     try {
       const subject = listing 
-        ? `${listing.year} ${listing.make} ${listing.model} - Listing`
+        ? `${listing.year || ''} ${listing.make || ''} ${listing.model || ''} - Listing`
         : `${searchType === "vehicle" ? "Vehicle" : "Equipment"} Search Results - ${searchQuery}`;
       
       await base44.integrations.Core.SendEmail({
@@ -670,27 +670,27 @@ Make diverse listings with varying quality, prices, and locations.`,
                       {/* Header */}
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-bold text-lg">
-                              {listing.year} {listing.make} {listing.model}
-                            </h3>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-bold text-lg">
+                            {listing.year || ''} {listing.make || ''} {listing.model || ''}
+                          </h3>
                             {idx === 0 && (
                               <Badge className="bg-yellow-100 text-yellow-800">
                                 ⭐ Top AI Match
                               </Badge>
                             )}
                             <Badge className="bg-gray-100 text-gray-800 text-xs">
-                              {listing.category}
+                              {listing.category || 'N/A'}
                             </Badge>
                             <Badge className="bg-blue-100 text-blue-800 text-xs">
-                              {listing.source_type}
+                              {listing.source_type || 'N/A'}
                             </Badge>
                           </div>
                           <p className="text-xs text-gray-500 font-mono mt-1">
-                            {searchType === "vehicle" ? "VIN" : "Serial"}: {listing.vin_serial}
+                            {searchType === "vehicle" ? "VIN" : "Serial"}: {listing.vin_serial || 'N/A'}
                           </p>
                           <p className="text-xs text-gray-600 mt-1">
-                            📍 {listing.location_city}, {listing.location_state}, {listing.location_country} • {listing.distance_km} km away
+                            📍 {listing.location_city || ''}, {listing.location_state || ''}, {listing.location_country || ''} • {listing.distance_km || 0} km away
                           </p>
                         </div>
                         <div className="text-right">
