@@ -87,9 +87,39 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.SalesInvoice.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const invoicesData = await base44.entities.SalesInvoice.filter({ id });
+      const oldInvoice = invoicesData[0];
+      const updatedInvoice = await base44.entities.SalesInvoice.update(id, data);
+      
+      // If status changed to paid, create payment transaction
+      if (data.status === 'paid' && oldInvoice?.status !== 'paid') {
+        await base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: `PMT-${id.slice(0, 8)}`,
+          transaction_type: 'payment_received',
+          category: 'asset',
+          amount: data.total_amount || 0,
+          account_code: '1000',
+          account_name: 'Cash',
+          account_type: 'asset',
+          contra_account_code: '1100',
+          contra_account_name: 'Accounts Receivable',
+          reference_type: 'SalesInvoice',
+          reference_id: id,
+          reference_number: data.invoice_number,
+          customer_name: data.customer_name,
+          description: `Payment received for invoice: ${data.invoice_number}`,
+          transaction_date: new Date().toISOString().split('T')[0],
+          status: 'completed'
+        });
+      }
+      
+      return updatedInvoice;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setDialogOpen(false);
       setEditingInvoice(null);
       toast.success("Invoice updated!");

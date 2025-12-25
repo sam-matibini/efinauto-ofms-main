@@ -14,9 +14,34 @@ export default function VendorCreditsTab({ vendorCredits, selectedCompanyId }) {
   const [editingCredit, setEditingCredit] = useState(null);
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.VendorCredit.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: async (data) => {
+      const credit = await base44.entities.VendorCredit.create({ ...data, company_id: selectedCompanyId });
+      
+      // Create GL transaction for vendor credit (reduces AP)
+      await base44.entities.Transaction.create({
+        company_id: selectedCompanyId,
+        transaction_number: credit.credit_number || `VCREDIT-${credit.id.slice(0, 8)}`,
+        transaction_type: 'other_income',
+        category: 'liability',
+        amount: credit.total_amount || 0,
+        account_code: '2000',
+        account_name: 'Accounts Payable',
+        account_type: 'liability',
+        reference_type: 'VendorCredit',
+        reference_id: credit.id,
+        reference_number: credit.credit_number,
+        customer_name: credit.vendor_name,
+        description: `Vendor credit from ${credit.vendor_name} - ${credit.reason}`,
+        transaction_date: credit.credit_date,
+        status: 'completed',
+        tax_amount: credit.tax_amount || 0
+      });
+      
+      return credit;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendorCredits'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setDialogOpen(false);
       setEditingCredit(null);
       toast.success("Vendor credit created!");

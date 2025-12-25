@@ -14,9 +14,35 @@ export default function ExpensesTab({ expenses, selectedCompanyId }) {
   const [editingExpense, setEditingExpense] = useState(null);
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Expense.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: async (data) => {
+      const expense = await base44.entities.Expense.create({ ...data, company_id: selectedCompanyId });
+      
+      // Create GL transaction for expense
+      await base44.entities.Transaction.create({
+        company_id: selectedCompanyId,
+        transaction_number: expense.expense_number || `EXP-${expense.id.slice(0, 8)}`,
+        transaction_type: 'overhead_expense',
+        category: 'expense',
+        amount: expense.total_amount || expense.amount || 0,
+        account_code: '6000',
+        account_name: 'Operating Expense',
+        account_type: 'expense',
+        reference_type: 'Expense',
+        reference_id: expense.id,
+        reference_number: expense.expense_number,
+        customer_name: expense.vendor_name,
+        description: `Expense: ${expense.category?.replace(/_/g, ' ')} - ${expense.description || 'N/A'}`,
+        transaction_date: expense.expense_date,
+        payment_method: expense.payment_method,
+        status: expense.status === 'paid' ? 'completed' : 'pending',
+        tax_amount: expense.tax_amount || 0
+      });
+      
+      return expense;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setDialogOpen(false);
       setEditingExpense(null);
       toast.success("Expense created!");

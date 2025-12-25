@@ -17,9 +17,34 @@ export default function BillsTab({ bills, selectedCompanyId, company }) {
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Bill.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: async (data) => {
+      const bill = await base44.entities.Bill.create({ ...data, company_id: selectedCompanyId });
+      
+      // Create AP transaction for bill
+      await base44.entities.Transaction.create({
+        company_id: selectedCompanyId,
+        transaction_number: bill.bill_number || `BILL-${bill.id.slice(0, 8)}`,
+        transaction_type: 'overhead_expense',
+        category: 'liability',
+        amount: bill.total_amount || 0,
+        account_code: '2000',
+        account_name: 'Accounts Payable',
+        account_type: 'liability',
+        reference_type: 'Bill',
+        reference_id: bill.id,
+        reference_number: bill.bill_number,
+        customer_name: bill.vendor_name,
+        description: `Bill from ${bill.vendor_name}`,
+        transaction_date: bill.bill_date,
+        status: bill.status === 'paid' ? 'completed' : 'pending',
+        tax_amount: bill.tax_amount || 0
+      });
+      
+      return bill;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setDialogOpen(false);
       setEditingBill(null);
       toast.success("Bill created!");
@@ -27,9 +52,37 @@ export default function BillsTab({ bills, selectedCompanyId, company }) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Bill.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const bills = await base44.entities.Bill.filter({ id });
+      const oldBill = bills[0];
+      const updatedBill = await base44.entities.Bill.update(id, data);
+      
+      // If bill status changed to paid, create payment transaction
+      if (data.status === 'paid' && oldBill?.status !== 'paid') {
+        await base44.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: `PMTOUT-${id.slice(0, 8)}`,
+          transaction_type: 'payment_made',
+          category: 'asset',
+          amount: data.total_amount || 0,
+          account_code: '1000',
+          account_name: 'Cash',
+          account_type: 'asset',
+          reference_type: 'Bill',
+          reference_id: id,
+          reference_number: data.bill_number,
+          customer_name: data.vendor_name,
+          description: `Payment for bill: ${data.bill_number}`,
+          transaction_date: new Date().toISOString().split('T')[0],
+          status: 'completed'
+        });
+      }
+      
+      return updatedBill;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setDialogOpen(false);
       setEditingBill(null);
       toast.success("Bill updated!");
