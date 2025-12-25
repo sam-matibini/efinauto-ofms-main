@@ -3,15 +3,38 @@ import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Eye } from "lucide-react";
+import { Plus, Trash2, Eye, Edit } from "lucide-react";
 import DocumentViewer from "../shared/DocumentViewer";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import BillDialog from "./BillDialog";
 
 export default function BillsTab({ bills, selectedCompanyId, company }) {
   const [viewerOpen, setViewerOpen] = React.useState(false);
   const [selectedBill, setSelectedBill] = React.useState(null);
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [editingBill, setEditingBill] = React.useState(null);
   const queryClient = useQueryClient();
+
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.Bill.create({ ...data, company_id: selectedCompanyId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      setDialogOpen(false);
+      setEditingBill(null);
+      toast.success("Bill created!");
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Bill.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      setDialogOpen(false);
+      setEditingBill(null);
+      toast.success("Bill updated!");
+    },
+  });
 
   const handleViewBill = (bill) => {
     setSelectedBill(bill);
@@ -39,7 +62,7 @@ export default function BillsTab({ bills, selectedCompanyId, company }) {
     <>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Bills</h2>
-        <Button className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={() => { setEditingBill(null); setDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
           <Plus className="w-4 h-4 mr-2" />
           New Bill
         </Button>
@@ -66,6 +89,10 @@ export default function BillsTab({ bills, selectedCompanyId, company }) {
                   <p className="text-2xl font-bold text-red-600">${bill.total_amount?.toLocaleString()}</p>
                   <p className="text-sm text-gray-500">Paid: ${bill.amount_paid?.toLocaleString()}</p>
                   <div className="flex gap-2 mt-2">
+                    <Button variant="outline" size="sm" onClick={() => { setEditingBill(bill); setDialogOpen(true); }}>
+                      <Edit className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => handleViewBill(bill)}>
                       <Eye className="w-4 h-4 mr-1" />
                       View
@@ -81,6 +108,20 @@ export default function BillsTab({ bills, selectedCompanyId, company }) {
           </Card>
         ))}
       </div>
+
+      <BillDialog
+        open={dialogOpen}
+        onClose={() => { setDialogOpen(false); setEditingBill(null); }}
+        bill={editingBill}
+        onSave={(data) => {
+          if (editingBill) {
+            updateMutation.mutate({ id: editingBill.id, data });
+          } else {
+            createMutation.mutate(data);
+          }
+        }}
+        isSaving={createMutation.isPending || updateMutation.isPending}
+      />
 
       <DocumentViewer
         open={viewerOpen}

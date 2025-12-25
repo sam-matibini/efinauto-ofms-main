@@ -3,12 +3,35 @@ import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import ExpenseDialog from "./ExpenseDialog";
 
 export default function ExpensesTab({ expenses, selectedCompanyId }) {
   const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState(null);
+
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.Expense.create({ ...data, company_id: selectedCompanyId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      setDialogOpen(false);
+      setEditingExpense(null);
+      toast.success("Expense created!");
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Expense.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      setDialogOpen(false);
+      setEditingExpense(null);
+      toast.success("Expense updated!");
+    },
+  });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Expense.delete(id),
@@ -41,7 +64,7 @@ export default function ExpensesTab({ expenses, selectedCompanyId }) {
     <>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Expenses</h2>
-        <Button className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={() => { setEditingExpense(null); setDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
           <Plus className="w-4 h-4 mr-2" />
           New Expense
         </Button>
@@ -65,16 +88,36 @@ export default function ExpensesTab({ expenses, selectedCompanyId }) {
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-red-600">${expense.total_amount?.toLocaleString()}</p>
-                  <Button variant="outline" size="sm" className="mt-2 text-red-600" onClick={() => deleteMutation.mutate(expense.id)}>
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </Button>
+                  <div className="flex gap-2 mt-2">
+                    <Button variant="outline" size="sm" onClick={() => { setEditingExpense(expense); setDialogOpen(true); }}>
+                      <Edit className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
+                    <Button variant="outline" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(expense.id)}>
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      <ExpenseDialog
+        open={dialogOpen}
+        onClose={() => { setDialogOpen(false); setEditingExpense(null); }}
+        expense={editingExpense}
+        onSave={(data) => {
+          if (editingExpense) {
+            updateMutation.mutate({ id: editingExpense.id, data });
+          } else {
+            createMutation.mutate(data);
+          }
+        }}
+        isSaving={createMutation.isPending || updateMutation.isPending}
+      />
     </>
   );
 }
