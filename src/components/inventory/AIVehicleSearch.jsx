@@ -692,6 +692,12 @@ Make diverse listings with varying quality, prices, and locations.`,
                           <p className="text-xs text-gray-600 mt-1">
                             📍 {listing.location_city || ''}, {listing.location_state || ''}, {listing.location_country || ''} • {listing.distance_km || 0} km away
                           </p>
+                          <div className="mt-2 pt-2 border-t">
+                            <p className="text-xs font-semibold text-gray-700">👤 Seller: {listing.seller_name || 'N/A'}</p>
+                            {listing.seller_contact && (
+                              <p className="text-xs text-gray-600 mt-0.5">📞 {listing.seller_contact}</p>
+                            )}
+                          </div>
                         </div>
                         <div className="text-right">
                           <p className="text-2xl font-bold text-blue-600">
