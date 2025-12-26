@@ -146,7 +146,7 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
 
         <div className="space-y-6">
           <div className="flex items-center gap-2">
-            <Badge className={statusColors[order.export_status]} className="text-sm">
+            <Badge className={`${statusColors[order.export_status]} text-sm`}>
               {order.export_status?.replace(/_/g, ' ').toUpperCase()}
             </Badge>
             {order.locked && (

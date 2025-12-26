@@ -30,7 +30,7 @@ import AIVehicleSearchLocal from "../components/vehicles/AIVehicleSearchLocal";
 import AIVehicleSearchCanada from "../components/vehicles/AIVehicleSearchCanada";
 import AIVehicleSearchUSA from "../components/vehicles/AIVehicleSearchUSA";
 import AIVehicleSearchMarketplace from "../components/vehicles/AIVehicleSearchMarketplace";
-import VehicleBulkImport from "../components/vehicles/VehicleBulkImport";
+import VehicleBulkImportDialog from "../components/vehicles/VehicleBulkImportDialog";
 import AIVINScanner from "../components/vehicles/AIVINScanner";
 import AIMileageScanner from "../components/vehicles/AIMileageScanner";
 import AIInventoryInsights from "@/components/shared/AIInventoryInsights";
@@ -690,11 +690,10 @@ export default function Vehicles() {
         isSaving={createMutation.isPending || updateMutation.isPending}
       />
 
-      <VehicleBulkImport
+      <VehicleBulkImportDialog
         open={bulkImportOpen}
         onClose={() => setBulkImportOpen(false)}
-        companyId={selectedCompanyId}
-        onImportComplete={() => {
+        onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['vehicles', selectedCompanyId] });
           setBulkImportOpen(false);
         }}
