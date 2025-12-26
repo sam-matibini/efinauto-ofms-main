@@ -106,6 +106,10 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
 
         const taxTotal = taxGst + taxPst + taxHst;
 
+        const hasValue = (val) => {
+          return val !== null && val !== undefined && String(val).trim() !== '';
+        };
+
         const vehicleData = {
           company_id: selectedCompanyId,
           ownership_type: "dealership_owned",
@@ -115,9 +119,6 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
           year: Number(v.year),
           purchase_price: purchasePrice,
           selling_price: Number(v.selling_price) || 0,
-          condition: v.condition || "used",
-          fuel_type: v.fuel_type || "petrol",
-          transmission: v.transmission || "automatic",
           tax_status: "taxable",
           tax_gst: taxGst,
           tax_pst: taxPst,
@@ -127,17 +128,20 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
           mileage: 0
         };
 
-        if (v.vin && v.vin.trim()) vehicleData.vin = v.vin.trim();
-        if (v.stock_number && v.stock_number.trim()) vehicleData.stock_number = v.stock_number.trim();
-        if (v.invoice_number && v.invoice_number.trim()) vehicleData.invoice_number = v.invoice_number.trim();
-        if (v.transaction_date && v.transaction_date.trim()) vehicleData.transaction_date = v.transaction_date.trim();
-        if (v.color && v.color.trim()) vehicleData.color = v.color.trim();
-        if (v.engine_capacity && v.engine_capacity.trim()) vehicleData.engine = v.engine_capacity.trim();
-        if (v.features && v.features.trim()) vehicleData.features = v.features.trim();
-        if (v.vendor_name && v.vendor_name.trim()) vehicleData.vendor_name = v.vendor_name.trim();
-        if (v.vendor_phone && v.vendor_phone.trim()) vehicleData.vendor_phone = v.vendor_phone.trim();
-        if (v.vendor_email && v.vendor_email.trim()) vehicleData.vendor_email = v.vendor_email.trim();
-        if (v.province && v.province.trim()) vehicleData.province = v.province.trim();
+        if (hasValue(v.condition)) vehicleData.condition = String(v.condition).trim();
+        if (hasValue(v.fuel_type)) vehicleData.fuel_type = String(v.fuel_type).trim();
+        if (hasValue(v.transmission)) vehicleData.transmission = String(v.transmission).trim();
+        if (hasValue(v.vin)) vehicleData.vin = String(v.vin).trim();
+        if (hasValue(v.stock_number)) vehicleData.stock_number = String(v.stock_number).trim();
+        if (hasValue(v.invoice_number)) vehicleData.invoice_number = String(v.invoice_number).trim();
+        if (hasValue(v.transaction_date)) vehicleData.transaction_date = String(v.transaction_date).trim();
+        if (hasValue(v.color)) vehicleData.color = String(v.color).trim();
+        if (hasValue(v.engine_capacity)) vehicleData.engine = String(v.engine_capacity).trim();
+        if (hasValue(v.features)) vehicleData.features = String(v.features).trim();
+        if (hasValue(v.vendor_name)) vehicleData.vendor_name = String(v.vendor_name).trim();
+        if (hasValue(v.vendor_phone)) vehicleData.vendor_phone = String(v.vendor_phone).trim();
+        if (hasValue(v.vendor_email)) vehicleData.vendor_email = String(v.vendor_email).trim();
+        if (hasValue(v.province)) vehicleData.province = String(v.province).trim();
 
         const created = await base44.entities.Vehicle.create(vehicleData);
         imported.push(created);
