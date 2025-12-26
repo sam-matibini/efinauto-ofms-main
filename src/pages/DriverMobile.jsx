@@ -160,7 +160,7 @@ export default function DriverMobile() {
           </TabsList>
 
           <TabsContent value="active" className="space-y-4">
-        {activeShipment?.[0] ? (
+            {activeShipment?.[0] ? (
           <>
             <Card>
               <CardHeader>
@@ -294,17 +294,16 @@ export default function DriverMobile() {
                 </Button>
               </CardContent>
             </Card>
-          </>
-        ) : (
-          <Card>
-            <CardContent className="py-12 text-center text-gray-500">
-              <MapPin className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <h3 className="font-semibold text-gray-700 mb-2">No Active Shipment</h3>
-              <p className="text-sm">Contact dispatch for your next assignment</p>
-            </CardContent>
-          </Card>
-        )}
-
+            </>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center text-gray-500">
+                <MapPin className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                <h3 className="font-semibold text-gray-700 mb-2">No Active Shipment</h3>
+                <p className="text-sm">Contact dispatch for your next assignment</p>
+              </CardContent>
+            </Card>
+          )}
           </TabsContent>
 
           <TabsContent value="assigned" className="space-y-4">
