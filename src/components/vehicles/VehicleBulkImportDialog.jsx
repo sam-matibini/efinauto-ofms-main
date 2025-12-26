@@ -42,10 +42,8 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
     setLoading(true);
     
     try {
-      // Upload file
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
-      // Extract with simple schema
       const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
         file_url,
         json_schema: {
@@ -90,16 +88,15 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
 
       const vehicles = result.output.vehicles;
       
-      // Get company for tax rates
       const companies = await base44.entities.Company.filter({ id: selectedCompanyId });
       const company = companies[0];
 
-      // Prepare vehicles for import
-      const toImport = vehicles.map(v => {
+      const imported = [];
+      
+      for (const v of vehicles) {
         const purchasePrice = Number(v.purchase_price) || 0;
         let taxGst = 0, taxPst = 0, taxHst = 0;
 
-        // Calculate taxes if province provided
         if (v.province && company?.tax_rates?.[v.province.toUpperCase()]) {
           const rates = company.tax_rates[v.province.toUpperCase()];
           taxGst = Math.round(purchasePrice * (rates.gst || 0) / 100 * 100) / 100;
@@ -130,26 +127,19 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
           mileage: 0
         };
 
-        // Only add optional fields if they have values
-        if (v.vin) vehicleData.vin = v.vin;
-        if (v.stock_number) vehicleData.stock_number = v.stock_number;
-        if (v.invoice_number) vehicleData.invoice_number = v.invoice_number;
-        if (v.transaction_date) vehicleData.transaction_date = v.transaction_date;
-        if (v.color) vehicleData.color = v.color;
-        if (v.engine_capacity) vehicleData.engine = v.engine_capacity;
-        if (v.features) vehicleData.features = v.features;
-        if (v.vendor_name) vehicleData.vendor_name = v.vendor_name;
-        if (v.vendor_phone) vehicleData.vendor_phone = v.vendor_phone;
-        if (v.vendor_email) vehicleData.vendor_email = v.vendor_email;
-        if (v.province) vehicleData.province = v.province;
+        if (v.vin && v.vin.trim()) vehicleData.vin = v.vin.trim();
+        if (v.stock_number && v.stock_number.trim()) vehicleData.stock_number = v.stock_number.trim();
+        if (v.invoice_number && v.invoice_number.trim()) vehicleData.invoice_number = v.invoice_number.trim();
+        if (v.transaction_date && v.transaction_date.trim()) vehicleData.transaction_date = v.transaction_date.trim();
+        if (v.color && v.color.trim()) vehicleData.color = v.color.trim();
+        if (v.engine_capacity && v.engine_capacity.trim()) vehicleData.engine = v.engine_capacity.trim();
+        if (v.features && v.features.trim()) vehicleData.features = v.features.trim();
+        if (v.vendor_name && v.vendor_name.trim()) vehicleData.vendor_name = v.vendor_name.trim();
+        if (v.vendor_phone && v.vendor_phone.trim()) vehicleData.vendor_phone = v.vendor_phone.trim();
+        if (v.vendor_email && v.vendor_email.trim()) vehicleData.vendor_email = v.vendor_email.trim();
+        if (v.province && v.province.trim()) vehicleData.province = v.province.trim();
 
-        return vehicleData;
-      });
-
-      // Import vehicles one by one
-      const imported = [];
-      for (const vehicle of toImport) {
-        const created = await base44.entities.Vehicle.create(vehicle);
+        const created = await base44.entities.Vehicle.create(vehicleData);
         imported.push(created);
       }
 
