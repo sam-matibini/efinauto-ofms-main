@@ -117,8 +117,11 @@ Taxes are auto-calculated based on Province and Purchase Price`;
     setExtracting(true);
     
     try {
+      console.log("Starting extraction for file:", file.name);
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      console.log("File uploaded:", file_url);
 
+      console.log("Calling ExtractDataFromUploadedFile...");
       const extractionResult = await base44.integrations.Core.ExtractDataFromUploadedFile({
         file_url,
         json_schema: {
@@ -160,13 +163,17 @@ Taxes are auto-calculated based on Province and Purchase Price`;
         }
       });
 
+      console.log("Extraction result:", extractionResult);
+
       if (extractionResult.status === "error") {
+        console.error("Extraction error:", extractionResult.details);
         toast.error(extractionResult.details || "Failed to extract data from file");
         setExtracting(false);
         return;
       }
 
       const vehicles = extractionResult.output?.vehicles || [];
+      console.log("Extracted vehicles:", vehicles.length, vehicles);
       
       if (vehicles.length === 0) {
         toast.error("No vehicle records found in file. Please check file format.");
@@ -276,7 +283,10 @@ Taxes are auto-calculated based on Province and Purchase Price`;
         notes: v.notes || ''
       }));
 
+      console.log("Attempting to import vehicles:", vehiclesToCreate.length);
+      console.log("Sample vehicle data:", vehiclesToCreate[0]);
       const imported = await base44.entities.Vehicle.bulkCreate(vehiclesToCreate);
+      console.log("Import successful:", imported.length);
 
       setResults({
         success: true,
@@ -297,6 +307,7 @@ Taxes are auto-calculated based on Province and Purchase Price`;
       toast.success(`Successfully imported ${imported.length} vehicles`);
       onSuccess?.();
     } catch (error) {
+      console.error("Import error:", error);
       toast.error("Import failed: " + error.message);
       setResults({
         success: false,
