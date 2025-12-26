@@ -18,7 +18,7 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
   const [results, setResults] = useState(null);
 
   const downloadTemplate = () => {
-    const template = `VIN*,Stock Number,Invoice Number,Transaction Date,Make*,Model*,Year*,Color,Mileage,Weight,Condition,Purchase Price,Selling Price,Location,Fuel Type,Transmission,Engine Capacity,Features,Vendor Name,Vendor Phone,Vendor Email,Province,Tax Status,Notes
+    const template = `VIN,Stock Number,Invoice Number,Transaction Date,Make*,Model*,Year*,Color,Mileage,Weight,Condition,Purchase Price,Selling Price,Location,Fuel Type,Transmission,Engine Capacity,Features,Vendor Name,Vendor Phone,Vendor Email,Province,Tax Status,Notes
 1HGBH41JXMN109186,STK-001,INV-2025-001,2025-01-15,Toyota,Camry,2023,Silver,15000,1500,used,25000,32000,Lot A,petrol,automatic,2.5L,"Leather, Sunroof",ABC Motors,555-0001,vendor@abc.com,ON,taxable,Great condition
 2HGFA16527H123456,STK-002,INV-2025-002,2025-01-16,Honda,Accord,2022,Black,22000,1450,used,23000,29000,Lot B,hybrid,automatic,2.0L,Navigation,XYZ Auto,555-0002,vendor@xyz.com,BC,taxable,
 3VWFE21C04M123456,STK-003,INV-2025-003,2025-01-17,Volkswagen,Jetta,2024,White,5000,1400,certified_pre_owned,28000,35000,Lot A,diesel,manual,1.9L,Premium sound,DEF Supply,555-0003,vendor@def.com,AB,zero_rated,Export vehicle
@@ -100,8 +100,8 @@ Taxes are auto-calculated based on Province and Purchase Price`;
     vehicles.forEach((v, idx) => {
       const row = idx + 2;
 
-      if (!v.vin || v.vin.length < 10) {
-        errors.push({ row, field: 'vin', message: 'VIN is required (min 10 characters)', severity: 'error' });
+      if (v.vin && v.vin.length < 10) {
+        errors.push({ row, field: 'vin', message: 'VIN must be at least 10 characters', severity: 'error' });
       }
       if (!v.make) {
         errors.push({ row, field: 'make', message: 'Make is required', severity: 'error' });
@@ -379,7 +379,7 @@ Taxes are auto-calculated based on Province and Purchase Price`;
                   </div>
                   <div className="border-t border-blue-200 pt-2">
                     <p className="font-medium mb-1">✅ Required Fields:</p>
-                    <p className="ml-2">VIN (min 10 chars), Make, Model, Year</p>
+                    <p className="ml-2">Make, Model, Year</p>
                   </div>
                   <div className="border-t border-blue-200 pt-2">
                     <p className="font-medium mb-1">💰 Tax Calculation:</p>
