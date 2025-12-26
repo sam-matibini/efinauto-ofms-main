@@ -151,8 +151,15 @@ export default function DriverMobile() {
         <p className="text-sm text-blue-100 mt-1">Welcome, {driver.driver_name}</p>
       </div>
 
-      <div className="p-6 max-w-2xl mx-auto space-y-6">
-        {/* Active Shipment */}
+      <div className="p-4 max-w-2xl mx-auto">
+        <Tabs defaultValue="active" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsTrigger value="active">Active</TabsTrigger>
+            <TabsTrigger value="assigned">All Assigned ({assignedShipments.length})</TabsTrigger>
+            <TabsTrigger value="navigation">Navigate</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="active" className="space-y-4">
         {activeShipment?.[0] ? (
           <>
             <Card>
