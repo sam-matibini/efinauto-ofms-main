@@ -169,12 +169,17 @@ Taxes are auto-calculated based on Province and Purchase Price`;
     }
 
     setExtracting(true);
+    console.log("=== STARTING EXTRACTION ===");
+    console.log("File:", file.name, "Company ID:", selectedCompanyId);
+    
     try {
       // Upload file
+      console.log("Step 1: Uploading file...");
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      console.log("File uploaded:", file_url);
+      console.log("✓ File uploaded:", file_url);
 
       // Extract data with flexible schema
+      console.log("Step 2: Extracting data from file...");
       const extractionResult = await base44.integrations.Core.ExtractDataFromUploadedFile({
         file_url,
         json_schema: {
@@ -216,7 +221,8 @@ Taxes are auto-calculated based on Province and Purchase Price`;
         }
       });
 
-      console.log("Extraction result:", extractionResult);
+      console.log("✓ Extraction result status:", extractionResult.status);
+      console.log("✓ Extraction output:", extractionResult.output);
 
       if (extractionResult.status === "error") {
         toast.error(extractionResult.details || "Failed to extract data from file");
@@ -225,9 +231,11 @@ Taxes are auto-calculated based on Province and Purchase Price`;
       }
 
       const vehicles = extractionResult.output?.vehicles || [];
-      console.log("Extracted vehicles:", vehicles.length);
+      console.log("✓ Extracted vehicles count:", vehicles.length);
+      console.log("✓ First vehicle sample:", vehicles[0]);
       
       if (vehicles.length === 0) {
+        console.error("❌ No vehicles extracted from file");
         toast.error("No vehicle records found in file. Please check file format.");
         setExtracting(false);
         return;
@@ -271,33 +279,46 @@ Taxes are auto-calculated based on Province and Purchase Price`;
       });
 
       // Get company for tax calculation
+      console.log("Step 4: Fetching company for tax calculation...");
       const companies = await base44.entities.Company.filter({ id: selectedCompanyId });
       const company = companies?.[0];
+      console.log("✓ Company found:", company?.name);
 
       if (!company) {
+        console.error("❌ Company not found");
         toast.error("Company not found");
         setExtracting(false);
         return;
       }
 
       // Calculate taxes for each vehicle
+      console.log("Step 5: Calculating taxes...");
       const vehiclesWithTaxes = normalizedVehicles.map(v => {
         const taxes = calculateTaxes(v, company);
         return { ...v, ...taxes };
       });
 
-      console.log("Vehicles with taxes calculated:", vehiclesWithTaxes);
+      console.log("✓ Vehicles with taxes calculated:", vehiclesWithTaxes.length);
+      console.log("✓ Sample with taxes:", vehiclesWithTaxes[0]);
 
       setPreviewData(vehiclesWithTaxes);
 
       // Validate
+      console.log("Step 6: Validating vehicles...");
       const errors = await validateVehicles(vehiclesWithTaxes);
+      console.log("✓ Validation complete. Errors:", errors.length);
       setValidationErrors(errors);
 
       setStep(2);
+      console.log("=== EXTRACTION COMPLETE ===");
       toast.success(`Extracted ${vehicles.length} record(s) - Review and validate`);
     } catch (error) {
-      console.error("Extraction error:", error);
+      console.error("❌ EXTRACTION ERROR:", error);
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        response: error.response
+      });
       toast.error("Extraction failed: " + (error.message || "Unknown error"));
     } finally {
       setExtracting(false);
@@ -314,6 +335,9 @@ Taxes are auto-calculated based on Province and Purchase Price`;
     }
 
     setImporting(true);
+    console.log("=== STARTING IMPORT ===");
+    console.log("Total records to import:", previewData.length);
+    
     const importResults = {
       success: true,
       total: previewData.length,
@@ -332,6 +356,7 @@ Taxes are auto-calculated based on Province and Purchase Price`;
         // Skip rows with validation errors
         const rowErrors = validationErrors.filter(e => e.row === idx + 2 && e.severity === 'error');
         if (rowErrors.length > 0) {
+          console.log(`⊘ Row ${rowNum} skipped:`, rowErrors.map(e => e.message));
           importResults.skipped++;
           importResults.details.push({
             row: rowNum,
@@ -380,8 +405,15 @@ Taxes are auto-calculated based on Province and Purchase Price`;
             notes: v.notes || ''
           };
 
-          console.log(`Importing row ${rowNum}:`, vehicleData);
-          await base44.entities.Vehicle.create(vehicleData);
+          console.log(`→ Importing row ${rowNum}:`, {
+            make: vehicleData.make,
+            model: vehicleData.model,
+            year: vehicleData.year,
+            vin: vehicleData.vin
+          });
+          
+          const created = await base44.entities.Vehicle.create(vehicleData);
+          console.log(`✓ Row ${rowNum} imported successfully. ID:`, created.id);
           
           importResults.imported++;
           importResults.details.push({
@@ -392,7 +424,11 @@ Taxes are auto-calculated based on Province and Purchase Price`;
             reason: 'Imported successfully'
           });
         } catch (error) {
-          console.error(`Row ${rowNum} failed:`, error);
+          console.error(`❌ Row ${rowNum} failed:`, {
+            error: error.message,
+            stack: error.stack,
+            vehicle: vehicleData
+          });
           importResults.failed++;
           importResults.details.push({
             row: rowNum,
@@ -403,6 +439,14 @@ Taxes are auto-calculated based on Province and Purchase Price`;
           });
         }
       }
+
+      console.log("=== IMPORT COMPLETE ===");
+      console.log("Results:", {
+        total: importResults.total,
+        imported: importResults.imported,
+        failed: importResults.failed,
+        skipped: importResults.skipped
+      });
 
       setResults(importResults);
       setStep(3);
@@ -417,7 +461,11 @@ Taxes are auto-calculated based on Province and Purchase Price`;
         onSuccess?.();
       }
     } catch (error) {
-      console.error("Import error:", error);
+      console.error("❌ IMPORT ERROR:", error);
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack
+      });
       toast.error("Import failed: " + error.message);
       setResults({
         success: false,
