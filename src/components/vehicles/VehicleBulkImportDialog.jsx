@@ -314,93 +314,62 @@ Taxes are auto-calculated based on Province and Purchase Price`;
           .map(e => e.row - 2)
       );
 
-      // Process each vehicle individually to capture individual failures
-      for (let idx = 0; idx < previewData.length; idx++) {
-        const v = previewData[idx];
-        const rowNum = idx + 1;
+      // Filter out vehicles with errors
+      const validVehicles = previewData.filter((v, idx) => {
+        const rowErrors = validationErrors.filter(e => e.row === idx + 2 && e.severity === 'error');
+        return rowErrors.length === 0;
+      });
 
-        // Skip rows with validation errors
-        if (rowsWithErrors.has(idx)) {
-          importResults.skipped++;
-          importResults.details.push({
-            row: rowNum,
-            vehicle: `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim(),
-            status: 'skipped',
-            reason: 'Validation errors detected'
-          });
-          continue;
-        }
+      const vehiclesToImport = validVehicles.map(v => ({
+        company_id: selectedCompanyId,
+        ownership_type: "dealership_owned",
+        vin: v.vin?.trim()?.toUpperCase() || '',
+        stock_number: v.stock_number?.trim() || '',
+        invoice_number: v.invoice_number?.trim() || '',
+        transaction_date: v.transaction_date || null,
+        make: v.make?.trim() || '',
+        model: v.model?.trim() || '',
+        year: v.year || null,
+        color: v.color?.trim() || '',
+        mileage: Number(v.mileage) || 0,
+        weight: Number(v.weight) || 0,
+        condition: (v.condition?.toLowerCase()?.trim() || 'used'),
+        status: 'in_stock',
+        purchase_price: Number(v.purchase_price) || 0,
+        selling_price: Number(v.selling_price) || 0,
+        location: v.location?.trim() || '',
+        fuel_type: (v.fuel_type?.toLowerCase()?.trim() || 'petrol'),
+        transmission: (v.transmission?.toLowerCase()?.trim() || 'automatic'),
+        engine_capacity: v.engine_capacity?.trim() || '',
+        features: v.features?.trim() || '',
+        vendor_name: v.vendor_name?.trim() || '',
+        vendor_phone: v.vendor_phone?.trim() || '',
+        vendor_email: v.vendor_email?.trim() || '',
+        province: v.province?.toUpperCase()?.trim() || '',
+        tax_status: (v.tax_status?.toLowerCase()?.trim() || 'taxable'),
+        tax_gst: Number(v.tax_gst) || 0,
+        tax_pst: Number(v.tax_pst) || 0,
+        tax_hst: Number(v.tax_hst) || 0,
+        tax_total: Number(v.tax_total) || 0,
+        total_cost: (Number(v.purchase_price) || 0) + (Number(v.tax_total) || 0),
+        notes: v.notes?.trim() || ''
+      }));
 
-        try {
-          // Prepare clean vehicle data
-          const vinValue = v.vin?.toString().trim().toUpperCase() || '';
-          const makeValue = v.make?.toString().trim() || '';
-          const modelValue = v.model?.toString().trim() || '';
-          const yearValue = v.year ? Number(v.year) : null;
+      const imported = await base44.entities.Vehicle.bulkCreate(vehiclesToImport);
 
-          // Validate required fields before attempting create
-          if (!makeValue || !modelValue || !yearValue) {
-            throw new Error('Missing required fields: Make, Model, or Year');
-          }
-
-          const vehicleData = {
-            company_id: selectedCompanyId,
-            ownership_type: "dealership_owned",
-            vin: vinValue,
-            stock_number: v.stock_number?.toString().trim() || '',
-            invoice_number: v.invoice_number?.toString().trim() || '',
-            transaction_date: v.transaction_date || null,
-            make: makeValue,
-            model: modelValue,
-            year: yearValue,
-            color: v.color?.toString().trim() || '',
-            mileage: Number(v.mileage) || 0,
-            weight: Number(v.weight) || 0,
-            condition: v.condition?.toString().toLowerCase().trim() || 'used',
-            status: 'in_stock',
-            purchase_price: Number(v.purchase_price) || 0,
-            selling_price: Number(v.selling_price) || 0,
-            location: v.location?.toString().trim() || '',
-            fuel_type: v.fuel_type?.toString().toLowerCase().trim() || 'petrol',
-            transmission: v.transmission?.toString().toLowerCase().trim() || 'automatic',
-            engine_capacity: v.engine_capacity?.toString().trim() || '',
-            features: v.features?.toString().trim() || '',
-            vendor_name: v.vendor_name?.toString().trim() || '',
-            vendor_phone: v.vendor_phone?.toString().trim() || '',
-            vendor_email: v.vendor_email?.toString().trim() || '',
-            province: v.province?.toString().toUpperCase().trim() || '',
-            tax_status: v.tax_status?.toString().toLowerCase().trim() || 'taxable',
-            tax_gst: Number(v.tax_gst) || 0,
-            tax_pst: Number(v.tax_pst) || 0,
-            tax_hst: Number(v.tax_hst) || 0,
-            tax_total: Number(v.tax_total) || 0,
-            total_cost: (Number(v.purchase_price) || 0) + (Number(v.tax_total) || 0),
-            notes: v.notes?.toString().trim() || ''
-          };
-
-          console.log(`Creating vehicle row ${rowNum}:`, vehicleData);
-          await base44.entities.Vehicle.create(vehicleData);
-          
-          importResults.imported++;
-          importResults.details.push({
-            row: rowNum,
-            vehicle: `${yearValue} ${makeValue} ${modelValue}`,
-            vin: vinValue || '-',
-            status: 'success',
-            reason: 'Imported successfully'
-          });
-        } catch (error) {
-          console.error(`Failed to import row ${rowNum}:`, error);
-          importResults.failed++;
-          importResults.details.push({
-            row: rowNum,
-            vehicle: `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim() || 'Unknown',
-            vin: v.vin || '-',
-            status: 'failed',
-            reason: error.message || 'Unknown error during creation'
-          });
-        }
-      }
+      importResults.imported = imported.length;
+      importResults.failed = previewData.length - imported.length;
+      
+      // Generate success details for imported vehicles
+      validVehicles.slice(0, imported.length).forEach((v, idx) => {
+        importResults.details.push({
+          row: idx + 1,
+          vehicle: `${v.year} ${v.make} ${v.model}`,
+          vin: v.vin || '-',
+          status: 'success',
+          reason: 'Imported successfully'
+        });
+      });
 
       setResults(importResults);
       setStep(3);
