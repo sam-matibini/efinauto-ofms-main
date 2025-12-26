@@ -57,77 +57,23 @@ Taxes are auto-calculated based on Province and Purchase Price`;
 
   const validateVehicles = async (vehicles) => {
     const errors = [];
-    const warnings = [];
     
-    // Check for duplicate VINs in file (only for non-empty VINs)
-    const vinCount = {};
-    vehicles.forEach((v, idx) => {
-      if (v.vin && v.vin.length > 0) {
-        const vin = v.vin.toUpperCase();
-        vinCount[vin] = vinCount[vin] || [];
-        vinCount[vin].push(idx + 2);
-      }
-    });
-    
-    Object.entries(vinCount).forEach(([vin, rows]) => {
-      if (rows.length > 1) {
-        rows.forEach(row => {
-          errors.push({
-            row,
-            field: 'vin',
-            message: `Duplicate VIN in file: ${vin}`,
-            severity: 'error'
-          });
-        });
-      }
-    });
-    
-    // Check for existing VINs in database
-    const uniqueVins = vehicles
-      .map(v => v.vin)
-      .filter(vin => vin && vin.length > 0);
-    
-    if (uniqueVins.length > 0) {
-      const existing = await base44.entities.Vehicle.filter({ 
-        company_id: selectedCompanyId,
-        vin: { $in: uniqueVins } 
-      });
-      const existingVINs = new Set(existing.map(v => v.vin?.toUpperCase()));
-      
-      vehicles.forEach((v, idx) => {
-        if (v.vin && v.vin.length > 0 && existingVINs.has(v.vin.toUpperCase())) {
-          errors.push({
-            row: idx + 2,
-            field: 'vin',
-            message: `VIN already exists in inventory: ${v.vin}`,
-            severity: 'error'
-          });
-        }
-      });
-    }
-
-    // Validate each vehicle
+    // Validate each vehicle - required fields only
     vehicles.forEach((v, idx) => {
       const row = idx + 2;
 
-      // Check required fields
-      if (!v.make) {
+      if (!v.make || !v.make.trim()) {
         errors.push({ row, field: 'make', message: 'Make is required', severity: 'error' });
       }
-      if (!v.model) {
+      if (!v.model || !v.model.trim()) {
         errors.push({ row, field: 'model', message: 'Model is required', severity: 'error' });
       }
       if (!v.year || v.year < 1900 || v.year > new Date().getFullYear() + 2) {
         errors.push({ row, field: 'year', message: 'Year is required and must be valid', severity: 'error' });
       }
-
-      // VIN validation (optional but must be valid if provided)
-      if (v.vin && v.vin.length > 0 && v.vin.length < 10) {
-        errors.push({ row, field: 'vin', message: 'VIN must be at least 10 characters', severity: 'error' });
-      }
     });
 
-    return [...errors, ...warnings];
+    return errors;
   };
 
   const calculateTaxes = (vehicle, company) => {
@@ -241,40 +187,34 @@ Taxes are auto-calculated based on Province and Purchase Price`;
         return;
       }
 
-      // Normalize data types with proper null/undefined handling
+      // Normalize data types
       const normalizedVehicles = vehicles.map(v => {
-        const safeString = (val) => (val === null || val === undefined || val === '') ? '' : String(val).trim();
-        const safeNumber = (val) => {
-          if (val === null || val === undefined || val === '') return 0;
-          const num = Number(val);
-          return isNaN(num) ? 0 : num;
-        };
-
+        const year = v.year ? Number(v.year) : null;
         return {
-          vin: safeString(v.vin),
-          stock_number: safeString(v.stock_number),
-          invoice_number: safeString(v.invoice_number),
+          vin: v.vin || '',
+          stock_number: v.stock_number || '',
+          invoice_number: v.invoice_number || '',
           transaction_date: v.transaction_date || null,
-          make: safeString(v.make),
-          model: safeString(v.model),
-          year: safeNumber(v.year) || null,
-          color: safeString(v.color),
-          mileage: safeNumber(v.mileage),
-          weight: safeNumber(v.weight),
-          condition: safeString(v.condition).toLowerCase() || 'used',
-          purchase_price: safeNumber(v.purchase_price),
-          selling_price: safeNumber(v.selling_price),
-          location: safeString(v.location),
-          fuel_type: safeString(v.fuel_type).toLowerCase() || 'petrol',
-          transmission: safeString(v.transmission).toLowerCase() || 'automatic',
-          engine_capacity: safeString(v.engine_capacity),
-          features: safeString(v.features),
-          vendor_name: safeString(v.vendor_name),
-          vendor_phone: safeString(v.vendor_phone),
-          vendor_email: safeString(v.vendor_email),
-          province: safeString(v.province).toUpperCase(),
-          tax_status: safeString(v.tax_status).toLowerCase() || 'taxable',
-          notes: safeString(v.notes)
+          make: v.make || '',
+          model: v.model || '',
+          year: year,
+          color: v.color || '',
+          mileage: v.mileage ? Number(v.mileage) : 0,
+          weight: v.weight ? Number(v.weight) : 0,
+          condition: v.condition || 'used',
+          purchase_price: v.purchase_price ? Number(v.purchase_price) : 0,
+          selling_price: v.selling_price ? Number(v.selling_price) : 0,
+          location: v.location || '',
+          fuel_type: v.fuel_type || 'petrol',
+          transmission: v.transmission || 'automatic',
+          engine_capacity: v.engine_capacity || '',
+          features: v.features || '',
+          vendor_name: v.vendor_name || '',
+          vendor_phone: v.vendor_phone || '',
+          vendor_email: v.vendor_email || '',
+          province: v.province || '',
+          tax_status: v.tax_status || 'taxable',
+          notes: v.notes || ''
         };
       });
 
@@ -369,40 +309,39 @@ Taxes are auto-calculated based on Province and Purchase Price`;
         }
 
         try {
-          // Data is already normalized, just need to prepare for database
           const vehicleData = {
             company_id: selectedCompanyId,
             ownership_type: "dealership_owned",
-            vin: v.vin ? v.vin.toUpperCase() : '',
-            stock_number: v.stock_number || '',
-            invoice_number: v.invoice_number || '',
-            transaction_date: v.transaction_date || null,
-            make: v.make || '',
-            model: v.model || '',
-            year: v.year || null,
-            color: v.color || '',
-            mileage: v.mileage || 0,
-            weight: v.weight || 0,
-            condition: v.condition || 'used',
+            vin: v.vin,
+            stock_number: v.stock_number,
+            invoice_number: v.invoice_number,
+            transaction_date: v.transaction_date,
+            make: v.make,
+            model: v.model,
+            year: v.year,
+            color: v.color,
+            mileage: v.mileage,
+            weight: v.weight,
+            condition: v.condition,
             status: 'in_stock',
-            purchase_price: v.purchase_price || 0,
-            selling_price: v.selling_price || 0,
-            location: v.location || '',
-            fuel_type: v.fuel_type || 'petrol',
-            transmission: v.transmission || 'automatic',
-            engine_capacity: v.engine_capacity || '',
-            features: v.features || '',
-            vendor_name: v.vendor_name || '',
-            vendor_phone: v.vendor_phone || '',
-            vendor_email: v.vendor_email || '',
-            province: v.province || '',
-            tax_status: v.tax_status || 'taxable',
-            tax_gst: v.tax_gst || 0,
-            tax_pst: v.tax_pst || 0,
-            tax_hst: v.tax_hst || 0,
-            tax_total: v.tax_total || 0,
-            total_cost: (v.purchase_price || 0) + (v.tax_total || 0),
-            notes: v.notes || ''
+            purchase_price: v.purchase_price,
+            selling_price: v.selling_price,
+            location: v.location,
+            fuel_type: v.fuel_type,
+            transmission: v.transmission,
+            engine_capacity: v.engine_capacity,
+            features: v.features,
+            vendor_name: v.vendor_name,
+            vendor_phone: v.vendor_phone,
+            vendor_email: v.vendor_email,
+            province: v.province,
+            tax_status: v.tax_status,
+            tax_gst: v.tax_gst,
+            tax_pst: v.tax_pst,
+            tax_hst: v.tax_hst,
+            tax_total: v.tax_total,
+            total_cost: v.purchase_price + v.tax_total,
+            notes: v.notes
           };
 
           console.log(`→ Importing row ${rowNum}:`, {
