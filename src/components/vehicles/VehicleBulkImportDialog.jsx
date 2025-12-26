@@ -62,8 +62,8 @@ Taxes are auto-calculated based on Province and Purchase Price`;
     // Check for duplicate VINs in file (only for non-empty VINs)
     const vinCount = {};
     vehicles.forEach((v, idx) => {
-      if (v.vin && v.vin.trim()) {
-        const vin = v.vin.trim().toUpperCase();
+      if (v.vin && v.vin.length > 0) {
+        const vin = v.vin.toUpperCase();
         vinCount[vin] = vinCount[vin] || [];
         vinCount[vin].push(idx + 2);
       }
@@ -85,8 +85,7 @@ Taxes are auto-calculated based on Province and Purchase Price`;
     // Check for existing VINs in database
     const uniqueVins = vehicles
       .map(v => v.vin)
-      .filter(vin => vin && vin.trim())
-      .map(vin => vin.trim().toUpperCase());
+      .filter(vin => vin && vin.length > 0);
     
     if (uniqueVins.length > 0) {
       const existing = await base44.entities.Vehicle.filter({ 
@@ -96,7 +95,7 @@ Taxes are auto-calculated based on Province and Purchase Price`;
       const existingVINs = new Set(existing.map(v => v.vin?.toUpperCase()));
       
       vehicles.forEach((v, idx) => {
-        if (v.vin && v.vin.trim() && existingVINs.has(v.vin.trim().toUpperCase())) {
+        if (v.vin && v.vin.length > 0 && existingVINs.has(v.vin.toUpperCase())) {
           errors.push({
             row: idx + 2,
             field: 'vin',
@@ -112,33 +111,19 @@ Taxes are auto-calculated based on Province and Purchase Price`;
       const row = idx + 2;
 
       // Check required fields
-      if (!v.make || !v.make) {
+      if (!v.make) {
         errors.push({ row, field: 'make', message: 'Make is required', severity: 'error' });
       }
-      if (!v.model || !v.model) {
+      if (!v.model) {
         errors.push({ row, field: 'model', message: 'Model is required', severity: 'error' });
       }
       if (!v.year || v.year < 1900 || v.year > new Date().getFullYear() + 2) {
-        errors.push({ row, field: 'year', message: 'Year is required and must be valid (1900-' + (new Date().getFullYear() + 2) + ')', severity: 'error' });
+        errors.push({ row, field: 'year', message: 'Year is required and must be valid', severity: 'error' });
       }
 
       // VIN validation (optional but must be valid if provided)
       if (v.vin && v.vin.length > 0 && v.vin.length < 10) {
-        errors.push({ row, field: 'vin', message: 'VIN must be at least 10 characters if provided', severity: 'error' });
-      }
-
-      // Enum validations (warnings only)
-      if (v.condition && !['new', 'used', 'certified_pre_owned', 'salvage'].includes(v.condition)) {
-        warnings.push({ row, field: 'condition', message: `Invalid condition "${v.condition}", will default to "used"`, severity: 'warning' });
-      }
-      if (v.tax_status && !['taxable', 'zero_rated', 'exempt'].includes(v.tax_status)) {
-        warnings.push({ row, field: 'tax_status', message: `Invalid tax status, will default to "taxable"`, severity: 'warning' });
-      }
-      if (v.fuel_type && !['petrol', 'diesel', 'electric', 'hybrid', 'lpg'].includes(v.fuel_type)) {
-        warnings.push({ row, field: 'fuel_type', message: `Invalid fuel type, will default to "petrol"`, severity: 'warning' });
-      }
-      if (v.transmission && !['manual', 'automatic', 'semi_automatic'].includes(v.transmission)) {
-        warnings.push({ row, field: 'transmission', message: `Invalid transmission, will default to "automatic"`, severity: 'warning' });
+        errors.push({ row, field: 'vin', message: 'VIN must be at least 10 characters', severity: 'error' });
       }
     });
 
