@@ -142,8 +142,12 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
         };
       });
 
-      // Import vehicles
-      const imported = await base44.entities.Vehicle.bulkCreate(toImport);
+      // Import vehicles one by one
+      const imported = [];
+      for (const vehicle of toImport) {
+        const created = await base44.entities.Vehicle.create(vehicle);
+        imported.push(created);
+      }
 
       setResults({
         success: true,
