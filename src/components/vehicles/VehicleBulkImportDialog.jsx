@@ -109,29 +109,18 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
 
         const taxTotal = taxGst + taxPst + taxHst;
 
-        return {
+        const vehicleData = {
           company_id: selectedCompanyId,
           ownership_type: "dealership_owned",
           status: "in_stock",
-          vin: v.vin || "",
-          stock_number: v.stock_number || "",
-          invoice_number: v.invoice_number || "",
-          transaction_date: v.transaction_date || new Date().toISOString().split('T')[0],
           make: v.make,
           model: v.model,
           year: Number(v.year),
-          color: v.color || "",
-          condition: v.condition || "used",
           purchase_price: purchasePrice,
           selling_price: Number(v.selling_price) || 0,
+          condition: v.condition || "used",
           fuel_type: v.fuel_type || "petrol",
           transmission: v.transmission || "automatic",
-          engine: v.engine_capacity || "",
-          features: v.features || "",
-          vendor_name: v.vendor_name || "",
-          vendor_phone: v.vendor_phone || "",
-          vendor_email: v.vendor_email || "",
-          province: v.province || "",
           tax_status: "taxable",
           tax_gst: taxGst,
           tax_pst: taxPst,
@@ -140,6 +129,21 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
           total_cost: purchasePrice + taxTotal,
           mileage: 0
         };
+
+        // Only add optional fields if they have values
+        if (v.vin) vehicleData.vin = v.vin;
+        if (v.stock_number) vehicleData.stock_number = v.stock_number;
+        if (v.invoice_number) vehicleData.invoice_number = v.invoice_number;
+        if (v.transaction_date) vehicleData.transaction_date = v.transaction_date;
+        if (v.color) vehicleData.color = v.color;
+        if (v.engine_capacity) vehicleData.engine = v.engine_capacity;
+        if (v.features) vehicleData.features = v.features;
+        if (v.vendor_name) vehicleData.vendor_name = v.vendor_name;
+        if (v.vendor_phone) vehicleData.vendor_phone = v.vendor_phone;
+        if (v.vendor_email) vehicleData.vendor_email = v.vendor_email;
+        if (v.province) vehicleData.province = v.province;
+
+        return vehicleData;
       });
 
       // Import vehicles one by one
