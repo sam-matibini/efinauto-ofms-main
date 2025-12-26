@@ -141,26 +141,35 @@ Taxes are auto-calculated based on Province and Purchase Price`;
   };
 
   const calculateTaxes = (vehicle, company) => {
-    if (!vehicle.province || vehicle.tax_status !== 'taxable') {
+    try {
+      if (!vehicle.province || !vehicle.tax_status || vehicle.tax_status.toLowerCase() !== 'taxable') {
+        return { tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0 };
+      }
+
+      const provinceCode = vehicle.province.toUpperCase().trim();
+      const taxRates = company?.tax_rates?.[provinceCode];
+      
+      if (!taxRates) {
+        console.warn(`No tax rates found for province: ${provinceCode}`);
+        return { tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0 };
+      }
+
+      const price = Number(vehicle.purchase_price) || 0;
+      const gst = Math.round((price * (taxRates.gst || 0)) / 100 * 100) / 100;
+      const pst = Math.round((price * (taxRates.pst || 0)) / 100 * 100) / 100;
+      const hst = Math.round((price * (taxRates.hst || 0)) / 100 * 100) / 100;
+      const total = Math.round((gst + pst + hst) * 100) / 100;
+
+      return {
+        tax_gst: gst,
+        tax_pst: pst,
+        tax_hst: hst,
+        tax_total: total
+      };
+    } catch (error) {
+      console.error("Tax calculation error:", error);
       return { tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0 };
     }
-
-    const taxRates = company?.tax_rates?.[vehicle.province];
-    if (!taxRates) {
-      return { tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0 };
-    }
-
-    const price = vehicle.purchase_price || 0;
-    const gst = (price * (taxRates.gst || 0)) / 100;
-    const pst = (price * (taxRates.pst || 0)) / 100;
-    const hst = (price * (taxRates.hst || 0)) / 100;
-
-    return {
-      tax_gst: gst,
-      tax_pst: pst,
-      tax_hst: hst,
-      tax_total: gst + pst + hst
-    };
   };
 
   const handleExtract = async () => {
@@ -171,8 +180,11 @@ Taxes are auto-calculated based on Province and Purchase Price`;
 
     setExtracting(true);
     try {
+      // Upload file
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      console.log("File uploaded:", file_url);
 
+      // Extract data with flexible schema
       const extractionResult = await base44.integrations.Core.ExtractDataFromUploadedFile({
         file_url,
         json_schema: {
@@ -183,30 +195,30 @@ Taxes are auto-calculated based on Province and Purchase Price`;
               items: {
                 type: "object",
                 properties: {
-                  vin: { type: "string" },
-                  stock_number: { type: "string" },
-                  invoice_number: { type: "string" },
-                  transaction_date: { type: "string" },
-                  make: { type: "string" },
-                  model: { type: "string" },
-                  year: { type: "number" },
-                  color: { type: "string" },
-                  mileage: { type: "number" },
-                  weight: { type: "number" },
-                  condition: { type: "string" },
-                  purchase_price: { type: "number" },
-                  selling_price: { type: "number" },
-                  location: { type: "string" },
-                  fuel_type: { type: "string" },
-                  transmission: { type: "string" },
-                  engine_capacity: { type: "string" },
-                  features: { type: "string" },
-                  vendor_name: { type: "string" },
-                  vendor_phone: { type: "string" },
-                  vendor_email: { type: "string" },
-                  province: { type: "string" },
-                  tax_status: { type: "string" },
-                  notes: { type: "string" }
+                  vin: { type: ["string", "null"] },
+                  stock_number: { type: ["string", "null"] },
+                  invoice_number: { type: ["string", "null"] },
+                  transaction_date: { type: ["string", "null"] },
+                  make: { type: ["string", "null"] },
+                  model: { type: ["string", "null"] },
+                  year: { type: ["number", "string", "null"] },
+                  color: { type: ["string", "null"] },
+                  mileage: { type: ["number", "string", "null"] },
+                  weight: { type: ["number", "string", "null"] },
+                  condition: { type: ["string", "null"] },
+                  purchase_price: { type: ["number", "string", "null"] },
+                  selling_price: { type: ["number", "string", "null"] },
+                  location: { type: ["string", "null"] },
+                  fuel_type: { type: ["string", "null"] },
+                  transmission: { type: ["string", "null"] },
+                  engine_capacity: { type: ["string", "null"] },
+                  features: { type: ["string", "null"] },
+                  vendor_name: { type: ["string", "null"] },
+                  vendor_phone: { type: ["string", "null"] },
+                  vendor_email: { type: ["string", "null"] },
+                  province: { type: ["string", "null"] },
+                  tax_status: { type: ["string", "null"] },
+                  notes: { type: ["string", "null"] }
                 }
               }
             }
@@ -214,27 +226,50 @@ Taxes are auto-calculated based on Province and Purchase Price`;
         }
       });
 
+      console.log("Extraction result:", extractionResult);
+
       if (extractionResult.status === "error") {
-        toast.error(extractionResult.details || "Failed to extract data");
+        toast.error(extractionResult.details || "Failed to extract data from file");
+        setExtracting(false);
         return;
       }
 
       const vehicles = extractionResult.output?.vehicles || [];
+      console.log("Extracted vehicles:", vehicles.length);
       
       if (vehicles.length === 0) {
-        toast.error("No valid vehicle records found in file");
+        toast.error("No vehicle records found in file. Please check file format.");
+        setExtracting(false);
         return;
       }
 
+      // Normalize data types
+      const normalizedVehicles = vehicles.map(v => ({
+        ...v,
+        year: v.year ? Number(v.year) : null,
+        mileage: v.mileage ? Number(v.mileage) : 0,
+        weight: v.weight ? Number(v.weight) : 0,
+        purchase_price: v.purchase_price ? Number(v.purchase_price) : 0,
+        selling_price: v.selling_price ? Number(v.selling_price) : 0
+      }));
+
       // Get company for tax calculation
       const companies = await base44.entities.Company.filter({ id: selectedCompanyId });
-      const company = companies[0];
+      const company = companies?.[0];
+
+      if (!company) {
+        toast.error("Company not found");
+        setExtracting(false);
+        return;
+      }
 
       // Calculate taxes for each vehicle
-      const vehiclesWithTaxes = vehicles.map(v => {
+      const vehiclesWithTaxes = normalizedVehicles.map(v => {
         const taxes = calculateTaxes(v, company);
         return { ...v, ...taxes };
       });
+
+      console.log("Vehicles with taxes calculated:", vehiclesWithTaxes);
 
       setPreviewData(vehiclesWithTaxes);
 
@@ -243,10 +278,10 @@ Taxes are auto-calculated based on Province and Purchase Price`;
       setValidationErrors(errors);
 
       setStep(2);
-      toast.success(`Extracted ${vehicles.length} records`);
+      toast.success(`Extracted ${vehicles.length} record(s) - Review and validate`);
     } catch (error) {
       console.error("Extraction error:", error);
-      toast.error("Failed to extract data: " + error.message);
+      toast.error("Extraction failed: " + (error.message || "Unknown error"));
     } finally {
       setExtracting(false);
     }
@@ -297,58 +332,72 @@ Taxes are auto-calculated based on Province and Purchase Price`;
         }
 
         try {
+          // Prepare clean vehicle data
+          const vinValue = v.vin?.toString().trim().toUpperCase() || '';
+          const makeValue = v.make?.toString().trim() || '';
+          const modelValue = v.model?.toString().trim() || '';
+          const yearValue = v.year ? Number(v.year) : null;
+
+          // Validate required fields before attempting create
+          if (!makeValue || !modelValue || !yearValue) {
+            throw new Error('Missing required fields: Make, Model, or Year');
+          }
+
           const vehicleData = {
             company_id: selectedCompanyId,
             ownership_type: "dealership_owned",
-            vin: v.vin?.trim()?.toUpperCase() || '',
-            stock_number: v.stock_number?.trim() || '',
-            invoice_number: v.invoice_number?.trim() || '',
+            vin: vinValue,
+            stock_number: v.stock_number?.toString().trim() || '',
+            invoice_number: v.invoice_number?.toString().trim() || '',
             transaction_date: v.transaction_date || null,
-            make: v.make?.trim() || '',
-            model: v.model?.trim() || '',
-            year: v.year || null,
-            color: v.color?.trim() || '',
+            make: makeValue,
+            model: modelValue,
+            year: yearValue,
+            color: v.color?.toString().trim() || '',
             mileage: Number(v.mileage) || 0,
             weight: Number(v.weight) || 0,
-            condition: (v.condition?.toLowerCase()?.trim() || 'used'),
+            condition: v.condition?.toString().toLowerCase().trim() || 'used',
             status: 'in_stock',
             purchase_price: Number(v.purchase_price) || 0,
             selling_price: Number(v.selling_price) || 0,
-            location: v.location?.trim() || '',
-            fuel_type: (v.fuel_type?.toLowerCase()?.trim() || 'petrol'),
-            transmission: (v.transmission?.toLowerCase()?.trim() || 'automatic'),
-            engine_capacity: v.engine_capacity?.trim() || '',
-            features: v.features?.trim() || '',
-            vendor_name: v.vendor_name?.trim() || '',
-            vendor_phone: v.vendor_phone?.trim() || '',
-            vendor_email: v.vendor_email?.trim() || '',
-            province: v.province?.toUpperCase()?.trim() || '',
-            tax_status: (v.tax_status?.toLowerCase()?.trim() || 'taxable'),
+            location: v.location?.toString().trim() || '',
+            fuel_type: v.fuel_type?.toString().toLowerCase().trim() || 'petrol',
+            transmission: v.transmission?.toString().toLowerCase().trim() || 'automatic',
+            engine_capacity: v.engine_capacity?.toString().trim() || '',
+            features: v.features?.toString().trim() || '',
+            vendor_name: v.vendor_name?.toString().trim() || '',
+            vendor_phone: v.vendor_phone?.toString().trim() || '',
+            vendor_email: v.vendor_email?.toString().trim() || '',
+            province: v.province?.toString().toUpperCase().trim() || '',
+            tax_status: v.tax_status?.toString().toLowerCase().trim() || 'taxable',
             tax_gst: Number(v.tax_gst) || 0,
             tax_pst: Number(v.tax_pst) || 0,
             tax_hst: Number(v.tax_hst) || 0,
             tax_total: Number(v.tax_total) || 0,
             total_cost: (Number(v.purchase_price) || 0) + (Number(v.tax_total) || 0),
-            notes: v.notes?.trim() || ''
+            notes: v.notes?.toString().trim() || ''
           };
 
+          console.log(`Creating vehicle row ${rowNum}:`, vehicleData);
           await base44.entities.Vehicle.create(vehicleData);
+          
           importResults.imported++;
           importResults.details.push({
             row: rowNum,
-            vehicle: `${v.year} ${v.make} ${v.model}`,
-            vin: v.vin,
+            vehicle: `${yearValue} ${makeValue} ${modelValue}`,
+            vin: vinValue || '-',
             status: 'success',
             reason: 'Imported successfully'
           });
         } catch (error) {
+          console.error(`Failed to import row ${rowNum}:`, error);
           importResults.failed++;
           importResults.details.push({
             row: rowNum,
-            vehicle: `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim(),
-            vin: v.vin,
+            vehicle: `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim() || 'Unknown',
+            vin: v.vin || '-',
             status: 'failed',
-            reason: error.message || 'Unknown error'
+            reason: error.message || 'Unknown error during creation'
           });
         }
       }
