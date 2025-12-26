@@ -13,10 +13,10 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
   const [results, setResults] = useState(null);
 
   const downloadTemplate = () => {
-    const template = `Make,Model,Year,VIN,Stock Number,Purchase Price,Selling Price,Color,Province
-Toyota,Camry,2023,1HGBH41JXMN109186,STK-001,25000,32000,Silver,ON
-Honda,Accord,2022,2HGFA16527H123456,STK-002,23000,29000,Black,BC
-Ford,F-150,2024,3VWFE21C04M123456,STK-003,35000,42000,White,AB`;
+    const template = `VIN,Stock Number,Invoice Number,Transaction Date,Make,Model,Year,Color,Condition,Purchase Price,Selling Price,Fuel Type,Transmission,Engine Capacity,Features,Vendor Name,Vendor Phone,Vendor Email,Province
+1HGBH41JXMN109186,STK-001,INV-001,2024-01-15,Toyota,Camry,2023,Silver,used,25000,32000,petrol,automatic,2.5L,Sunroof|Leather|Backup Camera,ABC Motors,555-0100,abc@example.com,ON
+2HGFA16527H123456,STK-002,INV-002,2024-01-16,Honda,Accord,2022,Black,used,23000,29000,petrol,automatic,2.0L,Navigation|Heated Seats,XYZ Auto,555-0200,xyz@example.com,BC
+3VWFE21C04M123456,STK-003,INV-003,2024-01-17,Ford,F-150,2024,White,new,35000,42000,diesel,automatic,5.0L,4WD|Tow Package|Bed Liner,Fleet Sales,555-0300,fleet@example.com,AB`;
 
     const blob = new Blob([template], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -56,14 +56,24 @@ Ford,F-150,2024,3VWFE21C04M123456,STK-003,35000,42000,White,AB`;
               items: {
                 type: "object",
                 properties: {
+                  vin: { type: "string" },
+                  stock_number: { type: "string" },
+                  invoice_number: { type: "string" },
+                  transaction_date: { type: "string" },
                   make: { type: "string" },
                   model: { type: "string" },
                   year: { type: "number" },
-                  vin: { type: "string" },
-                  stock_number: { type: "string" },
+                  color: { type: "string" },
+                  condition: { type: "string" },
                   purchase_price: { type: "number" },
                   selling_price: { type: "number" },
-                  color: { type: "string" },
+                  fuel_type: { type: "string" },
+                  transmission: { type: "string" },
+                  engine_capacity: { type: "string" },
+                  features: { type: "string" },
+                  vendor_name: { type: "string" },
+                  vendor_phone: { type: "string" },
+                  vendor_email: { type: "string" },
                   province: { type: "string" }
                 },
                 required: ["make", "model", "year"]
@@ -103,14 +113,24 @@ Ford,F-150,2024,3VWFE21C04M123456,STK-003,35000,42000,White,AB`;
           company_id: selectedCompanyId,
           ownership_type: "dealership_owned",
           status: "in_stock",
+          vin: v.vin || "",
+          stock_number: v.stock_number || "",
+          invoice_number: v.invoice_number || "",
+          transaction_date: v.transaction_date || new Date().toISOString().split('T')[0],
           make: v.make,
           model: v.model,
           year: Number(v.year),
-          vin: v.vin || "",
-          stock_number: v.stock_number || "",
+          color: v.color || "",
+          condition: v.condition || "used",
           purchase_price: purchasePrice,
           selling_price: Number(v.selling_price) || 0,
-          color: v.color || "",
+          fuel_type: v.fuel_type || "petrol",
+          transmission: v.transmission || "automatic",
+          engine: v.engine_capacity || "",
+          features: v.features || "",
+          vendor_name: v.vendor_name || "",
+          vendor_phone: v.vendor_phone || "",
+          vendor_email: v.vendor_email || "",
           province: v.province || "",
           tax_status: "taxable",
           tax_gst: taxGst,
@@ -118,10 +138,7 @@ Ford,F-150,2024,3VWFE21C04M123456,STK-003,35000,42000,White,AB`;
           tax_hst: taxHst,
           tax_total: taxTotal,
           total_cost: purchasePrice + taxTotal,
-          mileage: 0,
-          condition: "used",
-          fuel_type: "petrol",
-          transmission: "automatic"
+          mileage: 0
         };
       });
 
