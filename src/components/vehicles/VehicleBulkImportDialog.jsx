@@ -307,75 +307,89 @@ Taxes are auto-calculated based on Province and Purchase Price`;
     };
 
     try {
-      // Track which rows have errors (should be skipped)
-      const rowsWithErrors = new Set(
-        validationErrors
-          .filter(e => e.severity === 'error')
-          .map(e => e.row - 2)
-      );
+      // Process each vehicle individually to track success/failure
+      for (let idx = 0; idx < previewData.length; idx++) {
+        const v = previewData[idx];
+        const rowNum = idx + 1;
 
-      // Filter out vehicles with errors
-      const validVehicles = previewData.filter((v, idx) => {
+        // Skip rows with validation errors
         const rowErrors = validationErrors.filter(e => e.row === idx + 2 && e.severity === 'error');
-        return rowErrors.length === 0;
-      });
+        if (rowErrors.length > 0) {
+          importResults.skipped++;
+          importResults.details.push({
+            row: rowNum,
+            vehicle: `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim(),
+            vin: v.vin || '-',
+            status: 'skipped',
+            reason: rowErrors.map(e => e.message).join(', ')
+          });
+          continue;
+        }
 
-      const vehiclesToImport = validVehicles.map(v => ({
-        company_id: selectedCompanyId,
-        ownership_type: "dealership_owned",
-        vin: v.vin?.trim()?.toUpperCase() || '',
-        stock_number: v.stock_number?.trim() || '',
-        invoice_number: v.invoice_number?.trim() || '',
-        transaction_date: v.transaction_date || null,
-        make: v.make?.trim() || '',
-        model: v.model?.trim() || '',
-        year: v.year || null,
-        color: v.color?.trim() || '',
-        mileage: Number(v.mileage) || 0,
-        weight: Number(v.weight) || 0,
-        condition: (v.condition?.toLowerCase()?.trim() || 'used'),
-        status: 'in_stock',
-        purchase_price: Number(v.purchase_price) || 0,
-        selling_price: Number(v.selling_price) || 0,
-        location: v.location?.trim() || '',
-        fuel_type: (v.fuel_type?.toLowerCase()?.trim() || 'petrol'),
-        transmission: (v.transmission?.toLowerCase()?.trim() || 'automatic'),
-        engine_capacity: v.engine_capacity?.trim() || '',
-        features: v.features?.trim() || '',
-        vendor_name: v.vendor_name?.trim() || '',
-        vendor_phone: v.vendor_phone?.trim() || '',
-        vendor_email: v.vendor_email?.trim() || '',
-        province: v.province?.toUpperCase()?.trim() || '',
-        tax_status: (v.tax_status?.toLowerCase()?.trim() || 'taxable'),
-        tax_gst: Number(v.tax_gst) || 0,
-        tax_pst: Number(v.tax_pst) || 0,
-        tax_hst: Number(v.tax_hst) || 0,
-        tax_total: Number(v.tax_total) || 0,
-        total_cost: (Number(v.purchase_price) || 0) + (Number(v.tax_total) || 0),
-        notes: v.notes?.trim() || ''
-      }));
+        try {
+          const vehicleData = {
+            company_id: selectedCompanyId,
+            ownership_type: "dealership_owned",
+            vin: v.vin?.trim()?.toUpperCase() || '',
+            stock_number: v.stock_number?.trim() || '',
+            invoice_number: v.invoice_number?.trim() || '',
+            transaction_date: v.transaction_date || null,
+            make: v.make?.trim() || '',
+            model: v.model?.trim() || '',
+            year: v.year || null,
+            color: v.color?.trim() || '',
+            mileage: Number(v.mileage) || 0,
+            weight: Number(v.weight) || 0,
+            condition: (v.condition?.toLowerCase()?.trim() || 'used'),
+            status: 'in_stock',
+            purchase_price: Number(v.purchase_price) || 0,
+            selling_price: Number(v.selling_price) || 0,
+            location: v.location?.trim() || '',
+            fuel_type: (v.fuel_type?.toLowerCase()?.trim() || 'petrol'),
+            transmission: (v.transmission?.toLowerCase()?.trim() || 'automatic'),
+            engine_capacity: v.engine_capacity?.trim() || '',
+            features: v.features?.trim() || '',
+            vendor_name: v.vendor_name?.trim() || '',
+            vendor_phone: v.vendor_phone?.trim() || '',
+            vendor_email: v.vendor_email?.trim() || '',
+            province: v.province?.toUpperCase()?.trim() || '',
+            tax_status: (v.tax_status?.toLowerCase()?.trim() || 'taxable'),
+            tax_gst: Number(v.tax_gst) || 0,
+            tax_pst: Number(v.tax_pst) || 0,
+            tax_hst: Number(v.tax_hst) || 0,
+            tax_total: Number(v.tax_total) || 0,
+            total_cost: (Number(v.purchase_price) || 0) + (Number(v.tax_total) || 0),
+            notes: v.notes?.trim() || ''
+          };
 
-      const imported = await base44.entities.Vehicle.bulkCreate(vehiclesToImport);
-
-      importResults.imported = imported.length;
-      importResults.failed = previewData.length - imported.length;
-      
-      // Generate success details for imported vehicles
-      validVehicles.slice(0, imported.length).forEach((v, idx) => {
-        importResults.details.push({
-          row: idx + 1,
-          vehicle: `${v.year} ${v.make} ${v.model}`,
-          vin: v.vin || '-',
-          status: 'success',
-          reason: 'Imported successfully'
-        });
-      });
+          await base44.entities.Vehicle.create(vehicleData);
+          
+          importResults.imported++;
+          importResults.details.push({
+            row: rowNum,
+            vehicle: `${v.year} ${v.make} ${v.model}`,
+            vin: v.vin || '-',
+            status: 'success',
+            reason: 'Imported successfully'
+          });
+        } catch (error) {
+          console.error(`Row ${rowNum} failed:`, error);
+          importResults.failed++;
+          importResults.details.push({
+            row: rowNum,
+            vehicle: `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim(),
+            vin: v.vin || '-',
+            status: 'failed',
+            reason: error.message || 'Database error'
+          });
+        }
+      }
 
       setResults(importResults);
       setStep(3);
       
       if (importResults.failed > 0) {
-        toast.error(`Import completed with ${importResults.failed} failure(s)`);
+        toast.error(`Import completed: ${importResults.imported} success, ${importResults.failed} failed`);
       } else {
         toast.success(`Successfully imported ${importResults.imported} vehicles`);
       }
@@ -385,7 +399,7 @@ Taxes are auto-calculated based on Province and Purchase Price`;
       }
     } catch (error) {
       console.error("Import error:", error);
-      toast.error("Failed to import: " + error.message);
+      toast.error("Import failed: " + error.message);
       setResults({
         success: false,
         total: previewData.length,
