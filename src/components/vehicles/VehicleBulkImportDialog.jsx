@@ -275,136 +275,64 @@ Taxes are auto-calculated based on Province and Purchase Price`;
     }
 
     setImporting(true);
-    console.log("=== STARTING IMPORT ===");
-    console.log("Total records to import:", previewData.length);
     
-    const importResults = {
-      success: true,
-      total: previewData.length,
-      imported: 0,
-      failed: 0,
-      skipped: 0,
-      details: []
-    };
-
     try {
-      // Process each vehicle individually to track success/failure
-      for (let idx = 0; idx < previewData.length; idx++) {
-        const v = previewData[idx];
-        const rowNum = idx + 1;
+      const vehiclesToCreate = previewData.map(v => ({
+        company_id: selectedCompanyId,
+        ownership_type: "dealership_owned",
+        status: 'in_stock',
+        vin: v.vin || '',
+        stock_number: v.stock_number || '',
+        invoice_number: v.invoice_number || '',
+        transaction_date: v.transaction_date || null,
+        make: v.make || '',
+        model: v.model || '',
+        year: v.year || null,
+        color: v.color || '',
+        mileage: v.mileage || 0,
+        weight: v.weight || 0,
+        condition: v.condition || 'used',
+        purchase_price: v.purchase_price || 0,
+        selling_price: v.selling_price || 0,
+        location: v.location || '',
+        fuel_type: v.fuel_type || 'petrol',
+        transmission: v.transmission || 'automatic',
+        engine_capacity: v.engine_capacity || '',
+        features: v.features || '',
+        vendor_name: v.vendor_name || '',
+        vendor_phone: v.vendor_phone || '',
+        vendor_email: v.vendor_email || '',
+        province: v.province || '',
+        tax_status: v.tax_status || 'taxable',
+        tax_gst: v.tax_gst || 0,
+        tax_pst: v.tax_pst || 0,
+        tax_hst: v.tax_hst || 0,
+        tax_total: v.tax_total || 0,
+        total_cost: (v.purchase_price || 0) + (v.tax_total || 0),
+        notes: v.notes || ''
+      }));
 
-        // Skip rows with validation errors
-        const rowErrors = validationErrors.filter(e => e.row === idx + 2 && e.severity === 'error');
-        if (rowErrors.length > 0) {
-          console.log(`⊘ Row ${rowNum} skipped:`, rowErrors.map(e => e.message));
-          importResults.skipped++;
-          importResults.details.push({
-            row: rowNum,
-            vehicle: `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim(),
-            vin: v.vin || '-',
-            status: 'skipped',
-            reason: rowErrors.map(e => e.message).join(', ')
-          });
-          continue;
-        }
+      const imported = await base44.entities.Vehicle.bulkCreate(vehiclesToCreate);
 
-        try {
-          const vehicleData = {
-            company_id: selectedCompanyId,
-            ownership_type: "dealership_owned",
-            vin: v.vin,
-            stock_number: v.stock_number,
-            invoice_number: v.invoice_number,
-            transaction_date: v.transaction_date,
-            make: v.make,
-            model: v.model,
-            year: v.year,
-            color: v.color,
-            mileage: v.mileage,
-            weight: v.weight,
-            condition: v.condition,
-            status: 'in_stock',
-            purchase_price: v.purchase_price,
-            selling_price: v.selling_price,
-            location: v.location,
-            fuel_type: v.fuel_type,
-            transmission: v.transmission,
-            engine_capacity: v.engine_capacity,
-            features: v.features,
-            vendor_name: v.vendor_name,
-            vendor_phone: v.vendor_phone,
-            vendor_email: v.vendor_email,
-            province: v.province,
-            tax_status: v.tax_status,
-            tax_gst: v.tax_gst,
-            tax_pst: v.tax_pst,
-            tax_hst: v.tax_hst,
-            tax_total: v.tax_total,
-            total_cost: v.purchase_price + v.tax_total,
-            notes: v.notes
-          };
-
-          console.log(`→ Importing row ${rowNum}:`, {
-            make: vehicleData.make,
-            model: vehicleData.model,
-            year: vehicleData.year,
-            vin: vehicleData.vin
-          });
-          
-          const created = await base44.entities.Vehicle.create(vehicleData);
-          console.log(`✓ Row ${rowNum} imported successfully. ID:`, created.id);
-          
-          importResults.imported++;
-          importResults.details.push({
-            row: rowNum,
-            vehicle: `${v.year} ${v.make} ${v.model}`,
-            vin: v.vin || '-',
-            status: 'success',
-            reason: 'Imported successfully'
-          });
-        } catch (error) {
-          console.error(`❌ Row ${rowNum} failed:`, {
-            error: error.message,
-            stack: error.stack,
-            vehicle: vehicleData
-          });
-          importResults.failed++;
-          importResults.details.push({
-            row: rowNum,
-            vehicle: `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim(),
-            vin: v.vin || '-',
-            status: 'failed',
-            reason: error.message || 'Database error'
-          });
-        }
-      }
-
-      console.log("=== IMPORT COMPLETE ===");
-      console.log("Results:", {
-        total: importResults.total,
-        imported: importResults.imported,
-        failed: importResults.failed,
-        skipped: importResults.skipped
+      setResults({
+        success: true,
+        total: previewData.length,
+        imported: imported.length,
+        failed: 0,
+        skipped: 0,
+        details: imported.map((vehicle, idx) => ({
+          row: idx + 1,
+          vehicle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+          vin: vehicle.vin || '-',
+          status: 'success',
+          reason: 'Imported successfully'
+        }))
       });
 
-      setResults(importResults);
       setStep(3);
-      
-      if (importResults.failed > 0) {
-        toast.error(`Import completed: ${importResults.imported} success, ${importResults.failed} failed`);
-      } else {
-        toast.success(`Successfully imported ${importResults.imported} vehicles`);
-      }
-      
-      if (importResults.imported > 0) {
-        onSuccess?.();
-      }
+      toast.success(`Successfully imported ${imported.length} vehicles`);
+      onSuccess?.();
     } catch (error) {
-      console.error("❌ IMPORT ERROR:", error);
-      console.error("Error details:", {
-        message: error.message,
-        stack: error.stack
-      });
       toast.error("Import failed: " + error.message);
       setResults({
         success: false,
