@@ -262,66 +262,119 @@ Taxes are auto-calculated based on Province and Purchase Price`;
     }
 
     setImporting(true);
+    const importResults = {
+      success: true,
+      total: previewData.length,
+      imported: 0,
+      failed: 0,
+      skipped: 0,
+      details: []
+    };
+
     try {
-      // Filter out vehicles with errors
-      const validVehicles = previewData.filter((v, idx) => {
-        const rowErrors = validationErrors.filter(e => e.row === idx + 2 && e.severity === 'error');
-        return rowErrors.length === 0;
-      });
+      // Track which rows have errors (should be skipped)
+      const rowsWithErrors = new Set(
+        validationErrors
+          .filter(e => e.severity === 'error')
+          .map(e => e.row - 2)
+      );
 
-      const vehiclesToImport = validVehicles.map(v => ({
-        company_id: selectedCompanyId,
-        ownership_type: "dealership_owned",
-        vin: v.vin?.trim()?.toUpperCase() || '',
-        stock_number: v.stock_number?.trim() || '',
-        invoice_number: v.invoice_number?.trim() || '',
-        transaction_date: v.transaction_date || null,
-        make: v.make?.trim() || '',
-        model: v.model?.trim() || '',
-        year: v.year || null,
-        color: v.color?.trim() || '',
-        mileage: Number(v.mileage) || 0,
-        weight: Number(v.weight) || 0,
-        condition: (v.condition?.toLowerCase()?.trim() || 'used'),
-        status: 'in_stock',
-        purchase_price: Number(v.purchase_price) || 0,
-        selling_price: Number(v.selling_price) || 0,
-        location: v.location?.trim() || '',
-        fuel_type: (v.fuel_type?.toLowerCase()?.trim() || 'petrol'),
-        transmission: (v.transmission?.toLowerCase()?.trim() || 'automatic'),
-        engine_capacity: v.engine_capacity?.trim() || '',
-        features: v.features?.trim() || '',
-        vendor_name: v.vendor_name?.trim() || '',
-        vendor_phone: v.vendor_phone?.trim() || '',
-        vendor_email: v.vendor_email?.trim() || '',
-        province: v.province?.toUpperCase()?.trim() || '',
-        tax_status: (v.tax_status?.toLowerCase()?.trim() || 'taxable'),
-        tax_gst: Number(v.tax_gst) || 0,
-        tax_pst: Number(v.tax_pst) || 0,
-        tax_hst: Number(v.tax_hst) || 0,
-        tax_total: Number(v.tax_total) || 0,
-        total_cost: (Number(v.purchase_price) || 0) + (Number(v.tax_total) || 0),
-        notes: v.notes?.trim() || ''
-      }));
+      // Process each vehicle individually to capture individual failures
+      for (let idx = 0; idx < previewData.length; idx++) {
+        const v = previewData[idx];
+        const rowNum = idx + 1;
 
-      const imported = await base44.entities.Vehicle.bulkCreate(vehiclesToImport);
+        // Skip rows with validation errors
+        if (rowsWithErrors.has(idx)) {
+          importResults.skipped++;
+          importResults.details.push({
+            row: rowNum,
+            vehicle: `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim(),
+            status: 'skipped',
+            reason: 'Validation errors detected'
+          });
+          continue;
+        }
 
-      setResults({
-        success: true,
-        total: previewData.length,
-        imported: imported.length,
-        failed: previewData.length - imported.length
-      });
+        try {
+          const vehicleData = {
+            company_id: selectedCompanyId,
+            ownership_type: "dealership_owned",
+            vin: v.vin?.trim()?.toUpperCase() || '',
+            stock_number: v.stock_number?.trim() || '',
+            invoice_number: v.invoice_number?.trim() || '',
+            transaction_date: v.transaction_date || null,
+            make: v.make?.trim() || '',
+            model: v.model?.trim() || '',
+            year: v.year || null,
+            color: v.color?.trim() || '',
+            mileage: Number(v.mileage) || 0,
+            weight: Number(v.weight) || 0,
+            condition: (v.condition?.toLowerCase()?.trim() || 'used'),
+            status: 'in_stock',
+            purchase_price: Number(v.purchase_price) || 0,
+            selling_price: Number(v.selling_price) || 0,
+            location: v.location?.trim() || '',
+            fuel_type: (v.fuel_type?.toLowerCase()?.trim() || 'petrol'),
+            transmission: (v.transmission?.toLowerCase()?.trim() || 'automatic'),
+            engine_capacity: v.engine_capacity?.trim() || '',
+            features: v.features?.trim() || '',
+            vendor_name: v.vendor_name?.trim() || '',
+            vendor_phone: v.vendor_phone?.trim() || '',
+            vendor_email: v.vendor_email?.trim() || '',
+            province: v.province?.toUpperCase()?.trim() || '',
+            tax_status: (v.tax_status?.toLowerCase()?.trim() || 'taxable'),
+            tax_gst: Number(v.tax_gst) || 0,
+            tax_pst: Number(v.tax_pst) || 0,
+            tax_hst: Number(v.tax_hst) || 0,
+            tax_total: Number(v.tax_total) || 0,
+            total_cost: (Number(v.purchase_price) || 0) + (Number(v.tax_total) || 0),
+            notes: v.notes?.trim() || ''
+          };
 
+          await base44.entities.Vehicle.create(vehicleData);
+          importResults.imported++;
+          importResults.details.push({
+            row: rowNum,
+            vehicle: `${v.year} ${v.make} ${v.model}`,
+            vin: v.vin,
+            status: 'success',
+            reason: 'Imported successfully'
+          });
+        } catch (error) {
+          importResults.failed++;
+          importResults.details.push({
+            row: rowNum,
+            vehicle: `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim(),
+            vin: v.vin,
+            status: 'failed',
+            reason: error.message || 'Unknown error'
+          });
+        }
+      }
+
+      setResults(importResults);
       setStep(3);
-      toast.success(`Successfully imported ${imported.length} vehicles`);
-      onSuccess?.();
+      
+      if (importResults.failed > 0) {
+        toast.error(`Import completed with ${importResults.failed} failure(s)`);
+      } else {
+        toast.success(`Successfully imported ${importResults.imported} vehicles`);
+      }
+      
+      if (importResults.imported > 0) {
+        onSuccess?.();
+      }
     } catch (error) {
       console.error("Import error:", error);
       toast.error("Failed to import: " + error.message);
       setResults({
         success: false,
-        error: error.message
+        total: previewData.length,
+        imported: 0,
+        failed: previewData.length,
+        error: error.message,
+        details: []
       });
     } finally {
       setImporting(false);
@@ -625,33 +678,109 @@ Taxes are auto-calculated based on Province and Purchase Price`;
 
           {/* Step 3: Results */}
           {step === 3 && results && (
-            <div className="text-center py-6">
-              {results.success ? (
-                <>
-                  <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Import Successful!</h3>
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-left max-w-md mx-auto">
-                    <p className="text-sm text-green-800">
-                      <strong>Total Records:</strong> {results.total}
-                    </p>
-                    <p className="text-sm text-green-800">
-                      <strong>Successfully Imported:</strong> {results.imported}
-                    </p>
-                    {results.failed > 0 && (
-                      <p className="text-sm text-amber-800">
-                        <strong>Failed:</strong> {results.failed}
-                      </p>
-                    )}
+            <div className="space-y-6">
+              <div className="text-center py-4">
+                {results.failed === 0 && results.imported > 0 ? (
+                  <>
+                    <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Import Successful!</h3>
+                  </>
+                ) : results.failed > 0 && results.imported > 0 ? (
+                  <>
+                    <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Import Completed with Issues</h3>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Import Failed</h3>
+                  </>
+                )}
+              </div>
+
+              {/* Summary Stats */}
+              <div className="grid grid-cols-4 gap-4">
+                <div className="bg-blue-50 rounded-lg p-4 text-center">
+                  <p className="text-2xl font-bold text-blue-900">{results.total}</p>
+                  <p className="text-xs text-blue-700">Total</p>
+                </div>
+                <div className="bg-green-50 rounded-lg p-4 text-center">
+                  <p className="text-2xl font-bold text-green-900">{results.imported}</p>
+                  <p className="text-xs text-green-700">Imported</p>
+                </div>
+                <div className="bg-red-50 rounded-lg p-4 text-center">
+                  <p className="text-2xl font-bold text-red-900">{results.failed || 0}</p>
+                  <p className="text-xs text-red-700">Failed</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4 text-center">
+                  <p className="text-2xl font-bold text-gray-900">{results.skipped || 0}</p>
+                  <p className="text-xs text-gray-700">Skipped</p>
+                </div>
+              </div>
+
+              {/* Detailed Results */}
+              {results.details && results.details.length > 0 && (
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-2 border-b">
+                    <p className="text-sm font-semibold">Import Details</p>
                   </div>
-                </>
-              ) : (
-                <>
-                  <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Import Failed</h3>
-                  <p className="text-gray-600">{results.error}</p>
-                </>
+                  <div className="max-h-96 overflow-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-100 sticky top-0">
+                        <tr>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Row</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Status</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Vehicle</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">VIN</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Reason</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {results.details.map((detail, idx) => (
+                          <tr key={idx} className={`border-b ${
+                            detail.status === 'success' ? 'bg-green-50' :
+                            detail.status === 'failed' ? 'bg-red-50' :
+                            'bg-gray-50'
+                          }`}>
+                            <td className="px-3 py-2 text-gray-500 font-medium">{detail.row}</td>
+                            <td className="px-3 py-2">
+                              {detail.status === 'success' ? (
+                                <Badge className="bg-green-100 text-green-800 text-xs">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Success
+                                </Badge>
+                              ) : detail.status === 'failed' ? (
+                                <Badge className="bg-red-100 text-red-800 text-xs">
+                                  <XCircle className="w-3 h-3 mr-1" />
+                                  Failed
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-gray-100 text-gray-800 text-xs">
+                                  <AlertTriangle className="w-3 h-3 mr-1" />
+                                  Skipped
+                                </Badge>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 font-medium">{detail.vehicle}</td>
+                            <td className="px-3 py-2 font-mono text-xs">{detail.vin || '-'}</td>
+                            <td className="px-3 py-2 text-xs text-gray-600">{detail.reason}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               )}
-              <Button onClick={handleClose} className="mt-6">Close</Button>
+
+              {results.error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-sm text-red-800">{results.error}</p>
+                </div>
+              )}
+
+              <Button onClick={handleClose} className="w-full">
+                Close
+              </Button>
             </div>
           )}
         </div>
