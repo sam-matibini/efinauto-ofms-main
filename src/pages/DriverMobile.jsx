@@ -2,21 +2,26 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Navigation, MapPin, CheckCircle, Upload, Camera, AlertTriangle, Phone, Clock, TrendingUp, Shield } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Navigation, MapPin, AlertTriangle, Clock, TrendingUp, Shield, List, MessageSquare, CheckCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { predictShipmentETA, updateShipmentETA, calculateAverageSpeed } from "@/components/dispatch/AIETAPrediction";
 import IncidentReportDialog from "@/components/dispatch/IncidentReportDialog";
 import { checkWeatherHazards } from "@/components/dispatch/HazmatWeatherAlerts";
+import ShipmentStatusUpdater from "@/components/driver/ShipmentStatusUpdater";
+import ProofOfDeliveryCapture from "@/components/driver/ProofOfDeliveryCapture";
+import DispatchCommunication from "@/components/driver/DispatchCommunication";
+import RouteNavigation from "@/components/driver/RouteNavigation";
 
 export default function DriverMobile() {
   const queryClient = useQueryClient();
   const [trackingActive, setTrackingActive] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [incidentDialogOpen, setIncidentDialogOpen] = useState(false);
+  const [podDialogOpen, setPodDialogOpen] = useState(false);
+  const [commDialogOpen, setCommDialogOpen] = useState(false);
   const [weatherAlerts, setWeatherAlerts] = useState(null);
 
   const { data: currentUser } = useQuery({
@@ -37,6 +42,15 @@ export default function DriverMobile() {
     queryKey: ['activeShipment', driver?.current_shipment_id],
     queryFn: () => base44.entities.LocalShipment.filter({ id: driver.current_shipment_id }),
     enabled: !!driver?.current_shipment_id,
+  });
+
+  const { data: assignedShipments = [] } = useQuery({
+    queryKey: ['assignedShipments', driver?.id],
+    queryFn: () => base44.entities.LocalShipment.filter({ 
+      driver_id: driver.id,
+      status: { $in: ['assigned', 'in_transit', 'near_destination'] }
+    }),
+    enabled: !!driver?.id,
   });
 
   const recordGPSMutation = useMutation({
@@ -231,6 +245,8 @@ export default function DriverMobile() {
                   </div>
                 )}
 
+                <ShipmentStatusUpdater shipment={activeShipment[0]} />
+
                 <div>
                   <p className="text-sm text-gray-600 mb-2">GPS Tracking</p>
                   <Button
@@ -246,14 +262,6 @@ export default function DriverMobile() {
                     </p>
                   )}
                 </div>
-
-                <div>
-                  <p className="text-sm text-gray-600 mb-2">Emergency Contact</p>
-                  <Button variant="outline" className="w-full">
-                    <Phone className="w-4 h-4 mr-2" />
-                    Call Dispatcher
-                  </Button>
-                </div>
               </CardContent>
             </Card>
 
@@ -262,17 +270,20 @@ export default function DriverMobile() {
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Document
+                <Button 
+                  onClick={() => setCommDialogOpen(true)}
+                  variant="outline" 
+                  className="w-full justify-start"
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Contact Dispatch
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Camera className="w-4 h-4 mr-2" />
-                  Take Photo
-                </Button>
-                <Button className="w-full justify-start bg-green-600 hover:bg-green-700">
+                <Button 
+                  onClick={() => setPodDialogOpen(true)}
+                  className="w-full justify-start bg-green-600 hover:bg-green-700"
+                >
                   <CheckCircle className="w-4 h-4 mr-2" />
-                  Complete Delivery
+                  Complete Delivery & POD
                 </Button>
               </CardContent>
             </Card>
@@ -287,13 +298,97 @@ export default function DriverMobile() {
           </Card>
         )}
 
+          </TabsContent>
+
+          <TabsContent value="assigned" className="space-y-4">
+            {assignedShipments.length > 0 ? (
+              assignedShipments.map((shipment) => (
+                <Card key={shipment.id}>
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <p className="font-bold">{shipment.shipment_number}</p>
+                        <Badge className={
+                          shipment.status === 'assigned' ? 'bg-blue-100 text-blue-800' :
+                          shipment.status === 'in_transit' ? 'bg-purple-100 text-purple-800' :
+                          'bg-orange-100 text-orange-800'
+                        }>
+                          {shipment.status.replace(/_/g, ' ')}
+                        </Badge>
+                      </div>
+                      {shipment.contains_hazmat && (
+                        <Badge className="bg-red-100 text-red-800">
+                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          HAZMAT
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <p className="text-gray-600">From:</p>
+                        <p className="font-medium">{shipment.origin_city}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">To:</p>
+                        <p className="font-medium">{shipment.destination_city}</p>
+                      </div>
+                    </div>
+                    {shipment.scheduled_delivery_time && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Due: {new Date(shipment.scheduled_delivery_time).toLocaleString()}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center text-gray-500">
+                  <List className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+                  <p>No assigned shipments</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="navigation" className="space-y-4">
+            {activeShipment?.[0] ? (
+              <RouteNavigation 
+                shipment={activeShipment[0]} 
+                currentLocation={currentLocation}
+              />
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center text-gray-500">
+                  <Navigation className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+                  <p>No active shipment for navigation</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
+
         {activeShipment?.[0] && driver && (
-          <IncidentReportDialog
-            open={incidentDialogOpen}
-            onClose={() => setIncidentDialogOpen(false)}
-            shipment={activeShipment[0]}
-            driver={driver}
-          />
+          <>
+            <IncidentReportDialog
+              open={incidentDialogOpen}
+              onClose={() => setIncidentDialogOpen(false)}
+              shipment={activeShipment[0]}
+              driver={driver}
+            />
+            <ProofOfDeliveryCapture
+              open={podDialogOpen}
+              onClose={() => setPodDialogOpen(false)}
+              shipment={activeShipment[0]}
+              driver={driver}
+            />
+            <DispatchCommunication
+              open={commDialogOpen}
+              onClose={() => setCommDialogOpen(false)}
+              shipment={activeShipment[0]}
+              driver={driver}
+            />
+          </>
         )}
       </div>
     </div>
