@@ -59,33 +59,44 @@ Taxes are auto-calculated based on Province and Purchase Price`;
     const errors = [];
     const warnings = [];
     
-    // Check for duplicate VINs in file
+    // Check for duplicate VINs in file (only for non-empty VINs)
     const vinCount = {};
     vehicles.forEach((v, idx) => {
-      if (v.vin) {
-        vinCount[v.vin] = (vinCount[v.vin] || 0) + 1;
-        if (vinCount[v.vin] > 1) {
+      if (v.vin && v.vin.trim()) {
+        const vin = v.vin.trim().toUpperCase();
+        vinCount[vin] = vinCount[vin] || [];
+        vinCount[vin].push(idx + 2);
+      }
+    });
+    
+    Object.entries(vinCount).forEach(([vin, rows]) => {
+      if (rows.length > 1) {
+        rows.forEach(row => {
           errors.push({
-            row: idx + 2,
+            row,
             field: 'vin',
-            message: `Duplicate VIN in file: ${v.vin}`,
+            message: `Duplicate VIN in file: ${vin}`,
             severity: 'error'
           });
-        }
+        });
       }
     });
     
     // Check for existing VINs in database
-    const uniqueVins = vehicles.map(v => v.vin).filter(Boolean);
+    const uniqueVins = vehicles
+      .map(v => v.vin)
+      .filter(vin => vin && vin.trim())
+      .map(vin => vin.trim().toUpperCase());
+    
     if (uniqueVins.length > 0) {
       const existing = await base44.entities.Vehicle.filter({ 
         company_id: selectedCompanyId,
         vin: { $in: uniqueVins } 
       });
-      const existingVINs = new Set(existing.map(v => v.vin));
+      const existingVINs = new Set(existing.map(v => v.vin?.toUpperCase()));
       
       vehicles.forEach((v, idx) => {
-        if (v.vin && existingVINs.has(v.vin)) {
+        if (v.vin && v.vin.trim() && existingVINs.has(v.vin.trim().toUpperCase())) {
           errors.push({
             row: idx + 2,
             field: 'vin',
@@ -100,28 +111,28 @@ Taxes are auto-calculated based on Province and Purchase Price`;
     vehicles.forEach((v, idx) => {
       const row = idx + 2;
 
-      if (v.vin && v.vin.length < 10) {
+      if (v.vin && v.vin.trim().length < 10) {
         errors.push({ row, field: 'vin', message: 'VIN must be at least 10 characters', severity: 'error' });
       }
-      if (!v.make) {
+      if (!v.make || !v.make.trim()) {
         errors.push({ row, field: 'make', message: 'Make is required', severity: 'error' });
       }
-      if (!v.model) {
+      if (!v.model || !v.model.trim()) {
         errors.push({ row, field: 'model', message: 'Model is required', severity: 'error' });
       }
       if (!v.year || v.year < 1900 || v.year > new Date().getFullYear() + 2) {
-        errors.push({ row, field: 'year', message: 'Year is required and must be valid', severity: 'error' });
+        errors.push({ row, field: 'year', message: 'Year is required and must be valid (1900-' + (new Date().getFullYear() + 2) + ')', severity: 'error' });
       }
-      if (v.condition && !['new', 'used', 'certified_pre_owned', 'salvage'].includes(v.condition.toLowerCase())) {
+      if (v.condition && v.condition.trim() && !['new', 'used', 'certified_pre_owned', 'salvage'].includes(v.condition.toLowerCase().trim())) {
         warnings.push({ row, field: 'condition', message: `Invalid condition "${v.condition}", will default to "used"`, severity: 'warning' });
       }
-      if (v.tax_status && !['taxable', 'zero_rated', 'exempt'].includes(v.tax_status.toLowerCase())) {
+      if (v.tax_status && v.tax_status.trim() && !['taxable', 'zero_rated', 'exempt'].includes(v.tax_status.toLowerCase().trim())) {
         warnings.push({ row, field: 'tax_status', message: `Invalid tax status, will default to "taxable"`, severity: 'warning' });
       }
-      if (v.fuel_type && !['petrol', 'diesel', 'electric', 'hybrid', 'lpg'].includes(v.fuel_type.toLowerCase())) {
+      if (v.fuel_type && v.fuel_type.trim() && !['petrol', 'diesel', 'electric', 'hybrid', 'lpg'].includes(v.fuel_type.toLowerCase().trim())) {
         warnings.push({ row, field: 'fuel_type', message: `Invalid fuel type, will default to "petrol"`, severity: 'warning' });
       }
-      if (v.transmission && !['manual', 'automatic', 'semi_automatic'].includes(v.transmission.toLowerCase())) {
+      if (v.transmission && v.transmission.trim() && !['manual', 'automatic', 'semi_automatic'].includes(v.transmission.toLowerCase().trim())) {
         warnings.push({ row, field: 'transmission', message: `Invalid transmission, will default to "automatic"`, severity: 'warning' });
       }
     });
@@ -261,35 +272,35 @@ Taxes are auto-calculated based on Province and Purchase Price`;
       const vehiclesToImport = validVehicles.map(v => ({
         company_id: selectedCompanyId,
         ownership_type: "dealership_owned",
-        vin: v.vin.trim(),
+        vin: v.vin?.trim()?.toUpperCase() || '',
         stock_number: v.stock_number?.trim() || '',
         invoice_number: v.invoice_number?.trim() || '',
         transaction_date: v.transaction_date || null,
-        make: v.make.trim(),
-        model: v.model.trim(),
-        year: v.year,
+        make: v.make?.trim() || '',
+        model: v.model?.trim() || '',
+        year: v.year || null,
         color: v.color?.trim() || '',
-        mileage: v.mileage || 0,
-        weight: v.weight || 0,
-        condition: (v.condition?.toLowerCase() || 'used'),
+        mileage: Number(v.mileage) || 0,
+        weight: Number(v.weight) || 0,
+        condition: (v.condition?.toLowerCase()?.trim() || 'used'),
         status: 'in_stock',
-        purchase_price: v.purchase_price || 0,
-        selling_price: v.selling_price || 0,
+        purchase_price: Number(v.purchase_price) || 0,
+        selling_price: Number(v.selling_price) || 0,
         location: v.location?.trim() || '',
-        fuel_type: (v.fuel_type?.toLowerCase() || 'petrol'),
-        transmission: (v.transmission?.toLowerCase() || 'automatic'),
+        fuel_type: (v.fuel_type?.toLowerCase()?.trim() || 'petrol'),
+        transmission: (v.transmission?.toLowerCase()?.trim() || 'automatic'),
         engine_capacity: v.engine_capacity?.trim() || '',
         features: v.features?.trim() || '',
         vendor_name: v.vendor_name?.trim() || '',
         vendor_phone: v.vendor_phone?.trim() || '',
         vendor_email: v.vendor_email?.trim() || '',
-        province: v.province?.toUpperCase() || '',
-        tax_status: (v.tax_status?.toLowerCase() || 'taxable'),
-        tax_gst: v.tax_gst || 0,
-        tax_pst: v.tax_pst || 0,
-        tax_hst: v.tax_hst || 0,
-        tax_total: v.tax_total || 0,
-        total_cost: (v.purchase_price || 0) + (v.tax_total || 0),
+        province: v.province?.toUpperCase()?.trim() || '',
+        tax_status: (v.tax_status?.toLowerCase()?.trim() || 'taxable'),
+        tax_gst: Number(v.tax_gst) || 0,
+        tax_pst: Number(v.tax_pst) || 0,
+        tax_hst: Number(v.tax_hst) || 0,
+        tax_total: Number(v.tax_total) || 0,
+        total_cost: (Number(v.purchase_price) || 0) + (Number(v.tax_total) || 0),
         notes: v.notes?.trim() || ''
       }));
 
