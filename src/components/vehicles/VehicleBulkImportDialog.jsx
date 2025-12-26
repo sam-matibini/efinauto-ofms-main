@@ -58,7 +58,6 @@ Taxes are auto-calculated based on Province and Purchase Price`;
   const validateVehicles = async (vehicles) => {
     const errors = [];
     
-    // Validate each vehicle - required fields only
     vehicles.forEach((v, idx) => {
       const row = idx + 2;
 
@@ -115,17 +114,10 @@ Taxes are auto-calculated based on Province and Purchase Price`;
     }
 
     setExtracting(true);
-    console.log("=== STARTING EXTRACTION ===");
-    console.log("File:", file.name, "Company ID:", selectedCompanyId);
     
     try {
-      // Upload file
-      console.log("Step 1: Uploading file...");
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      console.log("✓ File uploaded:", file_url);
 
-      // Extract data with flexible schema
-      console.log("Step 2: Extracting data from file...");
       const extractionResult = await base44.integrations.Core.ExtractDataFromUploadedFile({
         file_url,
         json_schema: {
@@ -167,9 +159,6 @@ Taxes are auto-calculated based on Province and Purchase Price`;
         }
       });
 
-      console.log("✓ Extraction result status:", extractionResult.status);
-      console.log("✓ Extraction output:", extractionResult.output);
-
       if (extractionResult.status === "error") {
         toast.error(extractionResult.details || "Failed to extract data from file");
         setExtracting(false);
@@ -177,88 +166,62 @@ Taxes are auto-calculated based on Province and Purchase Price`;
       }
 
       const vehicles = extractionResult.output?.vehicles || [];
-      console.log("✓ Extracted vehicles count:", vehicles.length);
-      console.log("✓ First vehicle sample:", vehicles[0]);
-      
+
       if (vehicles.length === 0) {
-        console.error("❌ No vehicles extracted from file");
         toast.error("No vehicle records found in file. Please check file format.");
         setExtracting(false);
         return;
       }
 
-      // Normalize data types
-      const normalizedVehicles = vehicles.map(v => {
-        const year = v.year ? Number(v.year) : null;
-        return {
-          vin: v.vin || '',
-          stock_number: v.stock_number || '',
-          invoice_number: v.invoice_number || '',
-          transaction_date: v.transaction_date || null,
-          make: v.make || '',
-          model: v.model || '',
-          year: year,
-          color: v.color || '',
-          mileage: v.mileage ? Number(v.mileage) : 0,
-          weight: v.weight ? Number(v.weight) : 0,
-          condition: v.condition || 'used',
-          purchase_price: v.purchase_price ? Number(v.purchase_price) : 0,
-          selling_price: v.selling_price ? Number(v.selling_price) : 0,
-          location: v.location || '',
-          fuel_type: v.fuel_type || 'petrol',
-          transmission: v.transmission || 'automatic',
-          engine_capacity: v.engine_capacity || '',
-          features: v.features || '',
-          vendor_name: v.vendor_name || '',
-          vendor_phone: v.vendor_phone || '',
-          vendor_email: v.vendor_email || '',
-          province: v.province || '',
-          tax_status: v.tax_status || 'taxable',
-          notes: v.notes || ''
-        };
-      });
+      const normalizedVehicles = vehicles.map(v => ({
+        vin: v.vin || '',
+        stock_number: v.stock_number || '',
+        invoice_number: v.invoice_number || '',
+        transaction_date: v.transaction_date || null,
+        make: v.make || '',
+        model: v.model || '',
+        year: v.year ? Number(v.year) : null,
+        color: v.color || '',
+        mileage: v.mileage ? Number(v.mileage) : 0,
+        weight: v.weight ? Number(v.weight) : 0,
+        condition: v.condition || 'used',
+        purchase_price: v.purchase_price ? Number(v.purchase_price) : 0,
+        selling_price: v.selling_price ? Number(v.selling_price) : 0,
+        location: v.location || '',
+        fuel_type: v.fuel_type || 'petrol',
+        transmission: v.transmission || 'automatic',
+        engine_capacity: v.engine_capacity || '',
+        features: v.features || '',
+        vendor_name: v.vendor_name || '',
+        vendor_phone: v.vendor_phone || '',
+        vendor_email: v.vendor_email || '',
+        province: v.province || '',
+        tax_status: v.tax_status || 'taxable',
+        notes: v.notes || ''
+      }));
 
-      // Get company for tax calculation
-      console.log("Step 4: Fetching company for tax calculation...");
       const companies = await base44.entities.Company.filter({ id: selectedCompanyId });
       const company = companies?.[0];
-      console.log("✓ Company found:", company?.name);
 
       if (!company) {
-        console.error("❌ Company not found");
         toast.error("Company not found");
         setExtracting(false);
         return;
       }
 
-      // Calculate taxes for each vehicle
-      console.log("Step 5: Calculating taxes...");
       const vehiclesWithTaxes = normalizedVehicles.map(v => {
         const taxes = calculateTaxes(v, company);
         return { ...v, ...taxes };
       });
 
-      console.log("✓ Vehicles with taxes calculated:", vehiclesWithTaxes.length);
-      console.log("✓ Sample with taxes:", vehiclesWithTaxes[0]);
-
       setPreviewData(vehiclesWithTaxes);
 
-      // Validate
-      console.log("Step 6: Validating vehicles...");
       const errors = await validateVehicles(vehiclesWithTaxes);
-      console.log("✓ Validation complete. Errors:", errors.length);
       setValidationErrors(errors);
 
       setStep(2);
-      console.log("=== EXTRACTION COMPLETE ===");
       toast.success(`Extracted ${vehicles.length} record(s) - Review and validate`);
     } catch (error) {
-      console.error("❌ EXTRACTION ERROR:", error);
-      console.error("Error details:", {
-        message: error.message,
-        stack: error.stack,
-        response: error.response
-      });
       toast.error("Extraction failed: " + (error.message || "Unknown error"));
     } finally {
       setExtracting(false);
