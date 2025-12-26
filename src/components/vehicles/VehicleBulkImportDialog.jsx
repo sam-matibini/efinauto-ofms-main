@@ -18,10 +18,18 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
   const [results, setResults] = useState(null);
 
   const downloadTemplate = () => {
-    const template = `VIN,Stock Number,Invoice Number,Transaction Date,Make,Model,Year,Color,Mileage,Weight,Condition,Purchase Price,Selling Price,Location,Fuel Type,Transmission,Engine Capacity,Features,Vendor Name,Vendor Phone,Vendor Email,Province,Tax Status,Notes
-1HGBH41JXMN109186,STK-001,INV-2025-001,2025-01-15,Toyota,Camry,2023,Silver,15000,1500,used,25000,32000,Lot A,petrol,automatic,2.5L,"Leather seats, Sunroof",ABC Motors,555-0001,vendor@abc.com,ON,taxable,Great condition
-2HGFA16527H123456,STK-002,INV-2025-002,2025-01-16,Honda,Accord,2022,Black,22000,1450,used,23000,29000,Lot B,hybrid,automatic,2.0L,"Navigation, Backup camera",XYZ Auto,555-0002,vendor@xyz.com,BC,taxable,
-3VWFE21C04M123456,STK-003,INV-2025-003,2025-01-17,Volkswagen,Jetta,2024,White,5000,1400,certified_pre_owned,28000,35000,Lot A,diesel,manual,1.9L,Premium sound,DEF Supply,555-0003,vendor@def.com,AB,zero_rated,Export vehicle`;
+    const template = `VIN*,Stock Number,Invoice Number,Transaction Date,Make*,Model*,Year*,Color,Mileage,Weight,Condition,Purchase Price,Selling Price,Location,Fuel Type,Transmission,Engine Capacity,Features,Vendor Name,Vendor Phone,Vendor Email,Province,Tax Status,Notes
+1HGBH41JXMN109186,STK-001,INV-2025-001,2025-01-15,Toyota,Camry,2023,Silver,15000,1500,used,25000,32000,Lot A,petrol,automatic,2.5L,"Leather, Sunroof",ABC Motors,555-0001,vendor@abc.com,ON,taxable,Great condition
+2HGFA16527H123456,STK-002,INV-2025-002,2025-01-16,Honda,Accord,2022,Black,22000,1450,used,23000,29000,Lot B,hybrid,automatic,2.0L,Navigation,XYZ Auto,555-0002,vendor@xyz.com,BC,taxable,
+3VWFE21C04M123456,STK-003,INV-2025-003,2025-01-17,Volkswagen,Jetta,2024,White,5000,1400,certified_pre_owned,28000,35000,Lot A,diesel,manual,1.9L,Premium sound,DEF Supply,555-0003,vendor@def.com,AB,zero_rated,Export vehicle
+
+INSTRUCTIONS:
+* = Required fields
+Valid Conditions: new | used | certified_pre_owned | salvage
+Valid Tax Status: taxable | zero_rated | exempt
+Valid Fuel Types: petrol | diesel | electric | hybrid | lpg
+Valid Transmissions: manual | automatic | semi_automatic
+Taxes are auto-calculated based on Province and Purchase Price`;
 
     const blob = new Blob([template], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -51,12 +59,28 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
     const errors = [];
     const warnings = [];
     
-    // Check for existing VINs
-    const vins = vehicles.map(v => v.vin).filter(Boolean);
-    if (vins.length > 0) {
+    // Check for duplicate VINs in file
+    const vinCount = {};
+    vehicles.forEach((v, idx) => {
+      if (v.vin) {
+        vinCount[v.vin] = (vinCount[v.vin] || 0) + 1;
+        if (vinCount[v.vin] > 1) {
+          errors.push({
+            row: idx + 2,
+            field: 'vin',
+            message: `Duplicate VIN in file: ${v.vin}`,
+            severity: 'error'
+          });
+        }
+      }
+    });
+    
+    // Check for existing VINs in database
+    const uniqueVins = vehicles.map(v => v.vin).filter(Boolean);
+    if (uniqueVins.length > 0) {
       const existing = await base44.entities.Vehicle.filter({ 
         company_id: selectedCompanyId,
-        vin: { $in: vins } 
+        vin: { $in: uniqueVins } 
       });
       const existingVINs = new Set(existing.map(v => v.vin));
       
@@ -65,7 +89,7 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
           errors.push({
             row: idx + 2,
             field: 'vin',
-            message: `Duplicate VIN already exists in system: ${v.vin}`,
+            message: `VIN already exists in inventory: ${v.vin}`,
             severity: 'error'
           });
         }
@@ -74,10 +98,10 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
 
     // Validate each vehicle
     vehicles.forEach((v, idx) => {
-      const row = idx + 2; // +2 for header row and 0-index
+      const row = idx + 2;
 
       if (!v.vin || v.vin.length < 10) {
-        errors.push({ row, field: 'vin', message: 'Invalid or missing VIN', severity: 'error' });
+        errors.push({ row, field: 'vin', message: 'VIN is required (min 10 characters)', severity: 'error' });
       }
       if (!v.make) {
         errors.push({ row, field: 'make', message: 'Make is required', severity: 'error' });
@@ -86,13 +110,19 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
         errors.push({ row, field: 'model', message: 'Model is required', severity: 'error' });
       }
       if (!v.year || v.year < 1900 || v.year > new Date().getFullYear() + 2) {
-        errors.push({ row, field: 'year', message: 'Invalid year', severity: 'error' });
+        errors.push({ row, field: 'year', message: 'Year is required and must be valid', severity: 'error' });
       }
-      if (v.condition && !['new', 'used', 'certified_pre_owned', 'salvage'].includes(v.condition)) {
+      if (v.condition && !['new', 'used', 'certified_pre_owned', 'salvage'].includes(v.condition.toLowerCase())) {
         warnings.push({ row, field: 'condition', message: `Invalid condition "${v.condition}", will default to "used"`, severity: 'warning' });
       }
-      if (v.tax_status && !['taxable', 'zero_rated', 'exempt'].includes(v.tax_status)) {
+      if (v.tax_status && !['taxable', 'zero_rated', 'exempt'].includes(v.tax_status.toLowerCase())) {
         warnings.push({ row, field: 'tax_status', message: `Invalid tax status, will default to "taxable"`, severity: 'warning' });
+      }
+      if (v.fuel_type && !['petrol', 'diesel', 'electric', 'hybrid', 'lpg'].includes(v.fuel_type.toLowerCase())) {
+        warnings.push({ row, field: 'fuel_type', message: `Invalid fuel type, will default to "petrol"`, severity: 'warning' });
+      }
+      if (v.transmission && !['manual', 'automatic', 'semi_automatic'].includes(v.transmission.toLowerCase())) {
+        warnings.push({ row, field: 'transmission', message: `Invalid transmission, will default to "automatic"`, severity: 'warning' });
       }
     });
 
@@ -222,39 +252,45 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
 
     setImporting(true);
     try {
-      const vehiclesToImport = previewData.map(v => ({
+      // Filter out vehicles with errors
+      const validVehicles = previewData.filter((v, idx) => {
+        const rowErrors = validationErrors.filter(e => e.row === idx + 2 && e.severity === 'error');
+        return rowErrors.length === 0;
+      });
+
+      const vehiclesToImport = validVehicles.map(v => ({
         company_id: selectedCompanyId,
         ownership_type: "dealership_owned",
-        vin: v.vin || '',
-        stock_number: v.stock_number || '',
-        invoice_number: v.invoice_number || '',
+        vin: v.vin.trim(),
+        stock_number: v.stock_number?.trim() || '',
+        invoice_number: v.invoice_number?.trim() || '',
         transaction_date: v.transaction_date || null,
-        make: v.make || '',
-        model: v.model || '',
-        year: v.year || null,
-        color: v.color || '',
+        make: v.make.trim(),
+        model: v.model.trim(),
+        year: v.year,
+        color: v.color?.trim() || '',
         mileage: v.mileage || 0,
         weight: v.weight || 0,
-        condition: v.condition || 'used',
+        condition: (v.condition?.toLowerCase() || 'used'),
         status: 'in_stock',
         purchase_price: v.purchase_price || 0,
         selling_price: v.selling_price || 0,
-        location: v.location || '',
-        fuel_type: v.fuel_type || 'petrol',
-        transmission: v.transmission || 'automatic',
-        engine_capacity: v.engine_capacity || '',
-        features: v.features || '',
-        vendor_name: v.vendor_name || '',
-        vendor_phone: v.vendor_phone || '',
-        vendor_email: v.vendor_email || '',
-        province: v.province || '',
-        tax_status: v.tax_status || 'taxable',
+        location: v.location?.trim() || '',
+        fuel_type: (v.fuel_type?.toLowerCase() || 'petrol'),
+        transmission: (v.transmission?.toLowerCase() || 'automatic'),
+        engine_capacity: v.engine_capacity?.trim() || '',
+        features: v.features?.trim() || '',
+        vendor_name: v.vendor_name?.trim() || '',
+        vendor_phone: v.vendor_phone?.trim() || '',
+        vendor_email: v.vendor_email?.trim() || '',
+        province: v.province?.toUpperCase() || '',
+        tax_status: (v.tax_status?.toLowerCase() || 'taxable'),
         tax_gst: v.tax_gst || 0,
         tax_pst: v.tax_pst || 0,
         tax_hst: v.tax_hst || 0,
         tax_total: v.tax_total || 0,
         total_cost: (v.purchase_price || 0) + (v.tax_total || 0),
-        notes: v.notes || ''
+        notes: v.notes?.trim() || ''
       }));
 
       const imported = await base44.entities.Vehicle.bulkCreate(vehiclesToImport);
@@ -326,14 +362,30 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
           {step === 1 && (
             <>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-900 mb-2">How to Import:</h4>
-                <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                  <li>Download the CSV template below</li>
-                  <li>Fill in your vehicle data (Excel or CSV)</li>
-                  <li>Upload the completed file</li>
-                  <li>Preview and validate data</li>
-                  <li>Confirm import</li>
-                </ol>
+                <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                  <FileSpreadsheet className="w-4 h-4" />
+                  Bulk Import Guide
+                </h4>
+                <div className="space-y-3 text-sm text-blue-800">
+                  <div>
+                    <p className="font-medium mb-1">📋 Steps:</p>
+                    <ol className="list-decimal list-inside space-y-1 ml-2">
+                      <li>Download CSV template</li>
+                      <li>Fill in vehicle data (Excel/CSV supported)</li>
+                      <li>Upload and preview</li>
+                      <li>Review validation and fix errors</li>
+                      <li>Confirm import</li>
+                    </ol>
+                  </div>
+                  <div className="border-t border-blue-200 pt-2">
+                    <p className="font-medium mb-1">✅ Required Fields:</p>
+                    <p className="ml-2">VIN (min 10 chars), Make, Model, Year</p>
+                  </div>
+                  <div className="border-t border-blue-200 pt-2">
+                    <p className="font-medium mb-1">💰 Tax Calculation:</p>
+                    <p className="ml-2">Automatically calculated based on Province and Purchase Price</p>
+                  </div>
+                </div>
               </div>
 
               <Button onClick={downloadTemplate} variant="outline" className="w-full">
@@ -397,37 +449,57 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
           {/* Step 2: Preview & Validate */}
           {step === 2 && previewData && (
             <>
+              {/* Summary Stats */}
+              <div className="grid grid-cols-4 gap-4 mb-4">
+                <div className="bg-blue-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-blue-900">{previewData.length}</p>
+                  <p className="text-xs text-blue-700">Total Records</p>
+                </div>
+                <div className="bg-green-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-green-900">
+                    {previewData.filter((v, idx) => !validationErrors.some(e => e.row === idx + 2 && e.severity === 'error')).length}
+                  </p>
+                  <p className="text-xs text-green-700">Valid</p>
+                </div>
+                <div className="bg-red-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-red-900">{criticalErrors.length}</p>
+                  <p className="text-xs text-red-700">Errors</p>
+                </div>
+                <div className="bg-yellow-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-yellow-900">{warnings.length}</p>
+                  <p className="text-xs text-yellow-700">Warnings</p>
+                </div>
+              </div>
+
               {/* Validation Summary */}
               {validationErrors.length > 0 && (
                 <div className="space-y-2">
                   {criticalErrors.length > 0 && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-2">
+                    <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-3">
                         <XCircle className="w-5 h-5 text-red-600" />
-                        <span className="font-semibold text-red-900">{criticalErrors.length} Error{criticalErrors.length > 1 ? 's' : ''} Found</span>
+                        <span className="font-semibold text-red-900">{criticalErrors.length} Error{criticalErrors.length > 1 ? 's' : ''} - Import Blocked</span>
                       </div>
-                      <div className="space-y-1 max-h-40 overflow-y-auto">
-                        {criticalErrors.slice(0, 5).map((err, idx) => (
-                          <p key={idx} className="text-xs text-red-800">
-                            Row {err.row}, {err.field}: {err.message}
+                      <div className="space-y-1 max-h-40 overflow-y-auto bg-white rounded p-2">
+                        {criticalErrors.map((err, idx) => (
+                          <p key={idx} className="text-xs text-red-800 font-mono">
+                            <span className="font-bold">Row {err.row}</span> • {err.field}: {err.message}
                           </p>
                         ))}
-                        {criticalErrors.length > 5 && (
-                          <p className="text-xs text-red-700 font-medium">+ {criticalErrors.length - 5} more errors</p>
-                        )}
                       </div>
+                      <p className="text-xs text-red-700 mt-2 font-medium">Fix these errors in your file and re-upload</p>
                     </div>
                   )}
-                  {warnings.length > 0 && (
+                  {warnings.length > 0 && criticalErrors.length === 0 && (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <AlertTriangle className="w-5 h-5 text-yellow-600" />
-                        <span className="font-semibold text-yellow-900">{warnings.length} Warning{warnings.length > 1 ? 's' : ''}</span>
+                        <span className="font-semibold text-yellow-900">{warnings.length} Warning{warnings.length > 1 ? 's' : ''} - Can proceed with defaults</span>
                       </div>
-                      <div className="space-y-1 max-h-40 overflow-y-auto">
+                      <div className="space-y-1 max-h-32 overflow-y-auto">
                         {warnings.slice(0, 5).map((warn, idx) => (
                           <p key={idx} className="text-xs text-yellow-800">
-                            Row {warn.row}, {warn.field}: {warn.message}
+                            Row {warn.row} • {warn.field}: {warn.message}
                           </p>
                         ))}
                         {warnings.length > 5 && (
@@ -436,6 +508,15 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {criticalErrors.length === 0 && validationErrors.length === 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="font-semibold text-green-900">All records validated successfully</span>
+                  </div>
                 </div>
               )}
 
@@ -449,36 +530,53 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
                     <thead className="bg-gray-100 sticky top-0">
                       <tr>
                         <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Row</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Status</th>
                         <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">VIN</th>
                         <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Stock #</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Make</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Model</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Year</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Price</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Tax</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Status</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Vehicle</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Province</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-600">Purchase</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-600">Tax</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-600">Total</th>
                       </tr>
                     </thead>
                     <tbody>
                       {previewData.map((vehicle, idx) => {
                         const rowErrors = validationErrors.filter(e => e.row === idx + 2);
                         const hasError = rowErrors.some(e => e.severity === 'error');
+                        const hasWarning = rowErrors.some(e => e.severity === 'warning');
                         return (
-                          <tr key={idx} className={`border-b ${hasError ? 'bg-red-50' : ''}`}>
-                            <td className="px-3 py-2 text-gray-500">{idx + 1}</td>
-                            <td className="px-3 py-2 font-mono text-xs">{vehicle.vin}</td>
-                            <td className="px-3 py-2">{vehicle.stock_number}</td>
-                            <td className="px-3 py-2">{vehicle.make}</td>
-                            <td className="px-3 py-2">{vehicle.model}</td>
-                            <td className="px-3 py-2">{vehicle.year}</td>
-                            <td className="px-3 py-2">${vehicle.purchase_price?.toLocaleString() || 0}</td>
-                            <td className="px-3 py-2">${vehicle.tax_total?.toFixed(2) || '0.00'}</td>
+                          <tr key={idx} className={`border-b hover:bg-gray-50 ${hasError ? 'bg-red-50' : hasWarning ? 'bg-yellow-50' : ''}`}>
+                            <td className="px-3 py-2 text-gray-500 font-medium">{idx + 1}</td>
                             <td className="px-3 py-2">
                               {hasError ? (
-                                <Badge className="bg-red-100 text-red-800 text-xs">Error</Badge>
+                                <Badge className="bg-red-100 text-red-800 text-xs">
+                                  <XCircle className="w-3 h-3 mr-1" />
+                                  Error
+                                </Badge>
+                              ) : hasWarning ? (
+                                <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                                  <AlertTriangle className="w-3 h-3 mr-1" />
+                                  Warning
+                                </Badge>
                               ) : (
-                                <Badge className="bg-green-100 text-green-800 text-xs">Valid</Badge>
+                                <Badge className="bg-green-100 text-green-800 text-xs">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Valid
+                                </Badge>
                               )}
+                            </td>
+                            <td className="px-3 py-2 font-mono text-xs">{vehicle.vin || '-'}</td>
+                            <td className="px-3 py-2 text-xs">{vehicle.stock_number || '-'}</td>
+                            <td className="px-3 py-2">
+                              <p className="font-medium">{vehicle.year} {vehicle.make} {vehicle.model}</p>
+                              <p className="text-xs text-gray-500">{vehicle.color}</p>
+                            </td>
+                            <td className="px-3 py-2 text-xs">{vehicle.province || '-'}</td>
+                            <td className="px-3 py-2 text-right font-medium">${vehicle.purchase_price?.toLocaleString() || 0}</td>
+                            <td className="px-3 py-2 text-right text-xs text-gray-600">${vehicle.tax_total?.toFixed(2) || '0.00'}</td>
+                            <td className="px-3 py-2 text-right font-semibold text-blue-600">
+                              ${((vehicle.purchase_price || 0) + (vehicle.tax_total || 0)).toLocaleString()}
                             </td>
                           </tr>
                         );
