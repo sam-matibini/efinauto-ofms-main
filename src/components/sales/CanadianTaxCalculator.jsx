@@ -81,7 +81,7 @@ export default function CanadianTaxCalculator({
   const isPstExempt = pstExempt || false;
   const taxDetails = calculateCanadianTax(subtotal || 0, selectedProvince, selectedTaxStatus, isPstExempt);
   
-  const canApplyPstExempt = userRole === 'admin' || userRole === 'manager' || userRole === 'finance';
+  const canApplyPstExempt = true; // All users can apply PST exemption
   const provinceData = CANADIAN_TAX_RATES[selectedProvince];
   const provinceHasPst = provinceData && provinceData.pst > 0 && provinceData.hst === 0;
 
