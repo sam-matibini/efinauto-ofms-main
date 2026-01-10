@@ -41,6 +41,14 @@ export default function InventoryManagement() {
   const [partBulkImportOpen, setPartBulkImportOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState(null);
   const [poDialogOpen, setPoDialogOpen] = useState(false);
+  
+  // Filter and sort states
+  const [vehicleFilters, setVehicleFilters] = useState({ status: "all", condition: "all", make: "all" });
+  const [vehicleSort, setVehicleSort] = useState("-created_date");
+  const [partFilters, setPartFilters] = useState({ category: "all", stockStatus: "all" });
+  const [partSort, setPartSort] = useState("name");
+  const [productFilters, setProductFilters] = useState({ category: "all", stockStatus: "all" });
+  const [productSort, setProductSort] = useState("name");
 
   // Fetch all inventory data
   const { data: vehicles = [], isLoading: loadingVehicles } = useQuery({
@@ -288,17 +296,19 @@ export default function InventoryManagement() {
         </div>
 
         {/* Search */}
-        <div className="flex gap-4 items-center">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              placeholder="Search inventory..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
+        <Card>
+          <CardContent className="p-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="Search inventory by name, VIN, part number..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -427,6 +437,70 @@ export default function InventoryManagement() {
                 </div>
               </CardHeader>
               <CardContent>
+                {/* Filters and Sort */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <Label className="text-xs mb-1">Status</Label>
+                    <Select value={vehicleFilters.status} onValueChange={(v) => setVehicleFilters({...vehicleFilters, status: v})}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="in_stock">In Stock</SelectItem>
+                        <SelectItem value="sold">Sold</SelectItem>
+                        <SelectItem value="reserved">Reserved</SelectItem>
+                        <SelectItem value="in_transit">In Transit</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-1">Condition</Label>
+                    <Select value={vehicleFilters.condition} onValueChange={(v) => setVehicleFilters({...vehicleFilters, condition: v})}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Conditions</SelectItem>
+                        <SelectItem value="new">New</SelectItem>
+                        <SelectItem value="used">Used</SelectItem>
+                        <SelectItem value="certified_pre_owned">Certified Pre-Owned</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-1">Make</Label>
+                    <Select value={vehicleFilters.make} onValueChange={(v) => setVehicleFilters({...vehicleFilters, make: v})}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Makes</SelectItem>
+                        {Array.from(new Set(vehicles.map(v => v.make).filter(Boolean))).sort().map(make => (
+                          <SelectItem key={make} value={make}>{make}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-1">Sort By</Label>
+                    <Select value={vehicleSort} onValueChange={setVehicleSort}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="-created_date">Newest First</SelectItem>
+                        <SelectItem value="created_date">Oldest First</SelectItem>
+                        <SelectItem value="make">Make (A-Z)</SelectItem>
+                        <SelectItem value="-selling_price">Price (High-Low)</SelectItem>
+                        <SelectItem value="selling_price">Price (Low-High)</SelectItem>
+                        <SelectItem value="-year">Year (New-Old)</SelectItem>
+                        <SelectItem value="year">Year (Old-New)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -441,11 +515,37 @@ export default function InventoryManagement() {
                       </tr>
                     </thead>
                     <tbody>
-                      {vehicles.filter(v => 
-                        searchTerm === "" || 
-                        `${v.year} ${v.make} ${v.model}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        v.vin?.toLowerCase().includes(searchTerm.toLowerCase())
-                      ).slice(0, 50).map((vehicle) => (
+                      {vehicles
+                        .filter(v => {
+                          const matchesSearch = searchTerm === "" || 
+                            `${v.year} ${v.make} ${v.model}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            v.vin?.toLowerCase().includes(searchTerm.toLowerCase());
+                          const matchesStatus = vehicleFilters.status === "all" || v.status === vehicleFilters.status;
+                          const matchesCondition = vehicleFilters.condition === "all" || v.condition === vehicleFilters.condition;
+                          const matchesMake = vehicleFilters.make === "all" || v.make === vehicleFilters.make;
+                          return matchesSearch && matchesStatus && matchesCondition && matchesMake;
+                        })
+                        .sort((a, b) => {
+                          const isDesc = vehicleSort.startsWith('-');
+                          const field = vehicleSort.replace('-', '');
+                          
+                          let aVal = a[field];
+                          let bVal = b[field];
+                          
+                          if (field === 'created_date') {
+                            aVal = new Date(a.created_date).getTime();
+                            bVal = new Date(b.created_date).getTime();
+                          } else if (field === 'make') {
+                            aVal = a.make || '';
+                            bVal = b.make || '';
+                          }
+                          
+                          if (aVal < bVal) return isDesc ? 1 : -1;
+                          if (aVal > bVal) return isDesc ? -1 : 1;
+                          return 0;
+                        })
+                        .slice(0, 100)
+                        .map((vehicle) => (
                         <tr key={vehicle.id} className="border-b hover:bg-gray-50">
                           <td className="p-3 font-medium">{vehicle.year} {vehicle.make} {vehicle.model}</td>
                           <td className="p-3 font-mono text-xs">{vehicle.vin}</td>
@@ -493,6 +593,63 @@ export default function InventoryManagement() {
                 </div>
               </CardHeader>
               <CardContent>
+                {/* Filters and Sort */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4 p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <Label className="text-xs mb-1">Category</Label>
+                    <Select value={partFilters.category} onValueChange={(v) => setPartFilters({...partFilters, category: v})}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        <SelectItem value="engine">Engine</SelectItem>
+                        <SelectItem value="transmission">Transmission</SelectItem>
+                        <SelectItem value="brakes">Brakes</SelectItem>
+                        <SelectItem value="suspension">Suspension</SelectItem>
+                        <SelectItem value="electrical">Electrical</SelectItem>
+                        <SelectItem value="body_parts">Body Parts</SelectItem>
+                        <SelectItem value="interior">Interior</SelectItem>
+                        <SelectItem value="exhaust">Exhaust</SelectItem>
+                        <SelectItem value="filters">Filters</SelectItem>
+                        <SelectItem value="lights">Lights</SelectItem>
+                        <SelectItem value="tires_wheels">Tires & Wheels</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-1">Stock Status</Label>
+                    <Select value={partFilters.stockStatus} onValueChange={(v) => setPartFilters({...partFilters, stockStatus: v})}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Stock</SelectItem>
+                        <SelectItem value="in_stock">In Stock</SelectItem>
+                        <SelectItem value="low_stock">Low Stock</SelectItem>
+                        <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-1">Sort By</Label>
+                    <Select value={partSort} onValueChange={setPartSort}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="name">Name (A-Z)</SelectItem>
+                        <SelectItem value="-name">Name (Z-A)</SelectItem>
+                        <SelectItem value="quantity">Quantity (Low-High)</SelectItem>
+                        <SelectItem value="-quantity">Quantity (High-Low)</SelectItem>
+                        <SelectItem value="-cost_price">Cost (High-Low)</SelectItem>
+                        <SelectItem value="cost_price">Cost (Low-High)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -508,11 +665,36 @@ export default function InventoryManagement() {
                       </tr>
                     </thead>
                     <tbody>
-                      {parts.filter(p => 
-                        searchTerm === "" || 
-                        p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        p.part_number?.toLowerCase().includes(searchTerm.toLowerCase())
-                      ).slice(0, 50).map((part) => (
+                      {parts
+                        .filter(p => {
+                          const matchesSearch = searchTerm === "" || 
+                            p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            p.part_number?.toLowerCase().includes(searchTerm.toLowerCase());
+                          const matchesCategory = partFilters.category === "all" || p.category === partFilters.category;
+                          const matchesStock = partFilters.stockStatus === "all" || 
+                            (partFilters.stockStatus === "low_stock" && p.quantity <= (p.reorder_level || 5)) ||
+                            (partFilters.stockStatus === "out_of_stock" && p.quantity === 0) ||
+                            (partFilters.stockStatus === "in_stock" && p.quantity > (p.reorder_level || 5));
+                          return matchesSearch && matchesCategory && matchesStock;
+                        })
+                        .sort((a, b) => {
+                          const isDesc = partSort.startsWith('-');
+                          const field = partSort.replace('-', '');
+                          
+                          let aVal = a[field] || '';
+                          let bVal = b[field] || '';
+                          
+                          if (typeof aVal === 'string') {
+                            aVal = aVal.toLowerCase();
+                            bVal = (bVal || '').toLowerCase();
+                          }
+                          
+                          if (aVal < bVal) return isDesc ? 1 : -1;
+                          if (aVal > bVal) return isDesc ? -1 : 1;
+                          return 0;
+                        })
+                        .slice(0, 100)
+                        .map((part) => (
                         <tr key={part.id} className="border-b hover:bg-gray-50">
                           <td className="p-3 font-medium">{part.name}</td>
                           <td className="p-3 font-mono text-xs">{part.part_number}</td>
@@ -552,6 +734,54 @@ export default function InventoryManagement() {
                 <CardTitle>Products Inventory</CardTitle>
               </CardHeader>
               <CardContent>
+                {/* Filters and Sort */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4 p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <Label className="text-xs mb-1">Category</Label>
+                    <Select value={productFilters.category} onValueChange={(v) => setProductFilters({...productFilters, category: v})}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        {Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort().map(cat => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-1">Stock Status</Label>
+                    <Select value={productFilters.stockStatus} onValueChange={(v) => setProductFilters({...productFilters, stockStatus: v})}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Stock</SelectItem>
+                        <SelectItem value="in_stock">In Stock</SelectItem>
+                        <SelectItem value="low_stock">Low Stock</SelectItem>
+                        <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-1">Sort By</Label>
+                    <Select value={productSort} onValueChange={setProductSort}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="name">Name (A-Z)</SelectItem>
+                        <SelectItem value="-name">Name (Z-A)</SelectItem>
+                        <SelectItem value="quantity">Quantity (Low-High)</SelectItem>
+                        <SelectItem value="-quantity">Quantity (High-Low)</SelectItem>
+                        <SelectItem value="-cost_price">Cost (High-Low)</SelectItem>
+                        <SelectItem value="cost_price">Cost (Low-High)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -566,11 +796,36 @@ export default function InventoryManagement() {
                       </tr>
                     </thead>
                     <tbody>
-                      {products.filter(p => 
-                        searchTerm === "" || 
-                        p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        p.sku?.toLowerCase().includes(searchTerm.toLowerCase())
-                      ).slice(0, 20).map((product) => (
+                      {products
+                        .filter(p => {
+                          const matchesSearch = searchTerm === "" || 
+                            p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            p.sku?.toLowerCase().includes(searchTerm.toLowerCase());
+                          const matchesCategory = productFilters.category === "all" || p.category === productFilters.category;
+                          const matchesStock = productFilters.stockStatus === "all" || 
+                            (productFilters.stockStatus === "low_stock" && p.quantity <= (p.reorder_level || 10)) ||
+                            (productFilters.stockStatus === "out_of_stock" && p.quantity === 0) ||
+                            (productFilters.stockStatus === "in_stock" && p.quantity > (p.reorder_level || 10));
+                          return matchesSearch && matchesCategory && matchesStock;
+                        })
+                        .sort((a, b) => {
+                          const isDesc = productSort.startsWith('-');
+                          const field = productSort.replace('-', '');
+                          
+                          let aVal = a[field] || '';
+                          let bVal = b[field] || '';
+                          
+                          if (typeof aVal === 'string') {
+                            aVal = aVal.toLowerCase();
+                            bVal = (bVal || '').toLowerCase();
+                          }
+                          
+                          if (aVal < bVal) return isDesc ? 1 : -1;
+                          if (aVal > bVal) return isDesc ? -1 : 1;
+                          return 0;
+                        })
+                        .slice(0, 100)
+                        .map((product) => (
                         <tr key={product.id} className="border-b hover:bg-gray-50">
                           <td className="p-3 font-medium">{product.name}</td>
                           <td className="p-3 font-mono text-xs">{product.sku}</td>
