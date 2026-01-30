@@ -11,14 +11,9 @@ export const generateSecureDownloadLink = async (documentId, documentType = "BOS
     const document = sales[0];
     if (!document) throw new Error("Sale not found");
     
-    let pdfUrl = document.pdf_file_url;
-    if (!pdfUrl) {
-      const result = await generateDocumentPDF(documentId, documentType);
-      pdfUrl = result.pdf_url;
-    }
-    
-    // For secure link, just use the direct PDF URL (it's already secure and public)
-    const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
+    // Generate PDF from DOM
+    const result = await generateDocumentPDF(documentId, documentType);
+    const pdfUrl = result.pdf_url; // blob URL
     
     // Log link generation
     const user = await base44.auth.me().catch(() => null);
@@ -32,14 +27,15 @@ export const generateSecureDownloadLink = async (documentId, documentType = "BOS
         action: "SECURE_LINK_GENERATED",
         record_id: documentId,
         metadata: {
-          pdf_url: pdfUrl,
-          expires_at: expiresAt.toISOString()
+          client_side: true
         },
         status: "success"
       });
     }
     
-    // Return direct PDF URL as secure link
+    const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
+    
+    // Return blob URL as secure link
     return {
       secure_link: pdfUrl,
       direct_pdf_url: pdfUrl,
@@ -319,27 +315,11 @@ export const printDocument = async (documentId) => {
     const document = sales[0];
     if (!document) throw new Error("Sale not found");
     
-    // Ensure PDF exists
-    let pdfUrl = document.pdf_file_url;
-    if (!pdfUrl) {
-      const result = await generateDocumentPDF(documentId, "BOS");
-      pdfUrl = result.pdf_url;
-    }
-    
     // Log print action
     await logSharingAction(document, "PRINT", "local_printer");
     
-    // Open PDF in new window and trigger print
-    const printWindow = window.open(pdfUrl, '_blank');
-    if (printWindow) {
-      printWindow.onload = () => {
-        setTimeout(() => {
-          printWindow.print();
-        }, 250);
-      };
-    } else {
-      throw new Error("Pop-up blocked. Please allow pop-ups to print.");
-    }
+    // Use browser's native print for the current page
+    window.print();
     
     return { success: true };
   } catch (error) {
@@ -354,22 +334,20 @@ export const downloadDocument = async (documentId) => {
     const document = sales[0];
     if (!document) throw new Error("Sale not found");
     
-    // Ensure PDF exists
-    let pdfUrl = document.pdf_file_url;
-    if (!pdfUrl) {
-      const result = await generateDocumentPDF(documentId, "BOS");
-      pdfUrl = result.pdf_url;
-    }
+    // Generate PDF from current DOM element
+    const result = await generateDocumentPDF(documentId, "BOS");
     
     // Log download action
     await logSharingAction(document, "DOWNLOAD", "direct");
     
     // Trigger download
-    const a = document.createElement("a");
-    a.href = pdfUrl;
+    const a = window.document.createElement("a");
+    a.href = result.pdf_url;
     a.download = `BOS_${document.bos_number || document.id}.pdf`;
-    a.target = "_blank";
     a.click();
+    
+    // Clean up blob URL
+    setTimeout(() => URL.revokeObjectURL(result.pdf_url), 100);
     
     return { success: true };
   } catch (error) {

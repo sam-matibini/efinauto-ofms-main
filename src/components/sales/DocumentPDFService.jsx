@@ -47,31 +47,25 @@ export const generateDocumentPDF = async (documentId, documentType = "BOS") => {
     const company = companies[0];
     if (!company) throw new Error("Company not found");
     
-    // Step 4: Generate clean HTML template (null-safe)
-    const htmlContent = generateCleanHTMLTemplate(document, company, documentType);
-    
-    // Step 5: Render to PDF
-    const pdfBlob = await renderHTMLToPDF(htmlContent);
-    
-    // Step 6: Upload PDF to secure storage
-    const fileName = `${documentType}_${document.bos_number || document.id}_${Date.now()}.pdf`;
-    const file = new File([pdfBlob], fileName, { type: "application/pdf" });
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    
-    // Step 7: Store PDF reference in document
-    const updateData = {};
-    if (documentType === "BOS") {
-      updateData.pdf_file_url = file_url;
-      updateData.pdf_generated_at = new Date().toISOString();
+    // Step 4: Get the actual BillOfSale element from DOM
+    const bosElement = document.getElementById("bill-of-sale");
+    if (!bosElement) {
+      throw new Error("Bill of Sale element not found. Please ensure the document is displayed.");
     }
-    await base44.entities.Sale.update(documentId, updateData);
     
-    // Step 8: Log generation
-    await logDocumentAction(document, "PDF_GENERATED", { file_url });
+    // Step 5: Render to PDF using html2canvas
+    const pdfBlob = await renderElementToPDF(bosElement);
+    
+    // Step 6: Return blob URL for download/print (no upload to save credits)
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    
+    // Step 7: Log generation (without upload)
+    await logDocumentAction(document, "PDF_GENERATED", { client_side: true });
     
     return {
       success: true,
-      pdf_url: file_url,
+      pdf_blob: pdfBlob,
+      pdf_url: blobUrl,
       document
     };
     
@@ -200,23 +194,15 @@ const generateCleanHTMLTemplate = (document, company, type) => {
   `;
 };
 
-const renderHTMLToPDF = async (htmlContent) => {
-  const tempDiv = document.createElement("div");
-  tempDiv.innerHTML = htmlContent;
-  tempDiv.style.position = "absolute";
-  tempDiv.style.left = "-9999px";
-  tempDiv.style.width = "800px";
-  tempDiv.style.background = "#ffffff";
-  document.body.appendChild(tempDiv);
-
-  const canvas = await html2canvas(tempDiv, {
+const renderElementToPDF = async (element) => {
+  const canvas = await html2canvas(element, {
     scale: 2,
     useCORS: true,
     logging: false,
-    backgroundColor: "#ffffff"
+    backgroundColor: "#ffffff",
+    allowTaint: true,
+    imageTimeout: 0
   });
-
-  document.body.removeChild(tempDiv);
 
   const imgData = canvas.toDataURL("image/png");
   const pdf = new jsPDF("p", "mm", "letter");

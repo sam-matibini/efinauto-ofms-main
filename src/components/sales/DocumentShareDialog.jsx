@@ -39,9 +39,17 @@ export default function DocumentShareDialog({ open, onClose, sale }) {
     setLoading(true);
     try {
       const result = await generateDocumentPDF(sale.id, "BOS");
-      toast.success("PDF generated and saved");
-      // Refresh the sale data to show updated pdf_file_url
-      setTimeout(() => window.location.reload(), 1000);
+      
+      // Download the PDF
+      const a = window.document.createElement("a");
+      a.href = result.pdf_url;
+      a.download = `BOS_${sale.bos_number || sale.id}.pdf`;
+      a.click();
+      
+      // Clean up
+      setTimeout(() => URL.revokeObjectURL(result.pdf_url), 100);
+      
+      toast.success("PDF generated and downloaded");
     } catch (error) {
       toast.error("Failed to generate PDF: " + error.message);
     } finally {
@@ -84,9 +92,17 @@ export default function DocumentShareDialog({ open, onClose, sale }) {
     }
     setLoading(true);
     try {
-      await shareViaEmail(sale.id, emailData.to, sale.customer_name || "Customer", emailData.message);
-      toast.success(`📧 Email sent to ${emailData.to}`);
-      setTimeout(() => onClose(), 1500);
+      // Generate PDF first and download it
+      const result = await generateDocumentPDF(sale.id, "BOS");
+      toast.info("PDF generated. Email feature requires manual sending.");
+      
+      // Download the PDF for user to send manually
+      const a = window.document.createElement("a");
+      a.href = result.pdf_url;
+      a.download = `BOS_${sale.bos_number || sale.id}.pdf`;
+      a.click();
+      
+      setTimeout(() => URL.revokeObjectURL(result.pdf_url), 100);
     } catch (error) {
       toast.error("Email failed: " + error.message);
     } finally {
@@ -105,11 +121,19 @@ export default function DocumentShareDialog({ open, onClose, sale }) {
     }
     setLoading(true);
     try {
-      const result = await shareViaWhatsApp(sale.id, phoneNumber);
-      toast.success("💬 WhatsApp opened with PDF link");
-      setSecureLink(result.link);
+      // Generate and download PDF for manual sharing
+      const result = await generateDocumentPDF(sale.id, "BOS");
+      
+      const a = window.document.createElement("a");
+      a.href = result.pdf_url;
+      a.download = `BOS_${sale.bos_number || sale.id}.pdf`;
+      a.click();
+      
+      setTimeout(() => URL.revokeObjectURL(result.pdf_url), 100);
+      
+      toast.info("PDF downloaded. Please share manually via WhatsApp.");
     } catch (error) {
-      toast.error("WhatsApp share failed: " + error.message);
+      toast.error("PDF generation failed: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -126,11 +150,19 @@ export default function DocumentShareDialog({ open, onClose, sale }) {
     }
     setLoading(true);
     try {
-      const result = await shareViaSMS(sale.id, phoneNumber);
-      toast.success("💬 SMS app opened with PDF link");
-      setSecureLink(result.link);
+      // Generate and download PDF for manual sharing
+      const result = await generateDocumentPDF(sale.id, "BOS");
+      
+      const a = window.document.createElement("a");
+      a.href = result.pdf_url;
+      a.download = `BOS_${sale.bos_number || sale.id}.pdf`;
+      a.click();
+      
+      setTimeout(() => URL.revokeObjectURL(result.pdf_url), 100);
+      
+      toast.info("PDF downloaded. Please share manually via SMS.");
     } catch (error) {
-      toast.error("SMS share failed: " + error.message);
+      toast.error("PDF generation failed: " + error.message);
     } finally {
       setLoading(false);
     }

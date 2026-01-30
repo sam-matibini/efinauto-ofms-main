@@ -99,22 +99,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
 
     setUploadingSignature(type);
     try {
-      // Convert base64 to blob
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
-      
-      // Validate size (max 2MB for security scan)
-      if (blob.size > 2 * 1024 * 1024) {
-        toast.error("Signature image too large. Please try again.");
-        setUploadingSignature(null);
-        return;
-      }
-      
-      const file = new File([blob], `signature_${type}_${Date.now()}.png`, { type: 'image/png' });
-      
-      // Upload to cloud
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      
+      // Store signature as base64 data URL directly (no file upload needed)
       const timestamp = new Date().toISOString();
       const signerName = type === 'buyer' ? sale.customer_name : (sale.salesman || company?.contact_person_name || 'Seller');
       const signerEmail = type === 'buyer' ? sale.customer_email : company?.contact_person_email;
@@ -133,16 +118,16 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
       };
       
       if (type === 'buyer') {
-        setBuyerSignature(file_url);
+        setBuyerSignature(dataUrl);
         setSignatureMetadata(prev => ({ ...prev, buyer: metadata }));
       } else {
-        setSellerSignature(file_url);
+        setSellerSignature(dataUrl);
         setSignatureMetadata(prev => ({ ...prev, seller: metadata }));
       }
       
-      // Notify parent of signature update
+      // Notify parent of signature update (store base64 data URL)
       onSignaturesUpdate?.({
-        [`${type}_signature_url`]: file_url,
+        [`${type}_signature_url`]: dataUrl,
         [`${type}_name`]: signerName,
         [`${type}_signed_at`]: timestamp,
         [`${type}_email`]: signerEmail,
