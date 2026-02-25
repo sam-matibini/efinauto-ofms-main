@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertCircle, ShieldCheck } from "lucide-react";
 
-// Canadian Sales Tax Rates (CRA Guidelines)
+// Canadian Sales Tax Rates - 2026 (CRA Guidelines)
 const CANADIAN_TAX_RATES = {
   AB: { name: "Alberta", gst: 5, pst: 0, hst: 0, total: 5, type: "GST" },
   BC: { name: "British Columbia", gst: 5, pst: 7, hst: 0, total: 12, type: "GST+PST" },
