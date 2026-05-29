@@ -47,14 +47,8 @@ export const generateDocumentPDF = async (documentId, documentType = "BOS") => {
     const company = companies[0];
     if (!company) throw new Error("Company not found");
     
-    // Step 4: Get the actual BillOfSale element from DOM
-    const bosElement = document.getElementById("bill-of-sale");
-    if (!bosElement) {
-      throw new Error("Bill of Sale element not found. Please ensure the document is displayed.");
-    }
-    
-    // Step 5: Render to PDF using html2canvas
-    const pdfBlob = await renderElementToPDF(bosElement);
+    // Step 4: Generate PDF from clean HTML template (reliable, no DOM dependency)
+    const pdfBlob = await renderHTMLToPDF(generateCleanHTMLTemplate(document, company, documentType));
     
     // Step 6: Return blob URL for download/print (no upload to save credits)
     const blobUrl = URL.createObjectURL(pdfBlob);
@@ -192,6 +186,65 @@ const generateCleanHTMLTemplate = (document, company, type) => {
     </body>
     </html>
   `;
+};
+
+const renderHTMLToPDF = async (htmlContent) => {
+  return new Promise((resolve, reject) => {
+    const iframe = window.document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:816px;height:1056px;border:none;";
+    window.document.body.appendChild(iframe);
+
+    iframe.onload = async () => {
+      try {
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        const element = iframeDoc.body;
+
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: "#ffffff",
+          allowTaint: true,
+          imageTimeout: 0,
+          windowWidth: 816,
+        });
+
+        window.document.body.removeChild(iframe);
+
+        const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF("p", "mm", "letter");
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const imgWidth = pdfWidth - 20;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        let heightLeft = imgHeight;
+        let position = 10;
+
+        pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
+        heightLeft -= pdfHeight;
+
+        while (heightLeft >= 0) {
+          position = heightLeft - imgHeight + 10;
+          pdf.addPage();
+          pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
+          heightLeft -= pdfHeight;
+        }
+
+        resolve(pdf.output("blob"));
+      } catch (err) {
+        window.document.body.removeChild(iframe);
+        reject(err);
+      }
+    };
+
+    iframe.onerror = (err) => {
+      window.document.body.removeChild(iframe);
+      reject(err);
+    };
+
+    iframe.srcdoc = htmlContent;
+  });
 };
 
 const renderElementToPDF = async (element) => {
