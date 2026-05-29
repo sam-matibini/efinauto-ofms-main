@@ -1,53 +1,14 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Mail, MessageCircle, Loader2, Send, CheckCircle, Download, Printer, Link as LinkIcon, Copy } from "lucide-react";
+import { Mail, MessageCircle, Loader2, Send, CheckCircle, Download, Link as LinkIcon, Copy } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 import AIDocumentSummary from "@/components/shared/AIDocumentSummary";
-import { validateBOSForPrint, sanitizeBOSForPrint } from "./BOSPrintService";
-
-// Normalize sale data for safe printing
-const normalizePrintData = (sale) => {
-  if (!sale) return null;
-  return {
-    sale_number: sale.sale_number || 'N/A',
-    customer_name: sale.customer_name || 'N/A',
-    customer_email: sale.customer_email || '',
-    customer_address: sale.customer_address || '',
-    customer_city: sale.customer_city || '',
-    customer_phone: sale.customer_phone || '',
-    province: sale.province || '',
-    customer_postal_code: sale.customer_postal_code || '',
-    vehicle_details: sale.vehicle_details || 'N/A',
-    vehicle_year: sale.vehicle_year || '',
-    vehicle_vin: sale.vehicle_vin || '',
-    vehicle_mileage: sale.vehicle_mileage || 0,
-    vehicle_color: sale.vehicle_color || '',
-    sale_price: typeof sale.sale_price === 'number' ? sale.sale_price : 0,
-    grand_total: typeof sale.grand_total === 'number' ? sale.grand_total : 0,
-    balance_due: typeof sale.balance_due === 'number' ? sale.balance_due : 0,
-    deposit_amount: typeof sale.deposit_amount === 'number' ? sale.deposit_amount : 0,
-    tax_pst: typeof sale.tax_pst === 'number' ? sale.tax_pst : 0,
-    tax_gst: typeof sale.tax_gst === 'number' ? sale.tax_gst : 0,
-    tax_hst: typeof sale.tax_hst === 'number' ? sale.tax_hst : 0,
-    tax_total: typeof sale.tax_total === 'number' ? sale.tax_total : 0,
-    sale_date: sale.sale_date || null,
-    sale_type: sale.sale_type || 'domestic',
-    trade_in: sale.trade_in || { net_trade_value: 0 }
-  };
-};
+import { generateDocumentPDF } from "./DocumentPDFService";
 
 export default function BillOfSaleShare({ sale, company, onClose }) {
   const [activeTab, setActiveTab] = useState("email");
@@ -61,160 +22,46 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
     customMessage: ""
   });
 
-  const generateBillOfSaleHTML = () => {
-    if (!sale || !company || !sale.customer_name || !sale.vehicle_details) {
-      return '<div>Error: Missing required data</div>';
-    }
-    
-    const printSale = normalizePrintData(sale);
-    const isExport = printSale.sale_type === 'export';
-    const companyAddress = [
-      company?.address,
-      company?.city,
-      company?.province,
-      company?.postal_code,
-      company?.country
-    ].filter(Boolean).join(', ');
-
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-          .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 15px; }
-          .logo { max-height: 80px; margin-bottom: 10px; }
-          .company-name { font-size: 20px; font-weight: bold; }
-          .company-info { font-size: 12px; color: #666; margin: 5px 0; }
-          .tax-info { font-size: 12px; font-weight: bold; color: #333; }
-          .title { text-align: center; font-size: 24px; font-weight: bold; margin: 20px 0; }
-          .sale-type { display: inline-block; padding: 5px 15px; border-radius: 5px; font-size: 12px; font-weight: bold; }
-          .export { background: #dcfce7; color: #166534; }
-          .domestic { background: #dbeafe; color: #1e40af; }
-          .section { margin: 15px 0; }
-          .row { display: flex; border-bottom: 1px solid #ccc; padding: 8px 0; }
-          .label { font-weight: bold; width: 150px; font-size: 13px; }
-          .value { flex: 1; font-size: 13px; }
-          .vehicle-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-          .vehicle-table td, .vehicle-table th { border: 1px solid #333; padding: 8px; font-size: 12px; }
-          .vehicle-table th { background: #f3f4f6; font-weight: bold; }
-          .totals-table { width: 50%; border-collapse: collapse; margin: 15px 0; }
-          .totals-table td { border: 1px solid #333; padding: 8px; font-size: 13px; }
-          .totals-label { font-weight: bold; }
-          .disclaimer { font-size: 11px; text-align: center; font-weight: bold; background: #f3f4f6; padding: 10px; margin: 15px 0; }
-          .signatures { display: flex; justify-content: space-between; margin-top: 40px; }
-          .signature-block { width: 45%; }
-          .signature-line { border-bottom: 1px solid #333; height: 40px; margin-top: 10px; }
-          .terms { font-size: 10px; margin: 15px 0; line-height: 1.5; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          ${company?.logo_url 
-            ? `<img src="${company.logo_url}" class="logo" alt="${company?.name}" style="max-height:80px;max-width:200px;object-fit:contain;" onerror="this.style.display='none'"/>`
-            : ''}
-          <div class="company-name">${company?.name || 'Company Name'}</div>
-          ${companyAddress ? `<div class="company-info">${companyAddress}</div>` : ''}
-          <div class="company-info">
-            ${company?.phone ? `Tel: ${company.phone}` : ''} 
-            ${company?.email ? ` | Email: ${company.email}` : ''}
-          </div>
-          <div class="tax-info">
-            ${company?.gst_number ? `GST #: ${company.gst_number}` : ''} 
-            ${company?.pst_number ? ` | PST #: ${company.pst_number}` : ''} 
-            ${company?.dealer_permit_number ? ` | Dealer Permit #: ${company.dealer_permit_number}` : ''}
-          </div>
-        </div>
-
-        <div class="title">BILL OF SALE</div>
-        <div style="text-align: center; margin-bottom: 20px;">
-          <span class="sale-type ${isExport ? 'export' : 'domestic'}">
-            ${isExport ? '☑ EXPORT SALE - Zero-Rated' : '☑ DOMESTIC SALE'}
-          </span>
-        </div>
-
-        <div class="section">
-          <div class="row"><span class="label">Purchaser's Name:</span><span class="value">${printSale.customer_name}</span></div>
-          <div class="row"><span class="label">Address:</span><span class="value">${printSale.customer_address}</span></div>
-          <div class="row"><span class="label">City/Province:</span><span class="value">${printSale.customer_city}, ${printSale.province} ${printSale.customer_postal_code}</span></div>
-          <div class="row"><span class="label">Phone:</span><span class="value">${printSale.customer_phone}</span></div>
-          <div class="row"><span class="label">Sale Date:</span><span class="value">${printSale.sale_date ? (() => { try { return format(new Date(printSale.sale_date), 'MMMM d, yyyy'); } catch(e) { return 'N/A'; } })() : 'N/A'}</span></div>
-        </div>
-
-        <table class="vehicle-table">
-          <tr><th>Vehicle</th><th>Year</th><th>VIN</th><th>Mileage</th><th>Color</th></tr>
-          <tr>
-            <td>${printSale.vehicle_details}</td>
-            <td>${printSale.vehicle_year}</td>
-            <td>${printSale.vehicle_vin}</td>
-            <td>${printSale.vehicle_mileage}</td>
-            <td>${printSale.vehicle_color}</td>
-          </tr>
-        </table>
-
-        <table class="totals-table">
-          <tr><td class="totals-label">Total Price</td><td>$${printSale.sale_price.toLocaleString()}</td></tr>
-          <tr><td class="totals-label">Less Trade</td><td>$${(printSale.trade_in.net_trade_value || 0).toLocaleString()}</td></tr>
-          <tr><td class="totals-label">P.S.T</td><td>$${printSale.tax_pst.toFixed(2)}</td></tr>
-          <tr><td class="totals-label">G.S.T / H.S.T</td><td>$${(printSale.tax_gst || printSale.tax_hst).toFixed(2)}</td></tr>
-          <tr><td class="totals-label"><strong>Grand Total</strong></td><td><strong>$${printSale.grand_total.toLocaleString()}</strong></td></tr>
-          <tr><td class="totals-label">Less Deposit</td><td>$${printSale.deposit_amount.toLocaleString()}</td></tr>
-          <tr><td class="totals-label"><strong>Balance Due</strong></td><td><strong>$${printSale.balance_due.toLocaleString()}</strong></td></tr>
-        </table>
-
-        <div class="disclaimer">
-          ALL VEHICLES ARE SOLD WITHOUT ANY WARRANTIES OR GUARANTEES UNLESS STIPULATED IN WRITING
-        </div>
-
-        <div class="terms">
-          The purchaser understands and agrees that the provisions listed above are hereby incorporated and
-          constitute part of this offer and acknowledges that this offer will not be considered as binding until
-          signed by the Purchaser and accepted in writing by the Management.
-        </div>
-
-        <div class="signatures">
-          <div class="signature-block">
-            <div>Purchaser's Signature:</div>
-            <div class="signature-line"></div>
-          </div>
-          <div class="signature-block">
-            <div>Salesman Signature:</div>
-            <div class="signature-line"></div>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-  };
-
   const handleSendEmail = async () => {
     if (!emailData.to) {
       toast.error("Please enter an email address");
       return;
     }
 
-    // Validate BOS for print
-    const validation = validateBOSForPrint(sale, company);
-    if (!validation.valid) {
-      toast.error(`Cannot send: ${validation.errors[0]}`);
-      return;
-    }
-
     setSending(true);
     try {
-      // Generate and upload PDF first
       let url = pdfUrl;
       if (!url) {
-        toast.loading("Generating PDF...");
         url = await generateAndUploadPDF();
-        toast.dismiss();
+        if (!url) { setSending(false); return; }
       }
 
-      const billHTML = generateBillOfSaleHTML();
+      const companyAddress = [company?.address, company?.city, company?.province, company?.postal_code].filter(Boolean).join(', ');
       const emailBody = `
-        ${emailData.customMessage ? `<p>${emailData.customMessage}</p><hr/>` : ''}
-        ${url ? `<p><strong>📎 Download PDF:</strong> <a href="${url}">${url}</a></p><hr/>` : ''}
-        ${billHTML}
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          ${company?.logo_url ? `<div style="text-align:center;margin-bottom:16px;"><img src="${company.logo_url}" alt="${company.name}" style="max-height:60px;"/></div>` : ''}
+          <h2 style="color:#1e3a8a; text-align:center;">Bill of Sale</h2>
+          ${emailData.customMessage ? `<p style="color:#555;">${emailData.customMessage}</p><hr/>` : ''}
+          <div style="background:#f3f4f6;padding:16px;border-radius:8px;margin:16px 0;border-left:4px solid #1e3a8a;">
+            <p style="margin:4px 0;"><strong>BOS Number:</strong> ${sale?.bos_number || 'N/A'}</p>
+            <p style="margin:4px 0;"><strong>Vehicle:</strong> ${sale?.vehicle_details || 'N/A'}</p>
+            <p style="margin:4px 0;"><strong>VIN:</strong> ${sale?.vehicle_vin || 'N/A'}</p>
+            <p style="margin:4px 0;"><strong>Customer:</strong> ${sale?.customer_name || 'N/A'}</p>
+            <p style="margin:4px 0;"><strong>Sale Date:</strong> ${sale?.sale_date || 'N/A'}</p>
+            <p style="margin:4px 0; color:#059669;"><strong>Total:</strong> $${(sale?.grand_total || 0).toLocaleString()}</p>
+          </div>
+          <div style="text-align:center;margin:24px 0;">
+            <a href="${url}" style="background:#1e3a8a;color:white;padding:12px 28px;text-decoration:none;border-radius:6px;font-weight:bold;">
+              📄 Download Bill of Sale PDF
+            </a>
+          </div>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;">
+          <div style="color:#666;font-size:12px;text-align:center;">
+            <p><strong>${company?.name || ''}</strong></p>
+            <p>${companyAddress}</p>
+            <p>${company?.phone ? `Tel: ${company.phone}` : ''} ${company?.email ? `| Email: ${company.email}` : ''}</p>
+          </div>
+        </div>
       `;
 
       await base44.integrations.Core.SendEmail({
@@ -225,7 +72,7 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
       });
 
       setSent(true);
-      toast.success("Bill of Sale sent successfully with PDF link!");
+      toast.success("Bill of Sale sent successfully!");
     } catch (error) {
       console.error("Email error:", error);
       toast.error("Failed to send email: " + error.message);
@@ -234,91 +81,42 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
   };
 
   const generateAndUploadPDF = async () => {
-    if (!sale || !company || !sale.customer_name || !sale.vehicle_details || !sale.id) {
-      toast.error("Cannot generate PDF - missing required data");
+    if (!sale?.id) {
+      toast.error("Cannot generate PDF - missing sale data");
       return null;
     }
-    
     setGeneratingPDF(true);
     try {
-      // Create a temporary element to render the HTML content
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = generateBillOfSaleHTML();
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.left = '-9999px';
-      tempDiv.style.width = '800px';
-      tempDiv.style.background = '#ffffff';
-      document.body.appendChild(tempDiv);
-      
-      const canvas = await html2canvas(tempDiv, { 
-        scale: 2, 
-        useCORS: true, 
-        backgroundColor: '#ffffff',
-        logging: false
-      });
-      
-      document.body.removeChild(tempDiv);
-      
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "letter");
-      const imgWidth = 216;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      let heightLeft = imgHeight;
-      let position = 0;
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= 279;
-      
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= 279;
-      }
-      
-      // Convert to blob and upload to cloud
-      const pdfBlob = pdf.output('blob');
-      const filename = `Bill_of_Sale-${sale?.sale_number || Date.now()}.pdf`;
-      const file = new File([pdfBlob], filename, { type: 'application/pdf' });
-      
+      const result = await generateDocumentPDF(sale.id, "BOS");
+      const filename = `BOS_${sale.bos_number || sale.sale_number || Date.now()}.pdf`;
+      const file = new File([result.pdf_blob], filename, { type: 'application/pdf' });
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      URL.revokeObjectURL(result.pdf_url);
       setPdfUrl(file_url);
-      setGeneratingPDF(false);
       toast.success("PDF saved to cloud!");
       return file_url;
     } catch (error) {
       console.error("PDF generation error:", error);
-      setGeneratingPDF(false);
-      toast.error("Failed to generate PDF");
+      toast.error("Failed to generate PDF: " + error.message);
       return null;
+    } finally {
+      setGeneratingPDF(false);
     }
   };
 
   const handleDownloadPDF = async () => {
+    if (!sale?.id) return;
     setGeneratingPDF(true);
     try {
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = generateBillOfSaleHTML();
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.left = '-9999px';
-      tempDiv.style.width = '800px';
-      tempDiv.style.background = '#ffffff';
-      document.body.appendChild(tempDiv);
-      
-      const canvas = await html2canvas(tempDiv, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-      document.body.removeChild(tempDiv);
-      
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "letter");
-      const imgWidth = 216;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-      pdf.save(`Bill_of_Sale-${sale?.sale_number || 'doc'}.pdf`);
-      
+      const result = await generateDocumentPDF(sale.id, "BOS");
+      const a = document.createElement('a');
+      a.href = result.pdf_url;
+      a.download = `BOS_${sale.bos_number || sale.sale_number || 'doc'}.pdf`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(result.pdf_url), 100);
       toast.success("PDF downloaded");
     } catch (error) {
-      toast.error("Failed to download PDF");
+      toast.error("Failed to download PDF: " + error.message);
     } finally {
       setGeneratingPDF(false);
     }
@@ -333,13 +131,9 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
 
   const handleShareWhatsApp = async () => {
     const isExport = sale?.sale_type === 'export';
-    
-    // Generate PDF first if not already done
     let url = pdfUrl;
     if (!url) {
-      toast.loading("Generating PDF for sharing...");
       url = await generateAndUploadPDF();
-      toast.dismiss();
       if (!url) return;
     }
 
@@ -347,12 +141,11 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
 *📄 BILL OF SALE*
 ${company?.name || 'Company'}
 
-*Sale #:* ${sale?.sale_number || ''}
+*BOS #:* ${sale?.bos_number || sale?.sale_number || ''}
 *Date:* ${sale?.sale_date ? (() => { try { return format(new Date(sale.sale_date), 'MMMM d, yyyy'); } catch(e) { return ''; } })() : ''}
 *Type:* ${isExport ? 'Export Sale (Zero-Rated)' : 'Domestic Sale'}
 
 *Customer:* ${sale?.customer_name || ''}
-
 *Vehicle:* ${sale?.vehicle_details || ''}
 *VIN:* ${sale?.vehicle_vin || ''}
 
@@ -365,15 +158,13 @@ ${company?.name || 'Company'}
 
 ${company?.phone ? `Tel: ${company.phone}` : ''}
 ${company?.email ? `Email: ${company.email}` : ''}
-
-_Generated by eFinAuto OFMS_
     `.trim();
 
     const phoneNumber = sale?.customer_phone?.replace(/\D/g, '') || '';
-    const whatsappUrl = phoneNumber 
+    const whatsappUrl = phoneNumber
       ? `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`
       : `https://wa.me/?text=${encodeURIComponent(message)}`;
-    
+
     window.open(whatsappUrl, '_blank');
     toast.success("Opening WhatsApp...");
   };
@@ -391,7 +182,6 @@ _Generated by eFinAuto OFMS_
 
   return (
     <div className="space-y-6">
-      {/* AI Summary */}
       <AIDocumentSummary
         documentType="bill_of_sale"
         documentData={sale}
@@ -442,30 +232,15 @@ _Generated by eFinAuto OFMS_
               rows={3}
             />
           </div>
-          <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600">
-            <p className="font-medium mb-2">Email will include:</p>
-            <ul className="list-disc list-inside space-y-1">
-              <li>Complete Bill of Sale with company details</li>
-              <li>Vehicle information and pricing</li>
-              <li>Tax breakdown and totals</li>
-              <li>Terms and conditions</li>
-            </ul>
-          </div>
           <Button
             onClick={handleSendEmail}
             disabled={sending || !emailData.to}
             className="w-full bg-blue-600 hover:bg-blue-700"
           >
             {sending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Sending...
-              </>
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending...</>
             ) : (
-              <>
-                <Send className="w-4 h-4 mr-2" />
-                Send Bill of Sale
-              </>
+              <><Send className="w-4 h-4 mr-2" />Send Bill of Sale</>
             )}
           </Button>
         </div>
@@ -473,7 +248,6 @@ _Generated by eFinAuto OFMS_
 
       {activeTab === "whatsapp" && (
         <div className="space-y-4">
-          {/* PDF Actions */}
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" size="sm" onClick={handleDownloadPDF} disabled={generatingPDF}>
               {generatingPDF ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
@@ -485,8 +259,7 @@ _Generated by eFinAuto OFMS_
             </Button>
             {pdfUrl && (
               <Button variant="outline" size="sm" onClick={handleCopyLink}>
-                <Copy className="w-4 h-4 mr-2" />
-                Copy Link
+                <Copy className="w-4 h-4 mr-2" />Copy Link
               </Button>
             )}
           </div>
@@ -499,16 +272,10 @@ _Generated by eFinAuto OFMS_
           )}
 
           <div className="bg-green-50 rounded-lg p-4">
-            <p className="text-sm text-green-800 mb-2">
-              <strong>WhatsApp Share</strong>
-            </p>
+            <p className="text-sm text-green-800 mb-1"><strong>WhatsApp Share</strong></p>
             <p className="text-sm text-green-700">
-              This will generate a PDF, upload it to cloud, and open WhatsApp with the download link.
-              {sale?.customer_phone && (
-                <span className="block mt-1">
-                  Customer phone: <strong>{sale.customer_phone}</strong>
-                </span>
-              )}
+              Generates a PDF, uploads to cloud, and opens WhatsApp with the download link.
+              {sale?.customer_phone && <span className="block mt-1">Customer phone: <strong>{sale.customer_phone}</strong></span>}
             </p>
           </div>
           <Button

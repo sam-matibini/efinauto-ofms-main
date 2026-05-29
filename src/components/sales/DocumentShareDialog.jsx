@@ -92,17 +92,9 @@ export default function DocumentShareDialog({ open, onClose, sale }) {
     }
     setLoading(true);
     try {
-      // Generate PDF first and download it
-      const result = await generateDocumentPDF(sale.id, "BOS");
-      toast.info("PDF generated. Email feature requires manual sending.");
-      
-      // Download the PDF for user to send manually
-      const a = window.document.createElement("a");
-      a.href = result.pdf_url;
-      a.download = `BOS_${sale.bos_number || sale.id}.pdf`;
-      a.click();
-      
-      setTimeout(() => URL.revokeObjectURL(result.pdf_url), 100);
+      await shareViaEmail(sale.id, emailData.to, sale?.customer_name || emailData.to, emailData.message);
+      toast.success(`Email sent to ${emailData.to}`);
+      setTimeout(() => onClose(), 1500);
     } catch (error) {
       toast.error("Email failed: " + error.message);
     } finally {
