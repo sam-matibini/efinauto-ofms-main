@@ -257,7 +257,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           }
 
           #bill-of-sale {
-            position: absolute;
+            position: fixed;
             left: 0;
             top: 0;
             width: 100%;
