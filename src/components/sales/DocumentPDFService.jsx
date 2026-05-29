@@ -70,122 +70,118 @@ export const generateDocumentPDF = async (documentId, documentType = "BOS") => {
 };
 
 const generateCleanHTMLTemplate = (document, company, type) => {
-  // Null-safe helpers
   const safe = (value, fallback = "") => value || fallback;
   const safeNum = (value, fallback = 0) => typeof value === "number" ? value : fallback;
   
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>${type} - ${safe(document.bos_number, document.id)}</title>
-      <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-        .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 20px; }
-        .company-name { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
-        .company-info { font-size: 12px; color: #333; }
-        .doc-title { font-size: 20px; font-weight: bold; margin: 20px 0; }
-        .doc-number { border: 2px solid #000; padding: 10px; display: inline-block; background: #f9f9f9; }
-        .section { margin: 20px 0; }
-        .field { margin: 10px 0; padding: 5px 0; border-bottom: 1px solid #000; }
-        .field-label { font-weight: bold; display: inline-block; min-width: 150px; }
-        .vehicle-table { width: 100%; border-collapse: collapse; border: 2px solid #000; }
-        .vehicle-table td { border: 1px solid #000; padding: 8px; }
-        .price-table { width: 100%; border-collapse: collapse; border: 2px solid #000; margin-top: 20px; }
-        .price-table td { border: 1px solid #000; padding: 8px; }
-        .total-row { font-weight: bold; background: #f0f0f0; }
-        .footer { margin-top: 40px; border-top: 2px solid #000; padding-top: 20px; font-size: 10px; text-align: center; }
-        .signature-section { margin-top: 60px; }
-        .signature-box { display: inline-block; width: 45%; vertical-align: top; }
-        .signature-line { border-top: 1px solid #000; margin-top: 50px; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <div class="company-name">${safe(company.name)}</div>
-        <div class="company-info">
-          ${safe(company.address)}, ${safe(company.city)}, ${safe(company.province)} ${safe(company.postal_code)}<br>
-          Tel: ${safe(company.phone)} | Email: ${safe(company.email)}<br>
-          GST: ${safe(company.gst_number)} | PST: ${safe(company.pst_number)} | Dealer Permit: ${safe(company.dealer_permit_number)}
-        </div>
-      </div>
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${type} - ${safe(document.bos_number, document.id)}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; font-size: 11px; padding: 24px 32px; color: #000; width: 816px; }
+    .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 12px; }
+    .logo { max-height: 60px; margin-bottom: 6px; }
+    .company-name { font-size: 20px; font-weight: bold; }
+    .company-info { font-size: 10px; color: #333; margin-top: 3px; line-height: 1.5; }
+    .doc-center { text-align: center; margin: 10px 0 8px; }
+    .doc-title { font-size: 16px; font-weight: bold; margin-bottom: 6px; }
+    .doc-number { border: 1px solid #000; padding: 6px 16px; display: inline-block; font-size: 12px; }
+    .doc-status { font-size: 10px; margin-top: 5px; }
+    .fields { margin: 8px 0; }
+    .field-row { display: flex; border-bottom: 1px solid #000; padding: 3px 0; gap: 8px; }
+    .field-label { font-weight: bold; white-space: nowrap; min-width: 120px; }
+    .field-value { flex: 1; }
+    .field-inline { display: inline-flex; gap: 4px; margin-right: 20px; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+    table td { border: 1px solid #000; padding: 5px 8px; font-size: 10.5px; }
+    table th { border: 1px solid #000; padding: 5px 8px; font-weight: bold; background: #fff; }
+    .price-right { text-align: right; }
+    .bold-row td { font-weight: bold; }
+    .disclaimer { text-align: center; font-size: 9px; font-weight: bold; margin: 8px 0; }
+    .sig-section { display: flex; justify-content: space-between; margin-top: 16px; }
+    .sig-box { width: 45%; }
+    .sig-label { font-weight: bold; font-size: 11px; margin-bottom: 32px; }
+    .sig-line { border-top: 1px solid #000; margin-top: 4px; }
+    .sig-date { font-size: 9px; margin-top: 3px; color: #555; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    ${company.logo_url ? `<img src="${company.logo_url}" class="logo" crossorigin="anonymous" />` : ''}
+    <div class="company-name">${safe(company.name)}</div>
+    <div class="company-info">
+      ${[company.address, company.city, company.province, company.postal_code].filter(Boolean).join(', ')}<br>
+      Tel: ${safe(company.phone)} | Email: ${safe(company.email)}<br>
+      GST: ${safe(company.gst_number)} | PST: ${safe(company.pst_number)} | Dealer Permit: ${safe(company.dealer_permit_number)}
+    </div>
+  </div>
 
-      <div style="text-align: center;">
-        <div class="doc-title">BILL OF SALE</div>
-        ${document.bos_number ? `<div class="doc-number">BOS #: ${document.bos_number}</div>` : ''}
-        <div style="margin-top: 10px; font-size: 12px;">
-          ${document.bos_status === 'finalized' ? '✓ FINALIZED' : document.bos_status === 'voided' ? '⚠ VOIDED' : 'DRAFT'}
-          ${document.sale_type === 'export' ? ' | ☑ EXPORT SALE (Zero-Rated)' : ' | ☑ DOMESTIC SALE'}
-        </div>
-      </div>
+  <div class="doc-center">
+    <div class="doc-title">BILL OF SALE</div>
+    ${document.bos_number ? `<div class="doc-number">BOS #: ${document.bos_number}</div>` : ''}
+    <div class="doc-status">
+      ${document.bos_status === 'finalized' ? '✓ FINALIZED' : document.bos_status === 'voided' ? '⚠ VOIDED' : 'DRAFT'}
+      &nbsp;|&nbsp;
+      ${document.sale_type === 'export' ? '☑ EXPORT SALE (Zero-Rated)' : '☑ DOMESTIC SALE'}
+    </div>
+  </div>
 
-      <div class="section">
-        <div class="field"><span class="field-label">Purchaser's Name:</span> ${safe(document.customer_name)}</div>
-        <div class="field"><span class="field-label">Address:</span> ${safe(document.customer_address)}</div>
-        <div class="field"><span class="field-label">City:</span> ${safe(document.customer_city)} <span class="field-label">Province:</span> ${safe(document.province)} <span class="field-label">Postal:</span> ${safe(document.customer_postal_code)}</div>
-        <div class="field"><span class="field-label">Phone:</span> ${safe(document.customer_phone)} <span class="field-label">Business Phone:</span> ${safe(document.customer_business_phone)}</div>
-        <div class="field"><span class="field-label">Email:</span> ${safe(document.customer_email)}</div>
-        <div class="field"><span class="field-label">Salesman:</span> ${safe(document.salesman)} <span class="field-label">Date:</span> ${safe(document.sale_date)}</div>
-      </div>
+  <div class="fields">
+    <div class="field-row"><span class="field-label">Purchaser's Name:</span><span class="field-value">${safe(document.customer_name)}</span></div>
+    <div class="field-row"><span class="field-label">Address:</span><span class="field-value">${safe(document.customer_address)}</span></div>
+    <div class="field-row">
+      <span class="field-inline"><span class="field-label">City:</span><span>${safe(document.customer_city)}</span></span>
+      <span class="field-inline"><span class="field-label">Province:</span><span>${safe(document.province)}</span></span>
+      <span class="field-inline"><span class="field-label">Postal:</span><span>${safe(document.customer_postal_code)}</span></span>
+    </div>
+    <div class="field-row">
+      <span class="field-inline"><span class="field-label">Phone:</span><span>${safe(document.customer_phone)}</span></span>
+      <span class="field-inline"><span class="field-label">Business Phone:</span><span>${safe(document.customer_business_phone)}</span></span>
+    </div>
+    <div class="field-row"><span class="field-label">Email:</span><span class="field-value">${safe(document.customer_email)}</span></div>
+    <div class="field-row">
+      <span class="field-inline"><span class="field-label">Salesman:</span><span>${safe(document.salesman)}</span></span>
+      <span class="field-inline"><span class="field-label">Date:</span><span>${safe(document.sale_date)}</span></span>
+    </div>
+  </div>
 
-      <table class="vehicle-table">
-        <tr>
-          <td colspan="2"><strong>Vehicle Purchased</strong></td>
-          <td><strong>Year</strong></td>
-          <td colspan="3"><strong>Make & Model</strong></td>
-        </tr>
-        <tr>
-          <td colspan="2">${safe(document.vehicle_details)}</td>
-          <td>${safe(document.vehicle_year)}</td>
-          <td colspan="3">${safe(document.vehicle_make_model)}</td>
-        </tr>
-        <tr>
-          <td colspan="2"><strong>Odometer</strong></td>
-          <td><strong>Colour</strong></td>
-          <td colspan="3"><strong>VIN: ${safe(document.vehicle_vin)}</strong></td>
-        </tr>
-        <tr>
-          <td colspan="2">${safeNum(document.vehicle_mileage)}</td>
-          <td>${safe(document.vehicle_color)}</td>
-          <td colspan="3"></td>
-        </tr>
-      </table>
+  <table>
+    <tr><th style="width:40%">Vehicle Purchased</th><th style="width:12%">Year</th><th>Make &amp; Model</th></tr>
+    <tr><td>${safe(document.vehicle_details)}</td><td>${safe(document.vehicle_year)}</td><td>${safe(document.vehicle_make_model)}</td></tr>
+    <tr><th>Odometer</th><th>Colour</th><th>VIN: ${safe(document.vehicle_vin)}</th></tr>
+    <tr><td>${safeNum(document.vehicle_mileage)}</td><td>${safe(document.vehicle_color)}</td><td></td></tr>
+  </table>
 
-      <table class="price-table">
-        <tr><td>Total Price</td><td style="text-align: right;">$${safeNum(document.sale_price).toLocaleString()}</td></tr>
-        <tr><td>Less Trade</td><td style="text-align: right;">$${safeNum(document.trade_in?.net_trade_value).toLocaleString()}</td></tr>
-        <tr><td>P.S.T ${document.pst_exempt ? '(EXEMPT)' : ''}</td><td style="text-align: right;">$${safeNum(document.tax_pst).toFixed(2)}</td></tr>
-        <tr><td>G.S.T / H.S.T</td><td style="text-align: right;">$${safeNum(document.tax_gst || document.tax_hst).toFixed(2)}</td></tr>
-        <tr class="total-row"><td>Total</td><td style="text-align: right;">$${safeNum(document.grand_total).toLocaleString()}</td></tr>
-        <tr><td>Less Deposit</td><td style="text-align: right;">$${safeNum(document.deposit_amount).toLocaleString()}</td></tr>
-        <tr class="total-row"><td>Balance Due</td><td style="text-align: right;">$${safeNum(document.balance_due).toLocaleString()}</td></tr>
-      </table>
+  <table>
+    <tr><td>Total Price</td><td class="price-right">$${safeNum(document.sale_price).toLocaleString()}</td></tr>
+    <tr><td>Less Trade</td><td class="price-right">$${safeNum(document.trade_in?.net_trade_value).toLocaleString()}</td></tr>
+    <tr><td>P.S.T ${document.pst_exempt ? '(EXEMPT)' : ''}</td><td class="price-right">$${safeNum(document.tax_pst).toFixed(2)}</td></tr>
+    <tr><td>G.S.T / H.S.T</td><td class="price-right">$${safeNum(document.tax_gst || document.tax_hst).toFixed(2)}</td></tr>
+    <tr class="bold-row"><td>Total</td><td class="price-right">$${safeNum(document.grand_total).toLocaleString()}</td></tr>
+    <tr><td>Less Deposit</td><td class="price-right">$${safeNum(document.deposit_amount).toLocaleString()}</td></tr>
+    <tr class="bold-row"><td>Balance Due</td><td class="price-right">$${safeNum(document.balance_due).toLocaleString()}</td></tr>
+  </table>
 
-      <div style="text-align: center; margin: 20px 0; font-size: 10px; font-weight: bold;">
-        ALL VEHICLES ARE SOLD WITHOUT ANY WARRANTIES OR GUARANTEES UNLESS STIPULATED IN WRITING
-      </div>
+  <div class="disclaimer">ALL VEHICLES ARE SOLD WITHOUT ANY WARRANTIES OR GUARANTEES UNLESS STIPULATED IN WRITING</div>
 
-      <div class="signature-section">
-        <div class="signature-box">
-          <div><strong>Purchaser's Signature:</strong></div>
-          <div class="signature-line"></div>
-          ${document.buyer_signed_at ? `<div style="font-size: 10px; margin-top: 5px;">Signed: ${new Date(document.buyer_signed_at).toLocaleDateString()}</div>` : ''}
-        </div>
-        <div class="signature-box" style="float: right;">
-          <div><strong>Salesman/Seller Signature:</strong></div>
-          <div class="signature-line"></div>
-          ${document.seller_signed_at ? `<div style="font-size: 10px; margin-top: 5px;">Signed: ${new Date(document.seller_signed_at).toLocaleDateString()}</div>` : ''}
-        </div>
-      </div>
-
-      <div class="footer">
-        Document generated: ${new Date().toLocaleString()}<br>
-        This is a legally binding document. For questions, contact ${safe(company.email)}
-      </div>
-    </body>
-    </html>
-  `;
+  <div class="sig-section">
+    <div class="sig-box">
+      <div class="sig-label">Purchaser's Signature:</div>
+      ${document.buyer_signature_url ? `<img src="${document.buyer_signature_url}" style="height:40px;max-width:200px;" />` : ''}
+      <div class="sig-line"></div>
+      ${document.buyer_signed_at ? `<div class="sig-date">Signed: ${new Date(document.buyer_signed_at).toLocaleDateString()}</div>` : ''}
+    </div>
+    <div class="sig-box">
+      <div class="sig-label">Salesman/Seller Signature:</div>
+      ${document.seller_signature_url ? `<img src="${document.seller_signature_url}" style="height:40px;max-width:200px;" />` : ''}
+      <div class="sig-line"></div>
+      ${document.seller_signed_at ? `<div class="sig-date">Signed: ${new Date(document.seller_signed_at).toLocaleDateString()}</div>` : ''}
+    </div>
+  </div>
+</body>
+</html>`;
 };
 
 const renderHTMLToPDF = async (htmlContent) => {
@@ -199,13 +195,16 @@ const renderHTMLToPDF = async (htmlContent) => {
         const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
         const element = iframeDoc.body;
 
+        // Wait briefly for images (logo) to load
+        await new Promise(r => setTimeout(r, 500));
+
         const canvas = await html2canvas(element, {
           scale: 2,
           useCORS: true,
           logging: false,
           backgroundColor: "#ffffff",
           allowTaint: true,
-          imageTimeout: 0,
+          imageTimeout: 3000,
           windowWidth: 816,
         });
 
@@ -215,21 +214,19 @@ const renderHTMLToPDF = async (htmlContent) => {
         const pdf = new jsPDF("p", "mm", "letter");
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
-        const imgWidth = pdfWidth - 20;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-        let heightLeft = imgHeight;
-        let position = 10;
-
-        pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
-        heightLeft -= pdfHeight;
-
-        while (heightLeft >= 0) {
-          position = heightLeft - imgHeight + 10;
-          pdf.addPage();
-          pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
-          heightLeft -= pdfHeight;
+        // Fit entire content onto one page
+        const margin = 10;
+        const usableWidth = pdfWidth - margin * 2;
+        const usableHeight = pdfHeight - margin * 2;
+        const imgAspect = canvas.height / canvas.width;
+        let imgW = usableWidth;
+        let imgH = imgW * imgAspect;
+        if (imgH > usableHeight) {
+          imgH = usableHeight;
+          imgW = imgH / imgAspect;
         }
+        const xOffset = margin + (usableWidth - imgW) / 2;
+        pdf.addImage(imgData, "PNG", xOffset, margin, imgW, imgH);
 
         resolve(pdf.output("blob"));
       } catch (err) {

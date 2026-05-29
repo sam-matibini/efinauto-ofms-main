@@ -248,130 +248,38 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
             margin: 0.5in;
           }
 
-          body * {
-            visibility: hidden;
-          }
-
-          #bill-of-sale, #bill-of-sale * {
-            visibility: visible;
-          }
+          body > * { display: none !important; }
 
           #bill-of-sale {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 100%;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 20px !important;
-          }
-
-          .print\\:hidden,
-          button,
-          .audit-trail-section,
-          .completion-certificate-section { 
-            display: none !important; 
-          }
-          
-          #bill-of-sale,
-          #bill-of-sale *,
-          #bill-of-sale *::before,
-          #bill-of-sale *::after { 
-            print-color-adjust: exact !important; 
-            -webkit-print-color-adjust: exact !important; 
-            color-adjust: exact !important;
-          }
-          
-          .bos-number-container { 
-            display: inline-block !important; 
-            visibility: visible !important;
-            opacity: 1 !important;
-            page-break-inside: avoid !important;
-            border: 2px solid #000 !important;
-            background: #f9fafb !important;
-            padding: 12px !important;
-          }
-          
-          .bos-number-container * {
             display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            color: #000 !important;
-          }
-          
-          .bos-number-container p {
+            position: static !important;
+            width: 100% !important;
+            max-width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
           }
-          
-          .barcode-container {
-            display: block !important;
+
+          #bill-of-sale, #bill-of-sale * {
             visibility: visible !important;
-            opacity: 1 !important;
-            margin-top: 8px !important;
-            width: 100% !important;
-            overflow: visible !important;
+            print-color-adjust: exact !important;
+            -webkit-print-color-adjust: exact !important;
           }
-          
-          .barcode-container svg,
-          .barcode-container canvas,
-          .barcode-container img {
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            width: 100% !important;
-            max-width: 250px !important;
-            height: auto !important;
-            margin: 0 auto !important;
+
+          button,
+          .print\\:hidden,
+          .audit-trail-section,
+          .completion-certificate-section {
+            display: none !important;
           }
-          
-          .barcode-container text {
-            fill: #000 !important;
-            color: #000 !important;
-            font-size: 10px !important;
-            font-family: monospace !important;
-          }
-          
-          .barcode-container rect {
-            fill: #000 !important;
-          }
-          
-          .border-green-200 {
-            border-color: #000 !important;
-          }
-          
-          .bg-green-50 {
-            background: #f9fafb !important;
-          }
-          
-          .bg-blue-100,
-          .bg-green-100,
-          .bg-red-100,
-          .bg-amber-100 {
-            background: #e5e7eb !important;
-            border: 1px solid #000 !important;
-          }
-          
-          .border-gray-800,
-          .border-b,
-          .border-2 {
-            border-color: #000 !important;
-          }
-          
-          .border-r {
-            border-right: 1px solid #000 !important;
-          }
-          
-          .text-gray-900,
-          .text-gray-800,
-          .text-gray-700,
-          .text-gray-600 {
-            color: #000 !important;
-          }
-          
-          .font-mono {
-            font-family: 'Courier New', monospace !important;
-          }
+
+          .border-gray-800, .border-b, .border-2 { border-color: #000 !important; }
+          .border-r { border-right: 1px solid #000 !important; }
+          .text-gray-900, .text-gray-800, .text-gray-700, .text-gray-600 { color: #000 !important; }
+          .bg-green-50 { background: #f9fafb !important; }
+          .bg-blue-100, .bg-green-100, .bg-red-100, .bg-amber-100 { background: #e5e7eb !important; }
+
+          .barcode-container { display: block !important; visibility: visible !important; }
+          .barcode-container svg, .barcode-container img { display: block !important; visibility: visible !important; max-width: 250px !important; }
         }
       `}</style>
       
