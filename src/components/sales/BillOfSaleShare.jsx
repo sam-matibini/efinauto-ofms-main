@@ -56,6 +56,9 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
             </a>
           </div>
           <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;">
+          ${company?.email ? `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px 16px;margin:12px 0;text-align:center;font-size:13px;color:#1e40af;">
+            📧 To reply, please email us at: <a href="mailto:${company.email}" style="color:#1e3a8a;font-weight:bold;">${company.email}</a>
+          </div>` : ''}
           <div style="color:#666;font-size:12px;text-align:center;">
             <p><strong>${company?.name || ''}</strong></p>
             <p>${companyAddress}</p>
