@@ -9,7 +9,7 @@ import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Toolti
 import { useCompany } from "../components/shared/CompanyContext";
 
 export default function VehicleAnalytics() {
-  const { selectedCompanyId } = useCompany();
+  const { selectedCompanyId, setSelectedCompanyId } = useCompany();
   const [dateRange, setDateRange] = useState("all");
 
   const { data: vehicles = [], isLoading } = useQuery({
@@ -158,7 +158,6 @@ export default function VehicleAnalytics() {
                 <div className="flex-1">
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Company</label>
                   <Select value={selectedCompanyId || ""} onValueChange={(value) => {
-                    const { setSelectedCompanyId } = useCompany();
                     setSelectedCompanyId(value);
                   }}>
                     <SelectTrigger>

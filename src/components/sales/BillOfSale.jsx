@@ -243,27 +243,34 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
     <div className="bg-white p-8 max-w-4xl mx-auto" id="bill-of-sale">
       <style>{`
         @media print {
+          @page {
+            size: letter;
+            margin: 0.5in;
+          }
+
+          body * {
+            visibility: hidden;
+          }
+
+          #bill-of-sale, #bill-of-sale * {
+            visibility: visible;
+          }
+
+          #bill-of-sale {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 20px !important;
+          }
+
           .print\\:hidden,
           button,
           .audit-trail-section,
           .completion-certificate-section { 
             display: none !important; 
-          }
-          
-          @page {
-            size: letter;
-            margin: 0.5in;
-          }
-          
-          body {
-            margin: 0;
-            padding: 0;
-          }
-          
-          #bill-of-sale { 
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 20px !important;
           }
           
           #bill-of-sale,
@@ -397,7 +404,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
               <p className="text-xs font-semibold text-gray-600 mb-1">BOS NUMBER</p>
               <p className="text-lg font-bold text-gray-900 font-mono tracking-wider">{safeSale.bos_number}</p>
               {typeof window !== 'undefined' && safeSale.bos_number && safeSale.bos_number.length > 0 && safeSale.bos_status === 'finalized' && (
-                <div className="mt-2 barcode-container print:hidden">
+                <div className="mt-2 barcode-container">
                   {(() => {
                     try {
                       const cleanBosNumber = String(safeSale.bos_number).replace(/[^A-Z0-9-]/gi, '').substring(0, 30);

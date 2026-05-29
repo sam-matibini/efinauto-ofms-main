@@ -105,7 +105,7 @@ export const logAuditEvent = async ({
     await base44.entities.AuditLog.create(auditEntry);
     
     // Console log in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.log('[AUDIT]', action, module, recordIdentifier || recordId, status);
     }
     

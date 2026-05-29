@@ -124,14 +124,6 @@ export default function InventoryManagement() {
       }, 0) / inStockVehicles.length
     : 0;
 
-  if (!selectedCompanyId) {
-    return (
-      <div className="p-6 text-center">
-        <p className="text-gray-500">Please select a company to view inventory</p>
-      </div>
-    );
-  }
-
   const isLoading = loadingVehicles || loadingParts || loadingProducts;
 
   // Vehicle mutations
@@ -191,6 +183,14 @@ export default function InventoryManagement() {
       toast.success("Part deleted");
     },
   });
+
+  if (!selectedCompanyId) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-gray-500">Please select a company to view inventory</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
