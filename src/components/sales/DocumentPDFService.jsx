@@ -71,132 +71,191 @@ export const generateDocumentPDF = async (documentId, documentType = "BOS") => {
 
 const generateCleanHTMLTemplate = (document, company, type) => {
   const safe = (value, fallback = "") => value || fallback;
-  const safeNum = (value, fallback = 0) => typeof value === "number" ? value : fallback;
-  
+  const safeNum = (value, fallback = 0) => (typeof value === "number" ? value : fallback);
+  const fmt = (num) => `$${safeNum(num).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>${type} - ${safe(document.bos_number, document.id)}</title>
+  <title>Bill of Sale - ${safe(document.bos_number, document.id)}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; font-size: 11px; padding: 24px 32px; color: #000; width: 816px; }
-    .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 12px; }
-    .logo { max-height: 60px; margin-bottom: 6px; }
-    .company-name { font-size: 20px; font-weight: bold; }
-    .company-info { font-size: 10px; color: #333; margin-top: 3px; line-height: 1.5; }
-    .doc-center { text-align: center; margin: 10px 0 8px; }
-    .doc-title { font-size: 16px; font-weight: bold; margin-bottom: 6px; }
-    .doc-number { border: 1px solid #000; padding: 6px 16px; display: inline-block; font-size: 12px; }
-    .doc-status { font-size: 10px; margin-top: 5px; }
-    .fields { margin: 8px 0; }
-    .field-row { display: flex; border-bottom: 1px solid #000; padding: 4px 0; gap: 8px; align-items: baseline; }
-    .field-label { font-weight: bold; white-space: nowrap; min-width: 130px; flex-shrink: 0; }
-    .field-value { flex: 1; }
-    .field-inline { display: flex; gap: 4px; align-items: baseline; flex: 1; min-width: 0; }
-    .field-inline .field-label { min-width: 80px; }
-    table { width: 100%; border-collapse: collapse; margin: 8px 0; }
-    table td { border: 1px solid #000; padding: 5px 8px; font-size: 10.5px; }
-    table th { border: 1px solid #000; padding: 5px 8px; font-weight: bold; background: #fff; }
-    .price-right { text-align: right; }
-    .bold-row td { font-weight: bold; }
-    .disclaimer { text-align: center; font-size: 9px; font-weight: bold; margin: 8px 0; }
-    .sig-section { display: flex; justify-content: space-between; margin-top: 16px; }
-    .sig-box { width: 45%; }
-    .sig-label { font-weight: bold; font-size: 11px; margin-bottom: 32px; }
-    .sig-line { border-top: 1px solid #000; margin-top: 4px; }
-    .sig-date { font-size: 9px; margin-top: 3px; color: #555; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #222; background: #fff; width: 794px; padding: 32px 40px; }
+
+    /* ── HEADER ── */
+    .header { display: table; width: 100%; border-bottom: 2px solid #2c3e50; padding-bottom: 14px; margin-bottom: 18px; }
+    .header-left { display: table-cell; vertical-align: middle; width: 60%; }
+    .header-right { display: table-cell; vertical-align: middle; text-align: right; width: 40%; }
+    .logo { max-height: 64px; max-width: 160px; }
+    .company-name { font-size: 17px; font-weight: bold; color: #2c3e50; }
+    .company-meta { font-size: 9.5px; color: #555; margin-top: 4px; line-height: 1.7; }
+    .doc-title { font-size: 22px; font-weight: bold; color: #2c3e50; letter-spacing: 1px; }
+    .doc-number { font-size: 11px; color: #444; margin-top: 4px; }
+    .doc-badge { display: inline-block; margin-top: 6px; padding: 2px 10px; border-radius: 3px; font-size: 9.5px; font-weight: bold; background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+    .doc-badge.voided { background: #fce4ec; color: #b71c1c; border-color: #ef9a9a; }
+    .doc-badge.draft { background: #fff3e0; color: #e65100; border-color: #ffcc80; }
+    .sale-type { font-size: 9px; color: #666; margin-top: 3px; }
+
+    /* ── BUYER INFO ── */
+    .section-title { font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; color: #2c3e50; background: #ecf0f1; padding: 4px 8px; margin: 14px 0 0; border-left: 3px solid #2c3e50; }
+    .info-grid { width: 100%; border-collapse: collapse; margin-bottom: 0; }
+    .info-grid td { padding: 5px 8px; border: 1px solid #ddd; font-size: 10.5px; vertical-align: top; }
+    .info-grid td.lbl { font-weight: bold; color: #333; background: #f9f9f9; width: 140px; white-space: nowrap; }
+
+    /* ── VEHICLE TABLE ── */
+    .veh-table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+    .veh-table th { background: #2c3e50; color: #fff; font-size: 10px; padding: 6px 10px; text-align: left; border: 1px solid #2c3e50; }
+    .veh-table td { border: 1px solid #ccc; padding: 6px 10px; font-size: 10.5px; }
+    .veh-table tr:nth-child(even) td { background: #f9f9f9; }
+
+    /* ── PRICING TABLE ── */
+    .price-wrap { display: table; width: 100%; margin-top: 14px; }
+    .price-spacer { display: table-cell; width: 55%; }
+    .price-table-cell { display: table-cell; width: 45%; vertical-align: top; }
+    .price-table { width: 100%; border-collapse: collapse; }
+    .price-table td { padding: 5px 10px; font-size: 10.5px; border: 1px solid #ddd; }
+    .price-table td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+    .price-table .lbl-col { color: #444; }
+    .price-table tr.subtotal td { background: #f5f5f5; font-weight: bold; }
+    .price-table tr.total td { background: #2c3e50; color: #fff; font-weight: bold; font-size: 11px; }
+    .price-table tr.balance td { background: #e8f5e9; color: #1b5e20; font-weight: bold; }
+
+    /* ── DISCLAIMER ── */
+    .disclaimer { text-align: center; font-size: 8.5px; color: #555; margin: 16px 0 10px; padding: 6px; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; }
+
+    /* ── SIGNATURES ── */
+    .sig-section { display: table; width: 100%; margin-top: 20px; }
+    .sig-box { display: table-cell; width: 48%; vertical-align: bottom; padding: 0 4px; }
+    .sig-spacer { display: table-cell; width: 4%; }
+    .sig-image { height: 44px; max-width: 180px; display: block; margin-bottom: 4px; }
+    .sig-line { border-top: 1.5px solid #333; width: 100%; }
+    .sig-name { font-size: 9.5px; color: #555; margin-top: 3px; }
+    .sig-label { font-size: 10px; font-weight: bold; color: #333; margin-top: 8px; }
   </style>
 </head>
 <body>
+
+  <!-- HEADER -->
   <div class="header">
-    ${company.logo_url ? `<img src="${company.logo_url}" class="logo" crossorigin="anonymous" />` : ''}
-    <div class="company-name">${safe(company.name)}</div>
-    <div class="company-info">
-      ${[company.address, company.city, company.province, company.postal_code].filter(Boolean).join(', ')}<br>
-      Tel: ${safe(company.phone)} | Email: ${safe(company.email)}<br>
-      GST: ${safe(company.gst_number)} | PST: ${safe(company.pst_number)} | Dealer Permit: ${safe(company.dealer_permit_number)}
+    <div class="header-left">
+      ${company.logo_url ? `<img src="${company.logo_url}" class="logo" crossorigin="anonymous" /><br/>` : ''}
+      <div class="company-name">${safe(company.name)}</div>
+      <div class="company-meta">
+        ${[company.address, company.city, company.province, company.postal_code].filter(Boolean).join(' &bull; ')}<br>
+        Tel: ${safe(company.phone, '—')} &nbsp;|&nbsp; Email: ${safe(company.email, '—')}<br>
+        GST: ${safe(company.gst_number, '—')} &nbsp;|&nbsp; PST: ${safe(company.pst_number, '—')} &nbsp;|&nbsp; Dealer Permit: ${safe(company.dealer_permit_number, '—')}
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="doc-title">BILL OF SALE</div>
+      ${document.bos_number ? `<div class="doc-number"><strong>BOS #:</strong> ${document.bos_number}</div>` : ''}
+      <div class="doc-number"><strong>Date:</strong> ${safe(document.sale_date, '—')}</div>
+      <div>
+        <span class="doc-badge${document.bos_status === 'voided' ? ' voided' : document.bos_status === 'draft' ? ' draft' : ''}">
+          ${document.bos_status === 'finalized' ? '✓ FINALIZED' : document.bos_status === 'voided' ? '⚠ VOIDED' : 'DRAFT'}
+        </span>
+      </div>
+      <div class="sale-type">${document.sale_type === 'export' ? '☑ Export Sale (Zero-Rated)' : '☑ Domestic Sale'}</div>
     </div>
   </div>
 
-  <div class="doc-center">
-    <div class="doc-title">BILL OF SALE</div>
-    ${document.bos_number ? `<div class="doc-number">BOS #: ${document.bos_number}</div>` : ''}
-    <div class="doc-status">
-      ${document.bos_status === 'finalized' ? '✓ FINALIZED' : document.bos_status === 'voided' ? '⚠ VOIDED' : 'DRAFT'}
-      &nbsp;|&nbsp;
-      ${document.sale_type === 'export' ? '☑ EXPORT SALE (Zero-Rated)' : '☑ DOMESTIC SALE'}
-    </div>
-  </div>
-
-  <div class="fields">
-    <div class="field-row"><span class="field-label">Purchaser's Name:</span><span class="field-value">${safe(document.customer_name)}</span></div>
-    <div class="field-row"><span class="field-label">Address:</span><span class="field-value">${safe(document.customer_address)}</span></div>
-    <div class="field-row">
-      <div class="field-inline"><span class="field-label">City:</span><span>${safe(document.customer_city)}</span></div>
-      <div class="field-inline"><span class="field-label">Province:</span><span>${safe(document.province)}</span></div>
-      <div class="field-inline"><span class="field-label">Postal Code:</span><span>${safe(document.customer_postal_code)}</span></div>
-    </div>
-    <div class="field-row">
-      <div class="field-inline"><span class="field-label">Phone:</span><span>${safe(document.customer_phone)}</span></div>
-      <div class="field-inline"><span class="field-label">Business Phone:</span><span>${safe(document.customer_business_phone)}</span></div>
-    </div>
-    <div class="field-row"><span class="field-label">Email:</span><span class="field-value">${safe(document.customer_email)}</span></div>
-    <div class="field-row">
-      <div class="field-inline"><span class="field-label">Salesman:</span><span>${safe(document.salesman)}</span></div>
-      <div class="field-inline"><span class="field-label">Date:</span><span>${safe(document.sale_date)}</span></div>
-    </div>
-  </div>
-
-  <table>
+  <!-- PURCHASER INFO -->
+  <div class="section-title">Purchaser Information</div>
+  <table class="info-grid">
     <tr>
-      <th style="width:40%">Vehicle Purchased</th>
-      <th style="width:12%">Year</th>
-      <th>Make &amp; Model</th>
+      <td class="lbl">Name</td>
+      <td>${safe(document.customer_name)}</td>
+      <td class="lbl">Salesman</td>
+      <td>${safe(document.salesman)}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Address</td>
+      <td>${safe(document.customer_address)}</td>
+      <td class="lbl">Phone</td>
+      <td>${safe(document.customer_phone)}</td>
+    </tr>
+    <tr>
+      <td class="lbl">City</td>
+      <td>${safe(document.customer_city)}</td>
+      <td class="lbl">Business Phone</td>
+      <td>${safe(document.customer_business_phone)}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Province</td>
+      <td>${safe(document.province)}</td>
+      <td class="lbl">Email</td>
+      <td>${safe(document.customer_email)}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Postal Code</td>
+      <td>${safe(document.customer_postal_code)}</td>
+      <td class="lbl">Country</td>
+      <td>${safe(document.customer_country)}</td>
+    </tr>
+  </table>
+
+  <!-- VEHICLE INFO -->
+  <div class="section-title">Vehicle Details</div>
+  <table class="veh-table">
+    <tr>
+      <th style="width:35%">Vehicle Description</th>
+      <th style="width:10%">Year</th>
+      <th style="width:25%">Make &amp; Model</th>
+      <th style="width:10%">Colour</th>
+      <th style="width:20%">VIN</th>
     </tr>
     <tr>
       <td>${safe(document.vehicle_details)}</td>
-      <td>${safe(document.vehicle_year, '')}</td>
-      <td>${safe(document.vehicle_make_model)}</td>
-    </tr>
-    <tr>
-      <th>Odometer (km)</th>
-      <th>Colour</th>
-      <th>VIN</th>
-    </tr>
-    <tr>
-      <td>${safeNum(document.vehicle_mileage) || '—'}</td>
+      <td>${safe(document.vehicle_year, '—')}</td>
+      <td>${safe(document.vehicle_make_model, '—')}</td>
       <td>${safe(document.vehicle_color, '—')}</td>
       <td>${safe(document.vehicle_vin, '—')}</td>
     </tr>
+    <tr>
+      <th colspan="5">Odometer Reading</th>
+    </tr>
+    <tr>
+      <td colspan="5">${safeNum(document.vehicle_mileage) ? safeNum(document.vehicle_mileage).toLocaleString() + ' km' : '—'}</td>
+    </tr>
   </table>
 
-  <table>
-    <tr><td>Total Price</td><td class="price-right">$${safeNum(document.sale_price).toLocaleString()}</td></tr>
-    <tr><td>Less Trade</td><td class="price-right">$${safeNum(document.trade_in?.net_trade_value).toLocaleString()}</td></tr>
-    <tr><td>P.S.T ${document.pst_exempt ? '(EXEMPT)' : ''}</td><td class="price-right">$${safeNum(document.tax_pst).toFixed(2)}</td></tr>
-    <tr><td>G.S.T / H.S.T</td><td class="price-right">$${safeNum(document.tax_gst || document.tax_hst).toFixed(2)}</td></tr>
-    <tr class="bold-row"><td>Total</td><td class="price-right">$${safeNum(document.grand_total).toLocaleString()}</td></tr>
-    <tr><td>Less Deposit</td><td class="price-right">$${safeNum(document.deposit_amount).toLocaleString()}</td></tr>
-    <tr class="bold-row"><td>Balance Due</td><td class="price-right">$${safeNum(document.balance_due).toLocaleString()}</td></tr>
-  </table>
-
-  <div class="disclaimer">ALL VEHICLES ARE SOLD WITHOUT ANY WARRANTIES OR GUARANTEES UNLESS STIPULATED IN WRITING</div>
-
-  <div class="sig-section">
-    <div class="sig-box">
-      <div class="sig-label">Purchaser's Signature:</div>
-      ${document.buyer_signature_url ? `<img src="${document.buyer_signature_url}" style="height:40px;max-width:200px;" />` : ''}
-      <div class="sig-line"></div>
-      ${document.buyer_signed_at ? `<div class="sig-date">Signed: ${new Date(document.buyer_signed_at).toLocaleDateString()}</div>` : ''}
-    </div>
-    <div class="sig-box">
-      <div class="sig-label">Salesman/Seller Signature:</div>
-      ${document.seller_signature_url ? `<img src="${document.seller_signature_url}" style="height:40px;max-width:200px;" />` : ''}
-      <div class="sig-line"></div>
-      ${document.seller_signed_at ? `<div class="sig-date">Signed: ${new Date(document.seller_signed_at).toLocaleDateString()}</div>` : ''}
+  <!-- PRICING -->
+  <div class="price-wrap">
+    <div class="price-spacer"></div>
+    <div class="price-table-cell">
+      <table class="price-table">
+        <tr><td class="lbl-col">Sale Price</td><td>${fmt(document.sale_price)}</td></tr>
+        <tr><td class="lbl-col">Less Trade-In</td><td>- ${fmt(document.trade_in?.net_trade_value)}</td></tr>
+        <tr><td class="lbl-col">P.S.T ${document.pst_exempt ? '<span style="color:#b71c1c">(EXEMPT)</span>' : ''}</td><td>${fmt(document.tax_pst)}</td></tr>
+        <tr><td class="lbl-col">G.S.T / H.S.T</td><td>${fmt(document.tax_gst || document.tax_hst)}</td></tr>
+        <tr class="subtotal"><td>Total</td><td>${fmt(document.grand_total)}</td></tr>
+        <tr><td class="lbl-col">Less Deposit</td><td>- ${fmt(document.deposit_amount)}</td></tr>
+        <tr class="balance"><td>Balance Due</td><td>${fmt(document.balance_due)}</td></tr>
+      </table>
     </div>
   </div>
+
+  <!-- DISCLAIMER -->
+  <div class="disclaimer">ALL VEHICLES ARE SOLD WITHOUT ANY WARRANTIES OR GUARANTEES UNLESS STIPULATED IN WRITING</div>
+
+  <!-- SIGNATURES -->
+  <div class="sig-section">
+    <div class="sig-box">
+      ${document.buyer_signature_url ? `<img src="${document.buyer_signature_url}" class="sig-image" />` : '<div style="height:44px;"></div>'}
+      <div class="sig-line"></div>
+      <div class="sig-label">Purchaser's Signature</div>
+      ${document.buyer_signed_at ? `<div class="sig-name">Signed: ${new Date(document.buyer_signed_at).toLocaleDateString('en-CA')}</div>` : ''}
+    </div>
+    <div class="sig-spacer"></div>
+    <div class="sig-box">
+      ${document.seller_signature_url ? `<img src="${document.seller_signature_url}" class="sig-image" />` : '<div style="height:44px;"></div>'}
+      <div class="sig-line"></div>
+      <div class="sig-label">Salesman / Seller Signature</div>
+      ${document.seller_signed_at ? `<div class="sig-name">Signed: ${new Date(document.seller_signed_at).toLocaleDateString('en-CA')}</div>` : ''}
+    </div>
+  </div>
+
 </body>
 </html>`;
 };
