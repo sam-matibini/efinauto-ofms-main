@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCompany } from "@/components/shared/CompanyContext";
@@ -9,13 +10,20 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MessageSquare, Mail, Shield, Save, Info, CheckCircle, Image as ImageIcon, Building2 } from "lucide-react";
+import { MessageSquare, Mail, Shield, Save, Info, CheckCircle, Image as ImageIcon, Building2, ExternalLink, Lock } from "lucide-react";
 import { toast } from "sonner";
 import LogoUpload from "@/components/settings/LogoUpload";
 
 export default function Settings() {
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
+
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const isAdmin = currentUser?.role === 'admin';
 
   const { data: company, isLoading } = useQuery({
     queryKey: ['company', selectedCompanyId],
@@ -150,15 +158,35 @@ export default function Settings() {
           <TabsContent value="company" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="w-5 h-5" />
-                  Company Information
-                </CardTitle>
-                <CardDescription>
-                  This information appears on invoices, Bill of Sale documents, and all printed/shared documents.
-                </CardDescription>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Building2 className="w-5 h-5" />
+                      Company Information
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      This information appears on invoices, Bill of Sale documents, and all printed/shared documents.
+                    </CardDescription>
+                  </div>
+                  {isAdmin && (
+                    <Link to="/Companies">
+                      <Button variant="outline" size="sm" className="flex items-center gap-2 text-blue-600 border-blue-300 hover:bg-blue-50">
+                        <ExternalLink className="w-4 h-4" />
+                        Full Company Edit
+                      </Button>
+                    </Link>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
+                {!isAdmin && (
+                  <Alert>
+                    <Lock className="h-4 w-4" />
+                    <AlertDescription>
+                      You have <strong>read-only</strong> access to company info. Contact an admin to make changes.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
                     <Label>Company Name</Label>
@@ -166,6 +194,8 @@ export default function Settings() {
                       value={companyInfo.name}
                       onChange={(e) => setCompanyInfo({ ...companyInfo, name: e.target.value })}
                       placeholder="Your Company Name"
+                      readOnly={!isAdmin}
+                      className={!isAdmin ? "bg-gray-50 text-gray-700" : ""}
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -174,6 +204,8 @@ export default function Settings() {
                       value={companyInfo.address}
                       onChange={(e) => setCompanyInfo({ ...companyInfo, address: e.target.value })}
                       placeholder="123 Main Street"
+                      readOnly={!isAdmin}
+                      className={!isAdmin ? "bg-gray-50 text-gray-700" : ""}
                     />
                   </div>
                   <div>
@@ -182,6 +214,8 @@ export default function Settings() {
                       value={companyInfo.city}
                       onChange={(e) => setCompanyInfo({ ...companyInfo, city: e.target.value })}
                       placeholder="City"
+                      readOnly={!isAdmin}
+                      className={!isAdmin ? "bg-gray-50 text-gray-700" : ""}
                     />
                   </div>
                   <div>
@@ -190,6 +224,8 @@ export default function Settings() {
                       value={companyInfo.province}
                       onChange={(e) => setCompanyInfo({ ...companyInfo, province: e.target.value })}
                       placeholder="AB"
+                      readOnly={!isAdmin}
+                      className={!isAdmin ? "bg-gray-50 text-gray-700" : ""}
                     />
                   </div>
                   <div>
@@ -198,6 +234,8 @@ export default function Settings() {
                       value={companyInfo.postal_code}
                       onChange={(e) => setCompanyInfo({ ...companyInfo, postal_code: e.target.value })}
                       placeholder="T1A 1A1"
+                      readOnly={!isAdmin}
+                      className={!isAdmin ? "bg-gray-50 text-gray-700" : ""}
                     />
                   </div>
                   <div>
@@ -206,6 +244,8 @@ export default function Settings() {
                       value={companyInfo.country}
                       onChange={(e) => setCompanyInfo({ ...companyInfo, country: e.target.value })}
                       placeholder="Canada"
+                      readOnly={!isAdmin}
+                      className={!isAdmin ? "bg-gray-50 text-gray-700" : ""}
                     />
                   </div>
                   <div>
@@ -214,6 +254,8 @@ export default function Settings() {
                       value={companyInfo.phone}
                       onChange={(e) => setCompanyInfo({ ...companyInfo, phone: e.target.value })}
                       placeholder="+1 (555) 000-0000"
+                      readOnly={!isAdmin}
+                      className={!isAdmin ? "bg-gray-50 text-gray-700" : ""}
                     />
                   </div>
                   <div>
@@ -223,6 +265,8 @@ export default function Settings() {
                       value={companyInfo.email}
                       onChange={(e) => setCompanyInfo({ ...companyInfo, email: e.target.value })}
                       placeholder="info@company.com"
+                      readOnly={!isAdmin}
+                      className={!isAdmin ? "bg-gray-50 text-gray-700" : ""}
                     />
                   </div>
                 </div>
@@ -236,6 +280,8 @@ export default function Settings() {
                         value={companyInfo.dealer_permit_number}
                         onChange={(e) => setCompanyInfo({ ...companyInfo, dealer_permit_number: e.target.value })}
                         placeholder="DP-000000"
+                        readOnly={!isAdmin}
+                        className={!isAdmin ? "bg-gray-50 text-gray-700" : ""}
                       />
                     </div>
                     <div>
@@ -244,6 +290,8 @@ export default function Settings() {
                         value={companyInfo.gst_number}
                         onChange={(e) => setCompanyInfo({ ...companyInfo, gst_number: e.target.value })}
                         placeholder="123456789RT0001"
+                        readOnly={!isAdmin}
+                        className={!isAdmin ? "bg-gray-50 text-gray-700" : ""}
                       />
                     </div>
                     <div>
@@ -252,22 +300,26 @@ export default function Settings() {
                         value={companyInfo.pst_number}
                         onChange={(e) => setCompanyInfo({ ...companyInfo, pst_number: e.target.value })}
                         placeholder="PST-000000"
+                        readOnly={!isAdmin}
+                        className={!isAdmin ? "bg-gray-50 text-gray-700" : ""}
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end">
-                  <Button
-                    onClick={handleSaveCompanyInfo}
-                    disabled={updateSettingsMutation.isPending}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    {updateSettingsMutation.isPending ? "Saving..." : (
-                      <><Save className="w-4 h-4 mr-2" />Save Company Info</>
-                    )}
-                  </Button>
-                </div>
+                {isAdmin && (
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={handleSaveCompanyInfo}
+                      disabled={updateSettingsMutation.isPending}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {updateSettingsMutation.isPending ? "Saving..." : (
+                        <><Save className="w-4 h-4 mr-2" />Save Company Info</>
+                      )}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
