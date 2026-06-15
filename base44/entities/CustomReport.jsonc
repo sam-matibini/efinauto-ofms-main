@@ -1,0 +1,157 @@
+{
+  "name": "CustomReport",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "report_name": {
+      "type": "string",
+      "description": "User-defined report name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Report description"
+    },
+    "entity_type": {
+      "type": "string",
+      "enum": [
+        "Transaction",
+        "Sale",
+        "Purchase",
+        "Vehicle",
+        "Part",
+        "Customer",
+        "RepairOrder",
+        "Export",
+        "FreightShipment"
+      ],
+      "description": "Primary entity for the report"
+    },
+    "selected_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Fields to include in the report"
+    },
+    "filters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "operator": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Filter conditions"
+    },
+    "sort_field": {
+      "type": "string",
+      "description": "Field to sort by"
+    },
+    "sort_direction": {
+      "type": "string",
+      "enum": [
+        "asc",
+        "desc"
+      ],
+      "default": "desc"
+    },
+    "chart_type": {
+      "type": "string",
+      "enum": [
+        "none",
+        "bar",
+        "line",
+        "pie",
+        "area"
+      ],
+      "default": "none"
+    },
+    "chart_x_field": {
+      "type": "string",
+      "description": "X-axis field for charts"
+    },
+    "chart_y_field": {
+      "type": "string",
+      "description": "Y-axis field for charts"
+    },
+    "chart_group_by": {
+      "type": "string",
+      "description": "Group by field for aggregation"
+    },
+    "is_favorite": {
+      "type": "boolean",
+      "default": false
+    },
+    "last_run": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "company_id",
+    "report_name",
+    "entity_type",
+    "selected_fields"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

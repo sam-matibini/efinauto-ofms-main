@@ -1,0 +1,46 @@
+{
+  "name": "FavoriteVehicleListing",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "listing_data": {
+      "type": "object",
+      "description": "Complete listing information from search results"
+    },
+    "search_query": {
+      "type": "string",
+      "description": "Original search query"
+    },
+    "search_type": {
+      "type": "string",
+      "enum": [
+        "vehicle",
+        "equipment"
+      ],
+      "description": "Type of search"
+    },
+    "notes": {
+      "type": "string",
+      "description": "User notes about this listing"
+    }
+  },
+  "required": [
+    "listing_data",
+    "search_type"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

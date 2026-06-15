@@ -1,0 +1,103 @@
+{
+  "name": "ShipmentTracking",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "export_order_id": {
+      "type": "string",
+      "description": "Reference to ExportOrder entity"
+    },
+    "tracking_number": {
+      "type": "string",
+      "description": "Carrier tracking number"
+    },
+    "carrier": {
+      "type": "string",
+      "enum": [
+        "maersk",
+        "msc",
+        "cosco",
+        "cma_cgm",
+        "hapag_lloyd",
+        "fedex",
+        "dhl",
+        "ups",
+        "other"
+      ],
+      "description": "Logistics carrier"
+    },
+    "current_status": {
+      "type": "string",
+      "enum": [
+        "booked",
+        "picked_up",
+        "in_transit",
+        "at_port",
+        "customs_clearance",
+        "out_for_delivery",
+        "delivered",
+        "delayed",
+        "exception"
+      ],
+      "default": "booked"
+    },
+    "current_location": {
+      "type": "string",
+      "description": "Current location of shipment"
+    },
+    "estimated_delivery": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "actual_delivery": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "delay_reason": {
+      "type": "string"
+    },
+    "tracking_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "event_code": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Chronological tracking events"
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "auto_refresh": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "company_id",
+    "export_order_id",
+    "tracking_number",
+    "carrier"
+  ],
+  "rls": {}
+}

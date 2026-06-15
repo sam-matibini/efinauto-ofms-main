@@ -1,0 +1,130 @@
+{
+  "name": "ProofOfDelivery",
+  "type": "object",
+  "properties": {
+    "shipment_id": {
+      "type": "string",
+      "description": "Reference to LocalShipment entity"
+    },
+    "pod_number": {
+      "type": "string",
+      "description": "Unique POD identifier"
+    },
+    "driver_id": {
+      "type": "string",
+      "description": "Reference to Driver entity"
+    },
+    "driver_name": {
+      "type": "string",
+      "description": "Driver name at time of delivery"
+    },
+    "truck_number": {
+      "type": "string",
+      "description": "Truck identifier"
+    },
+    "trailer_number": {
+      "type": "string",
+      "description": "Trailer identifier"
+    },
+    "commodities_summary": {
+      "type": "string",
+      "description": "Summary of delivered commodities"
+    },
+    "total_weight_kg": {
+      "type": "number",
+      "description": "Total weight delivered"
+    },
+    "receiver_signature_url": {
+      "type": "string",
+      "description": "URL to receiver signature image"
+    },
+    "receiver_name": {
+      "type": "string",
+      "description": "Name of person who received"
+    },
+    "receiver_role": {
+      "type": "string",
+      "description": "Role/title of receiver"
+    },
+    "receiver_id_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether ID was checked"
+    },
+    "delivered_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Delivery timestamp"
+    },
+    "delivery_location": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        },
+        "address": {
+          "type": "string"
+        }
+      },
+      "description": "GPS coordinates at delivery"
+    },
+    "delivery_photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs to delivery photos"
+    },
+    "delivery_notes": {
+      "type": "string",
+      "description": "Notes about delivery"
+    },
+    "condition_on_delivery": {
+      "type": "string",
+      "enum": [
+        "good",
+        "damaged",
+        "partial"
+      ],
+      "default": "good",
+      "description": "Condition of goods on delivery"
+    },
+    "damage_description": {
+      "type": "string",
+      "description": "Description of any damage"
+    },
+    "pod_hash": {
+      "type": "string",
+      "description": "SHA-256 hash for tamper detection"
+    },
+    "legally_binding": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether POD is legally binding"
+    },
+    "pdf_url": {
+      "type": "string",
+      "description": "URL to generated PDF POD"
+    }
+  },
+  "required": [
+    "shipment_id",
+    "receiver_signature_url",
+    "receiver_name",
+    "delivered_at",
+    "delivery_location"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

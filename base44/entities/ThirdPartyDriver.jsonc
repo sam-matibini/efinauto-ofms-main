@@ -1,0 +1,113 @@
+{
+  "name": "ThirdPartyDriver",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "carrier_id": {
+      "type": "string",
+      "description": "Reference to ThirdPartyCarrier entity"
+    },
+    "driver_name": {
+      "type": "string"
+    },
+    "driver_license_number": {
+      "type": "string"
+    },
+    "license_expiry_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "driver_phone": {
+      "type": "string"
+    },
+    "driver_email": {
+      "type": "string",
+      "format": "email"
+    },
+    "hazmat_certified": {
+      "type": "boolean",
+      "default": false
+    },
+    "hazmat_cert_expiry": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "suspended"
+      ],
+      "default": "active"
+    },
+    "current_shipment_id": {
+      "type": "string",
+      "description": "Reference to active LocalShipment"
+    },
+    "last_known_location": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "tracking_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "document_type": {
+            "type": "string"
+          },
+          "document_url": {
+            "type": "string"
+          },
+          "expiry_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "verified": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "performance_rating": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5
+    }
+  },
+  "required": [
+    "company_id",
+    "carrier_id",
+    "driver_name",
+    "driver_license_number"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

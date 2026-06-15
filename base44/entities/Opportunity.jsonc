@@ -1,0 +1,141 @@
+{
+  "name": "Opportunity",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Reference to Customer entity"
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "Reference to Lead entity if originated from lead"
+    },
+    "opportunity_name": {
+      "type": "string",
+      "description": "Name of the opportunity"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "prospecting",
+        "qualification",
+        "proposal",
+        "negotiation",
+        "closed_won",
+        "closed_lost"
+      ],
+      "default": "prospecting",
+      "description": "Current sales stage"
+    },
+    "amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Estimated deal value"
+    },
+    "probability": {
+      "type": "number",
+      "default": 0,
+      "description": "Win probability percentage (0-100)"
+    },
+    "expected_close_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Expected close date"
+    },
+    "actual_close_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Actual close date"
+    },
+    "opportunity_type": {
+      "type": "string",
+      "enum": [
+        "vehicle_sale",
+        "service",
+        "parts",
+        "export",
+        "wholesale",
+        "other"
+      ],
+      "default": "vehicle_sale"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "Sales rep email"
+    },
+    "next_step": {
+      "type": "string",
+      "description": "Next action to take"
+    },
+    "description": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "company_id",
+    "opportunity_name"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,172 @@
+{
+  "name": "BankAccount",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "account_name": {
+      "type": "string",
+      "description": "Account nickname/name"
+    },
+    "account_type": {
+      "type": "string",
+      "enum": [
+        "checking",
+        "savings",
+        "credit_card",
+        "line_of_credit",
+        "money_market"
+      ],
+      "default": "checking"
+    },
+    "institution_name": {
+      "type": "string",
+      "description": "Bank/Financial institution name"
+    },
+    "account_number": {
+      "type": "string",
+      "description": "Last 4 digits or masked account number"
+    },
+    "routing_number": {
+      "type": "string"
+    },
+    "currency": {
+      "type": "string",
+      "default": "CAD"
+    },
+    "current_balance": {
+      "type": "number",
+      "default": 0
+    },
+    "available_balance": {
+      "type": "number",
+      "default": 0
+    },
+    "gl_account_id": {
+      "type": "string",
+      "description": "Reference to Account entity (GL account)"
+    },
+    "connection_status": {
+      "type": "string",
+      "enum": [
+        "connected",
+        "disconnected",
+        "manual"
+      ],
+      "default": "manual"
+    },
+    "connection_details": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "connection_id": {
+          "type": "string"
+        },
+        "last_sync": {
+          "type": "string"
+        },
+        "auto_import_enabled": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "email_import_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Auto-upload statements from email"
+    },
+    "email_import_address": {
+      "type": "string",
+      "description": "Email address for statement forwarding"
+    },
+    "reconciliation_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "reconciliation_balance": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "closed"
+      ],
+      "default": "active"
+    },
+    "opening_balance": {
+      "type": "number",
+      "default": 0
+    },
+    "opening_balance_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "account_name",
+    "account_type",
+    "institution_name"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

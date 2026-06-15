@@ -1,0 +1,122 @@
+{
+  "name": "Service",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "service_code": {
+      "type": "string",
+      "description": "Unique service code"
+    },
+    "name": {
+      "type": "string",
+      "description": "Service name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Service description"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "maintenance",
+        "repair",
+        "diagnostic",
+        "installation",
+        "inspection",
+        "detailing",
+        "consultation",
+        "other"
+      ],
+      "default": "maintenance"
+    },
+    "currency": {
+      "type": "string",
+      "enum": [
+        "CAD",
+        "USD",
+        "NGN"
+      ],
+      "default": "CAD",
+      "description": "Currency for pricing"
+    },
+    "price": {
+      "type": "number",
+      "description": "Standard service price"
+    },
+    "cost": {
+      "type": "number",
+      "description": "Cost to provide the service"
+    },
+    "duration_minutes": {
+      "type": "number",
+      "description": "Estimated duration in minutes"
+    },
+    "taxable": {
+      "type": "boolean",
+      "default": true
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "company_id",
+    "service_code",
+    "name",
+    "price"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

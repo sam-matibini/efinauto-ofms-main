@@ -1,0 +1,187 @@
+{
+  "name": "Export",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "export_number": {
+      "type": "string",
+      "description": "Unique export reference"
+    },
+    "export_type": {
+      "type": "string",
+      "enum": [
+        "vehicle",
+        "parts",
+        "mixed"
+      ],
+      "default": "vehicle"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "customer_country": {
+      "type": "string"
+    },
+    "customer_email": {
+      "type": "string"
+    },
+    "customer_phone": {
+      "type": "string"
+    },
+    "destination_country": {
+      "type": "string"
+    },
+    "destination_port": {
+      "type": "string"
+    },
+    "destination_address": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "weight": {
+            "type": "number"
+          },
+          "value": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "List of vehicles/parts being exported"
+    },
+    "total_value": {
+      "type": "number"
+    },
+    "freight_cost": {
+      "type": "number",
+      "default": 0
+    },
+    "customs_value": {
+      "type": "number",
+      "default": 0
+    },
+    "insurance_cost": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "documents_prepared",
+        "customs_cleared",
+        "shipped",
+        "in_transit",
+        "delivered"
+      ],
+      "default": "pending"
+    },
+    "shipment_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "expected_delivery": {
+      "type": "string",
+      "format": "date"
+    },
+    "tracking_number": {
+      "type": "string"
+    },
+    "payment_terms": {
+      "type": "string",
+      "enum": [
+        "advance",
+        "on_delivery",
+        "credit",
+        "LC"
+      ],
+      "default": "advance"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "partial",
+        "paid"
+      ],
+      "default": "pending"
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs of export documents"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "customer_name",
+    "destination_country"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

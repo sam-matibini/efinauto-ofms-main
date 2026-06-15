@@ -1,0 +1,153 @@
+{
+  "name": "HazmatIncident",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "shipment_id": {
+      "type": "string",
+      "description": "Reference to LocalShipment entity"
+    },
+    "driver_id": {
+      "type": "string",
+      "description": "Reference to Driver entity"
+    },
+    "incident_number": {
+      "type": "string",
+      "description": "Unique incident identifier"
+    },
+    "incident_type": {
+      "type": "string",
+      "enum": [
+        "spill",
+        "leak",
+        "fire",
+        "accident",
+        "near_miss",
+        "equipment_failure",
+        "weather_emergency",
+        "other"
+      ],
+      "description": "Type of incident"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "default": "medium",
+      "description": "Incident severity level"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "reported",
+        "under_investigation",
+        "resolved",
+        "escalated"
+      ],
+      "default": "reported",
+      "description": "Current incident status"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed incident description"
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        },
+        "address": {
+          "type": "string"
+        }
+      },
+      "description": "Incident location"
+    },
+    "reported_by": {
+      "type": "string",
+      "description": "User who reported the incident"
+    },
+    "reported_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When incident was reported"
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs to incident photos"
+    },
+    "emergency_services_notified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether emergency services were contacted"
+    },
+    "authorities_notified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether relevant authorities were notified"
+    },
+    "notifications_sent": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "recipient": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "sent_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "description": "Log of notifications sent"
+    },
+    "immediate_actions_taken": {
+      "type": "string",
+      "description": "Actions taken by driver at scene"
+    },
+    "follow_up_required": {
+      "type": "boolean",
+      "default": true
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "resolution_notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "shipment_id",
+    "incident_type",
+    "description"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "name": "NotificationLog",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "notification_type": {
+      "type": "string",
+      "enum": [
+        "service_reminder",
+        "appointment_reminder",
+        "sale_status_update",
+        "repair_status_update",
+        "export_update",
+        "payment_reminder",
+        "bos_created",
+        "bos_finalized",
+        "signature_request_sent",
+        "completion_certificate_generated"
+      ],
+      "description": "Type of notification sent"
+    },
+    "recipient_email": {
+      "type": "string",
+      "description": "Email address of recipient"
+    },
+    "recipient_phone": {
+      "type": "string",
+      "description": "Phone number of recipient (if SMS)"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Email subject or SMS preview"
+    },
+    "body": {
+      "type": "string",
+      "description": "Full notification content"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When notification was sent"
+    },
+    "delivery_method": {
+      "type": "string",
+      "enum": [
+        "email",
+        "sms",
+        "both"
+      ],
+      "default": "email",
+      "description": "How notification was delivered"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "sent",
+        "failed",
+        "pending"
+      ],
+      "default": "sent",
+      "description": "Delivery status"
+    },
+    "reference_type": {
+      "type": "string",
+      "description": "Type of related entity (e.g., Sale, RepairOrder)"
+    },
+    "reference_id": {
+      "type": "string",
+      "description": "ID of related entity"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error details if delivery failed"
+    }
+  },
+  "required": [
+    "company_id",
+    "notification_type"
+  ],
+  "rls": {}
+}

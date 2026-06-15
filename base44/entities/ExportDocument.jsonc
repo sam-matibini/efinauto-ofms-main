@@ -1,0 +1,202 @@
+{
+  "name": "ExportDocument",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "export_id": {
+      "type": "string",
+      "description": "Reference to Export entity"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "bill_of_lading",
+        "commercial_invoice",
+        "packing_list",
+        "certificate_of_origin",
+        "aes_filing",
+        "customs_declaration",
+        "inspection_certificate",
+        "other"
+      ],
+      "default": "bill_of_lading"
+    },
+    "document_number": {
+      "type": "string"
+    },
+    "hs_code": {
+      "type": "string",
+      "description": "Harmonized System code for customs"
+    },
+    "origin_country": {
+      "type": "string"
+    },
+    "destination_country": {
+      "type": "string"
+    },
+    "shipper_details": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
+      }
+    },
+    "consignee_details": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "hs_code": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit_value": {
+            "type": "number"
+          },
+          "total_value": {
+            "type": "number"
+          },
+          "weight_kg": {
+            "type": "number"
+          },
+          "vin": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "total_value": {
+      "type": "number"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD"
+    },
+    "incoterms": {
+      "type": "string",
+      "enum": [
+        "EXW",
+        "FOB",
+        "CIF",
+        "DDP",
+        "DAP"
+      ],
+      "default": "FOB"
+    },
+    "document_url": {
+      "type": "string",
+      "description": "URL to generated/uploaded document"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "submitted",
+        "approved",
+        "rejected"
+      ],
+      "default": "draft"
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "submitted_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "export_id",
+    "document_type"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

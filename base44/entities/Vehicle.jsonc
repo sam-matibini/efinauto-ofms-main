@@ -1,0 +1,241 @@
+{
+  "name": "Vehicle",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "ownership_type": {
+      "type": "string",
+      "enum": [
+        "dealership_owned",
+        "customer_owned_export"
+      ],
+      "default": "dealership_owned",
+      "description": "Ownership type: dealership owned or customer owned for export only"
+    },
+    "vin": {
+      "type": "string",
+      "description": "Vehicle Identification Number"
+    },
+    "stock_number": {
+      "type": "string",
+      "description": "Internal stock number"
+    },
+    "invoice_number": {
+      "type": "string",
+      "description": "Invoice number for the vehicle purchase"
+    },
+    "transaction_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of vehicle transaction/acquisition"
+    },
+    "make": {
+      "type": "string",
+      "description": "Car manufacturer (e.g., Toyota, BMW)"
+    },
+    "model": {
+      "type": "string",
+      "description": "Car model"
+    },
+    "year": {
+      "type": "number",
+      "description": "Manufacturing year"
+    },
+    "color": {
+      "type": "string"
+    },
+    "mileage": {
+      "type": "number",
+      "description": "Current mileage in kilometers"
+    },
+    "weight": {
+      "type": "number",
+      "description": "Vehicle weight in kilograms"
+    },
+    "condition": {
+      "type": "string",
+      "enum": [
+        "new",
+        "used",
+        "certified_pre_owned"
+      ],
+      "default": "new"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "in_stock",
+        "sold",
+        "reserved",
+        "in_transit",
+        "exported"
+      ],
+      "default": "in_stock"
+    },
+    "purchase_price": {
+      "type": "number",
+      "description": "Cost price"
+    },
+    "selling_price": {
+      "type": "number",
+      "description": "Selling price"
+    },
+    "location": {
+      "type": "string",
+      "description": "Current location (lot, warehouse, etc.)"
+    },
+    "fuel_type": {
+      "type": "string",
+      "enum": [
+        "petrol",
+        "diesel",
+        "electric",
+        "hybrid",
+        "lpg"
+      ],
+      "default": "petrol"
+    },
+    "transmission": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "automatic",
+        "semi_automatic"
+      ],
+      "default": "manual"
+    },
+    "engine_capacity": {
+      "type": "string",
+      "description": "e.g., 2.0L, 3.5L"
+    },
+    "features": {
+      "type": "string",
+      "description": "Special features (comma-separated)"
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of image URLs"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "vendor_id": {
+      "type": "string",
+      "description": "Reference to Vendor entity"
+    },
+    "vendor_name": {
+      "type": "string",
+      "description": "Vendor/Supplier name"
+    },
+    "vendor_phone": {
+      "type": "string",
+      "description": "Vendor phone number"
+    },
+    "vendor_email": {
+      "type": "string",
+      "description": "Vendor email address"
+    },
+    "province": {
+      "type": "string",
+      "description": "Province for tax calculation"
+    },
+    "tax_status": {
+      "type": "string",
+      "enum": [
+        "taxable",
+        "zero_rated",
+        "exempt"
+      ],
+      "default": "taxable",
+      "description": "Tax status for purchase"
+    },
+    "tax_gst": {
+      "type": "number",
+      "default": 0,
+      "description": "GST amount paid on purchase"
+    },
+    "tax_pst": {
+      "type": "number",
+      "default": 0,
+      "description": "PST amount paid on purchase"
+    },
+    "tax_hst": {
+      "type": "number",
+      "default": 0,
+      "description": "HST amount paid on purchase"
+    },
+    "tax_total": {
+      "type": "number",
+      "default": 0,
+      "description": "Total tax amount paid"
+    },
+    "total_cost": {
+      "type": "number",
+      "default": 0,
+      "description": "Purchase price + taxes"
+    }
+  },
+  "required": [
+    "company_id",
+    "vin",
+    "make",
+    "model",
+    "year"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

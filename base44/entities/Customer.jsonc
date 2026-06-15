@@ -1,0 +1,176 @@
+{
+  "name": "Customer",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "full_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string",
+      "format": "email"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "address": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "province": {
+      "type": "string",
+      "description": "Province or state"
+    },
+    "postal_code": {
+      "type": "string",
+      "description": "Postal code or ZIP code"
+    },
+    "country": {
+      "type": "string"
+    },
+    "latitude": {
+      "type": "number",
+      "description": "Latitude coordinate for map display"
+    },
+    "longitude": {
+      "type": "number",
+      "description": "Longitude coordinate for map display"
+    },
+    "profile_picture_url": {
+      "type": "string",
+      "description": "URL to customer profile picture"
+    },
+    "customer_type": {
+      "type": "string",
+      "enum": [
+        "individual",
+        "business",
+        "government"
+      ],
+      "default": "individual"
+    },
+    "is_consignee": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this customer is also a consignee for exports"
+    },
+    "consignee_only": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this customer is a consignee only (not a regular customer)"
+    },
+    "company_name": {
+      "type": "string",
+      "description": "If business customer"
+    },
+    "tax_id": {
+      "type": "string",
+      "description": "Tax identification number or passport number"
+    },
+    "customer_status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "vip"
+      ],
+      "default": "active",
+      "description": "Customer status"
+    },
+    "lifetime_value": {
+      "type": "number",
+      "default": 0,
+      "description": "Total lifetime purchase value"
+    },
+    "last_purchase_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of last purchase"
+    },
+    "preferred_contact_method": {
+      "type": "string",
+      "enum": [
+        "email",
+        "phone",
+        "sms",
+        "whatsapp"
+      ],
+      "default": "email",
+      "description": "Preferred way to contact"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags for segmentation and targeting"
+    },
+    "segment": {
+      "type": "string",
+      "description": "Customer segment (e.g., high-value, at-risk, new)"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "full_name",
+    "phone"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

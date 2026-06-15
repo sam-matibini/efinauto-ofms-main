@@ -1,0 +1,385 @@
+{
+  "name": "Sale",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "sale_number": {
+      "type": "string",
+      "description": "Unique sale reference"
+    },
+    "bos_number": {
+      "type": "string",
+      "description": "Bill of Sale number (BOS-YYYY-LOC-NNNNNN)"
+    },
+    "bos_sequence": {
+      "type": "number",
+      "description": "BOS sequence number"
+    },
+    "bos_issued_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date when BOS was finalized and number assigned"
+    },
+    "bos_issued_by": {
+      "type": "string",
+      "description": "User email who finalized the BOS"
+    },
+    "bos_status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "finalized",
+        "voided"
+      ],
+      "default": "draft",
+      "description": "BOS status: draft (no number), finalized (has number), voided (cancelled but number retained)"
+    },
+    "pdf_file_url": {
+      "type": "string",
+      "description": "Stored PDF file URL for print/download/share"
+    },
+    "pdf_generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When PDF was generated"
+    },
+    "location_code": {
+      "type": "string",
+      "description": "Location code for BOS numbering"
+    },
+    "sale_type": {
+      "type": "string",
+      "enum": [
+        "domestic",
+        "export"
+      ],
+      "default": "domestic",
+      "description": "Type of sale: domestic or export"
+    },
+    "export_id": {
+      "type": "string",
+      "description": "Reference to Export entity if export sale"
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Reference to Customer entity"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "customer_phone": {
+      "type": "string"
+    },
+    "customer_email": {
+      "type": "string"
+    },
+    "customer_address": {
+      "type": "string",
+      "description": "Customer street address"
+    },
+    "customer_city": {
+      "type": "string",
+      "description": "Customer city"
+    },
+    "customer_postal_code": {
+      "type": "string",
+      "description": "Customer postal code"
+    },
+    "customer_country": {
+      "type": "string",
+      "description": "Customer country"
+    },
+    "customer_business_phone": {
+      "type": "string",
+      "description": "Customer business phone"
+    },
+    "salesman": {
+      "type": "string",
+      "description": "Salesperson name"
+    },
+    "vehicle_id": {
+      "type": "string",
+      "description": "Reference to Vehicle entity"
+    },
+    "vehicle_vin": {
+      "type": "string"
+    },
+    "vehicle_details": {
+      "type": "string",
+      "description": "e.g., 2023 Toyota Camry"
+    },
+    "vehicle_year": {
+      "type": "number"
+    },
+    "vehicle_make_model": {
+      "type": "string"
+    },
+    "vehicle_mileage": {
+      "type": "number"
+    },
+    "vehicle_color": {
+      "type": "string"
+    },
+    "sale_price": {
+      "type": "number"
+    },
+    "province": {
+      "type": "string",
+      "description": "Canadian province/territory code (AB, BC, MB, etc.)"
+    },
+    "tax_status": {
+      "type": "string",
+      "enum": [
+        "taxable",
+        "zero_rated",
+        "exempt"
+      ],
+      "default": "taxable",
+      "description": "Tax status: taxable (standard rates), zero_rated (0% GST/HST eligible for ITC), exempt (no tax, no ITC)"
+    },
+    "pst_exempt": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether PST is exempted for this sale"
+    },
+    "pst_exempt_reason": {
+      "type": "string",
+      "enum": [
+        "status_indian",
+        "government",
+        "resale",
+        "export_province",
+        "other"
+      ],
+      "description": "Reason for PST exemption"
+    },
+    "pst_exempt_reference": {
+      "type": "string",
+      "description": "Certificate or reference number for exemption"
+    },
+    "pst_exempt_by": {
+      "type": "string",
+      "description": "User email who applied the exemption"
+    },
+    "pst_exempt_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When PST exemption was applied"
+    },
+    "pst_rate": {
+      "type": "number",
+      "default": 0,
+      "description": "PST rate that would have applied"
+    },
+    "tax_gst": {
+      "type": "number",
+      "default": 0,
+      "description": "GST amount"
+    },
+    "tax_pst": {
+      "type": "number",
+      "default": 0,
+      "description": "PST/QST amount"
+    },
+    "tax_hst": {
+      "type": "number",
+      "default": 0,
+      "description": "HST amount"
+    },
+    "tax_total": {
+      "type": "number",
+      "default": 0,
+      "description": "Total tax amount"
+    },
+    "grand_total": {
+      "type": "number",
+      "default": 0,
+      "description": "Sale price + taxes"
+    },
+    "deposit_amount": {
+      "type": "number",
+      "default": 0
+    },
+    "payments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "method": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Array of payment records"
+    },
+    "total_paid": {
+      "type": "number",
+      "default": 0,
+      "description": "Sum of all payments"
+    },
+    "balance_due": {
+      "type": "number",
+      "default": 0,
+      "description": "Remaining amount to be paid"
+    },
+    "financing": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "institution": {
+          "type": "string"
+        },
+        "loan_amount": {
+          "type": "number"
+        },
+        "interest_rate": {
+          "type": "number"
+        },
+        "term_months": {
+          "type": "number"
+        },
+        "monthly_payment": {
+          "type": "number"
+        },
+        "down_payment": {
+          "type": "number"
+        },
+        "approval_status": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "trade_in": {
+      "type": "object",
+      "properties": {
+        "has_trade_in": {
+          "type": "boolean",
+          "default": false
+        },
+        "vehicle_make": {
+          "type": "string"
+        },
+        "vehicle_model": {
+          "type": "string"
+        },
+        "vehicle_year": {
+          "type": "number"
+        },
+        "vehicle_vin": {
+          "type": "string"
+        },
+        "mileage": {
+          "type": "number"
+        },
+        "condition": {
+          "type": "string"
+        },
+        "trade_in_value": {
+          "type": "number"
+        },
+        "payoff_amount": {
+          "type": "number"
+        },
+        "net_trade_value": {
+          "type": "number"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "buyer_signature_url": {
+      "type": "string",
+      "description": "URL of buyer signature image"
+    },
+    "buyer_name": {
+      "type": "string",
+      "description": "Name of buyer who signed"
+    },
+    "buyer_signed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when buyer signed"
+    },
+    "seller_signature_url": {
+      "type": "string",
+      "description": "URL of seller signature image"
+    },
+    "seller_name": {
+      "type": "string",
+      "description": "Name of seller who signed"
+    },
+    "seller_signed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when seller signed"
+    },
+    "signature_method": {
+      "type": "string",
+      "enum": [
+        "electronic_capture",
+        "ai_generated"
+      ],
+      "description": "Method used for signatures"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "partial",
+        "paid",
+        "refunded"
+      ],
+      "default": "pending"
+    },
+    "sale_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "delivery_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "delivered",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "customer_name",
+    "vehicle_details",
+    "sale_price"
+  ],
+  "rls": {}
+}

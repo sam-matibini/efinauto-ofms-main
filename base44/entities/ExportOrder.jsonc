@@ -1,0 +1,619 @@
+{
+  "name": "ExportOrder",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "export_order_number": {
+      "type": "string",
+      "description": "Unique export order identifier (EXP-YYYY-NNNNNN)"
+    },
+    "linked_sales_document_id": {
+      "type": "string",
+      "description": "Reference to Sale entity (Bill of Sale)"
+    },
+    "linked_sale_number": {
+      "type": "string",
+      "description": "Sale/BOS number for reference"
+    },
+    "export_status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "compliance_review",
+        "approved",
+        "logistics_booked",
+        "shipped",
+        "in_transit",
+        "delivered",
+        "closed",
+        "cancelled"
+      ],
+      "default": "draft",
+      "description": "Current status in export lifecycle"
+    },
+    "export_type": {
+      "type": "string",
+      "enum": [
+        "vehicle",
+        "parts",
+        "commodity",
+        "mixed"
+      ],
+      "default": "vehicle",
+      "description": "Type of goods being exported"
+    },
+    "export_reason": {
+      "type": "string",
+      "description": "Business reason for export"
+    },
+    "destination_country": {
+      "type": "string",
+      "description": "Destination country code (ISO)"
+    },
+    "destination_port": {
+      "type": "string",
+      "description": "Port of destination"
+    },
+    "destination_address": {
+      "type": "string",
+      "description": "Final delivery address"
+    },
+    "consignee_name": {
+      "type": "string",
+      "description": "Name of consignee/receiver"
+    },
+    "consignee_email": {
+      "type": "string",
+      "description": "Consignee email"
+    },
+    "consignee_phone": {
+      "type": "string",
+      "description": "Consignee phone"
+    },
+    "consignee_address": {
+      "type": "string",
+      "description": "Consignee full address"
+    },
+    "incoterms": {
+      "type": "string",
+      "enum": [
+        "EXW",
+        "FCA",
+        "CPT",
+        "CIP",
+        "DAP",
+        "DPU",
+        "DDP",
+        "FAS",
+        "FOB",
+        "CFR",
+        "CIF"
+      ],
+      "description": "International Commercial Terms"
+    },
+    "hs_code": {
+      "type": "string",
+      "description": "Legacy HS code field - use line_items.hs_code instead"
+    },
+    "country_of_origin": {
+      "type": "string",
+      "description": "Country where goods originated"
+    },
+    "export_declaration_required": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether export declaration is required"
+    },
+    "export_declaration_number": {
+      "type": "string",
+      "description": "Official export declaration number"
+    },
+    "customs_value": {
+      "type": "number",
+      "default": 0,
+      "description": "Declared customs value"
+    },
+    "currency": {
+      "type": "string",
+      "enum": [
+        "CAD",
+        "USD",
+        "EUR",
+        "GBP",
+        "NGN"
+      ],
+      "default": "USD",
+      "description": "Currency for export pricing"
+    },
+    "total_value": {
+      "type": "number",
+      "default": 0,
+      "description": "Total export value"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "unpaid",
+        "partially_paid",
+        "paid",
+        "refunded"
+      ],
+      "default": "unpaid",
+      "description": "Payment status for export order"
+    },
+    "payment_terms": {
+      "type": "string",
+      "description": "Payment terms (e.g., Net 30, Advance Payment)"
+    },
+    "amount_paid": {
+      "type": "number",
+      "default": 0,
+      "description": "Total amount paid"
+    },
+    "balance_due": {
+      "type": "number",
+      "default": 0,
+      "description": "Remaining balance"
+    },
+    "carrier_id": {
+      "type": "string",
+      "description": "Reference to Carrier entity"
+    },
+    "carrier_code": {
+      "type": "string",
+      "description": "Carrier code (MSC, MAERSK, etc.)"
+    },
+    "carrier_name": {
+      "type": "string",
+      "description": "Carrier display name"
+    },
+    "carrier": {
+      "type": "string",
+      "description": "Legacy carrier name field"
+    },
+    "freight_forwarder": {
+      "type": "string",
+      "description": "Freight forwarder company"
+    },
+    "shipping_mode": {
+      "type": "string",
+      "enum": [
+        "sea",
+        "air",
+        "road",
+        "rail"
+      ],
+      "default": "sea",
+      "description": "Mode of transportation"
+    },
+    "container_type": {
+      "type": "string",
+      "enum": [
+        "20GP",
+        "40GP",
+        "40HC",
+        "45HC",
+        "20RF",
+        "40RF",
+        "20OT",
+        "40OT",
+        "20FR",
+        "40FR"
+      ],
+      "description": "ISO container type code"
+    },
+    "container_number": {
+      "type": "string",
+      "description": "Container number (ISO 6346 format)"
+    },
+    "seal_number": {
+      "type": "string",
+      "description": "Container seal number"
+    },
+    "booking_reference": {
+      "type": "string",
+      "description": "Carrier booking reference number"
+    },
+    "booking_confirmed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether booking is confirmed by carrier"
+    },
+    "booking_confirmed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When booking was confirmed"
+    },
+    "bill_of_lading_number": {
+      "type": "string",
+      "description": "Bill of Lading number"
+    },
+    "bl_issued": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether B/L has been issued"
+    },
+    "bl_issued_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When B/L was issued"
+    },
+    "vessel_name": {
+      "type": "string",
+      "description": "Name of vessel"
+    },
+    "voyage_number": {
+      "type": "string",
+      "description": "Voyage number"
+    },
+    "port_of_loading": {
+      "type": "string",
+      "description": "Port of loading (UN/LOCODE)"
+    },
+    "port_of_discharge": {
+      "type": "string",
+      "description": "Port of discharge (UN/LOCODE)"
+    },
+    "tracking_number": {
+      "type": "string",
+      "description": "Shipment tracking number"
+    },
+    "estimated_departure": {
+      "type": "string",
+      "format": "date",
+      "description": "Estimated time of departure (ETD)"
+    },
+    "actual_departure": {
+      "type": "string",
+      "format": "date",
+      "description": "Actual time of departure (ATD)"
+    },
+    "estimated_arrival": {
+      "type": "string",
+      "format": "date",
+      "description": "Estimated time of arrival (ETA)"
+    },
+    "actual_arrival": {
+      "type": "string",
+      "format": "date",
+      "description": "Actual time of arrival (ATA)"
+    },
+    "line_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "item_type": {
+            "type": "string",
+            "enum": [
+              "commodity",
+              "vehicle",
+              "part"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "hs_code": {
+            "type": "string",
+            "description": "CBSA-compliant HS code (min 6 digits)"
+          },
+          "hs_code_level": {
+            "type": "string",
+            "enum": [
+              "6",
+              "8",
+              "10"
+            ],
+            "description": "HS code precision level"
+          },
+          "hs_code_description": {
+            "type": "string",
+            "description": "Official HS code description"
+          },
+          "hs_verified": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether HS code has been verified"
+          },
+          "hs_verified_by": {
+            "type": "string",
+            "description": "User who verified HS code"
+          },
+          "hs_verified_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When HS code was verified"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit_of_measure": {
+            "type": "string"
+          },
+          "unit_value": {
+            "type": "number"
+          },
+          "total_value": {
+            "type": "number"
+          },
+          "weight": {
+            "type": "number"
+          },
+          "country_of_origin": {
+            "type": "string",
+            "description": "ISO country code of origin"
+          },
+          "item_condition": {
+            "type": "string",
+            "enum": [
+              "new",
+              "used",
+              "salvage"
+            ],
+            "description": "Condition for CBSA classification"
+          },
+          "vin": {
+            "type": "string"
+          },
+          "make": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "year": {
+            "type": "number"
+          },
+          "vehicle_type": {
+            "type": "string",
+            "enum": [
+              "passenger",
+              "commercial",
+              "salvage"
+            ]
+          },
+          "odometer": {
+            "type": "number"
+          },
+          "title_status": {
+            "type": "string"
+          },
+          "export_eligible": {
+            "type": "boolean"
+          },
+          "roro_indicator": {
+            "type": "boolean"
+          },
+          "containerized": {
+            "type": "boolean"
+          },
+          "vehicle_condition_notes": {
+            "type": "string"
+          },
+          "part_number": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "inventory_id": {
+            "type": "string"
+          },
+          "packaging_type": {
+            "type": "string",
+            "enum": [
+              "pallet",
+              "crate",
+              "loose",
+              "container"
+            ]
+          },
+          "export_control_flag": {
+            "type": "boolean"
+          },
+          "restricted_goods_warning": {
+            "type": "string"
+          },
+          "container_assignment": {
+            "type": "string"
+          },
+          "pallet_number": {
+            "type": "string"
+          },
+          "dimensions": {
+            "type": "object",
+            "properties": {
+              "length": {
+                "type": "number"
+              },
+              "width": {
+                "type": "number"
+              },
+              "height": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "description": "Unified line items (commodities, vehicles, parts) with CBSA-compliant HS codes"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Legacy items field - use line_items instead"
+    },
+    "total_weight": {
+      "type": "number",
+      "default": 0,
+      "description": "Total weight in kg"
+    },
+    "total_volume": {
+      "type": "number",
+      "default": 0,
+      "description": "Total volume in cubic meters"
+    },
+    "freight_cost": {
+      "type": "number",
+      "default": 0,
+      "description": "Freight charges"
+    },
+    "insurance_cost": {
+      "type": "number",
+      "default": 0,
+      "description": "Insurance charges"
+    },
+    "handling_fees": {
+      "type": "number",
+      "default": 0,
+      "description": "Handling and terminal fees"
+    },
+    "customs_fees": {
+      "type": "number",
+      "default": 0,
+      "description": "Customs and duty fees"
+    },
+    "total_logistics_cost": {
+      "type": "number",
+      "default": 0,
+      "description": "Sum of all logistics costs"
+    },
+    "compliance_reviewed_by": {
+      "type": "string",
+      "description": "User who reviewed compliance"
+    },
+    "compliance_reviewed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Compliance review timestamp"
+    },
+    "compliance_notes": {
+      "type": "string",
+      "description": "Compliance review notes"
+    },
+    "approved_by": {
+      "type": "string",
+      "description": "User who approved export"
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Approval timestamp"
+    },
+    "hs_codes_validated": {
+      "type": "boolean",
+      "default": false,
+      "description": "All HS codes validated for CBSA compliance"
+    },
+    "hs_validation_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When HS codes were validated"
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "generated_at": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Export documents (invoice, packing list, B/L, etc.)"
+    },
+    "shipment_id": {
+      "type": "string",
+      "description": "Reference to FreightShipment entity"
+    },
+    "locked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Locked after shipment (read-only)"
+    },
+    "inventory_locked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Inventory is locked for this export"
+    },
+    "inventory_updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When inventory was last updated"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Internal notes"
+    }
+  },
+  "required": [
+    "company_id",
+    "export_order_number",
+    "destination_country",
+    "consignee_name"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

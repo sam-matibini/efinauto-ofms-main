@@ -1,0 +1,131 @@
+{
+  "name": "CommunicationLog",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Reference to Customer entity"
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "Reference to Lead entity"
+    },
+    "opportunity_id": {
+      "type": "string",
+      "description": "Reference to Opportunity entity"
+    },
+    "communication_type": {
+      "type": "string",
+      "enum": [
+        "call",
+        "email",
+        "meeting",
+        "sms",
+        "whatsapp",
+        "social_media",
+        "other"
+      ],
+      "default": "call",
+      "description": "Type of communication"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "inbound",
+        "outbound"
+      ],
+      "default": "outbound",
+      "description": "Inbound or outbound communication"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Subject or topic"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Detailed notes about the communication"
+    },
+    "outcome": {
+      "type": "string",
+      "description": "Outcome or result of communication"
+    },
+    "duration_minutes": {
+      "type": "number",
+      "description": "Duration in minutes (for calls/meetings)"
+    },
+    "logged_by": {
+      "type": "string",
+      "description": "User who logged this communication"
+    },
+    "communication_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the communication occurred"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs to attachments"
+    }
+  },
+  "required": [
+    "company_id",
+    "communication_type"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

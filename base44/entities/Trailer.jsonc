@@ -1,0 +1,106 @@
+{
+  "name": "Trailer",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "trailer_number": {
+      "type": "string",
+      "description": "Internal trailer identifier"
+    },
+    "trailer_plate": {
+      "type": "string",
+      "description": "License plate number"
+    },
+    "trailer_type": {
+      "type": "string",
+      "enum": [
+        "dry_van",
+        "flatbed",
+        "refrigerated",
+        "tanker",
+        "lowboy",
+        "container_chassis"
+      ],
+      "description": "Type of trailer"
+    },
+    "capacity_kg": {
+      "type": "number",
+      "description": "Maximum weight capacity in kg"
+    },
+    "length_m": {
+      "type": "number",
+      "description": "Trailer length in meters"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "available",
+        "in_use",
+        "maintenance",
+        "out_of_service"
+      ],
+      "default": "available",
+      "description": "Trailer status"
+    },
+    "current_truck_id": {
+      "type": "string",
+      "description": "Reference to TruckVehicle currently attached"
+    },
+    "last_inspection_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Last safety inspection date"
+    }
+  },
+  "required": [
+    "company_id",
+    "trailer_number",
+    "trailer_plate"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

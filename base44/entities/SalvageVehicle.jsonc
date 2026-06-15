@@ -1,0 +1,251 @@
+{
+  "name": "SalvageVehicle",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "salvage_number": {
+      "type": "string",
+      "description": "Unique salvage reference"
+    },
+    "vin": {
+      "type": "string",
+      "description": "Vehicle Identification Number"
+    },
+    "make": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "year": {
+      "type": "number"
+    },
+    "color": {
+      "type": "string"
+    },
+    "mileage": {
+      "type": "number"
+    },
+    "intake_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "intake_condition": {
+      "type": "string",
+      "enum": [
+        "complete",
+        "partial",
+        "stripped",
+        "burned",
+        "flooded"
+      ],
+      "default": "complete"
+    },
+    "location": {
+      "type": "string",
+      "description": "Yard location (e.g., Row A, Bin 12)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "received",
+        "dismantling",
+        "dismantled",
+        "scrapped",
+        "sold"
+      ],
+      "default": "received"
+    },
+    "purchase_price": {
+      "type": "number",
+      "default": 0
+    },
+    "estimated_value": {
+      "type": "number",
+      "default": 0
+    },
+    "compliance": {
+      "type": "object",
+      "properties": {
+        "tires_removed": {
+          "type": "boolean",
+          "default": false
+        },
+        "tires_removed_date": {
+          "type": "string"
+        },
+        "fluids_drained": {
+          "type": "boolean",
+          "default": false
+        },
+        "fluids_drained_date": {
+          "type": "string"
+        },
+        "battery_removed": {
+          "type": "boolean",
+          "default": false
+        },
+        "battery_removed_date": {
+          "type": "string"
+        },
+        "airbags_deployed": {
+          "type": "boolean",
+          "default": false
+        },
+        "airbags_date": {
+          "type": "string"
+        },
+        "catalytic_converter_removed": {
+          "type": "boolean",
+          "default": false
+        },
+        "hazmat_handled": {
+          "type": "boolean",
+          "default": false
+        },
+        "hazmat_notes": {
+          "type": "string"
+        },
+        "recycler_license_number": {
+          "type": "string"
+        }
+      }
+    },
+    "dismantling_log": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "operator": {
+            "type": "string"
+          },
+          "part_extracted": {
+            "type": "string"
+          },
+          "condition": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "scrap_weights": {
+      "type": "object",
+      "properties": {
+        "ferrous_metal_kg": {
+          "type": "number",
+          "default": 0
+        },
+        "non_ferrous_metal_kg": {
+          "type": "number",
+          "default": 0
+        },
+        "aluminum_kg": {
+          "type": "number",
+          "default": 0
+        },
+        "copper_kg": {
+          "type": "number",
+          "default": 0
+        },
+        "total_weight_kg": {
+          "type": "number",
+          "default": 0
+        },
+        "scrap_value": {
+          "type": "number",
+          "default": 0
+        }
+      }
+    },
+    "parts_extracted": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of part IDs extracted from this vehicle"
+    },
+    "manifest_generated": {
+      "type": "boolean",
+      "default": false
+    },
+    "manifest_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "vin",
+    "make",
+    "model",
+    "year"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

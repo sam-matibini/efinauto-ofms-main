@@ -1,0 +1,153 @@
+{
+  "name": "DriverPerformanceMetric",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "driver_id": {
+      "type": "string",
+      "description": "Reference to Driver or ThirdPartyDriver entity"
+    },
+    "driver_type": {
+      "type": "string",
+      "enum": [
+        "internal",
+        "third_party"
+      ],
+      "description": "Type of driver"
+    },
+    "metric_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of metric collection"
+    },
+    "shipment_id": {
+      "type": "string",
+      "description": "Reference to LocalShipment"
+    },
+    "on_time_delivery": {
+      "type": "boolean",
+      "description": "Whether delivery was on time"
+    },
+    "delivery_delay_minutes": {
+      "type": "number",
+      "description": "Minutes delayed (negative if early)"
+    },
+    "driving_behavior": {
+      "type": "object",
+      "properties": {
+        "speeding_incidents": {
+          "type": "number",
+          "default": 0
+        },
+        "harsh_braking_count": {
+          "type": "number",
+          "default": 0
+        },
+        "harsh_acceleration_count": {
+          "type": "number",
+          "default": 0
+        },
+        "harsh_cornering_count": {
+          "type": "number",
+          "default": 0
+        },
+        "idle_time_minutes": {
+          "type": "number",
+          "default": 0
+        },
+        "night_driving_hours": {
+          "type": "number",
+          "default": 0
+        }
+      }
+    },
+    "fuel_efficiency": {
+      "type": "object",
+      "properties": {
+        "distance_km": {
+          "type": "number"
+        },
+        "fuel_consumed_liters": {
+          "type": "number"
+        },
+        "fuel_efficiency_km_per_liter": {
+          "type": "number"
+        },
+        "estimated_cost": {
+          "type": "number"
+        }
+      }
+    },
+    "safety_incidents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "incident_type": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "route_efficiency": {
+      "type": "object",
+      "properties": {
+        "planned_distance_km": {
+          "type": "number"
+        },
+        "actual_distance_km": {
+          "type": "number"
+        },
+        "route_deviation_percentage": {
+          "type": "number"
+        },
+        "planned_duration_minutes": {
+          "type": "number"
+        },
+        "actual_duration_minutes": {
+          "type": "number"
+        }
+      }
+    },
+    "customer_rating": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "overall_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "AI-calculated performance score"
+    }
+  },
+  "required": [
+    "company_id",
+    "driver_id",
+    "driver_type",
+    "metric_date"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

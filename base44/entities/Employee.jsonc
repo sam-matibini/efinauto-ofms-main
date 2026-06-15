@@ -1,0 +1,292 @@
+{
+  "name": "Employee",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "employee_number": {
+      "type": "string",
+      "description": "Unique employee identifier"
+    },
+    "first_name": {
+      "type": "string"
+    },
+    "last_name": {
+      "type": "string"
+    },
+    "sin": {
+      "type": "string",
+      "description": "Social Insurance Number (encrypted)"
+    },
+    "date_of_birth": {
+      "type": "string",
+      "format": "date"
+    },
+    "email": {
+      "type": "string",
+      "format": "email"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "address": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "province": {
+      "type": "string"
+    },
+    "postal_code": {
+      "type": "string"
+    },
+    "position": {
+      "type": "string"
+    },
+    "department": {
+      "type": "string",
+      "enum": [
+        "sales",
+        "service",
+        "parts",
+        "management",
+        "administration",
+        "finance",
+        "operations"
+      ]
+    },
+    "hire_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "termination_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "employment_status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "terminated",
+        "on_leave",
+        "suspended"
+      ],
+      "default": "active"
+    },
+    "employment_type": {
+      "type": "string",
+      "enum": [
+        "full_time",
+        "part_time",
+        "contract",
+        "seasonal"
+      ],
+      "default": "full_time"
+    },
+    "pay_type": {
+      "type": "string",
+      "enum": [
+        "salary",
+        "hourly",
+        "commission"
+      ],
+      "default": "hourly"
+    },
+    "pay_rate": {
+      "type": "number",
+      "description": "Hourly rate or annual salary"
+    },
+    "pay_frequency": {
+      "type": "string",
+      "enum": [
+        "weekly",
+        "bi_weekly",
+        "semi_monthly",
+        "monthly"
+      ],
+      "default": "bi_weekly"
+    },
+    "td1_federal": {
+      "type": "object",
+      "properties": {
+        "basic_personal_amount": {
+          "type": "number",
+          "default": 15000
+        },
+        "additional_amount": {
+          "type": "number",
+          "default": 0
+        },
+        "total_claim_amount": {
+          "type": "number",
+          "default": 15000
+        },
+        "filing_date": {
+          "type": "string"
+        }
+      }
+    },
+    "td1_provincial": {
+      "type": "object",
+      "properties": {
+        "basic_personal_amount": {
+          "type": "number",
+          "default": 11809
+        },
+        "additional_amount": {
+          "type": "number",
+          "default": 0
+        },
+        "total_claim_amount": {
+          "type": "number",
+          "default": 11809
+        },
+        "filing_date": {
+          "type": "string"
+        }
+      }
+    },
+    "ei_exempt": {
+      "type": "boolean",
+      "default": false
+    },
+    "cpp_exempt": {
+      "type": "boolean",
+      "default": false
+    },
+    "vacation_accrual_rate": {
+      "type": "number",
+      "default": 4,
+      "description": "Percentage of vacation accrual"
+    },
+    "vacation_balance": {
+      "type": "number",
+      "default": 0,
+      "description": "Hours of vacation available"
+    },
+    "bank_account": {
+      "type": "object",
+      "properties": {
+        "institution_number": {
+          "type": "string"
+        },
+        "transit_number": {
+          "type": "string"
+        },
+        "account_number": {
+          "type": "string"
+        }
+      }
+    },
+    "emergency_contact": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "relationship": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        }
+      }
+    },
+    "photo_url": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "first_name",
+    "last_name",
+    "sin",
+    "position",
+    "pay_type",
+    "pay_rate"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "$and": [
+            {
+              "company_id": "{{user.data.company_id}}"
+            }
+          ]
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "id": "{{user.data.employee_entity_id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "$and": [
+            {
+              "company_id": "{{user.data.company_id}}"
+            },
+            {
+              "user_condition": {
+                "role": "manager"
+              }
+            }
+          ]
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "id": "{{user.data.employee_entity_id}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "$and": [
+            {
+              "company_id": "{{user.data.company_id}}"
+            },
+            {
+              "user_condition": {
+                "role": "manager"
+              }
+            }
+          ]
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

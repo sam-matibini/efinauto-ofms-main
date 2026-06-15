@@ -1,0 +1,55 @@
+{
+  "name": "DocumentSequence",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "bill_of_sale",
+        "invoice",
+        "work_order",
+        "purchase_order",
+        "quote"
+      ],
+      "description": "Type of document being sequenced"
+    },
+    "year": {
+      "type": "number",
+      "description": "Year for sequence (supports yearly reset)"
+    },
+    "location_code": {
+      "type": "string",
+      "description": "Location/branch code (e.g., TOR, VAN, MTL)"
+    },
+    "last_sequence": {
+      "type": "number",
+      "default": 0,
+      "description": "Last used sequence number"
+    },
+    "format_template": {
+      "type": "string",
+      "default": "BOS-YYYY-LOC-NNNNNN",
+      "description": "Format template for document numbers"
+    },
+    "prefix": {
+      "type": "string",
+      "default": "BOS",
+      "description": "Document prefix (e.g., BOS, INV, WO)"
+    },
+    "reset_yearly": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to reset sequence at year change"
+    }
+  },
+  "required": [
+    "company_id",
+    "document_type",
+    "year"
+  ],
+  "rls": {}
+}

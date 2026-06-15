@@ -1,0 +1,157 @@
+{
+  "name": "BankReconciliation",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "bank_account_id": {
+      "type": "string",
+      "description": "Reference to BankAccount entity"
+    },
+    "reconciliation_number": {
+      "type": "string"
+    },
+    "period_start": {
+      "type": "string",
+      "format": "date"
+    },
+    "period_end": {
+      "type": "string",
+      "format": "date"
+    },
+    "statement_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "opening_balance": {
+      "type": "number"
+    },
+    "statement_balance": {
+      "type": "number"
+    },
+    "cleared_balance": {
+      "type": "number"
+    },
+    "book_balance": {
+      "type": "number"
+    },
+    "difference": {
+      "type": "number",
+      "description": "Statement balance - book balance"
+    },
+    "reconciled_transactions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of transaction IDs"
+    },
+    "unreconciled_transactions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "adjustments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "gl_account_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "reconciled",
+        "reviewed"
+      ],
+      "default": "draft"
+    },
+    "reconciled_by": {
+      "type": "string"
+    },
+    "reconciled_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reviewed_by": {
+      "type": "string"
+    },
+    "reviewed_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "bank_account_id",
+    "statement_date",
+    "statement_balance"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

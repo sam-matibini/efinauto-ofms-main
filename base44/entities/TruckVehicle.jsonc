@@ -1,0 +1,87 @@
+{
+  "name": "TruckVehicle",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "truck_number": {
+      "type": "string",
+      "description": "Internal truck identifier"
+    },
+    "truck_plate": {
+      "type": "string",
+      "description": "License plate number"
+    },
+    "vehicle_type": {
+      "type": "string",
+      "enum": [
+        "semi_truck",
+        "straight_truck",
+        "box_truck",
+        "flatbed",
+        "tanker",
+        "reefer"
+      ],
+      "description": "Type of truck"
+    },
+    "vin": {
+      "type": "string",
+      "description": "Vehicle identification number"
+    },
+    "make": {
+      "type": "string",
+      "description": "Vehicle make"
+    },
+    "model": {
+      "type": "string",
+      "description": "Vehicle model"
+    },
+    "year": {
+      "type": "number",
+      "description": "Vehicle year"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "available",
+        "in_use",
+        "maintenance",
+        "out_of_service"
+      ],
+      "default": "available",
+      "description": "Vehicle status"
+    },
+    "current_driver_id": {
+      "type": "string",
+      "description": "Reference to Driver currently using vehicle"
+    },
+    "gps_device_id": {
+      "type": "string",
+      "description": "GPS tracking device identifier"
+    },
+    "last_inspection_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Last safety inspection date"
+    },
+    "next_service_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Scheduled service date"
+    }
+  },
+  "required": [
+    "company_id",
+    "truck_number",
+    "truck_plate"
+  ],
+  "rls": {
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

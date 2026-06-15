@@ -1,0 +1,229 @@
+{
+  "name": "Transaction",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "transaction_number": {
+      "type": "string",
+      "description": "Unique transaction reference"
+    },
+    "transaction_type": {
+      "type": "string",
+      "enum": [
+        "sale_revenue",
+        "service_revenue",
+        "parts_revenue",
+        "vehicle_purchase",
+        "parts_purchase",
+        "labor_expense",
+        "overhead_expense",
+        "payment_received",
+        "payment_made",
+        "payroll_expense",
+        "payroll_liability",
+        "other_income",
+        "other_expense",
+        "journal_entry"
+      ],
+      "description": "Type of transaction"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "revenue",
+        "expense",
+        "asset",
+        "liability",
+        "equity"
+      ],
+      "description": "Transaction category"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Transaction amount"
+    },
+    "debit_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Debit amount for double-entry bookkeeping"
+    },
+    "credit_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Credit amount for double-entry bookkeeping"
+    },
+    "account_id": {
+      "type": "string",
+      "description": "Reference to Account entity from chart of accounts"
+    },
+    "account_code": {
+      "type": "string",
+      "description": "Account code from chart of accounts (e.g., 5200)"
+    },
+    "account_name": {
+      "type": "string",
+      "description": "Account name from chart of accounts"
+    },
+    "account_type": {
+      "type": "string",
+      "enum": [
+        "asset",
+        "liability",
+        "equity",
+        "revenue",
+        "expense"
+      ],
+      "description": "Account type from chart of accounts"
+    },
+    "contra_account_id": {
+      "type": "string",
+      "description": "Offsetting account for double-entry (optional if using debit/credit amounts)"
+    },
+    "contra_account_code": {
+      "type": "string",
+      "description": "Offsetting account code"
+    },
+    "contra_account_name": {
+      "type": "string",
+      "description": "Offsetting account name"
+    },
+    "reference_type": {
+      "type": "string",
+      "description": "Type of related entity (Sale, RepairOrder, Purchase, PayrollRun, etc.)"
+    },
+    "reference_id": {
+      "type": "string",
+      "description": "ID of related entity"
+    },
+    "reference_number": {
+      "type": "string",
+      "description": "Display number of related entity"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "transaction_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "cash",
+        "credit_card",
+        "debit_card",
+        "check",
+        "bank_transfer",
+        "other"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "cancelled"
+      ],
+      "default": "completed"
+    },
+    "tax_amount": {
+      "type": "number",
+      "default": 0
+    },
+    "tax_gst": {
+      "type": "number",
+      "default": 0,
+      "description": "GST amount"
+    },
+    "tax_pst": {
+      "type": "number",
+      "default": 0,
+      "description": "PST amount"
+    },
+    "tax_hst": {
+      "type": "number",
+      "default": 0,
+      "description": "HST amount"
+    },
+    "province": {
+      "type": "string",
+      "description": "Province for tax calculation"
+    },
+    "tax_status": {
+      "type": "string",
+      "enum": [
+        "taxable",
+        "zero_rated",
+        "exempt"
+      ],
+      "default": "taxable",
+      "description": "Tax status of the transaction"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "transaction_type",
+    "category",
+    "amount",
+    "transaction_date"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "name": "Container",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "container_number": {
+      "type": "string",
+      "description": "Unique container identifier"
+    },
+    "seal_number": {
+      "type": "string",
+      "description": "Container seal number"
+    },
+    "container_type": {
+      "type": "string",
+      "enum": [
+        "20ft",
+        "40ft",
+        "40ft_hc",
+        "45ft",
+        "reefer"
+      ],
+      "default": "40ft",
+      "description": "Container size/type"
+    },
+    "shipment_id": {
+      "type": "string",
+      "description": "Reference to FreightShipment entity"
+    },
+    "shipment_number": {
+      "type": "string"
+    },
+    "vessel_name": {
+      "type": "string"
+    },
+    "vessel_imo": {
+      "type": "string",
+      "description": "Vessel IMO number"
+    },
+    "bl_number": {
+      "type": "string",
+      "description": "Bill of Lading number"
+    },
+    "booking_number": {
+      "type": "string"
+    },
+    "vehicle_count": {
+      "type": "number",
+      "default": 0
+    },
+    "vehicle_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of vehicle IDs in this container"
+    },
+    "cargo_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of cargo IDs in this container"
+    },
+    "loading_photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs of loading photos"
+    },
+    "total_weight": {
+      "type": "number",
+      "default": 0,
+      "description": "Total weight in kg"
+    },
+    "total_value": {
+      "type": "number",
+      "default": 0
+    },
+    "origin_port": {
+      "type": "string"
+    },
+    "destination_port": {
+      "type": "string"
+    },
+    "departure_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "eta": {
+      "type": "string",
+      "format": "date"
+    },
+    "actual_arrival": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "empty",
+        "loading",
+        "loaded",
+        "in_transit",
+        "at_port",
+        "customs",
+        "cleared",
+        "delivered"
+      ],
+      "default": "empty"
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "container_number"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

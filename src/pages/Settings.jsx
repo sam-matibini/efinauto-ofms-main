@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MessageSquare, Mail, Shield, Save, Info, CheckCircle, Image as ImageIcon } from "lucide-react";
+import { MessageSquare, Mail, Shield, Save, Info, CheckCircle, Image as ImageIcon, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import LogoUpload from "@/components/settings/LogoUpload";
 
@@ -24,6 +24,33 @@ export default function Settings() {
     ),
     enabled: !!selectedCompanyId,
   });
+
+  const [companyInfo, setCompanyInfo] = useState({
+    name: "", address: "", city: "", province: "", postal_code: "", country: "",
+    phone: "", email: "", dealer_permit_number: "", gst_number: "", pst_number: ""
+  });
+
+  React.useEffect(() => {
+    if (company) {
+      setCompanyInfo({
+        name: company.name || "",
+        address: company.address || "",
+        city: company.city || "",
+        province: company.province || "",
+        postal_code: company.postal_code || "",
+        country: company.country || "",
+        phone: company.phone || "",
+        email: company.email || "",
+        dealer_permit_number: company.dealer_permit_number || "",
+        gst_number: company.gst_number || "",
+        pst_number: company.pst_number || "",
+      });
+    }
+  }, [company]);
+
+  const handleSaveCompanyInfo = () => {
+    updateSettingsMutation.mutate(companyInfo);
+  };
 
   const [smsProvider, setSmsProvider] = useState("");
   const [smsSettings, setSmsSettings] = useState({
@@ -100,8 +127,12 @@ export default function Settings() {
       </div>
 
       <div className="p-6 md:p-8 max-w-5xl mx-auto">
-        <Tabs defaultValue="branding" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs defaultValue="company" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="company">
+              <Building2 className="w-4 h-4 mr-2" />
+              Company Info
+            </TabsTrigger>
             <TabsTrigger value="branding">
               <ImageIcon className="w-4 h-4 mr-2" />
               Branding
@@ -115,6 +146,131 @@ export default function Settings() {
               Email Settings
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="company" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="w-5 h-5" />
+                  Company Information
+                </CardTitle>
+                <CardDescription>
+                  This information appears on invoices, Bill of Sale documents, and all printed/shared documents.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <Label>Company Name</Label>
+                    <Input
+                      value={companyInfo.name}
+                      onChange={(e) => setCompanyInfo({ ...companyInfo, name: e.target.value })}
+                      placeholder="Your Company Name"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label>Street Address</Label>
+                    <Input
+                      value={companyInfo.address}
+                      onChange={(e) => setCompanyInfo({ ...companyInfo, address: e.target.value })}
+                      placeholder="123 Main Street"
+                    />
+                  </div>
+                  <div>
+                    <Label>City</Label>
+                    <Input
+                      value={companyInfo.city}
+                      onChange={(e) => setCompanyInfo({ ...companyInfo, city: e.target.value })}
+                      placeholder="City"
+                    />
+                  </div>
+                  <div>
+                    <Label>Province / State</Label>
+                    <Input
+                      value={companyInfo.province}
+                      onChange={(e) => setCompanyInfo({ ...companyInfo, province: e.target.value })}
+                      placeholder="AB"
+                    />
+                  </div>
+                  <div>
+                    <Label>Postal Code</Label>
+                    <Input
+                      value={companyInfo.postal_code}
+                      onChange={(e) => setCompanyInfo({ ...companyInfo, postal_code: e.target.value })}
+                      placeholder="T1A 1A1"
+                    />
+                  </div>
+                  <div>
+                    <Label>Country</Label>
+                    <Input
+                      value={companyInfo.country}
+                      onChange={(e) => setCompanyInfo({ ...companyInfo, country: e.target.value })}
+                      placeholder="Canada"
+                    />
+                  </div>
+                  <div>
+                    <Label>Phone</Label>
+                    <Input
+                      value={companyInfo.phone}
+                      onChange={(e) => setCompanyInfo({ ...companyInfo, phone: e.target.value })}
+                      placeholder="+1 (555) 000-0000"
+                    />
+                  </div>
+                  <div>
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={companyInfo.email}
+                      onChange={(e) => setCompanyInfo({ ...companyInfo, email: e.target.value })}
+                      placeholder="info@company.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h4 className="font-semibold text-gray-700 mb-3">Tax & Permit Numbers</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label>Dealer Permit #</Label>
+                      <Input
+                        value={companyInfo.dealer_permit_number}
+                        onChange={(e) => setCompanyInfo({ ...companyInfo, dealer_permit_number: e.target.value })}
+                        placeholder="DP-000000"
+                      />
+                    </div>
+                    <div>
+                      <Label>GST Number</Label>
+                      <Input
+                        value={companyInfo.gst_number}
+                        onChange={(e) => setCompanyInfo({ ...companyInfo, gst_number: e.target.value })}
+                        placeholder="123456789RT0001"
+                      />
+                    </div>
+                    <div>
+                      <Label>PST Number</Label>
+                      <Input
+                        value={companyInfo.pst_number}
+                        onChange={(e) => setCompanyInfo({ ...companyInfo, pst_number: e.target.value })}
+                        placeholder="PST-000000"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button
+                    onClick={handleSaveCompanyInfo}
+                    disabled={updateSettingsMutation.isPending}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {updateSettingsMutation.isPending ? "Saving..." : (
+                      <><Save className="w-4 h-4 mr-2" />Save Company Info</>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="branding" className="space-y-6">
             <LogoUpload 

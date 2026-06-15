@@ -1,0 +1,162 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of user performing action"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email of user for quick reference"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Name of user for display"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "Company context of the action"
+    },
+    "module": {
+      "type": "string",
+      "enum": [
+        "Vehicle",
+        "Customer",
+        "Sale",
+        "Export",
+        "FreightShipment",
+        "Container",
+        "Cargo",
+        "ShippingDocument",
+        "LoadingDeclaration",
+        "Part",
+        "Product",
+        "Service",
+        "RepairOrder",
+        "Employee",
+        "Payroll",
+        "Invoice",
+        "Quote",
+        "Expense",
+        "Bill",
+        "BankAccount",
+        "BankTransaction",
+        "Company",
+        "User",
+        "Authentication",
+        "System",
+        "Other"
+      ],
+      "description": "Module/entity affected"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "CREATE",
+        "UPDATE",
+        "DELETE",
+        "VIEW",
+        "EXPORT",
+        "IMPORT",
+        "UPLOAD",
+        "DOWNLOAD",
+        "LOGIN",
+        "LOGOUT",
+        "LOGIN_FAILED",
+        "PERMISSION_DENIED",
+        "STATUS_CHANGE",
+        "PAYMENT",
+        "EMAIL_SENT",
+        "SMS_SENT",
+        "API_CALL",
+        "ERROR"
+      ],
+      "description": "Type of action performed"
+    },
+    "record_id": {
+      "type": "string",
+      "description": "ID of affected record"
+    },
+    "record_identifier": {
+      "type": "string",
+      "description": "Human-readable identifier (e.g., VIN, invoice number)"
+    },
+    "old_values": {
+      "type": "object",
+      "description": "Snapshot of data before modification"
+    },
+    "new_values": {
+      "type": "object",
+      "description": "Snapshot of data after modification"
+    },
+    "changes_summary": {
+      "type": "string",
+      "description": "Human-readable summary of changes"
+    },
+    "ip_address": {
+      "type": "string",
+      "description": "IP address of user"
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "Browser/device info"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failure",
+        "warning"
+      ],
+      "default": "success",
+      "description": "Action result status"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error details if status is failure"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional context data"
+    },
+    "hash": {
+      "type": "string",
+      "description": "SHA256 hash for tamper detection"
+    }
+  },
+  "required": [
+    "user_id",
+    "module",
+    "action"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "__DENY_ALL__"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "__DENY_ALL__"
+      }
+    }
+  }
+}

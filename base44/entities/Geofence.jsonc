@@ -1,0 +1,155 @@
+{
+  "name": "Geofence",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "name": {
+      "type": "string",
+      "description": "Geofence name (e.g., Port of Vancouver, Main Warehouse)"
+    },
+    "location_type": {
+      "type": "string",
+      "enum": [
+        "port",
+        "warehouse",
+        "customer_site",
+        "customs",
+        "distribution_center",
+        "other"
+      ],
+      "default": "other",
+      "description": "Type of location"
+    },
+    "center_latitude": {
+      "type": "number",
+      "description": "Center point latitude"
+    },
+    "center_longitude": {
+      "type": "number",
+      "description": "Center point longitude"
+    },
+    "radius_km": {
+      "type": "number",
+      "default": 5,
+      "description": "Geofence radius in kilometers"
+    },
+    "shape": {
+      "type": "string",
+      "enum": [
+        "circle",
+        "polygon"
+      ],
+      "default": "circle",
+      "description": "Geofence shape"
+    },
+    "polygon_coordinates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Array of coordinates for polygon geofence"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether geofence is active"
+    },
+    "trigger_on_entry": {
+      "type": "boolean",
+      "default": true,
+      "description": "Send alert when shipment enters zone"
+    },
+    "trigger_on_exit": {
+      "type": "boolean",
+      "default": false,
+      "description": "Send alert when shipment exits zone"
+    },
+    "alert_recipients": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Email addresses to receive alerts"
+    },
+    "alert_message_template": {
+      "type": "string",
+      "description": "Custom alert message template"
+    },
+    "color": {
+      "type": "string",
+      "default": "#3b82f6",
+      "description": "Display color on map"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata (address, contact info, etc.)"
+    }
+  },
+  "required": [
+    "company_id",
+    "name",
+    "center_latitude",
+    "center_longitude"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

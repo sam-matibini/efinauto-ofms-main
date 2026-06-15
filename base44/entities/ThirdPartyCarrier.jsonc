@@ -1,0 +1,393 @@
+{
+  "name": "ThirdPartyCarrier",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "carrier_name": {
+      "type": "string",
+      "description": "Carrier company name"
+    },
+    "carrier_code": {
+      "type": "string",
+      "description": "Unique carrier code"
+    },
+    "contact_name": {
+      "type": "string",
+      "description": "Primary contact person"
+    },
+    "contact_email": {
+      "type": "string",
+      "format": "email"
+    },
+    "contact_phone": {
+      "type": "string"
+    },
+    "service_types": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "local_delivery",
+          "long_haul",
+          "expedited",
+          "refrigerated",
+          "hazmat_certified",
+          "oversized",
+          "intermodal",
+          "container_services"
+        ]
+      },
+      "description": "Types of services offered"
+    },
+    "hazmat_certified": {
+      "type": "boolean",
+      "default": false
+    },
+    "insurance_verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "insurance_expiry": {
+      "type": "string",
+      "format": "date"
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5,
+      "description": "Carrier performance rating"
+    },
+    "base_rate_per_km": {
+      "type": "number",
+      "description": "Base rate per kilometer"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "suspended"
+      ],
+      "default": "active"
+    },
+    "onboarding_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "documents_pending",
+        "review",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending",
+      "description": "Onboarding workflow status"
+    },
+    "onboarding_started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "onboarding_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "approved_by": {
+      "type": "string",
+      "description": "User who approved carrier"
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "compliance_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 0,
+      "description": "AI-calculated compliance score (0-100)"
+    },
+    "compliance_score_breakdown": {
+      "type": "object",
+      "properties": {
+        "document_completeness": {
+          "type": "number"
+        },
+        "document_validity": {
+          "type": "number"
+        },
+        "ai_confidence": {
+          "type": "number"
+        },
+        "expiry_status": {
+          "type": "number"
+        },
+        "last_calculated": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "auto_approval_eligible": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether carrier meets criteria for auto-approval"
+    },
+    "compliance_checklist": {
+      "type": "object",
+      "properties": {
+        "insurance_certificate": {
+          "type": "boolean",
+          "default": false
+        },
+        "operating_authority": {
+          "type": "boolean",
+          "default": false
+        },
+        "safety_rating": {
+          "type": "boolean",
+          "default": false
+        },
+        "hazmat_certification": {
+          "type": "boolean",
+          "default": false
+        },
+        "business_license": {
+          "type": "boolean",
+          "default": false
+        },
+        "w9_form": {
+          "type": "boolean",
+          "default": false
+        },
+        "carrier_agreement": {
+          "type": "boolean",
+          "default": false
+        },
+        "background_check": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "compliance_documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "document_type": {
+            "type": "string"
+          },
+          "document_name": {
+            "type": "string"
+          },
+          "document_url": {
+            "type": "string"
+          },
+          "expiry_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "uploaded_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "verified": {
+            "type": "boolean",
+            "default": false
+          },
+          "verified_by": {
+            "type": "string"
+          },
+          "verified_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ai_analysis": {
+            "type": "object",
+            "properties": {
+              "key_findings": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "compliance_status": {
+                "type": "string"
+              },
+              "recommendations": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "confidence_score": {
+                "type": "number"
+              },
+              "analyzed_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      },
+      "description": "Compliance documents with expiry tracking and AI analysis"
+    },
+    "carrier_package_url": {
+      "type": "string",
+      "description": "Complete carrier information package (PDF)"
+    },
+    "coi_url": {
+      "type": "string",
+      "description": "Certificate of Insurance file URL"
+    },
+    "coi_expiry": {
+      "type": "string",
+      "format": "date",
+      "description": "COI expiration date"
+    },
+    "expiry_alerts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "document_type": {
+            "type": "string"
+          },
+          "expiry_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "days_until_expiry": {
+            "type": "number"
+          },
+          "alert_sent": {
+            "type": "boolean"
+          },
+          "alert_sent_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "insurance_details": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "policy_number": {
+          "type": "string"
+        },
+        "coverage_amount": {
+          "type": "number"
+        },
+        "expiry_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "certificate_url": {
+          "type": "string"
+        }
+      }
+    },
+    "operating_authority": {
+      "type": "object",
+      "properties": {
+        "dot_number": {
+          "type": "string"
+        },
+        "mc_number": {
+          "type": "string"
+        },
+        "scac_code": {
+          "type": "string"
+        },
+        "authority_type": {
+          "type": "string"
+        }
+      }
+    },
+    "intermodal_capabilities": {
+      "type": "object",
+      "properties": {
+        "rail_capable": {
+          "type": "boolean",
+          "default": false
+        },
+        "container_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "20GP",
+              "40GP",
+              "40HC",
+              "45HC",
+              "20RF",
+              "40RF"
+            ]
+          }
+        },
+        "terminal_access": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "chassis_pool": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "performance_metrics": {
+      "type": "object",
+      "properties": {
+        "total_shipments": {
+          "type": "number",
+          "default": 0
+        },
+        "on_time_delivery_rate": {
+          "type": "number",
+          "default": 0
+        },
+        "damage_incidents": {
+          "type": "number",
+          "default": 0
+        },
+        "average_rating": {
+          "type": "number",
+          "default": 0
+        },
+        "last_performance_review": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "vendor_id": {
+      "type": "string",
+      "description": "Reference to Vendor entity for accounting integration"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "carrier_name",
+    "contact_phone"
+  ],
+  "rls": {
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

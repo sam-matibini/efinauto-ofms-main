@@ -1,0 +1,136 @@
+{
+  "name": "Product",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "name": {
+      "type": "string",
+      "description": "Product name"
+    },
+    "sku": {
+      "type": "string",
+      "description": "Stock Keeping Unit - unique identifier"
+    },
+    "description": {
+      "type": "string",
+      "description": "Product description"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "electronics",
+        "clothing",
+        "food_beverage",
+        "furniture",
+        "tools",
+        "books",
+        "toys",
+        "sports",
+        "health_beauty",
+        "automotive",
+        "office_supplies",
+        "other"
+      ],
+      "default": "other"
+    },
+    "currency": {
+      "type": "string",
+      "enum": [
+        "CAD",
+        "USD",
+        "NGN"
+      ],
+      "default": "CAD",
+      "description": "Currency for pricing"
+    },
+    "quantity": {
+      "type": "number",
+      "description": "Current stock quantity",
+      "default": 0
+    },
+    "reorder_level": {
+      "type": "number",
+      "description": "Minimum quantity before reorder alert",
+      "default": 10
+    },
+    "unit_price": {
+      "type": "number",
+      "description": "Price per unit"
+    },
+    "cost_price": {
+      "type": "number",
+      "description": "Cost per unit"
+    },
+    "supplier": {
+      "type": "string",
+      "description": "Supplier name"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Product image URL"
+    },
+    "location": {
+      "type": "string",
+      "description": "Storage location (e.g., Warehouse A, Shelf 3)"
+    }
+  },
+  "required": [
+    "company_id",
+    "name",
+    "sku",
+    "quantity"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

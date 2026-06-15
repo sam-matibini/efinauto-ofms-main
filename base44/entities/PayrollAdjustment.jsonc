@@ -1,0 +1,132 @@
+{
+  "name": "PayrollAdjustment",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "payroll_entry_id": {
+      "type": "string",
+      "description": "Reference to PayrollEntry entity"
+    },
+    "employee_id": {
+      "type": "string",
+      "description": "Reference to Employee entity"
+    },
+    "employee_name": {
+      "type": "string"
+    },
+    "adjustment_type": {
+      "type": "string",
+      "enum": [
+        "correction",
+        "bonus",
+        "retroactive_pay",
+        "deduction",
+        "other"
+      ],
+      "default": "correction"
+    },
+    "description": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Positive for additions, negative for deductions"
+    },
+    "affects_gross": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this affects gross pay calculations"
+    },
+    "taxable": {
+      "type": "boolean",
+      "default": true
+    },
+    "adjustment_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "applied": {
+      "type": "boolean",
+      "default": false
+    },
+    "applied_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "employee_id",
+    "adjustment_type",
+    "amount",
+    "adjustment_date"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "accountant"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}",
+          "user_condition": {
+            "role": {
+              "$in": [
+                "admin",
+                "accountant"
+              ]
+            }
+          }
+        },
+        {
+          "employee_id": "{{user.data.employee_entity_id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "accountant"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "accountant"
+          }
+        }
+      ]
+    }
+  }
+}

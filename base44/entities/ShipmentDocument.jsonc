@@ -1,0 +1,114 @@
+{
+  "name": "ShipmentDocument",
+  "type": "object",
+  "properties": {
+    "shipment_id": {
+      "type": "string",
+      "description": "Reference to LocalShipment entity"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "bill_of_lading",
+        "packing_list",
+        "commercial_invoice",
+        "sds",
+        "delivery_note",
+        "inspection_report",
+        "other"
+      ],
+      "description": "Type of document"
+    },
+    "document_url": {
+      "type": "string",
+      "description": "URL to document file"
+    },
+    "file_name": {
+      "type": "string",
+      "description": "Original file name"
+    },
+    "file_size_bytes": {
+      "type": "number",
+      "description": "File size in bytes"
+    },
+    "mime_type": {
+      "type": "string",
+      "description": "File MIME type"
+    },
+    "uploaded_by": {
+      "type": "string",
+      "description": "User email who uploaded"
+    },
+    "uploaded_via": {
+      "type": "string",
+      "enum": [
+        "web",
+        "mobile"
+      ],
+      "description": "Upload source"
+    },
+    "upload_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When document was uploaded"
+    },
+    "version": {
+      "type": "number",
+      "default": 1,
+      "description": "Document version number"
+    },
+    "is_signed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether document has been signed"
+    },
+    "signature_data": {
+      "type": "object",
+      "properties": {
+        "signature_image_url": {
+          "type": "string"
+        },
+        "signer_name": {
+          "type": "string"
+        },
+        "signer_role": {
+          "type": "string"
+        },
+        "signed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "gps_location": {
+          "type": "object",
+          "properties": {
+            "lat": {
+              "type": "number"
+            },
+            "lng": {
+              "type": "number"
+            }
+          }
+        },
+        "device_id": {
+          "type": "string"
+        }
+      },
+      "description": "Digital signature metadata"
+    }
+  },
+  "required": [
+    "shipment_id",
+    "document_type",
+    "document_url"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

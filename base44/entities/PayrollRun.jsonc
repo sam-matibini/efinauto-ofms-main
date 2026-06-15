@@ -1,0 +1,155 @@
+{
+  "name": "PayrollRun",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "payroll_number": {
+      "type": "string",
+      "description": "Unique payroll run identifier"
+    },
+    "pay_period_start": {
+      "type": "string",
+      "format": "date"
+    },
+    "pay_period_end": {
+      "type": "string",
+      "format": "date"
+    },
+    "pay_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "processing",
+        "approved",
+        "paid"
+      ],
+      "default": "draft"
+    },
+    "total_gross": {
+      "type": "number",
+      "default": 0
+    },
+    "total_deductions": {
+      "type": "number",
+      "default": 0
+    },
+    "total_net": {
+      "type": "number",
+      "default": 0
+    },
+    "total_employer_cpp": {
+      "type": "number",
+      "default": 0
+    },
+    "total_employer_ei": {
+      "type": "number",
+      "default": 0
+    },
+    "employee_count": {
+      "type": "number",
+      "default": 0
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "pay_period_start",
+    "pay_period_end",
+    "pay_date"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}",
+          "user_condition": {
+            "role": {
+              "$in": [
+                "admin",
+                "manager",
+                "accountant"
+              ]
+            }
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}",
+          "user_condition": {
+            "role": {
+              "$in": [
+                "admin",
+                "manager",
+                "accountant"
+              ]
+            }
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}",
+          "user_condition": {
+            "role": {
+              "$in": [
+                "admin",
+                "manager",
+                "accountant"
+              ]
+            }
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}",
+          "user_condition": {
+            "role": {
+              "$in": [
+                "admin",
+                "manager",
+                "accountant"
+              ]
+            }
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

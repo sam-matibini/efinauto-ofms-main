@@ -1,0 +1,93 @@
+{
+  "name": "SignatureRequest",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "sale_id": {
+      "type": "string",
+      "description": "Reference to Sale entity"
+    },
+    "signer_email": {
+      "type": "string",
+      "description": "Email address of the signer"
+    },
+    "signer_name": {
+      "type": "string",
+      "description": "Name of the signer"
+    },
+    "signer_type": {
+      "type": "string",
+      "enum": [
+        "buyer",
+        "seller"
+      ],
+      "description": "Type of signer"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "viewed",
+        "signed",
+        "declined",
+        "expired"
+      ],
+      "default": "pending",
+      "description": "Status of the signature request"
+    },
+    "message": {
+      "type": "string",
+      "description": "Custom message to the signer"
+    },
+    "signature_url": {
+      "type": "string",
+      "description": "URL for signing the document"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Expiration date of the request"
+    },
+    "viewed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the signer viewed the document"
+    },
+    "signed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the signer completed signing"
+    },
+    "declined_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the signer declined"
+    },
+    "require_identity_verification": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether identity verification is required"
+    },
+    "reminder_sent_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of reminder emails sent"
+    },
+    "last_reminder_sent": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last reminder sent timestamp"
+    }
+  },
+  "required": [
+    "company_id",
+    "sale_id",
+    "signer_email",
+    "signer_name",
+    "signer_type"
+  ],
+  "rls": {}
+}

@@ -1,0 +1,198 @@
+{
+  "name": "PayrollEntry",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "payroll_run_id": {
+      "type": "string",
+      "description": "Reference to PayrollRun entity"
+    },
+    "employee_id": {
+      "type": "string",
+      "description": "Reference to Employee entity"
+    },
+    "employee_name": {
+      "type": "string"
+    },
+    "employee_number": {
+      "type": "string"
+    },
+    "regular_hours": {
+      "type": "number",
+      "default": 0
+    },
+    "overtime_hours": {
+      "type": "number",
+      "default": 0
+    },
+    "vacation_hours": {
+      "type": "number",
+      "default": 0
+    },
+    "sick_hours": {
+      "type": "number",
+      "default": 0
+    },
+    "regular_pay": {
+      "type": "number",
+      "default": 0
+    },
+    "overtime_pay": {
+      "type": "number",
+      "default": 0
+    },
+    "vacation_pay": {
+      "type": "number",
+      "default": 0
+    },
+    "commission": {
+      "type": "number",
+      "default": 0
+    },
+    "bonus": {
+      "type": "number",
+      "default": 0
+    },
+    "gross_pay": {
+      "type": "number",
+      "default": 0
+    },
+    "cpp_employee": {
+      "type": "number",
+      "default": 0
+    },
+    "ei_employee": {
+      "type": "number",
+      "default": 0
+    },
+    "federal_tax": {
+      "type": "number",
+      "default": 0
+    },
+    "provincial_tax": {
+      "type": "number",
+      "default": 0
+    },
+    "other_deductions": {
+      "type": "number",
+      "default": 0
+    },
+    "total_deductions": {
+      "type": "number",
+      "default": 0
+    },
+    "net_pay": {
+      "type": "number",
+      "default": 0
+    },
+    "cpp_employer": {
+      "type": "number",
+      "default": 0
+    },
+    "ei_employer": {
+      "type": "number",
+      "default": 0
+    },
+    "vacation_accrued": {
+      "type": "number",
+      "default": 0
+    },
+    "ytd_gross": {
+      "type": "number",
+      "default": 0
+    },
+    "ytd_cpp": {
+      "type": "number",
+      "default": 0
+    },
+    "ytd_ei": {
+      "type": "number",
+      "default": 0
+    },
+    "ytd_federal_tax": {
+      "type": "number",
+      "default": 0
+    },
+    "ytd_provincial_tax": {
+      "type": "number",
+      "default": 0
+    },
+    "paystub_generated": {
+      "type": "boolean",
+      "default": false
+    },
+    "paystub_url": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "payroll_run_id",
+    "employee_id"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "accountant"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}",
+          "user_condition": {
+            "role": {
+              "$in": [
+                "admin",
+                "accountant"
+              ]
+            }
+          }
+        },
+        {
+          "employee_id": "{{user.data.employee_entity_id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "accountant"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "accountant"
+          }
+        }
+      ]
+    }
+  }
+}

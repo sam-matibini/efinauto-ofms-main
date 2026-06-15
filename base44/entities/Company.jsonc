@@ -1,0 +1,473 @@
+{
+  "name": "Company",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Company name"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Display name for the company (shown in selector)"
+    },
+    "code": {
+      "type": "string",
+      "description": "Unique company code"
+    },
+    "dealer_permit_number": {
+      "type": "string",
+      "description": "Dealer permit number"
+    },
+    "gst_number": {
+      "type": "string",
+      "description": "GST number"
+    },
+    "pst_number": {
+      "type": "string",
+      "description": "PST number"
+    },
+    "address": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "province": {
+      "type": "string",
+      "description": "Province or state"
+    },
+    "postal_code": {
+      "type": "string",
+      "description": "Postal code or ZIP code"
+    },
+    "country": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string",
+      "format": "email"
+    },
+    "tax_id": {
+      "type": "string"
+    },
+    "logo_url": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active"
+    },
+    "contact_person_name": {
+      "type": "string",
+      "description": "Primary contact person name for communications"
+    },
+    "contact_person_title": {
+      "type": "string",
+      "description": "Contact person job title"
+    },
+    "contact_person_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Contact person email"
+    },
+    "contact_person_phone": {
+      "type": "string",
+      "description": "Contact person direct phone"
+    },
+    "notification_settings": {
+      "type": "object",
+      "description": "Email notification preferences",
+      "properties": {
+        "enable_email_notifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Master switch for email notifications"
+        },
+        "notify_bos_created": {
+          "type": "boolean",
+          "default": true,
+          "description": "Send notification when new Bill of Sale is created"
+        },
+        "notify_bos_finalized": {
+          "type": "boolean",
+          "default": true,
+          "description": "Send notification when BOS is finalized"
+        },
+        "notify_signature_request": {
+          "type": "boolean",
+          "default": true,
+          "description": "Send notification when signature request is sent"
+        },
+        "notify_completion_certificate": {
+          "type": "boolean",
+          "default": true,
+          "description": "Send notification when completion certificate is generated"
+        },
+        "notification_recipients": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Email addresses to receive notifications"
+        }
+      }
+    },
+    "sms_provider": {
+      "type": "string",
+      "enum": [
+        "none",
+        "twilio",
+        "vonage"
+      ],
+      "default": "none",
+      "description": "SMS provider service"
+    },
+    "sms_settings": {
+      "type": "object",
+      "description": "SMS provider configuration",
+      "properties": {
+        "twilio_account_sid": {
+          "type": "string"
+        },
+        "twilio_auth_token": {
+          "type": "string"
+        },
+        "twilio_phone_number": {
+          "type": "string"
+        },
+        "vonage_api_key": {
+          "type": "string"
+        },
+        "vonage_api_secret": {
+          "type": "string"
+        },
+        "vonage_from_number": {
+          "type": "string"
+        }
+      }
+    },
+    "subscription_plan": {
+      "type": "string",
+      "enum": [
+        "starter",
+        "professional",
+        "enterprise",
+        "custom",
+        "none"
+      ],
+      "default": "none",
+      "description": "Active subscription plan"
+    },
+    "subscription_status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "cancelled",
+        "past_due",
+        "trialing",
+        "none"
+      ],
+      "default": "none",
+      "description": "Subscription status"
+    },
+    "subscription_start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Subscription start date"
+    },
+    "subscription_end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Subscription end date or next billing date"
+    },
+    "stripe_customer_id": {
+      "type": "string",
+      "description": "Stripe customer ID"
+    },
+    "stripe_subscription_id": {
+      "type": "string",
+      "description": "Stripe subscription ID"
+    },
+    "accessible_modules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of accessible module IDs based on subscription"
+    },
+    "tax_rates": {
+      "type": "object",
+      "description": "Provincial tax rates configuration - 2026 rates",
+      "properties": {
+        "AB": {
+          "type": "object",
+          "properties": {
+            "gst": {
+              "type": "number",
+              "default": 5
+            },
+            "pst": {
+              "type": "number",
+              "default": 0
+            },
+            "hst": {
+              "type": "number",
+              "default": 0
+            }
+          }
+        },
+        "BC": {
+          "type": "object",
+          "properties": {
+            "gst": {
+              "type": "number",
+              "default": 5
+            },
+            "pst": {
+              "type": "number",
+              "default": 7
+            },
+            "hst": {
+              "type": "number",
+              "default": 0
+            }
+          }
+        },
+        "MB": {
+          "type": "object",
+          "properties": {
+            "gst": {
+              "type": "number",
+              "default": 5
+            },
+            "pst": {
+              "type": "number",
+              "default": 7
+            },
+            "hst": {
+              "type": "number",
+              "default": 0
+            }
+          }
+        },
+        "NB": {
+          "type": "object",
+          "properties": {
+            "gst": {
+              "type": "number",
+              "default": 0
+            },
+            "pst": {
+              "type": "number",
+              "default": 0
+            },
+            "hst": {
+              "type": "number",
+              "default": 15
+            }
+          }
+        },
+        "NL": {
+          "type": "object",
+          "properties": {
+            "gst": {
+              "type": "number",
+              "default": 0
+            },
+            "pst": {
+              "type": "number",
+              "default": 0
+            },
+            "hst": {
+              "type": "number",
+              "default": 15
+            }
+          }
+        },
+        "NT": {
+          "type": "object",
+          "properties": {
+            "gst": {
+              "type": "number",
+              "default": 5
+            },
+            "pst": {
+              "type": "number",
+              "default": 0
+            },
+            "hst": {
+              "type": "number",
+              "default": 0
+            }
+          }
+        },
+        "NS": {
+          "type": "object",
+          "properties": {
+            "gst": {
+              "type": "number",
+              "default": 0
+            },
+            "pst": {
+              "type": "number",
+              "default": 0
+            },
+            "hst": {
+              "type": "number",
+              "default": 15
+            }
+          }
+        },
+        "NU": {
+          "type": "object",
+          "properties": {
+            "gst": {
+              "type": "number",
+              "default": 5
+            },
+            "pst": {
+              "type": "number",
+              "default": 0
+            },
+            "hst": {
+              "type": "number",
+              "default": 0
+            }
+          }
+        },
+        "ON": {
+          "type": "object",
+          "properties": {
+            "gst": {
+              "type": "number",
+              "default": 0
+            },
+            "pst": {
+              "type": "number",
+              "default": 0
+            },
+            "hst": {
+              "type": "number",
+              "default": 13
+            }
+          }
+        },
+        "PE": {
+          "type": "object",
+          "properties": {
+            "gst": {
+              "type": "number",
+              "default": 0
+            },
+            "pst": {
+              "type": "number",
+              "default": 0
+            },
+            "hst": {
+              "type": "number",
+              "default": 15
+            }
+          }
+        },
+        "QC": {
+          "type": "object",
+          "properties": {
+            "gst": {
+              "type": "number",
+              "default": 5
+            },
+            "pst": {
+              "type": "number",
+              "default": 9.975
+            },
+            "hst": {
+              "type": "number",
+              "default": 0
+            }
+          }
+        },
+        "SK": {
+          "type": "object",
+          "properties": {
+            "gst": {
+              "type": "number",
+              "default": 5
+            },
+            "pst": {
+              "type": "number",
+              "default": 6
+            },
+            "hst": {
+              "type": "number",
+              "default": 0
+            }
+          }
+        },
+        "YT": {
+          "type": "object",
+          "properties": {
+            "gst": {
+              "type": "number",
+              "default": 5
+            },
+            "pst": {
+              "type": "number",
+              "default": 0
+            },
+            "hst": {
+              "type": "number",
+              "default": 0
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "name",
+    "code"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

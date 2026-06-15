@@ -1,0 +1,194 @@
+{
+  "name": "LoadingDeclaration",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "declaration_number": {
+      "type": "string",
+      "description": "Sequential declaration number for internal tracking (e.g., LD25-00001)"
+    },
+    "export_id": {
+      "type": "string",
+      "description": "Reference to Export entity (legacy single export)"
+    },
+    "export_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of Export entity IDs for multiple export orders"
+    },
+    "export_numbers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of export order numbers for display"
+    },
+    "shipment_id": {
+      "type": "string",
+      "description": "Reference to FreightShipment entity"
+    },
+    "shipment_number": {
+      "type": "string",
+      "description": "Shipment number for display reference"
+    },
+    "booking_number": {
+      "type": "string"
+    },
+    "container_number": {
+      "type": "string"
+    },
+    "seal_number": {
+      "type": "string"
+    },
+    "exporter": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "tax_id": {
+          "type": "string"
+        },
+        "address_postal": {
+          "type": "string"
+        },
+        "city_province": {
+          "type": "string"
+        },
+        "telephone": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
+      }
+    },
+    "consignee": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "address_street": {
+          "type": "string"
+        },
+        "postal_code": {
+          "type": "string"
+        },
+        "city_country": {
+          "type": "string"
+        },
+        "telephone": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "tax_id_passport": {
+          "type": "string"
+        }
+      }
+    },
+    "commodity": {
+      "type": "string"
+    },
+    "weight": {
+      "type": "number"
+    },
+    "value": {
+      "type": "number"
+    },
+    "vehicles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "number"
+          },
+          "make_model": {
+            "type": "string"
+          },
+          "vin": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "number"
+          },
+          "value": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Vehicle information if loaded"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "submitted",
+        "approved"
+      ],
+      "default": "draft"
+    }
+  },
+  "required": [
+    "company_id",
+    "booking_number"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

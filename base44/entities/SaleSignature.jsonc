@@ -1,0 +1,86 @@
+{
+  "name": "SaleSignature",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "sale_id": {
+      "type": "string",
+      "description": "Reference to Sale entity"
+    },
+    "sale_number": {
+      "type": "string",
+      "description": "Sale number for reference"
+    },
+    "buyer_signature_url": {
+      "type": "string",
+      "description": "URL to buyer signature image"
+    },
+    "buyer_name": {
+      "type": "string",
+      "description": "Name of the buyer who signed"
+    },
+    "buyer_signed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when buyer signed"
+    },
+    "buyer_ip_address": {
+      "type": "string",
+      "description": "IP address of buyer at signing"
+    },
+    "seller_signature_url": {
+      "type": "string",
+      "description": "URL to seller signature image"
+    },
+    "seller_name": {
+      "type": "string",
+      "description": "Name of the seller who signed"
+    },
+    "seller_signed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when seller signed"
+    },
+    "seller_ip_address": {
+      "type": "string",
+      "description": "IP address of seller at signing"
+    },
+    "signature_method": {
+      "type": "string",
+      "enum": [
+        "electronic_capture",
+        "ai_generated",
+        "uploaded"
+      ],
+      "default": "electronic_capture",
+      "description": "Method used to capture signature"
+    },
+    "document_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of the signed document for tamper detection"
+    },
+    "signed_pdf_url": {
+      "type": "string",
+      "description": "URL to the final signed PDF document"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_buyer",
+        "pending_seller",
+        "completed",
+        "voided"
+      ],
+      "default": "pending_buyer",
+      "description": "Signature collection status"
+    }
+  },
+  "required": [
+    "company_id",
+    "sale_id"
+  ],
+  "rls": {}
+}

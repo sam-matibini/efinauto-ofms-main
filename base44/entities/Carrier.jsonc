@@ -1,0 +1,67 @@
+{
+  "name": "Carrier",
+  "type": "object",
+  "properties": {
+    "carrier_name": {
+      "type": "string",
+      "description": "Full carrier name (e.g., Mediterranean Shipping Company S.A.)"
+    },
+    "carrier_code": {
+      "type": "string",
+      "description": "Short carrier code (e.g., MSC, MAERSK, CMA)"
+    },
+    "scac_code": {
+      "type": "string",
+      "description": "Standard Carrier Alpha Code (e.g., MSCU)"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "ocean_freight",
+        "air_freight",
+        "road_freight",
+        "rail_freight"
+      ],
+      "default": "ocean_freight",
+      "description": "Primary transport mode"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether carrier is active for bookings"
+    },
+    "tracking_url_pattern": {
+      "type": "string",
+      "description": "URL pattern for tracking (use {{container_number}} or {{bl_number}} as placeholders)"
+    },
+    "api_endpoint": {
+      "type": "string",
+      "description": "API endpoint for carrier integration (Phase 2)"
+    },
+    "api_credentials": {
+      "type": "object",
+      "description": "Encrypted API credentials (Phase 2)"
+    },
+    "contact_email": {
+      "type": "string"
+    },
+    "contact_phone": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "carrier_name",
+    "carrier_code"
+  ],
+  "rls": {
+    "read": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

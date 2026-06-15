@@ -1,0 +1,120 @@
+{
+  "name": "Benefit",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "name": {
+      "type": "string",
+      "description": "Benefit name (e.g., Health Insurance, Dental)"
+    },
+    "benefit_type": {
+      "type": "string",
+      "enum": [
+        "health",
+        "dental",
+        "vision",
+        "life_insurance",
+        "disability",
+        "retirement",
+        "other"
+      ],
+      "default": "health"
+    },
+    "description": {
+      "type": "string"
+    },
+    "employee_cost": {
+      "type": "number",
+      "default": 0,
+      "description": "Employee cost per pay period"
+    },
+    "employer_cost": {
+      "type": "number",
+      "default": 0,
+      "description": "Employer cost per pay period"
+    },
+    "frequency": {
+      "type": "string",
+      "enum": [
+        "per_pay",
+        "monthly",
+        "annual"
+      ],
+      "default": "per_pay"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "company_id",
+    "name",
+    "benefit_type"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "company_id": "{{user.data.company_id}}",
+          "user_condition": {
+            "role": "manager"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "company_id": "{{user.data.company_id}}",
+          "user_condition": {
+            "role": "manager"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "company_id": "{{user.data.company_id}}",
+          "user_condition": {
+            "role": "manager"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "company_id": "{{user.data.company_id}}",
+          "user_condition": {
+            "role": "manager"
+          }
+        }
+      ]
+    }
+  }
+}

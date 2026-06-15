@@ -1,0 +1,160 @@
+{
+  "name": "Lead",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "lead_source": {
+      "type": "string",
+      "enum": [
+        "website",
+        "referral",
+        "cold_call",
+        "email",
+        "social_media",
+        "walk_in",
+        "trade_show",
+        "other"
+      ],
+      "default": "website",
+      "description": "How the lead was acquired"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "contacted",
+        "qualified",
+        "proposal",
+        "negotiation",
+        "won",
+        "lost"
+      ],
+      "default": "new",
+      "description": "Current lead status"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Lead's full name"
+    },
+    "email": {
+      "type": "string",
+      "format": "email"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "company_name": {
+      "type": "string",
+      "description": "Lead's company (if business)"
+    },
+    "address": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "province": {
+      "type": "string"
+    },
+    "postal_code": {
+      "type": "string"
+    },
+    "country": {
+      "type": "string",
+      "default": "Canada"
+    },
+    "interest": {
+      "type": "string",
+      "description": "What they're interested in (vehicle type, service, etc.)"
+    },
+    "budget": {
+      "type": "number",
+      "description": "Estimated budget"
+    },
+    "expected_close_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Expected date to close the deal"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "Sales rep email"
+    },
+    "converted_to_customer_id": {
+      "type": "string",
+      "description": "Customer ID if converted"
+    },
+    "converted_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When converted to customer"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags for segmentation"
+    }
+  },
+  "required": [
+    "company_id",
+    "full_name"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

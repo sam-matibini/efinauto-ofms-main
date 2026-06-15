@@ -1,0 +1,187 @@
+{
+  "name": "BankTransaction",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "bank_account_id": {
+      "type": "string",
+      "description": "Reference to BankAccount entity"
+    },
+    "import_batch_id": {
+      "type": "string",
+      "description": "Groups transactions from same import"
+    },
+    "transaction_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "post_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "description": {
+      "type": "string"
+    },
+    "payee": {
+      "type": "string"
+    },
+    "reference_number": {
+      "type": "string",
+      "description": "Check number, transaction ID, etc."
+    },
+    "amount": {
+      "type": "number"
+    },
+    "transaction_type": {
+      "type": "string",
+      "enum": [
+        "debit",
+        "credit"
+      ],
+      "description": "Debit = money out, Credit = money in"
+    },
+    "balance": {
+      "type": "number",
+      "description": "Running balance after transaction"
+    },
+    "category": {
+      "type": "string",
+      "description": "AI-suggested or manual category"
+    },
+    "gl_account_id": {
+      "type": "string",
+      "description": "Reference to Account entity (GL account)"
+    },
+    "gl_account_name": {
+      "type": "string"
+    },
+    "posted_to_gl": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether posted to general ledger"
+    },
+    "transaction_id": {
+      "type": "string",
+      "description": "Reference to Transaction entity if posted"
+    },
+    "reconciled": {
+      "type": "boolean",
+      "default": false
+    },
+    "reconciliation_id": {
+      "type": "string"
+    },
+    "matched_transaction_id": {
+      "type": "string",
+      "description": "Matched with existing transaction"
+    },
+    "rule_id": {
+      "type": "string",
+      "description": "Transaction rule that categorized this"
+    },
+    "ai_confidence": {
+      "type": "number",
+      "description": "AI confidence score 0-100"
+    },
+    "ai_suggestions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "gl_account": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "categorized",
+        "posted",
+        "excluded"
+      ],
+      "default": "pending"
+    },
+    "excluded_reason": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "company_id",
+    "bank_account_id",
+    "transaction_date",
+    "description",
+    "amount",
+    "transaction_type"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

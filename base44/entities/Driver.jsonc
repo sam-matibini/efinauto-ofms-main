@@ -1,0 +1,113 @@
+{
+  "name": "Driver",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "driver_name": {
+      "type": "string",
+      "description": "Full name of driver"
+    },
+    "driver_license_number": {
+      "type": "string",
+      "description": "Driver's license number"
+    },
+    "license_expiry_date": {
+      "type": "string",
+      "format": "date",
+      "description": "License expiration date"
+    },
+    "driver_cellphone": {
+      "type": "string",
+      "description": "Driver contact number"
+    },
+    "driver_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Driver email address"
+    },
+    "hazmat_certified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether driver is HAZMAT certified"
+    },
+    "hazmat_cert_expiry": {
+      "type": "string",
+      "format": "date",
+      "description": "HAZMAT certification expiry date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "on_duty",
+        "off_duty"
+      ],
+      "default": "active",
+      "description": "Driver status"
+    },
+    "current_shipment_id": {
+      "type": "string",
+      "description": "Reference to active LocalShipment"
+    },
+    "profile_photo_url": {
+      "type": "string",
+      "description": "Driver profile photo"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "driver_name",
+    "driver_license_number",
+    "driver_cellphone"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

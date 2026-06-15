@@ -1,0 +1,108 @@
+{
+  "name": "PayGroup",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "name": {
+      "type": "string",
+      "description": "Pay group name (e.g., Salaried, Hourly, Commission)"
+    },
+    "pay_frequency": {
+      "type": "string",
+      "enum": [
+        "weekly",
+        "bi_weekly",
+        "semi_monthly",
+        "monthly"
+      ],
+      "default": "bi_weekly"
+    },
+    "default_overtime_multiplier": {
+      "type": "number",
+      "default": 1.5
+    },
+    "auto_vacation_accrual": {
+      "type": "boolean",
+      "default": true,
+      "description": "Automatically accrue vacation on each payroll run"
+    },
+    "vacation_payout_threshold": {
+      "type": "number",
+      "default": 0,
+      "description": "Auto-payout vacation when balance exceeds this (0 = no auto payout)"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "company_id",
+    "name"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "company_id": "{{user.data.company_id}}",
+          "user_condition": {
+            "role": "manager"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "company_id": "{{user.data.company_id}}",
+          "user_condition": {
+            "role": "manager"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "company_id": "{{user.data.company_id}}",
+          "user_condition": {
+            "role": "manager"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "company_id": "{{user.data.company_id}}",
+          "user_condition": {
+            "role": "manager"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "name": "PaymentTransaction",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "export_order_id": {
+      "type": "string",
+      "description": "Reference to ExportOrder entity"
+    },
+    "transaction_id": {
+      "type": "string",
+      "description": "Unique payment transaction ID"
+    },
+    "payment_gateway": {
+      "type": "string",
+      "enum": [
+        "stripe",
+        "paypal",
+        "wire_transfer",
+        "other"
+      ],
+      "default": "stripe"
+    },
+    "gateway_payment_id": {
+      "type": "string",
+      "description": "Payment ID from gateway (e.g., Stripe charge ID)"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "card",
+        "bank_transfer",
+        "paypal",
+        "wire",
+        "check"
+      ],
+      "default": "card"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Payment amount"
+    },
+    "currency": {
+      "type": "string",
+      "description": "ISO 4217 currency code"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+        "refunded",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "payer_name": {
+      "type": "string"
+    },
+    "payer_email": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "transaction_fee": {
+      "type": "number",
+      "default": 0,
+      "description": "Gateway transaction fee"
+    },
+    "net_amount": {
+      "type": "number",
+      "description": "Amount after fees"
+    },
+    "gl_transaction_id": {
+      "type": "string",
+      "description": "Reference to GL Transaction entity"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional payment metadata"
+    }
+  },
+  "required": [
+    "company_id",
+    "export_order_id",
+    "amount",
+    "currency"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

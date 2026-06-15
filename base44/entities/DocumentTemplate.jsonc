@@ -1,0 +1,101 @@
+{
+  "name": "DocumentTemplate",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "template_name": {
+      "type": "string",
+      "description": "User-friendly template name"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "commercial_invoice",
+        "bill_of_lading",
+        "certificate_of_origin",
+        "packing_list",
+        "proforma_invoice",
+        "export_declaration",
+        "customs_declaration",
+        "inspection_certificate",
+        "phytosanitary_certificate"
+      ],
+      "description": "Type of export document"
+    },
+    "template_content": {
+      "type": "object",
+      "description": "Template configuration and field mappings"
+    },
+    "is_default": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is the default template for this document type"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "last_used": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "company_id",
+    "template_name",
+    "document_type"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

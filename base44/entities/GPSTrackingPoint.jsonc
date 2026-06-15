@@ -1,0 +1,71 @@
+{
+  "name": "GPSTrackingPoint",
+  "type": "object",
+  "properties": {
+    "shipment_id": {
+      "type": "string",
+      "description": "Reference to LocalShipment entity"
+    },
+    "driver_id": {
+      "type": "string",
+      "description": "Reference to Driver entity"
+    },
+    "latitude": {
+      "type": "number",
+      "description": "GPS latitude"
+    },
+    "longitude": {
+      "type": "number",
+      "description": "GPS longitude"
+    },
+    "altitude": {
+      "type": "number",
+      "description": "Altitude in meters"
+    },
+    "speed_kmh": {
+      "type": "number",
+      "description": "Speed in km/h"
+    },
+    "heading": {
+      "type": "number",
+      "description": "Direction in degrees (0-360)"
+    },
+    "accuracy": {
+      "type": "number",
+      "description": "GPS accuracy in meters"
+    },
+    "battery_level": {
+      "type": "number",
+      "description": "Device battery percentage"
+    },
+    "device_id": {
+      "type": "string",
+      "description": "Mobile device identifier"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When GPS point was captured"
+    },
+    "synced": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether point was synced in real-time or offline"
+    }
+  },
+  "required": [
+    "shipment_id",
+    "latitude",
+    "longitude"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

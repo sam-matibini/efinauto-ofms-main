@@ -1,0 +1,57 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "manager",
+        "sales",
+        "technician",
+        "inventory_manager",
+        "accountant",
+        "user"
+      ],
+      "default": "user",
+      "description": "User role with specific permissions"
+    },
+    "department": {
+      "type": "string",
+      "description": "User's department"
+    },
+    "employee_id": {
+      "type": "string",
+      "description": "Employee identification number"
+    },
+    "accessible_modules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of modules/pages the user can access",
+      "default": []
+    },
+    "subscription_plan": {
+      "type": "string",
+      "description": "Active subscription plan (starter, professional, enterprise, custom)"
+    },
+    "subscription_type": {
+      "type": "string",
+      "description": "Type of subscription (plan or custom)"
+    },
+    "subscription_date": {
+      "type": "string",
+      "description": "Date when subscription was activated"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "employee_entity_id": {
+      "type": "string",
+      "description": "Reference to Employee entity if linked"
+    }
+  },
+  "required": []
+}

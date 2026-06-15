@@ -1,0 +1,308 @@
+{
+  "name": "RepairOrder",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "order_number": {
+      "type": "string"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "customer_phone": {
+      "type": "string"
+    },
+    "vehicle_make": {
+      "type": "string"
+    },
+    "vehicle_model": {
+      "type": "string"
+    },
+    "vehicle_year": {
+      "type": "number"
+    },
+    "vehicle_vin": {
+      "type": "string"
+    },
+    "vehicle_plate": {
+      "type": "string",
+      "description": "License plate number"
+    },
+    "mileage": {
+      "type": "number"
+    },
+    "service_type": {
+      "type": "string",
+      "enum": [
+        "routine_maintenance",
+        "oil_change",
+        "brake_service",
+        "engine_repair",
+        "transmission_repair",
+        "electrical_repair",
+        "body_work",
+        "tire_service",
+        "inspection",
+        "other"
+      ],
+      "default": "routine_maintenance"
+    },
+    "description": {
+      "type": "string",
+      "description": "Problem description"
+    },
+    "diagnosis": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "waiting_parts",
+        "completed",
+        "picked_up",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ],
+      "default": "medium"
+    },
+    "assigned_technician": {
+      "type": "string"
+    },
+    "time_tracking": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "technician": {
+            "type": "string"
+          },
+          "start_time": {
+            "type": "string"
+          },
+          "end_time": {
+            "type": "string"
+          },
+          "hours": {
+            "type": "number"
+          },
+          "task_description": {
+            "type": "string"
+          },
+          "billable": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      }
+    },
+    "total_labor_hours": {
+      "type": "number",
+      "default": 0
+    },
+    "hourly_rate": {
+      "type": "number",
+      "default": 0
+    },
+    "parts_used": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "part_id": {
+            "type": "string"
+          },
+          "part_name": {
+            "type": "string"
+          },
+          "part_number": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit_cost": {
+            "type": "number"
+          },
+          "total_cost": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "labor_cost": {
+      "type": "number",
+      "default": 0
+    },
+    "parts_cost": {
+      "type": "number",
+      "default": 0
+    },
+    "tax_amount": {
+      "type": "number",
+      "default": 0
+    },
+    "total_cost": {
+      "type": "number",
+      "default": 0
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "partial",
+        "paid"
+      ],
+      "default": "pending"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "cash",
+        "credit_card",
+        "debit_card",
+        "check",
+        "bank_transfer"
+      ],
+      "default": "cash"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "completion_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "estimated_completion": {
+      "type": "string",
+      "format": "date"
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "uploaded_date": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "warranty_info": {
+      "type": "object",
+      "properties": {
+        "has_warranty": {
+          "type": "boolean",
+          "default": false
+        },
+        "warranty_duration_months": {
+          "type": "number"
+        },
+        "warranty_expiry": {
+          "type": "string"
+        },
+        "warranty_notes": {
+          "type": "string"
+        }
+      }
+    },
+    "customer_approval": {
+      "type": "object",
+      "properties": {
+        "estimate_approved": {
+          "type": "boolean",
+          "default": false
+        },
+        "approval_date": {
+          "type": "string"
+        },
+        "approved_amount": {
+          "type": "number"
+        }
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "customer_name",
+    "customer_phone",
+    "vehicle_make",
+    "vehicle_model"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,204 @@
+{
+  "name": "Cargo",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "cargo_id": {
+      "type": "string",
+      "description": "Unique cargo identifier"
+    },
+    "description": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "general",
+        "machinery",
+        "equipment",
+        "electronics",
+        "furniture",
+        "spare_parts",
+        "other"
+      ],
+      "default": "general"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "container_id": {
+      "type": "string",
+      "description": "Reference to Container entity"
+    },
+    "container_number": {
+      "type": "string"
+    },
+    "shipment_id": {
+      "type": "string",
+      "description": "Reference to FreightShipment entity"
+    },
+    "shipment_number": {
+      "type": "string"
+    },
+    "weight": {
+      "type": "number",
+      "default": 0,
+      "description": "Weight in kg"
+    },
+    "volume_cbm": {
+      "type": "number",
+      "default": 0,
+      "description": "Volume in cubic meters"
+    },
+    "dimensions": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        }
+      }
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1
+    },
+    "declared_value": {
+      "type": "number",
+      "default": 0
+    },
+    "hs_code": {
+      "type": "string",
+      "description": "Harmonized System code"
+    },
+    "origin_country": {
+      "type": "string"
+    },
+    "destination_country": {
+      "type": "string"
+    },
+    "eta": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "booked",
+        "loaded",
+        "in_transit",
+        "at_port",
+        "customs",
+        "cleared",
+        "delivered"
+      ],
+      "default": "pending"
+    },
+    "fees": {
+      "type": "object",
+      "properties": {
+        "freight": {
+          "type": "number",
+          "default": 0
+        },
+        "handling": {
+          "type": "number",
+          "default": 0
+        },
+        "customs": {
+          "type": "number",
+          "default": 0
+        },
+        "storage": {
+          "type": "number",
+          "default": 0
+        },
+        "total": {
+          "type": "number",
+          "default": 0
+        }
+      }
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "description"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

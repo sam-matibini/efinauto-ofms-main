@@ -1,0 +1,117 @@
+{
+  "name": "VacationTransaction",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Reference to Company entity"
+    },
+    "employee_id": {
+      "type": "string",
+      "description": "Reference to Employee entity"
+    },
+    "employee_name": {
+      "type": "string"
+    },
+    "transaction_type": {
+      "type": "string",
+      "enum": [
+        "accrual",
+        "usage",
+        "adjustment",
+        "payout"
+      ],
+      "default": "accrual"
+    },
+    "transaction_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "hours": {
+      "type": "number",
+      "description": "Positive for accruals/adjustments, negative for usage"
+    },
+    "balance_after": {
+      "type": "number",
+      "description": "Vacation balance after this transaction"
+    },
+    "reference_id": {
+      "type": "string",
+      "description": "Reference to PayrollRun or TimeOffRequest"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "employee_id",
+    "transaction_type",
+    "transaction_date",
+    "hours"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "manager"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "company_id": "{{user.data.company_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "manager"
+          }
+        },
+        {
+          "employee_id": "{{user.data.employee_entity_id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "manager"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "manager"
+          }
+        }
+      ]
+    }
+  }
+}
