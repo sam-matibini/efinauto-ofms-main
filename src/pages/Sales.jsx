@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, DollarSign, TrendingUp, ChevronDown, ChevronUp, FileText, Users, FileCheck, Receipt, RefreshCw, CreditCard, FileX, Mail, Edit, Trash2, LayoutGrid, List, Download, FileSpreadsheet, Loader2, XCircle, Ship } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, ChevronDown, ChevronUp, FileText, Users, FileCheck, Receipt, RefreshCw, CreditCard, FileX, Mail, Edit, Trash2, LayoutGrid, List, Download, FileSpreadsheet, Loader2, XCircle, Ship, Printer, Share2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   AlertDialog,
@@ -34,6 +34,7 @@ import CanadianTaxCalculator, { calculateCanadianTax } from "../components/sales
 import BillOfSale from "../components/sales/BillOfSale";
 import DocumentShareDialog from "../components/sales/DocumentShareDialog";
 import { printDocument } from "../components/sales/DocumentSharingService";
+import { generateDocumentPDF } from "../components/sales/DocumentPDFService";
 import AIDocumentSummary from "../components/shared/AIDocumentSummary";
 import { useCompany } from "../components/shared/CompanyContext";
 import { generateBOSNumber, voidBOS } from "../components/sales/BOSNumberingService";
@@ -67,7 +68,38 @@ export default function Sales() {
   const [voidingBOS, setVoidingBOS] = useState(null);
   const [exportOrderDialogOpen, setExportOrderDialogOpen] = useState(false);
   const [selectedSaleForExport, setSelectedSaleForExport] = useState(null);
+  const [pdfLoadingId, setPdfLoadingId] = useState(null);
   const { selectedCompanyId } = useCompany();
+
+  const handleDownloadBOS = async (sale) => {
+    setPdfLoadingId(sale.id);
+    try {
+      const result = await generateDocumentPDF(sale.id, "BOS");
+      const a = document.createElement('a');
+      a.href = result.pdf_url;
+      a.download = `BOS_${sale.bos_number || sale.sale_number}.pdf`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(result.pdf_url), 100);
+      toast.success("PDF downloaded");
+    } catch (error) {
+      toast.error("Download failed: " + error.message);
+    }
+    setPdfLoadingId(null);
+  };
+
+  const handlePrintBOS = async (sale) => {
+    setPdfLoadingId(sale.id + "_print");
+    try {
+      const result = await generateDocumentPDF(sale.id, "BOS");
+      const printWindow = window.open(result.pdf_url, '_blank');
+      if (printWindow) printWindow.onload = () => printWindow.print();
+      setTimeout(() => URL.revokeObjectURL(result.pdf_url), 5000);
+      toast.success("Opening print dialog...");
+    } catch (error) {
+      toast.error("Print failed: " + error.message);
+    }
+    setPdfLoadingId(null);
+  };
   const queryClient = useQueryClient();
 
   const { data: sales = [] } = useQuery({
@@ -578,6 +610,19 @@ export default function Sales() {
                             <Button size="icon" variant="ghost" onClick={() => handleViewBillOfSale(sale)}>
                               <FileText className="w-4 h-4" />
                             </Button>
+                            {sale.bos_status === 'finalized' && (
+                              <>
+                                <Button size="icon" variant="ghost" onClick={() => handleDownloadBOS(sale)} disabled={pdfLoadingId === sale.id} title="Download PDF">
+                                  {pdfLoadingId === sale.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                                </Button>
+                                <Button size="icon" variant="ghost" onClick={() => handlePrintBOS(sale)} disabled={pdfLoadingId === sale.id + "_print"} title="Print">
+                                  {pdfLoadingId === sale.id + "_print" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
+                                </Button>
+                                <Button size="icon" variant="ghost" className="text-green-600" onClick={() => { setSelectedSale(sale); setShareDialogOpen(true); }} title="Share">
+                                  <Share2 className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
                             <Button size="icon" variant="ghost" onClick={() => { setEditingSale(sale); setDialogOpen(true); }} disabled={sale.bos_status === 'finalized'}>
                               <Edit className="w-4 h-4" />
                             </Button>
@@ -710,6 +755,39 @@ export default function Sales() {
                               Export Order
                             </Button>
                             )}
+                          {sale.bos_status === 'finalized' && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDownloadBOS(sale)}
+                                disabled={pdfLoadingId === sale.id}
+                                className="text-slate-700"
+                              >
+                                {pdfLoadingId === sale.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                                Download
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePrintBOS(sale)}
+                                disabled={pdfLoadingId === sale.id + "_print"}
+                                className="text-slate-700"
+                              >
+                                {pdfLoadingId === sale.id + "_print" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Printer className="w-4 h-4 mr-2" />}
+                                Print
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setSelectedSale(sale); setShareDialogOpen(true); }}
+                                className="text-green-700 border-green-300 hover:bg-green-50"
+                              >
+                                <Share2 className="w-4 h-4 mr-2" />
+                                Share
+                              </Button>
+                            </>
+                          )}
                             <Button
                             variant="outline"
                             size="sm"
