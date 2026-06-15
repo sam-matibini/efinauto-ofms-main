@@ -90,10 +90,11 @@ const generateCleanHTMLTemplate = (document, company, type) => {
     .doc-number { border: 1px solid #000; padding: 6px 16px; display: inline-block; font-size: 12px; }
     .doc-status { font-size: 10px; margin-top: 5px; }
     .fields { margin: 8px 0; }
-    .field-row { display: flex; border-bottom: 1px solid #000; padding: 3px 0; gap: 8px; }
-    .field-label { font-weight: bold; white-space: nowrap; min-width: 120px; }
+    .field-row { display: flex; border-bottom: 1px solid #000; padding: 4px 0; gap: 8px; align-items: baseline; }
+    .field-label { font-weight: bold; white-space: nowrap; min-width: 130px; flex-shrink: 0; }
     .field-value { flex: 1; }
-    .field-inline { display: inline-flex; gap: 4px; margin-right: 20px; }
+    .field-inline { display: flex; gap: 4px; align-items: baseline; flex: 1; min-width: 0; }
+    .field-inline .field-label { min-width: 80px; }
     table { width: 100%; border-collapse: collapse; margin: 8px 0; }
     table td { border: 1px solid #000; padding: 5px 8px; font-size: 10.5px; }
     table th { border: 1px solid #000; padding: 5px 8px; font-weight: bold; background: #fff; }
@@ -132,26 +133,42 @@ const generateCleanHTMLTemplate = (document, company, type) => {
     <div class="field-row"><span class="field-label">Purchaser's Name:</span><span class="field-value">${safe(document.customer_name)}</span></div>
     <div class="field-row"><span class="field-label">Address:</span><span class="field-value">${safe(document.customer_address)}</span></div>
     <div class="field-row">
-      <span class="field-inline"><span class="field-label">City:</span><span>${safe(document.customer_city)}</span></span>
-      <span class="field-inline"><span class="field-label">Province:</span><span>${safe(document.province)}</span></span>
-      <span class="field-inline"><span class="field-label">Postal:</span><span>${safe(document.customer_postal_code)}</span></span>
+      <div class="field-inline"><span class="field-label">City:</span><span>${safe(document.customer_city)}</span></div>
+      <div class="field-inline"><span class="field-label">Province:</span><span>${safe(document.province)}</span></div>
+      <div class="field-inline"><span class="field-label">Postal Code:</span><span>${safe(document.customer_postal_code)}</span></div>
     </div>
     <div class="field-row">
-      <span class="field-inline"><span class="field-label">Phone:</span><span>${safe(document.customer_phone)}</span></span>
-      <span class="field-inline"><span class="field-label">Business Phone:</span><span>${safe(document.customer_business_phone)}</span></span>
+      <div class="field-inline"><span class="field-label">Phone:</span><span>${safe(document.customer_phone)}</span></div>
+      <div class="field-inline"><span class="field-label">Business Phone:</span><span>${safe(document.customer_business_phone)}</span></div>
     </div>
     <div class="field-row"><span class="field-label">Email:</span><span class="field-value">${safe(document.customer_email)}</span></div>
     <div class="field-row">
-      <span class="field-inline"><span class="field-label">Salesman:</span><span>${safe(document.salesman)}</span></span>
-      <span class="field-inline"><span class="field-label">Date:</span><span>${safe(document.sale_date)}</span></span>
+      <div class="field-inline"><span class="field-label">Salesman:</span><span>${safe(document.salesman)}</span></div>
+      <div class="field-inline"><span class="field-label">Date:</span><span>${safe(document.sale_date)}</span></div>
     </div>
   </div>
 
   <table>
-    <tr><th style="width:40%">Vehicle Purchased</th><th style="width:12%">Year</th><th>Make &amp; Model</th></tr>
-    <tr><td>${safe(document.vehicle_details)}</td><td>${safe(document.vehicle_year)}</td><td>${safe(document.vehicle_make_model)}</td></tr>
-    <tr><th>Odometer</th><th>Colour</th><th>VIN: ${safe(document.vehicle_vin)}</th></tr>
-    <tr><td>${safeNum(document.vehicle_mileage)}</td><td>${safe(document.vehicle_color)}</td><td></td></tr>
+    <tr>
+      <th style="width:40%">Vehicle Purchased</th>
+      <th style="width:12%">Year</th>
+      <th>Make &amp; Model</th>
+    </tr>
+    <tr>
+      <td>${safe(document.vehicle_details)}</td>
+      <td>${safe(document.vehicle_year, '')}</td>
+      <td>${safe(document.vehicle_make_model)}</td>
+    </tr>
+    <tr>
+      <th>Odometer (km)</th>
+      <th>Colour</th>
+      <th>VIN</th>
+    </tr>
+    <tr>
+      <td>${safeNum(document.vehicle_mileage) || '—'}</td>
+      <td>${safe(document.vehicle_color, '—')}</td>
+      <td>${safe(document.vehicle_vin, '—')}</td>
+    </tr>
   </table>
 
   <table>
