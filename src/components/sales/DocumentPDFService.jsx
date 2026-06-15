@@ -98,10 +98,13 @@ const generateCleanHTMLTemplate = (document, company, type) => {
     .sale-type { font-size: 9px; color: #666; margin-top: 3px; }
 
     /* ── BUYER INFO ── */
-    .section-title { font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; color: #2c3e50; background: #ecf0f1; padding: 4px 8px; margin: 14px 0 0; border-left: 3px solid #2c3e50; }
-    .info-grid { width: 100%; border-collapse: collapse; margin-bottom: 0; }
-    .info-grid td { padding: 5px 8px; border: 1px solid #ddd; font-size: 10.5px; vertical-align: top; }
-    .info-grid td.lbl { font-weight: bold; color: #333; background: #f9f9f9; width: 140px; white-space: nowrap; }
+    .section-title { font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; color: #2c3e50; background: #ecf0f1; padding: 4px 8px; margin: 14px 0 6px; border-left: 3px solid #2c3e50; }
+    .buyer-block { display: table; width: 100%; margin-bottom: 10px; }
+    .buyer-col { display: table-cell; width: 50%; vertical-align: top; padding-right: 24px; }
+    .buyer-col:last-child { padding-right: 0; padding-left: 8px; }
+    .buyer-field { margin-bottom: 6px; }
+    .buyer-label { font-size: 9px; font-weight: bold; text-transform: uppercase; color: #888; letter-spacing: 0.4px; margin-bottom: 1px; }
+    .buyer-value { font-size: 11px; color: #222; border-bottom: 1px solid #e0e0e0; padding-bottom: 3px; min-height: 16px; }
 
     /* ── VEHICLE TABLE ── */
     .veh-table { width: 100%; border-collapse: collapse; margin-top: 14px; }
@@ -162,38 +165,52 @@ const generateCleanHTMLTemplate = (document, company, type) => {
 
   <!-- PURCHASER INFO -->
   <div class="section-title">Purchaser Information</div>
-  <table class="info-grid">
-    <tr>
-      <td class="lbl">Name</td>
-      <td>${safe(document.customer_name)}</td>
-      <td class="lbl">Salesman</td>
-      <td>${safe(document.salesman)}</td>
-    </tr>
-    <tr>
-      <td class="lbl">Address</td>
-      <td>${safe(document.customer_address)}</td>
-      <td class="lbl">Phone</td>
-      <td>${safe(document.customer_phone)}</td>
-    </tr>
-    <tr>
-      <td class="lbl">City</td>
-      <td>${safe(document.customer_city)}</td>
-      <td class="lbl">Business Phone</td>
-      <td>${safe(document.customer_business_phone)}</td>
-    </tr>
-    <tr>
-      <td class="lbl">Province</td>
-      <td>${safe(document.province)}</td>
-      <td class="lbl">Email</td>
-      <td>${safe(document.customer_email)}</td>
-    </tr>
-    <tr>
-      <td class="lbl">Postal Code</td>
-      <td>${safe(document.customer_postal_code)}</td>
-      <td class="lbl">Country</td>
-      <td>${safe(document.customer_country)}</td>
-    </tr>
-  </table>
+  <div class="buyer-block">
+    <div class="buyer-col">
+      <div class="buyer-field">
+        <div class="buyer-label">Name</div>
+        <div class="buyer-value">${safe(document.customer_name)}</div>
+      </div>
+      <div class="buyer-field">
+        <div class="buyer-label">Address</div>
+        <div class="buyer-value">${safe(document.customer_address)}</div>
+      </div>
+      <div class="buyer-field">
+        <div class="buyer-label">City</div>
+        <div class="buyer-value">${safe(document.customer_city)}</div>
+      </div>
+      <div class="buyer-field">
+        <div class="buyer-label">Province / State</div>
+        <div class="buyer-value">${safe(document.province)}</div>
+      </div>
+      <div class="buyer-field">
+        <div class="buyer-label">Postal Code</div>
+        <div class="buyer-value">${safe(document.customer_postal_code)}</div>
+      </div>
+    </div>
+    <div class="buyer-col">
+      <div class="buyer-field">
+        <div class="buyer-label">Salesman</div>
+        <div class="buyer-value">${safe(document.salesman)}</div>
+      </div>
+      <div class="buyer-field">
+        <div class="buyer-label">Phone</div>
+        <div class="buyer-value">${safe(document.customer_phone)}</div>
+      </div>
+      <div class="buyer-field">
+        <div class="buyer-label">Business Phone</div>
+        <div class="buyer-value">${safe(document.customer_business_phone)}</div>
+      </div>
+      <div class="buyer-field">
+        <div class="buyer-label">Email</div>
+        <div class="buyer-value">${safe(document.customer_email)}</div>
+      </div>
+      <div class="buyer-field">
+        <div class="buyer-label">Country</div>
+        <div class="buyer-value">${safe(document.customer_country)}</div>
+      </div>
+    </div>
+  </div>
 
   <!-- VEHICLE INFO -->
   <div class="section-title">Vehicle Details</div>
