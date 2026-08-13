@@ -60,17 +60,17 @@
     "create": {
       "$or": [
         {
-          "company_id": "{{user.data.company_id}}",
-          "employee_id": "{{user.data.employee_entity_id}}"
+          "data.company_id": "{{user.data.company_id}}",
+          "created_by_id": "{{user.id}}"
         },
         {
           "user_condition": {
-            "role": {
-              "$in": [
-                "admin",
-                "manager"
-              ]
-            }
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "manager"
           }
         }
       ]
@@ -78,18 +78,22 @@
     "read": {
       "$or": [
         {
-          "company_id": "{{user.data.company_id}}",
-          "employee_id": "{{user.data.employee_entity_id}}"
+          "data.company_id": "{{user.data.company_id}}",
+          "created_by_id": "{{user.id}}"
         },
         {
           "user_condition": {
-            "role": {
-              "$in": [
-                "admin",
-                "manager",
-                "accountant"
-              ]
-            }
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "manager"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "accountant"
           }
         }
       ]
@@ -97,17 +101,17 @@
     "update": {
       "$or": [
         {
-          "company_id": "{{user.data.company_id}}",
-          "employee_id": "{{user.data.employee_entity_id}}"
+          "data.company_id": "{{user.data.company_id}}",
+          "created_by_id": "{{user.id}}"
         },
         {
           "user_condition": {
-            "role": {
-              "$in": [
-                "admin",
-                "manager"
-              ]
-            }
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "manager"
           }
         }
       ]
@@ -117,16 +121,23 @@
         {
           "$and": [
             {
-              "company_id": "{{user.data.company_id}}"
+              "data.company_id": "{{user.data.company_id}}"
             },
             {
               "user_condition": {
-                "role": {
-                  "$in": [
-                    "admin",
-                    "manager"
-                  ]
-                }
+                "role": "admin"
+              }
+            }
+          ]
+        },
+        {
+          "$and": [
+            {
+              "data.company_id": "{{user.data.company_id}}"
+            },
+            {
+              "user_condition": {
+                "role": "manager"
               }
             }
           ]
