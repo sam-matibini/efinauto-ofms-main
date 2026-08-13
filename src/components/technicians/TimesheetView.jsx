@@ -11,10 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Clock, CheckCircle, Edit, Trash2 } from "lucide-react";
 import { useCompany } from "@/components/shared/CompanyContext";
+import { useTechnicianScope } from "@/hooks/useTechnicianScope";
 import { toast } from "sonner";
 
 export default function TimesheetView({ technicians }) {
   const { selectedCompanyId } = useCompany();
+  const { canViewAll, canEditAll, ownedTechnicianIds } = useTechnicianScope();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
@@ -73,8 +75,16 @@ export default function TimesheetView({ technicians }) {
     }
   };
 
-  const totalHours = timesheets.reduce((sum, t) => sum + (t.total_hours || 0), 0);
-  const billableHours = timesheets.filter(t => t.billable).reduce((sum, t) => sum + (t.total_hours || 0), 0);
+  const visibleTimesheets = canViewAll
+    ? timesheets
+    : timesheets.filter((t) => ownedTechnicianIds.includes(t.technician_id));
+
+  const dialogTechnicians = canEditAll
+    ? technicians
+    : (technicians || []).filter((t) => ownedTechnicianIds.includes(t.id));
+
+  const totalHours = visibleTimesheets.reduce((sum, t) => sum + (t.total_hours || 0), 0);
+  const billableHours = visibleTimesheets.filter(t => t.billable).reduce((sum, t) => sum + (t.total_hours || 0), 0);
 
   return (
     <div className="space-y-4">
@@ -106,7 +116,7 @@ export default function TimesheetView({ technicians }) {
       </div>
 
       <div className="space-y-3">
-        {timesheets.length === 0 ? (
+        {visibleTimesheets.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
               <Clock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
@@ -114,7 +124,7 @@ export default function TimesheetView({ technicians }) {
             </CardContent>
           </Card>
         ) : (
-          timesheets.map((entry) => (
+          visibleTimesheets.map((entry) => (
             <Card key={entry.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="flex justify-between items-start">
@@ -147,6 +157,7 @@ export default function TimesheetView({ technicians }) {
                       )}
                     </div>
                   </div>
+                  {(canEditAll || ownedTechnicianIds.includes(entry.technician_id)) && (
                   <div className="flex gap-1">
                     <Button
                       size="icon"
@@ -167,6 +178,7 @@ export default function TimesheetView({ technicians }) {
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -181,7 +193,7 @@ export default function TimesheetView({ technicians }) {
           setEditingEntry(null);
         }}
         entry={editingEntry}
-        technicians={technicians}
+        technicians={dialogTechnicians}
         repairOrders={repairOrders}
         onSave={handleSave}
         defaultDate={dateFilter}
