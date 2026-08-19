@@ -44,6 +44,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { supabase } from "@/api/supabaseClient";
+import { useAuth } from "@/lib/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { CompanyProvider } from "@/components/shared/CompanyContext";
 import CompanySelector from "@/components/shared/CompanySelector";
@@ -287,13 +288,13 @@ export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
 
   const { data: currentUser } = useQuery({
     queryKey: ["currentUser"],
     queryFn: () => supabase.auth.me(),
+    enabled: isAuthenticated,
   });
-
-  console.log("Current User:", currentUser); // Debugging line
 
   // Filter navigation items based on user's accessible modules
   // If user or company has no modules defined, show all items
@@ -325,6 +326,7 @@ export default function Layout({ children, currentPageName }) {
       <CompanyProvider>
         <SidebarProvider>
           <div className="min-h-screen flex w-full bg-gray-50">
+            {isAuthenticated && (
             <Sidebar
               className="border-r border-gray-800"
               style={{ backgroundColor: "#1e293b" }}
@@ -399,7 +401,7 @@ export default function Layout({ children, currentPageName }) {
                     title="Edit Profile"
                   >
                     <span className="text-white font-semibold text-sm">
-                      {currentUser?.full_name?.charAt(0).toUpperCase() || "U"}
+                      {currentUser?.user_metadata.full_name?.charAt(0).toUpperCase() || "U"}
                     </span>
                   </button>
                   <div className="flex-1 min-w-0">
@@ -409,10 +411,10 @@ export default function Layout({ children, currentPageName }) {
                       title="Edit Profile"
                     >
                       <p className="font-semibold text-white text-sm truncate">
-                        {currentUser?.full_name || "User"}
+                        {currentUser?.user_metadata.full_name || "User"}
                       </p>
                       <p className="text-xs text-gray-300 truncate">
-                        {currentUser?.role?.replace(/_/g, " ") || "User"}
+                        {currentUser?.user_metadata.role?.replace(/_/g, " ") || "User"}
                       </p>
                     </button>
                   </div>
@@ -426,8 +428,10 @@ export default function Layout({ children, currentPageName }) {
                 </div>
               </SidebarFooter>
             </Sidebar>
+            )}
 
             <main className="flex-1 flex flex-col min-h-screen bg-white">
+              {isAuthenticated && (
               <header className="bg-white border-b border-gray-200 px-4 py-3 lg:hidden sticky top-0 z-10">
                 <div className="flex items-center gap-3">
                   <SidebarTrigger className="hover:bg-gray-100 p-2 rounded-lg transition-colors duration-200" />
@@ -443,6 +447,7 @@ export default function Layout({ children, currentPageName }) {
                   </h1>
                 </div>
               </header>
+              )}
 
               <div className="flex-1">{children}</div>
             </main>
