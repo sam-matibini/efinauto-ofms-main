@@ -34,7 +34,7 @@ export default function LoginPage() {
     if (!password) { setError('Enter your password.'); return; }
     setBusy(true);
     try {
-      await supabase.auth.signInWithPassword({ email, password });
+      await supabase.auth.signIn({ email, password });
       window.location.assign(next);
     } catch (err) {
       setError(err?.message || 'Invalid email or password. Please try again.');
