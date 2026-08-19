@@ -288,13 +288,14 @@ export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const queryClient = useQueryClient();
-  const { isAuthenticated, logout } = useAuth();
-
-  const { data: currentUser } = useQuery({
-    queryKey: ["currentUser"],
+  const { user: currentUser, isAuthenticated, logout } = useAuth();
+  const rawUser = useQuery({
+    queryKey: ['rawUser'],
     queryFn: () => supabase.auth.me(),
     enabled: isAuthenticated,
   });
+  console.log("Current User:", currentUser);
+  console.log("raw user", rawUser);
 
   // Filter navigation items based on user's accessible modules
   // If user or company has no modules defined, show all items
