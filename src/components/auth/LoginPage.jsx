@@ -171,7 +171,7 @@ export default function LoginPage() {
                 onClick={() => {
                   if (!email) { setError('Enter your email address first.'); return; }
                   supabase.auth.resetPasswordRequest(email, {
-                    redirectTo: window.location.origin + '/login',
+                    redirectTo: window.location.origin + '/reset-password',
                   }).then(() => {
                     setNotice('Password reset link sent to your email.');
                   }).catch((err) => {
