@@ -317,8 +317,8 @@ export default function Layout({ children, currentPageName }) {
   });
 
   const handleLogout = () => {
-    logout(false);
     queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+    logout(false);
   };
 
   return (
