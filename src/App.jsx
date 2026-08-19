@@ -10,6 +10,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import LoginPage from '@/components/auth/LoginPage';
+import ForgotPasswordPage from '@/components/auth/ForgotPasswordPage';
 import ResetPasswordPage from '@/components/auth/ResetPasswordPage';
 
 const { Pages, Layout, mainPage } = pagesConfig;
@@ -47,6 +48,7 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/" element={
         <LayoutWrapper currentPageName={mainPageKey}>

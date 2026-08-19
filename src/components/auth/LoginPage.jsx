@@ -34,7 +34,7 @@ export default function LoginPage() {
     if (!password) { setError('Enter your password.'); return; }
     setBusy(true);
     try {
-      await supabase.auth.signIn({ email, password });
+      await supabase.auth.signInWithPassword({ email, password });
       window.location.assign(next);
     } catch (err) {
       setError(err?.message || 'Invalid email or password. Please try again.');
@@ -166,22 +166,9 @@ export default function LoginPage() {
           {/* Forgot password (login only) */}
           {isLogin && (
             <div style={{ textAlign: 'right', marginTop: -8, marginBottom: 16 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!email) { setError('Enter your email address first.'); return; }
-                  supabase.auth.resetPasswordRequest(email, {
-                    redirectTo: window.location.origin + '/reset-password',
-                  }).then(() => {
-                    setNotice('Password reset link sent to your email.');
-                  }).catch((err) => {
-                    setError(err?.message || 'Could not send reset link.');
-                  });
-                }}
-                style={S.forgotBtn}
-              >
+              <a href="/forgot-password" style={S.forgotBtn}>
                 Forgot password?
-              </button>
+              </a>
             </div>
           )}
 
@@ -335,13 +322,11 @@ const S = {
     transition: 'background 0.15s',
   },
   forgotBtn: {
-    background: 'none',
-    border: 'none',
+    textDecoration: 'none',
     cursor: 'pointer',
     fontSize: '13px',
     color: '#6366f1',
     fontWeight: 500,
-    padding: 0,
   },
   footer: {
     fontSize: '14px',
