@@ -402,7 +402,7 @@ export default function Layout({ children, currentPageName }) {
                     title="Edit Profile"
                   >
                     <span className="text-white font-semibold text-sm">
-                      {currentUser?.user_metadata.full_name?.charAt(0).toUpperCase() || "U"}
+                      {currentUser?.full_name?.charAt(0).toUpperCase() || "U"}
                     </span>
                   </button>
                   <div className="flex-1 min-w-0">
@@ -412,10 +412,10 @@ export default function Layout({ children, currentPageName }) {
                       title="Edit Profile"
                     >
                       <p className="font-semibold text-white text-sm truncate">
-                        {currentUser?.user_metadata.full_name || "User"}
+                        {currentUser?.full_name || "User"}
                       </p>
                       <p className="text-xs text-gray-300 truncate">
-                        {currentUser?.user_metadata.role?.replace(/_/g, " ") || "User"}
+                        {currentUser?.role?.replace(/_/g, " ") || "User"}
                       </p>
                     </button>
                   </div>
