@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { supabase } from "@/api/supabaseClient";
+import { useAuth } from "@/lib/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -29,17 +30,8 @@ export default function Landing() {
     setModuleCategories(modules);
   }, []);
 
-  // Check if user is authenticated
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: async () => {
-      try {
-        return await supabase.auth.me();
-      } catch {
-        return null;
-      }
-    },
-  });
+  // Get user from auth context (sync, no race condition)
+  const { user, logout } = useAuth();
 
   // Fetch financial news and rates
   useEffect(() => {
@@ -218,7 +210,7 @@ Keep each item concise.`,
                     Dashboard
                   </Button>
                 </Link>
-                <Button size="sm" variant="ghost" className="text-gray-300 hover:text-white" onClick={() => supabase.auth.logout()}>
+                <Button size="sm" variant="ghost" className="text-gray-300 hover:text-white" onClick={() => logout(false)}>
                   Logout
                 </Button>
               </>
