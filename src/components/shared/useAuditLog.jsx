@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from "@/lib/AuthContext";
 import { supabase } from '@/api/supabaseClient';
 import { AuditService } from './AuditService';
 import { useCompany } from './CompanyContext';
@@ -25,10 +26,7 @@ import { useCompany } from './CompanyContext';
 export function useAuditLog(module) {
   const { selectedCompanyId } = useCompany();
   
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => supabase.auth.me(),
-  });
+  const { user } = useAuth();
 
   const logCreate = useCallback(async (recordId, recordIdentifier, newValues, metadata = null) => {
     if (!user) return;

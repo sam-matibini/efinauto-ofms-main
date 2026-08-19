@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/api/supabaseClient";
 
 // Resolves the technician records owned by the current user (via Technician.employee_id
@@ -7,10 +8,7 @@ import { supabase } from "@/api/supabaseClient";
 // technician-scoping client-side: privileged roles see/manage all entries; everyone else
 // only sees entries for technician records linked to them.
 export function useTechnicianScope() {
-  const { data: user } = useQuery({
-    queryKey: ["currentUser"],
-    queryFn: () => supabase.auth.me(),
-  });
+  const { user } = useAuth();
 
   const role = user?.role;
   const canViewAll = ["admin", "manager", "accountant"].includes(role);

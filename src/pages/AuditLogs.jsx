@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { supabase } from "@/api/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -73,10 +74,7 @@ export default function AuditLogs() {
   const pageSize = 50;
 
   // Check if user is admin
-  const { data: currentUser } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => supabase.auth.me(),
-  });
+  const { user: currentUser } = useAuth();
 
   const isAdmin = currentUser?.role === 'admin';
 

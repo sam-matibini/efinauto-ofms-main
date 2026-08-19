@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -27,17 +28,7 @@ export default function Companies() {
 
   const queryClient = useQueryClient();
 
-  const [currentUser, setCurrentUser] = useState(null);
-
-  // Fetch current user
-  useQuery({
-    queryKey: ['currentUser'],
-    queryFn: async () => {
-      const user = await supabase.auth.me();
-      setCurrentUser(user);
-      return user;
-    },
-  });
+  const { user: currentUser } = useAuth();
 
   const { data: companies = [], isLoading } = useQuery({
     queryKey: ['companies'],

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,10 +27,7 @@ export default function AIChartOfAccounts() {
   const [businessDescription, setBusinessDescription] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: currentUser } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => supabase.auth.me(),
-  });
+  const { user: currentUser } = useAuth();
 
   const { data: company } = useQuery({
     queryKey: ['company', selectedCompanyId],

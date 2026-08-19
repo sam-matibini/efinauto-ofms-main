@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, DollarSign, TrendingUp, ChevronDown, ChevronUp, FileText, Users, FileCheck, Receipt, RefreshCw, CreditCard, FileX, Mail, Edit, Trash2, LayoutGrid, List, Download, FileSpreadsheet, Loader2, XCircle, Ship, Printer, Share2 } from "lucide-react";
@@ -1122,10 +1123,7 @@ export default function Sales() {
 
 function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
   const [activeTab, setActiveTab] = useState("basic");
-  const { data: currentUser } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => supabase.auth.me(),
-  });
+  const { user: currentUser } = useAuth();
   const [formData, setFormData] = useState({
     sale_number: `SALE-${Date.now()}`,
     sale_type: "domestic",

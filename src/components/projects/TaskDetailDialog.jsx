@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import {
@@ -43,10 +44,7 @@ export default function TaskDetailDialog({
 }) {
   const [activeTab, setActiveTab] = useState("details");
 
-  const { data: currentUser } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => supabase.auth.me()
-  });
+  const { user: currentUser } = useAuth();
 
   if (!task) return null;
 

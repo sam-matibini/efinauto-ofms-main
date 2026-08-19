@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,10 +13,7 @@ import MyTimeOff from "@/components/employee-portal/MyTimeOff";
 export default function EmployeePortal() {
   const { selectedCompanyId } = useCompany();
   
-  const { data: currentUser } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => supabase.auth.me(),
-  });
+  const { user: currentUser } = useAuth();
 
   const employeeEntityId = currentUser?.employee_entity_id || currentUser?.data?.employee_entity_id;
 

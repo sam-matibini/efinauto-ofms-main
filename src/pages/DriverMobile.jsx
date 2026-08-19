@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Navigation, MapPin, AlertTriangle, Clock, TrendingUp, Shield, List, MessageSquare, CheckCircle } from "lucide-react";
 import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
 import { predictShipmentETA, updateShipmentETA, calculateAverageSpeed } from "@/components/dispatch/AIETAPrediction";
 import IncidentReportDialog from "@/components/dispatch/IncidentReportDialog";
@@ -24,10 +25,7 @@ export default function DriverMobile() {
   const [commDialogOpen, setCommDialogOpen] = useState(false);
   const [weatherAlerts, setWeatherAlerts] = useState(null);
 
-  const { data: currentUser } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => supabase.auth.me(),
-  });
+  const { user: currentUser } = useAuth();
 
   const { data: driver } = useQuery({
     queryKey: ['myDriver', currentUser?.email],
