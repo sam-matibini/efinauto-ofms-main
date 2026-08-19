@@ -289,7 +289,7 @@ export default function Layout({ children, currentPageName }) {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { user: currentUser, isAuthenticated, logout } = useAuth();
-  const rawUser = useQuery({
+  const { data: rawUser } = useQuery({
     queryKey: ['rawUser'],
     queryFn: () => supabase.auth.me(),
     enabled: isAuthenticated,
