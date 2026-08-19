@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/api/supabaseClient';
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('');
@@ -12,7 +12,7 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     let cancelled = false;
-    base44.auth.isAuthenticated().then((yes) => {
+    supabase.auth.isAuthenticated().then((yes) => {
       if (!cancelled) setValidSession(yes);
     });
     return () => { cancelled = true; };
@@ -26,7 +26,7 @@ export default function ResetPasswordPage() {
     if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
     setBusy(true);
     try {
-      await base44.auth.resetPassword({ newPassword: password });
+      await supabase.auth.resetPassword({ newPassword: password });
       setDone(true);
     } catch (err) {
       setError(err?.message || 'Could not reset password. The link may have expired — request a new one.');
