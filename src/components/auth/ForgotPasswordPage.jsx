@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/api/supabaseClient';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -13,7 +13,7 @@ export default function ForgotPasswordPage() {
     if (!email) { setError('Enter your email address.'); return; }
     setBusy(true);
     try {
-      await base44.auth.resetPasswordForEmail(email, {
+      await supabase.auth.resetPasswordRequest(email, {
         redirectTo: window.location.origin + '/reset-password',
       });
       setDone(true);
