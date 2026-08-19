@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -104,63 +104,63 @@ export default function Sales() {
 
   const { data: sales = [] } = useQuery({
     queryKey: ['sales', selectedCompanyId],
-    queryFn: () => base44.entities.Sale.filter({ company_id: selectedCompanyId }, '-created_date'),
+    queryFn: () => supabase.entities.Sale.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', selectedCompanyId],
-    queryFn: () => base44.entities.Customer.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Customer.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: quotes = [] } = useQuery({
     queryKey: ['quotes', selectedCompanyId],
-    queryFn: () => base44.entities.Quote.filter({ company_id: selectedCompanyId }, '-created_date'),
+    queryFn: () => supabase.entities.Quote.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: invoices = [] } = useQuery({
     queryKey: ['invoices', selectedCompanyId],
-    queryFn: () => base44.entities.SalesInvoice.filter({ company_id: selectedCompanyId }, '-created_date'),
+    queryFn: () => supabase.entities.SalesInvoice.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: payments = [] } = useQuery({
     queryKey: ['payments', selectedCompanyId],
-    queryFn: () => base44.entities.PaymentReceived.filter({ company_id: selectedCompanyId }, '-payment_date'),
+    queryFn: () => supabase.entities.PaymentReceived.filter({ company_id: selectedCompanyId }, '-payment_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: creditNotes = [] } = useQuery({
     queryKey: ['creditNotes', selectedCompanyId],
-    queryFn: () => base44.entities.CreditNote.filter({ company_id: selectedCompanyId }, '-created_date'),
+    queryFn: () => supabase.entities.CreditNote.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: recurringInvoices = [] } = useQuery({
     queryKey: ['recurringInvoices', selectedCompanyId],
-    queryFn: () => base44.entities.RecurringInvoice.filter({ company_id: selectedCompanyId }, '-created_date'),
+    queryFn: () => supabase.entities.RecurringInvoice.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles', selectedCompanyId],
-    queryFn: () => base44.entities.Vehicle.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Vehicle.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: services = [] } = useQuery({
     queryKey: ['services', selectedCompanyId],
-    queryFn: () => base44.entities.Service.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Service.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
@@ -170,7 +170,7 @@ export default function Sales() {
     queryKey: ['company', selectedCompanyId],
     queryFn: async () => {
       if (!selectedCompanyId) return []; // Return empty array if no company ID, will result in 'undefined' after select
-      const result = await base44.entities.Company.filter({ id: selectedCompanyId });
+      const result = await supabase.entities.Company.filter({ id: selectedCompanyId });
       return result;
     },
     enabled: !!selectedCompanyId,
@@ -180,11 +180,11 @@ export default function Sales() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
       const oldSale = sales.find(s => s.id === id);
-      const updatedSale = await base44.entities.Sale.update(id, data);
+      const updatedSale = await supabase.entities.Sale.update(id, data);
       
       // If payment status changed to paid and wasn't before, create payment transaction
       if (data.payment_status === 'paid' && oldSale?.payment_status !== 'paid') {
-        await base44.entities.Transaction.create({
+        await supabase.entities.Transaction.create({
           company_id: selectedCompanyId,
           transaction_number: `PMT-${id.slice(0, 8)}`,
           transaction_type: 'payment_received',
@@ -216,7 +216,7 @@ export default function Sales() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      return await base44.entities.Sale.delete(id);
+      return await supabase.entities.Sale.delete(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
@@ -228,14 +228,14 @@ export default function Sales() {
   // Finalize BOS and generate number
   const finalizeBOSMutation = useMutation({
     mutationFn: async (sale) => {
-      const user = await base44.auth.me();
+      const user = await supabase.auth.me();
       const locationCode = company?.code?.substring(0, 5).toUpperCase() || 'HQ';
       
       // Generate BOS number
       const bosData = await generateBOSNumber(selectedCompanyId, locationCode);
       
       // Update sale with BOS details
-      const updatedSale = await base44.entities.Sale.update(sale.id, {
+      const updatedSale = await supabase.entities.Sale.update(sale.id, {
         bos_number: bosData.bos_number,
         bos_sequence: bosData.bos_sequence,
         bos_status: 'finalized',
@@ -263,7 +263,7 @@ export default function Sales() {
   // Void BOS
   const voidBOSMutation = useMutation({
     mutationFn: async ({ saleId, reason }) => {
-      const user = await base44.auth.me();
+      const user = await supabase.auth.me();
       return await voidBOS(saleId, reason, user.email);
     },
     onSuccess: () => {
@@ -286,7 +286,7 @@ export default function Sales() {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const sale = await base44.entities.Sale.create({
+      const sale = await supabase.entities.Sale.create({
         ...data, 
         company_id: selectedCompanyId,
         bos_status: 'draft'
@@ -297,13 +297,13 @@ export default function Sales() {
       
       if (data.vehicle_id) {
         const vehicleStatus = data.sale_type === 'export' ? 'exported' : 'sold';
-        await base44.entities.Vehicle.update(data.vehicle_id, { status: vehicleStatus });
+        await supabase.entities.Vehicle.update(data.vehicle_id, { status: vehicleStatus });
       }
       
       // If export sale, create an Export record
       let exportRecord = null;
       if (data.sale_type === 'export') {
-        exportRecord = await base44.entities.Export.create({
+        exportRecord = await supabase.entities.Export.create({
           company_id: selectedCompanyId,
           export_number: `EXP-${Date.now()}`,
           export_type: 'vehicle',
@@ -324,11 +324,11 @@ export default function Sales() {
         });
 
         // Update sale with export_id
-        await base44.entities.Sale.update(sale.id, { export_id: exportRecord.id });
+        await supabase.entities.Sale.update(sale.id, { export_id: exportRecord.id });
       }
       
       // Create accounting transaction for revenue
-      await base44.entities.Transaction.create({
+      await supabase.entities.Transaction.create({
         company_id: selectedCompanyId,
         transaction_number: sale.sale_number,
         transaction_type: 'sale_revenue',
@@ -363,7 +363,7 @@ export default function Sales() {
   });
 
   const createCustomerMutation = useMutation({
-    mutationFn: (data) => base44.entities.Customer.create(data),
+    mutationFn: (data) => supabase.entities.Customer.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       setCustomerDialogOpen(false);
@@ -1124,7 +1124,7 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
   const [activeTab, setActiveTab] = useState("basic");
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => supabase.auth.me(),
   });
   const [formData, setFormData] = useState({
     sale_number: `SALE-${Date.now()}`,
@@ -1345,7 +1345,7 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
     // Add PST exemption audit fields if exempt
     const dataToSave = { ...formData };
     if (formData.pst_exempt && !editingSale?.pst_exempt) {
-      const user = await base44.auth.me();
+      const user = await supabase.auth.me();
       dataToSave.pst_exempt_by = user.email;
       dataToSave.pst_exempt_timestamp = new Date().toISOString();
     }

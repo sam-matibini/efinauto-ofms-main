@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,7 +44,7 @@ export default function AIPartsSearchUSA() {
         ? `\n\nVehicle Information:\n${vehicleInfo.join('\n')}`
         : '';
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Search for automotive parts matching "${searchQuery}" from these USA auto parts retailers:
       1. AutoZone (https://www.autozone.com)
       2. O'Reilly Auto Parts (https://www.oreillyauto.com)
@@ -136,7 +136,7 @@ Provide price comparison and recommendations. If a part is not found at a retail
         category: "other"
       };
 
-      await base44.entities.Part.create(partData);
+      await supabase.entities.Part.create(partData);
       queryClient.invalidateQueries({ queryKey: ['parts'] });
       toast.success(`Part added to inventory from ${source.retailer}`);
     } catch (error) {

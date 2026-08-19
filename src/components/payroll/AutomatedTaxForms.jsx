@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sparkles, FileText, Download, Send, Loader2 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function AutomatedTaxForms({ company, employees, payrollEntries }) {
@@ -31,7 +31,7 @@ export default function AutomatedTaxForms({ company, employees, payrollEntries }
         };
 
         // Use AI to generate T4 form data
-        const t4Data = await base44.integrations.Core.InvokeLLM({
+        const t4Data = await supabase.integrations.Core.InvokeLLM({
           prompt: `Generate a T4 slip summary for the following employee data:
           
 Employee: ${employee.first_name} ${employee.last_name}
@@ -89,7 +89,7 @@ Generate the T4 boxes with proper Canadian tax form formatting.`,
       const totalEIEmployer = payrollEntries.reduce((sum, e) => sum + (e.ei_employer || 0), 0);
       const totalFederalTax = payrollEntries.reduce((sum, e) => sum + (e.federal_tax || 0), 0);
 
-      const remittanceData = await base44.integrations.Core.InvokeLLM({
+      const remittanceData = await supabase.integrations.Core.InvokeLLM({
         prompt: `Generate a CRA payroll remittance summary for ${company.name}:
 
 Period: ${selectedYear}

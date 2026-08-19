@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,13 +21,13 @@ export default function ServicePackagesDialog({ open, onClose, onSelectPackage }
 
   const { data: packages = [] } = useQuery({
     queryKey: ['service-packages', selectedCompanyId],
-    queryFn: () => base44.entities.ServicePackage.filter({ company_id: selectedCompanyId, active: true }),
+    queryFn: () => supabase.entities.ServicePackage.filter({ company_id: selectedCompanyId, active: true }),
     enabled: !!selectedCompanyId && open,
     initialData: [],
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.ServicePackage.delete(id),
+    mutationFn: (id) => supabase.entities.ServicePackage.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-packages'] });
       toast.success("Package deleted");
@@ -171,8 +171,8 @@ function PackageEditDialog({ open, onClose, package: pkg }) {
 
   const saveMutation = useMutation({
     mutationFn: (data) => pkg 
-      ? base44.entities.ServicePackage.update(pkg.id, data)
-      : base44.entities.ServicePackage.create(data),
+      ? supabase.entities.ServicePackage.update(pkg.id, data)
+      : supabase.entities.ServicePackage.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-packages'] });
       toast.success(pkg ? "Package updated" : "Package created");

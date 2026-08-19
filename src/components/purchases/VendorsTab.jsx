@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,7 +25,7 @@ export default function VendorsTab({ vendors, selectedCompanyId }) {
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Vendor.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: (data) => supabase.entities.Vendor.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendors'] });
       setDialogOpen(false);
@@ -35,7 +35,7 @@ export default function VendorsTab({ vendors, selectedCompanyId }) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Vendor.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.Vendor.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendors'] });
       setDialogOpen(false);
@@ -45,7 +45,7 @@ export default function VendorsTab({ vendors, selectedCompanyId }) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Vendor.delete(id),
+    mutationFn: (id) => supabase.entities.Vendor.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendors'] });
       toast.success("Vendor deleted!");

@@ -43,7 +43,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { CompanyProvider } from "@/components/shared/CompanyContext";
 import CompanySelector from "@/components/shared/CompanySelector";
@@ -290,7 +290,7 @@ export default function Layout({ children, currentPageName }) {
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => supabase.auth.me(),
   });
 
   // Filter navigation items based on user's accessible modules
@@ -301,7 +301,7 @@ export default function Layout({ children, currentPageName }) {
     : allNavigationItems;
 
   const updateProfileMutation = useMutation({
-    mutationFn: (data) => base44.auth.updateMe(data),
+    mutationFn: (data) => supabase.auth.updateMe(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
       toast.success("Profile updated successfully");
@@ -313,7 +313,7 @@ export default function Layout({ children, currentPageName }) {
   });
 
   const handleLogout = () => {
-    base44.auth.logout();
+    supabase.auth.logout();
   };
 
   return (

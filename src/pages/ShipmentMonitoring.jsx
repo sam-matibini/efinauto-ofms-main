@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bell, RefreshCw, MapPin, AlertTriangle, CheckCircle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { toast } from "sonner";
 import ShipmentMapDashboard from "@/components/shipping/ShipmentMapDashboard";
@@ -27,7 +27,7 @@ export default function ShipmentMonitoring() {
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['notificationLog', selectedCompanyId],
-    queryFn: () => base44.entities.NotificationLog.filter({ 
+    queryFn: () => supabase.entities.NotificationLog.filter({ 
       company_id: selectedCompanyId,
       notification_type: "export_update"
     }),

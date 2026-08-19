@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +20,7 @@ export default function ExportOrdersTab({ companyId }) {
 
   const { data: exportOrders = [], isLoading } = useQuery({
     queryKey: ['exportOrders', companyId],
-    queryFn: () => base44.entities.ExportOrder.filter({ company_id: companyId }, '-created_date'),
+    queryFn: () => supabase.entities.ExportOrder.filter({ company_id: companyId }, '-created_date'),
     enabled: !!companyId,
   });
 

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,10 +23,10 @@ export default function PaymentsTab({ payments, selectedCompanyId }) {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const payment = await base44.entities.PaymentReceived.create({ ...data, company_id: selectedCompanyId });
+      const payment = await supabase.entities.PaymentReceived.create({ ...data, company_id: selectedCompanyId });
       
       // Create GL transaction for payment received
-      await base44.entities.Transaction.create({
+      await supabase.entities.Transaction.create({
         company_id: selectedCompanyId,
         transaction_number: payment.payment_number || `PMT-${payment.id.slice(0, 8)}`,
         transaction_type: 'payment_received',
@@ -60,7 +60,7 @@ export default function PaymentsTab({ payments, selectedCompanyId }) {
   const { data: company } = useQuery({
     queryKey: ['company', selectedCompanyId],
     queryFn: async () => {
-      const result = await base44.entities.Company.filter({ id: selectedCompanyId });
+      const result = await supabase.entities.Company.filter({ id: selectedCompanyId });
       return result?.[0];
     },
     enabled: !!selectedCompanyId,
@@ -85,7 +85,7 @@ export default function PaymentsTab({ payments, selectedCompanyId }) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.PaymentReceived.delete(id),
+    mutationFn: (id) => supabase.entities.PaymentReceived.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       toast.success("Payment deleted!");

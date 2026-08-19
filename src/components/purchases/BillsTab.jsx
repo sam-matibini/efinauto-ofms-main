@@ -1,5 +1,5 @@
 import React from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,10 +18,10 @@ export default function BillsTab({ bills, selectedCompanyId, company }) {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const bill = await base44.entities.Bill.create({ ...data, company_id: selectedCompanyId });
+      const bill = await supabase.entities.Bill.create({ ...data, company_id: selectedCompanyId });
       
       // Create AP transaction for bill
-      await base44.entities.Transaction.create({
+      await supabase.entities.Transaction.create({
         company_id: selectedCompanyId,
         transaction_number: bill.bill_number || `BILL-${bill.id.slice(0, 8)}`,
         transaction_type: 'overhead_expense',
@@ -53,13 +53,13 @@ export default function BillsTab({ bills, selectedCompanyId, company }) {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
-      const bills = await base44.entities.Bill.filter({ id });
+      const bills = await supabase.entities.Bill.filter({ id });
       const oldBill = bills[0];
-      const updatedBill = await base44.entities.Bill.update(id, data);
+      const updatedBill = await supabase.entities.Bill.update(id, data);
       
       // If bill status changed to paid, create payment transaction
       if (data.status === 'paid' && oldBill?.status !== 'paid') {
-        await base44.entities.Transaction.create({
+        await supabase.entities.Transaction.create({
           company_id: selectedCompanyId,
           transaction_number: `PMTOUT-${id.slice(0, 8)}`,
           transaction_type: 'payment_made',
@@ -95,7 +95,7 @@ export default function BillsTab({ bills, selectedCompanyId, company }) {
   };
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Bill.delete(id),
+    mutationFn: (id) => supabase.entities.Bill.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
       toast.success("Bill deleted!");

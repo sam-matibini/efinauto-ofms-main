@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Navigation, DollarSign, Loader2, Sparkles, TrendingUp } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function RouteMapEstimator({ originAddress, destinationAddress, weight, shipmentType }) {
@@ -24,7 +24,7 @@ export default function RouteMapEstimator({ originAddress, destinationAddress, w
     setLoading(true);
     try {
       // Use AI to calculate distance and generate cost estimates
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await supabase.integrations.Core.InvokeLLM({
         prompt: `Calculate the driving distance and provide cost estimates for a ${shipmentType || 'LOCAL'} freight shipment:
         
 Origin: ${originAddress}

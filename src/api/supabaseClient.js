@@ -1,6 +1,6 @@
 import { createClient } from '@staticbot/base44-supabase-shim';
 
-export const base44 = createClient({
+export const supabase = createClient({
   supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
   supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
   schemaPrefix: 'public',

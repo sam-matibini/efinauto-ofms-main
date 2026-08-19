@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,84 +55,84 @@ export default function Purchases() {
 
   const { data: purchases = [] } = useQuery({
     queryKey: ['purchases', selectedCompanyId],
-    queryFn: () => base44.entities.Purchase.filter({ company_id: selectedCompanyId }, '-created_date'),
+    queryFn: () => supabase.entities.Purchase.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: vendors = [] } = useQuery({
     queryKey: ['vendors', selectedCompanyId],
-    queryFn: () => base44.entities.Vendor.filter({ company_id: selectedCompanyId }, '-created_date'),
+    queryFn: () => supabase.entities.Vendor.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: expenses = [] } = useQuery({
     queryKey: ['expenses', selectedCompanyId],
-    queryFn: () => base44.entities.Expense.filter({ company_id: selectedCompanyId }, '-expense_date'),
+    queryFn: () => supabase.entities.Expense.filter({ company_id: selectedCompanyId }, '-expense_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: bills = [] } = useQuery({
     queryKey: ['bills', selectedCompanyId],
-    queryFn: () => base44.entities.Bill.filter({ company_id: selectedCompanyId }, '-bill_date'),
+    queryFn: () => supabase.entities.Bill.filter({ company_id: selectedCompanyId }, '-bill_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: recurringExpenses = [] } = useQuery({
     queryKey: ['recurringExpenses', selectedCompanyId],
-    queryFn: () => base44.entities.RecurringExpense.filter({ company_id: selectedCompanyId }, '-created_date'),
+    queryFn: () => supabase.entities.RecurringExpense.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: recurringBills = [] } = useQuery({
     queryKey: ['recurringBills', selectedCompanyId],
-    queryFn: () => base44.entities.RecurringBill.filter({ company_id: selectedCompanyId }, '-created_date'),
+    queryFn: () => supabase.entities.RecurringBill.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: paymentsMade = [] } = useQuery({
     queryKey: ['paymentsMade', selectedCompanyId],
-    queryFn: () => base44.entities.PaymentMade.filter({ company_id: selectedCompanyId }, '-payment_date'),
+    queryFn: () => supabase.entities.PaymentMade.filter({ company_id: selectedCompanyId }, '-payment_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: vendorCredits = [] } = useQuery({
     queryKey: ['vendorCredits', selectedCompanyId],
-    queryFn: () => base44.entities.VendorCredit.filter({ company_id: selectedCompanyId }, '-created_date'),
+    queryFn: () => supabase.entities.VendorCredit.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: parts = [] } = useQuery({
     queryKey: ['parts', selectedCompanyId],
-    queryFn: () => base44.entities.Part.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Part.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles', selectedCompanyId],
-    queryFn: () => base44.entities.Vehicle.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Vehicle.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const purchase = await base44.entities.Purchase.create({ ...data, company_id: selectedCompanyId });
+      const purchase = await supabase.entities.Purchase.create({ ...data, company_id: selectedCompanyId });
       
       // Create accounting transaction for expense
       if (purchase.total_amount > 0 && purchase.status === 'received') {
         const transactionType = purchase.purchase_type === 'vehicle' ? 'vehicle_purchase' : 
                                purchase.purchase_type === 'parts' ? 'parts_purchase' : 'overhead_expense';
         
-        await base44.entities.Transaction.create({
+        await supabase.entities.Transaction.create({
           company_id: selectedCompanyId,
           transaction_number: purchase.purchase_number || `PO-${purchase.id.slice(0, 8)}`,
           transaction_type: transactionType,
@@ -167,14 +167,14 @@ export default function Purchases() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
       const oldPurchase = purchases.find(p => p.id === id);
-      const updated = await base44.entities.Purchase.update(id, data);
+      const updated = await supabase.entities.Purchase.update(id, data);
       
       // If status changed to received and wasn't before, create expense transaction
       if (data.status === 'received' && oldPurchase?.status !== 'received' && data.total_amount > 0) {
         const transactionType = data.purchase_type === 'vehicle' ? 'vehicle_purchase' : 
                                data.purchase_type === 'parts' ? 'parts_purchase' : 'overhead_expense';
         
-        await base44.entities.Transaction.create({
+        await supabase.entities.Transaction.create({
           company_id: selectedCompanyId,
           transaction_number: `RCV-${id.slice(0, 8)}`,
           transaction_type: transactionType,
@@ -195,7 +195,7 @@ export default function Purchases() {
       
       // If payment status changed to paid, create payment transaction
       if (data.payment_status === 'paid' && oldPurchase?.payment_status !== 'paid') {
-        await base44.entities.Transaction.create({
+        await supabase.entities.Transaction.create({
           company_id: selectedCompanyId,
           transaction_number: `PMTOUT-${id.slice(0, 8)}`,
           transaction_type: 'payment_made',
@@ -227,7 +227,7 @@ export default function Purchases() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Purchase.delete(id),
+    mutationFn: (id) => supabase.entities.Purchase.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchases'] });
       setDeleteDialogOpen(false);

@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/api/supabaseClient';
 
 const AuthContext = createContext();
 
@@ -14,13 +14,13 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => { checkAppState(); }, []);
 
-  // Fetch the signed-in user. base44.auth.me() THROWS without a session, so this must only be
+  // Fetch the signed-in user. supabase.auth.me() THROWS without a session, so this must only be
   // called once isAuthenticated() is known true (checkAppState gates it). Exposed on the context
   // because the newer stock scaffold's components call it directly after a login.
   const checkUserAuth = async () => {
     try {
       setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabase.auth.me();
       setUser(currentUser);
       setIsAuthenticated(true);
     } catch (error) {
@@ -37,12 +37,12 @@ export const AuthProvider = ({ children }) => {
 
   const checkAppState = async () => {
     // Base44's hosted public-settings gate has no shim equivalent — auth flows through the
-    // shim-backed base44.auth.* instead.
+    // shim-backed supabase.auth.* instead.
     try {
       setAuthError(null);
-      // base44.auth.me() THROWS when there is no session; gate it behind the non-throwing
+      // supabase.auth.me() THROWS when there is no session; gate it behind the non-throwing
       // isAuthenticated() so an anonymous visitor is treated as logged-out, not an error.
-      if (await base44.auth.isAuthenticated()) {
+      if (await supabase.auth.isAuthenticated()) {
         await checkUserAuth();
       } else {
         setUser(null);
@@ -64,10 +64,10 @@ export const AuthProvider = ({ children }) => {
   const logout = (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
-    if (shouldRedirect) { base44.auth.logout(window.location.href); } else { base44.auth.logout(); }
+    if (shouldRedirect) { supabase.auth.logout(window.location.href); } else { supabase.auth.logout(); }
   };
 
-  const navigateToLogin = () => { base44.auth.redirectToLogin(window.location.href); };
+  const navigateToLogin = () => { supabase.auth.redirectToLogin(window.location.href); };
 
   return (
     <AuthContext.Provider value={{

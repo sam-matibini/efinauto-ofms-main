@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Car, AlertTriangle, CheckCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import HSCodeLookup from "./HSCodeLookup";
 
 export default function VehicleLineItemDialog({ open, onClose, onSave, item, currency, companyId }) {
@@ -42,7 +42,7 @@ export default function VehicleLineItemDialog({ open, onClose, onSave, item, cur
 
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles', companyId],
-    queryFn: () => base44.entities.Vehicle.filter({ company_id: companyId }),
+    queryFn: () => supabase.entities.Vehicle.filter({ company_id: companyId }),
     enabled: !!companyId && open
   });
 

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Settings } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import HSCodeLookup from "./HSCodeLookup";
 
 export default function PartLineItemDialog({ open, onClose, onSave, item, currency, companyId }) {
@@ -39,7 +39,7 @@ export default function PartLineItemDialog({ open, onClose, onSave, item, curren
 
   const { data: parts = [] } = useQuery({
     queryKey: ['parts', companyId],
-    queryFn: () => base44.entities.Part.filter({ company_id: companyId }),
+    queryFn: () => supabase.entities.Part.filter({ company_id: companyId }),
     enabled: !!companyId && open
   });
 

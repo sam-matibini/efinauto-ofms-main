@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/api/supabaseClient';
 import { AuditService } from './AuditService';
 import { useCompany } from './CompanyContext';
 
@@ -27,7 +27,7 @@ export function useAuditLog(module) {
   
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => supabase.auth.me(),
   });
 
   const logCreate = useCallback(async (recordId, recordIdentifier, newValues, metadata = null) => {

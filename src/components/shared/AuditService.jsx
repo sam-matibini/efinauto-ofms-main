@@ -1,4 +1,4 @@
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 /**
  * AuditService - Centralized logging service for security audit trail
@@ -102,7 +102,7 @@ export const logAuditEvent = async ({
       hash
     };
     
-    await base44.entities.AuditLog.create(auditEntry);
+    await supabase.entities.AuditLog.create(auditEntry);
     
     // Console log in development
     if (import.meta.env.DEV) {

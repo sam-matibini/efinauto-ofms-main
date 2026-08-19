@@ -1,4 +1,4 @@
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 /**
  * Calculate comprehensive compliance score for carrier
@@ -106,11 +106,11 @@ Email: ${carrier.contact_email || 'N/A'}
 
   try {
     // Get company contacts
-    const company = await base44.entities.Company.filter({ id: carrier.company_id });
+    const company = await supabase.entities.Company.filter({ id: carrier.company_id });
     const recipients = company[0]?.notification_settings?.notification_recipients || [];
     
     if (recipients.length > 0) {
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         to: recipients[0],
         subject: `⚠️ Carrier Document Expiry Alert - ${carrier.carrier_name}`,
         body: alertMessage
@@ -124,7 +124,7 @@ Email: ${carrier.contact_email || 'N/A'}
         : a
     );
 
-    await base44.entities.ThirdPartyCarrier.update(carrier.id, {
+    await supabase.entities.ThirdPartyCarrier.update(carrier.id, {
       expiry_alerts: updatedAlerts
     });
   } catch (error) {
@@ -136,7 +136,7 @@ Email: ${carrier.contact_email || 'N/A'}
  * Update carrier compliance score and handle auto-approval
  */
 export async function updateCarrierCompliance(carrierId) {
-  const carriers = await base44.entities.ThirdPartyCarrier.filter({ id: carrierId });
+  const carriers = await supabase.entities.ThirdPartyCarrier.filter({ id: carrierId });
   if (carriers.length === 0) return null;
 
   const carrier = carriers[0];
@@ -158,7 +158,7 @@ export async function updateCarrierCompliance(carrierId) {
     updates.onboarding_completed_at = new Date().toISOString();
   }
 
-  await base44.entities.ThirdPartyCarrier.update(carrierId, updates);
+  await supabase.entities.ThirdPartyCarrier.update(carrierId, updates);
 
   // Send expiry alerts if needed
   if (scoring.expiry_alerts.length > 0) {

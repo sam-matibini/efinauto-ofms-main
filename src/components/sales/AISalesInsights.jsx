@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, TrendingUp, ShoppingCart, Target, Loader2, BarChart3 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -48,7 +48,7 @@ Provide:
 5. Customer segments to target
 6. Recommended actions to increase sales`;
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt,
         response_json_schema: {
           type: "object",

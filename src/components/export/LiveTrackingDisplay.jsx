@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, MapPin, Package, Clock, AlertCircle, RefreshCw, Plus } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fetchTrackingData, updateTrackingData, carrierInfo, statusColors } from "./ShipmentTrackingService";
@@ -20,14 +20,14 @@ export default function LiveTrackingDisplay({ order }) {
 
   const { data: trackingRecords = [], isLoading } = useQuery({
     queryKey: ['shipmentTracking', order.id],
-    queryFn: () => base44.entities.ShipmentTracking.filter({ export_order_id: order.id }),
+    queryFn: () => supabase.entities.ShipmentTracking.filter({ export_order_id: order.id }),
     refetchInterval: 60000, // Auto-refresh every 60 seconds
   });
 
   const createTrackingMutation = useMutation({
     mutationFn: async (data) => {
       const trackingData = await fetchTrackingData(data.tracking_number, data.carrier);
-      return base44.entities.ShipmentTracking.create({
+      return supabase.entities.ShipmentTracking.create({
         company_id: order.company_id,
         export_order_id: order.id,
         ...data,
@@ -54,7 +54,7 @@ export default function LiveTrackingDisplay({ order }) {
       );
 
       // Update tracking record
-      await base44.entities.ShipmentTracking.update(trackingRecord.id, {
+      await supabase.entities.ShipmentTracking.update(trackingRecord.id, {
         current_status: update.current_status,
         current_location: update.current_location,
         estimated_delivery: update.estimated_delivery,
@@ -65,7 +65,7 @@ export default function LiveTrackingDisplay({ order }) {
 
       // Send notification if status changed
       if (update.current_status !== trackingRecord.current_status) {
-        await base44.integrations.Core.SendEmail({
+        await supabase.integrations.Core.SendEmail({
           to: order.consignee_email || 'customer@example.com',
           subject: `Shipment Status Update - ${order.export_order_number}`,
           body: `Your shipment status has been updated to: ${update.current_status.replace(/_/g, ' ').toUpperCase()}

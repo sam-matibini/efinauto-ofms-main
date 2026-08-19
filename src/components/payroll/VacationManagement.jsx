@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Plus, TrendingUp, TrendingDown } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function VacationManagement({ company, employees }) {
@@ -24,7 +24,7 @@ export default function VacationManagement({ company, employees }) {
 
   const { data: transactions = [] } = useQuery({
     queryKey: ['vacationTransactions', company?.id],
-    queryFn: () => base44.entities.VacationTransaction.filter({ company_id: company.id }, '-transaction_date'),
+    queryFn: () => supabase.entities.VacationTransaction.filter({ company_id: company.id }, '-transaction_date'),
     enabled: !!company,
   });
 
@@ -34,7 +34,7 @@ export default function VacationManagement({ company, employees }) {
       const currentBalance = employee.vacation_balance || 0;
       const newBalance = currentBalance + data.hours;
 
-      await base44.entities.VacationTransaction.create({
+      await supabase.entities.VacationTransaction.create({
         company_id: company.id,
         employee_id: data.employee_id,
         employee_name: `${employee.first_name} ${employee.last_name}`,
@@ -45,7 +45,7 @@ export default function VacationManagement({ company, employees }) {
         notes: data.notes
       });
 
-      await base44.entities.Employee.update(data.employee_id, {
+      await supabase.entities.Employee.update(data.employee_id, {
         vacation_balance: newBalance
       });
     },

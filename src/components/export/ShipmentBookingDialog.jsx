@@ -9,7 +9,7 @@ import { Loader2, Ship, DollarSign, Clock, TrendingUp } from "lucide-react";
 import { CarrierAPIService } from "./CarrierAPIService";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { format, addDays } from "date-fns";
 
 export default function ShipmentBookingDialog({ open, onClose, exportOrder }) {
@@ -28,7 +28,7 @@ export default function ShipmentBookingDialog({ open, onClose, exportOrder }) {
       );
 
       // Create shipment tracking record
-      const tracking = await base44.entities.ShipmentTracking.create({
+      const tracking = await supabase.entities.ShipmentTracking.create({
         company_id: exportOrder.company_id,
         export_order_id: exportOrder.id,
         tracking_number: booking.tracking_number,
@@ -45,7 +45,7 @@ export default function ShipmentBookingDialog({ open, onClose, exportOrder }) {
       });
 
       // Update export order
-      await base44.entities.ExportOrder.update(exportOrder.id, {
+      await supabase.entities.ExportOrder.update(exportOrder.id, {
         carrier: bookingData.carrier,
         booking_reference: booking.booking_reference,
         tracking_number: booking.tracking_number,

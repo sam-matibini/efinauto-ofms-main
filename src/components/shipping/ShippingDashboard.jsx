@@ -8,7 +8,7 @@ import {
   Plus, FileText, Upload, TrendingUp, Sparkles, Loader2
 } from "lucide-react";
 import { format } from "date-fns";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 const formatCurrency = (amount) => `$${(amount || 0).toLocaleString()}`;
@@ -42,7 +42,7 @@ export default function ShippingDashboard({
   const generateAIInsights = async () => {
     setLoadingInsights(true);
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Analyze this shipping logistics data and provide actionable insights:
 
 Shipments: ${shipments.length} total

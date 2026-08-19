@@ -2,7 +2,7 @@
 
 Drop-in shim that exposes the **same surface as `@base44/sdk`** but routes
 every call to a **Supabase** backend (Postgres + GoTrue + Storage + Edge
-Functions). Built so you swap one import in `src/api/base44Client.js` and
+Functions). Built so you swap one import in `src/api/supabaseClient.js` and
 your hundreds of pages keep working.
 
 This is the runtime shim Staticbot's Base44 → Supabase migration vendors into
@@ -46,7 +46,7 @@ In `package.json`:
 ## Use (browser / Vite app)
 
 ```js
-// src/api/base44Client.js  — replace @base44/sdk import
+// src/api/supabaseClient.js  — replace @base44/sdk import
 import { createClient } from '@staticbot/base44-supabase-shim';
 
 export const base44 = createClient({
@@ -58,10 +58,10 @@ export const base44 = createClient({
 });
 
 // Then everything in your existing pages keeps working:
-const customers = await base44.entities.Customer.list('-created_date', 50);
-const c = await base44.entities.Customer.get('uuid');
-await base44.entities.Customer.update('uuid', { phone: '081...' });
-await base44.entities.Unit.create({ unit_no: 'A-101' });
+const customers = await supabase.entities.Customer.list('-created_date', 50);
+const c = await supabase.entities.Customer.get('uuid');
+await supabase.entities.Customer.update('uuid', { phone: '081...' });
+await supabase.entities.Unit.create({ unit_no: 'A-101' });
 ```
 
 ## Use (Supabase Edge Function — Deno)
@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
     schemaPrefix: 'propertyflow',
   });
 
-  const customers = await base44.asServiceRole.entities.Customer.filter(
+  const customers = await supabase.asServiceRole.entities.Customer.filter(
     {},
     '-created_date',
     50,
@@ -109,13 +109,13 @@ createClient({
 
 ```js
 // Equality (default)
-await base44.entities.Customer.filter({ status: 'active', vip: true });
+await supabase.entities.Customer.filter({ status: 'active', vip: true });
 
 // IN (pass array)
-await base44.entities.Customer.filter({ id: ['a', 'b', 'c'] });
+await supabase.entities.Customer.filter({ id: ['a', 'b', 'c'] });
 
 // Operators
-await base44.entities.Invoice.filter({
+await supabase.entities.Invoice.filter({
   amount: { op: 'gt', value: 1000 },
   customer_name: { op: 'ilike', value: '%co.%' },
 });
@@ -148,7 +148,7 @@ apps compile unchanged:
 ## Agents
 
 Base44's hosted agents (WhatsApp / Telegram) have no self-host equivalent. The
-`agents` namespace exposes a stub so `base44.agents.getWhatsAppConnectURL(name)`
+`agents` namespace exposes a stub so `supabase.agents.getWhatsAppConnectURL(name)`
 doesn't crash — it returns `null` by default, which lets `<a href={...}>` render
 as an inert link (feature visibly disabled). Wire your own bridge with:
 

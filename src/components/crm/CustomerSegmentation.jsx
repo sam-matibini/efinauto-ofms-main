@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Target, Users, Mail, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -40,7 +40,7 @@ export default function CustomerSegmentation({ companyId, customers }) {
   const generateCampaign = async (segment, segmentName) => {
     setGeneratingSegments(true);
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await supabase.integrations.Core.InvokeLLM({
         prompt: `Generate a targeted marketing campaign for ${segmentName} customers in our automotive dealership.
         
 Segment: ${segmentName} (${segment.length} customers)

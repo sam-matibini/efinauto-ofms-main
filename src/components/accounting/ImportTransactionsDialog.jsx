@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -35,10 +35,10 @@ export default function ImportTransactionsDialog({ open, onClose }) {
     setImporting(true);
     try {
       // Upload file
-      const uploadResult = await base44.integrations.Core.UploadFile({ file });
+      const uploadResult = await supabase.integrations.Core.UploadFile({ file });
       
       // Extract data from file
-      const extractResult = await base44.integrations.Core.ExtractDataFromUploadedFile({
+      const extractResult = await supabase.integrations.Core.ExtractDataFromUploadedFile({
         file_url: uploadResult.file_url,
         json_schema: {
           type: "object",
@@ -71,7 +71,7 @@ export default function ImportTransactionsDialog({ open, onClose }) {
         status: t.status || 'completed'
       }));
 
-      await base44.entities.Transaction.bulkCreate(transactionsWithCompany);
+      await supabase.entities.Transaction.bulkCreate(transactionsWithCompany);
 
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       toast.success(`Successfully imported ${transactions.length} transactions!`);

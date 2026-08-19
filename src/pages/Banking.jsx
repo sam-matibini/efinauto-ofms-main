@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,41 +24,41 @@ export default function BankingPage() {
 
   const { data: bankAccounts = [] } = useQuery({
     queryKey: ['bankAccounts', selectedCompanyId],
-    queryFn: () => base44.entities.BankAccount.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.BankAccount.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: transactions = [] } = useQuery({
     queryKey: ['bankTransactions', selectedCompanyId],
-    queryFn: () => base44.entities.BankTransaction.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.BankTransaction.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: reconciliations = [] } = useQuery({
     queryKey: ['bankReconciliations', selectedCompanyId],
-    queryFn: () => base44.entities.BankReconciliation.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.BankReconciliation.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: rules = [] } = useQuery({
     queryKey: ['transactionRules', selectedCompanyId],
-    queryFn: () => base44.entities.TransactionRule.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.TransactionRule.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: glAccounts = [] } = useQuery({
     queryKey: ['accounts', selectedCompanyId],
-    queryFn: () => base44.entities.Account.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Account.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const createAccountMutation = useMutation({
-    mutationFn: (data) => base44.entities.BankAccount.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: (data) => supabase.entities.BankAccount.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
       setAccountDialogOpen(false);
@@ -68,7 +68,7 @@ export default function BankingPage() {
   });
 
   const updateAccountMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.BankAccount.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.BankAccount.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
       setAccountDialogOpen(false);
@@ -78,7 +78,7 @@ export default function BankingPage() {
   });
 
   const deleteAccountMutation = useMutation({
-    mutationFn: (id) => base44.entities.BankAccount.delete(id),
+    mutationFn: (id) => supabase.entities.BankAccount.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
       toast.success("Bank account deleted successfully");
@@ -268,7 +268,7 @@ export default function BankingPage() {
             <AITransactionCategorizer
               uncategorizedTransactions={transactions.filter(t => !t.account_id && t.status !== 'matched')}
               onCategorize={async (transactionId, data) => {
-                await base44.entities.BankTransaction.update(transactionId, data);
+                await supabase.entities.BankTransaction.update(transactionId, data);
                 queryClient.invalidateQueries({ queryKey: ['bankTransactions'] });
               }}
             />

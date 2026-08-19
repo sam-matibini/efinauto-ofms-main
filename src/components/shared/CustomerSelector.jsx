@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -22,7 +22,7 @@ export default function CustomerSelector({ value, onSelect, onCreateNew }) {
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers'],
-    queryFn: () => base44.entities.Customer.list('-created_date'),
+    queryFn: () => supabase.entities.Customer.list('-created_date'),
     initialData: [],
   });
 

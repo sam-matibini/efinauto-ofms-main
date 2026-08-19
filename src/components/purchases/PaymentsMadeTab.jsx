@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,10 +15,10 @@ export default function PaymentsMadeTab({ paymentsMade, selectedCompanyId }) {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const payment = await base44.entities.PaymentMade.create({ ...data, company_id: selectedCompanyId });
+      const payment = await supabase.entities.PaymentMade.create({ ...data, company_id: selectedCompanyId });
       
       // Create GL transaction for payment made
-      await base44.entities.Transaction.create({
+      await supabase.entities.Transaction.create({
         company_id: selectedCompanyId,
         transaction_number: payment.payment_number || `PMT-${payment.id.slice(0, 8)}`,
         transaction_type: 'payment_made',
@@ -51,7 +51,7 @@ export default function PaymentsMadeTab({ paymentsMade, selectedCompanyId }) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.PaymentMade.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.PaymentMade.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['paymentsMade'] });
       setDialogOpen(false);
@@ -61,7 +61,7 @@ export default function PaymentsMadeTab({ paymentsMade, selectedCompanyId }) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.PaymentMade.delete(id),
+    mutationFn: (id) => supabase.entities.PaymentMade.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['paymentsMade'] });
       toast.success("Payment deleted!");

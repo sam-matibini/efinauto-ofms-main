@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ export default function RetainedEarningsStatement({ comparativePeriods = [] }) {
 
   const { data: transactions = [] } = useQuery({
     queryKey: ['transactions', selectedCompanyId],
-    queryFn: () => base44.entities.Transaction.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Transaction.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });

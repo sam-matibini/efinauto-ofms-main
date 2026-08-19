@@ -1,4 +1,4 @@
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 /**
  * Central Bill of Sale Numbering Service
@@ -11,7 +11,7 @@ export async function generateBOSNumber(companyId, locationCode = 'HQ') {
   
   try {
     // Find existing sequence for this company, year, and location
-    const existingSequences = await base44.entities.DocumentSequence.filter({
+    const existingSequences = await supabase.entities.DocumentSequence.filter({
       company_id: companyId,
       document_type: 'bill_of_sale',
       year: currentYear,
@@ -27,13 +27,13 @@ export async function generateBOSNumber(companyId, locationCode = 'HQ') {
       nextSequenceNumber = (sequence.last_sequence || 0) + 1;
       
       // Update the sequence
-      await base44.entities.DocumentSequence.update(sequence.id, {
+      await supabase.entities.DocumentSequence.update(sequence.id, {
         last_sequence: nextSequenceNumber
       });
     } else {
       // Create new sequence record for this year/location
       nextSequenceNumber = 1;
-      sequence = await base44.entities.DocumentSequence.create({
+      sequence = await supabase.entities.DocumentSequence.create({
         company_id: companyId,
         document_type: 'bill_of_sale',
         year: currentYear,
@@ -75,7 +75,7 @@ function formatBOSNumber(year, locationCode, sequence) {
  * Check if a BOS number already exists (for validation)
  */
 export async function bosNumberExists(companyId, bosNumber) {
-  const existing = await base44.entities.Sale.filter({
+  const existing = await supabase.entities.Sale.filter({
     company_id: companyId,
     bos_number: bosNumber
   });
@@ -91,14 +91,14 @@ export async function getBOSStatistics(companyId) {
   
   try {
     // Get all sequences for current year
-    const sequences = await base44.entities.DocumentSequence.filter({
+    const sequences = await supabase.entities.DocumentSequence.filter({
       company_id: companyId,
       document_type: 'bill_of_sale',
       year: currentYear
     });
 
     // Get all finalized BOS for current year
-    const finalizedBOS = await base44.entities.Sale.filter({
+    const finalizedBOS = await supabase.entities.Sale.filter({
       company_id: companyId,
       bos_status: 'finalized'
     });
@@ -135,7 +135,7 @@ export async function getBOSStatistics(companyId) {
  */
 export async function voidBOS(saleId, reason, voidedBy) {
   try {
-    const sale = await base44.entities.Sale.filter({ id: saleId });
+    const sale = await supabase.entities.Sale.filter({ id: saleId });
     if (sale.length === 0) {
       throw new Error("Sale not found");
     }
@@ -147,7 +147,7 @@ export async function voidBOS(saleId, reason, voidedBy) {
     }
 
     // Update sale to voided status (number is retained)
-    await base44.entities.Sale.update(saleId, {
+    await supabase.entities.Sale.update(saleId, {
       bos_status: 'voided',
       status: 'cancelled',
       notes: `${saleRecord.notes || ''}\n\n[VOIDED] ${new Date().toISOString()} by ${voidedBy}: ${reason}`
@@ -167,7 +167,7 @@ export async function previewNextBOSNumber(companyId, locationCode = 'HQ') {
   const currentYear = new Date().getFullYear();
   
   try {
-    const existingSequences = await base44.entities.DocumentSequence.filter({
+    const existingSequences = await supabase.entities.DocumentSequence.filter({
       company_id: companyId,
       document_type: 'bill_of_sale',
       year: currentYear,

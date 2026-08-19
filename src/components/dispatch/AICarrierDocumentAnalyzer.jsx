@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Upload, FileText, Brain, CheckCircle, AlertCircle, Sparkles } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { updateCarrierCompliance } from "./CarrierComplianceScoring";
 
@@ -23,7 +23,7 @@ export default function AICarrierDocumentAnalyzer({ carrier, onDocumentAdded }) 
     setAnalyzing(true);
     try {
       // Upload file
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
 
       // Analyze document with AI
       const prompt = `Analyze this carrier compliance document and extract key information:
@@ -39,7 +39,7 @@ Recommendations: Suggest any actions needed
 
 Return as JSON with fields: document_type, carrier_name, reference_number, expiry_date, coverage_amount, key_findings, compliance_status, recommendations, confidence_score`;
 
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await supabase.integrations.Core.InvokeLLM({
         prompt,
         file_urls: [file_url],
         response_json_schema: {
@@ -94,7 +94,7 @@ Return as JSON with fields: document_type, carrier_name, reference_number, expir
       };
 
       const currentDocs = carrier.compliance_documents || [];
-      await base44.entities.ThirdPartyCarrier.update(carrier.id, {
+      await supabase.entities.ThirdPartyCarrier.update(carrier.id, {
         compliance_documents: [...currentDocs, newDocument]
       });
 

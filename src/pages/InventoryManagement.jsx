@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,49 +53,49 @@ export default function InventoryManagement() {
   // Fetch all inventory data
   const { data: vehicles = [], isLoading: loadingVehicles } = useQuery({
     queryKey: ['vehicles', selectedCompanyId],
-    queryFn: () => base44.entities.Vehicle.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Vehicle.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: parts = [], isLoading: loadingParts } = useQuery({
     queryKey: ['parts', selectedCompanyId],
-    queryFn: () => base44.entities.Part.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Part.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: products = [], isLoading: loadingProducts } = useQuery({
     queryKey: ['products', selectedCompanyId],
-    queryFn: () => base44.entities.Product.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Product.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: sales = [] } = useQuery({
     queryKey: ['sales', selectedCompanyId],
-    queryFn: () => base44.entities.Sale.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Sale.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: purchases = [] } = useQuery({
     queryKey: ['purchases', selectedCompanyId],
-    queryFn: () => base44.entities.Purchase.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Purchase.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: repairs = [] } = useQuery({
     queryKey: ['repairs', selectedCompanyId],
-    queryFn: () => base44.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: salvageVehicles = [] } = useQuery({
     queryKey: ['salvage-vehicles', selectedCompanyId],
-    queryFn: () => base44.entities.SalvageVehicle.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.SalvageVehicle.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
@@ -128,7 +128,7 @@ export default function InventoryManagement() {
 
   // Vehicle mutations
   const createVehicleMutation = useMutation({
-    mutationFn: (data) => base44.entities.Vehicle.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: (data) => supabase.entities.Vehicle.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       setVehicleDialogOpen(false);
@@ -138,7 +138,7 @@ export default function InventoryManagement() {
   });
 
   const updateVehicleMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Vehicle.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.Vehicle.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       setVehicleDialogOpen(false);
@@ -148,7 +148,7 @@ export default function InventoryManagement() {
   });
 
   const deleteVehicleMutation = useMutation({
-    mutationFn: (id) => base44.entities.Vehicle.delete(id),
+    mutationFn: (id) => supabase.entities.Vehicle.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       toast.success("Vehicle deleted");
@@ -157,7 +157,7 @@ export default function InventoryManagement() {
 
   // Part mutations
   const createPartMutation = useMutation({
-    mutationFn: (data) => base44.entities.Part.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: (data) => supabase.entities.Part.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['parts'] });
       setPartDialogOpen(false);
@@ -167,7 +167,7 @@ export default function InventoryManagement() {
   });
 
   const updatePartMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Part.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.Part.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['parts'] });
       setPartDialogOpen(false);
@@ -177,7 +177,7 @@ export default function InventoryManagement() {
   });
 
   const deletePartMutation = useMutation({
-    mutationFn: (id) => base44.entities.Part.delete(id),
+    mutationFn: (id) => supabase.entities.Part.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['parts'] });
       toast.success("Part deleted");

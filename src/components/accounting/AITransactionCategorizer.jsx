@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,24 +39,24 @@ export default function AITransactionCategorizer({ uncategorizedTransactions = [
 
   const { data: rules = [] } = useQuery({
     queryKey: ['transaction-rules', selectedCompanyId],
-    queryFn: () => base44.entities.TransactionRule.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.TransactionRule.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
   });
 
   const { data: accounts = [] } = useQuery({
     queryKey: ['accounts', selectedCompanyId],
-    queryFn: () => base44.entities.Account.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Account.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
   });
 
   const { data: historicalTransactions = [] } = useQuery({
     queryKey: ['transactions', selectedCompanyId],
-    queryFn: () => base44.entities.Transaction.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Transaction.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
   });
 
   const createRuleMutation = useMutation({
-    mutationFn: (data) => base44.entities.TransactionRule.create(data),
+    mutationFn: (data) => supabase.entities.TransactionRule.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transaction-rules'] });
       toast.success("Rule created successfully");
@@ -66,7 +66,7 @@ export default function AITransactionCategorizer({ uncategorizedTransactions = [
   });
 
   const updateRuleMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.TransactionRule.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.TransactionRule.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transaction-rules'] });
       toast.success("Rule updated");
@@ -74,7 +74,7 @@ export default function AITransactionCategorizer({ uncategorizedTransactions = [
   });
 
   const deleteRuleMutation = useMutation({
-    mutationFn: (id) => base44.entities.TransactionRule.delete(id),
+    mutationFn: (id) => supabase.entities.TransactionRule.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transaction-rules'] });
       toast.success("Rule deleted");
@@ -165,7 +165,7 @@ export default function AITransactionCategorizer({ uncategorizedTransactions = [
           category: t.category
         }));
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `You are a financial transaction categorization expert. Analyze these uncategorized transactions and suggest the best GL account for each.
 
 Available GL Accounts:

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,7 +70,7 @@ export default function Vehicles() {
   const { data: vehicles = [], isLoading } = useQuery({
     queryKey: ['vehicles', selectedCompanyId],
     queryFn: async () => {
-      const allVehicles = await base44.entities.Vehicle.filter({ company_id: selectedCompanyId }, '-created_date');
+      const allVehicles = await supabase.entities.Vehicle.filter({ company_id: selectedCompanyId }, '-created_date');
       return allVehicles;
     },
     enabled: !!selectedCompanyId,
@@ -79,7 +79,7 @@ export default function Vehicles() {
 
   const { data: sales = [] } = useQuery({
     queryKey: ['sales', selectedCompanyId],
-    queryFn: () => base44.entities.Sale.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Sale.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
@@ -87,7 +87,7 @@ export default function Vehicles() {
   const createMutation = useMutation({
     mutationFn: async (data) => {
       console.log("Creating vehicle with data:", data);
-      return await base44.entities.Vehicle.create(data);
+      return await supabase.entities.Vehicle.create(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles', selectedCompanyId] }); // Invalidate with company ID
@@ -104,7 +104,7 @@ export default function Vehicles() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
       console.log("Updating vehicle with data:", data);
-      return await base44.entities.Vehicle.update(id, data);
+      return await supabase.entities.Vehicle.update(id, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles', selectedCompanyId] });
@@ -120,7 +120,7 @@ export default function Vehicles() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      return await base44.entities.Vehicle.delete(id);
+      return await supabase.entities.Vehicle.delete(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles', selectedCompanyId] });
@@ -727,7 +727,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
   const { selectedCompanyId } = useCompany();
   const { data: vendors = [] } = useQuery({
     queryKey: ['vendors', selectedCompanyId],
-    queryFn: () => base44.entities.Vendor.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Vendor.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId && open,
     initialData: [],
   });
@@ -735,7 +735,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
   const { data: company } = useQuery({
     queryKey: ['company', selectedCompanyId],
     queryFn: async () => {
-      const companies = await base44.entities.Company.filter({ id: selectedCompanyId });
+      const companies = await supabase.entities.Company.filter({ id: selectedCompanyId });
       return companies[0];
     },
     enabled: !!selectedCompanyId && open,
@@ -864,7 +864,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
 
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
       setFormData({ ...formData, images: [...(formData.images || []), file_url] });
       toast.success("Image uploaded!");
     } catch (error) {

@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Shield, AlertCircle, CheckCircle, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { validateExportOrder } from "../export/ExportValidationService";
 
 export default function ComplianceStatusSummary({ companyId }) {
   const { data: exportOrders = [] } = useQuery({
     queryKey: ['exportOrders', companyId],
-    queryFn: () => base44.entities.ExportOrder.filter({ company_id: companyId }),
+    queryFn: () => supabase.entities.ExportOrder.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
 

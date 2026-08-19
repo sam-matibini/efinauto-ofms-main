@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Edit, UserPlus, FileText, Sparkles, Loader2, ShieldOff, Grid, List, Download, Eye } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMutation } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function EmployeeManagement({ company, employees, queryClient }) {
@@ -48,15 +48,15 @@ export default function EmployeeManagement({ company, employees, queryClient }) 
 
   const createEmployeeMutation = useMutation({
     mutationFn: async (data) => {
-      const employee = await base44.entities.Employee.create(data);
+      const employee = await supabase.entities.Employee.create(data);
       
       // Link user account to employee if email exists
       if (employee.email) {
         try {
-          const users = await base44.entities.User.filter({ email: employee.email });
+          const users = await supabase.entities.User.filter({ email: employee.email });
           if (users.length > 0) {
             const user = users[0];
-            await base44.entities.User.update(user.id, {
+            await supabase.entities.User.update(user.id, {
               employee_entity_id: employee.id,
               company_id: company.id
             });
@@ -69,7 +69,7 @@ export default function EmployeeManagement({ company, employees, queryClient }) 
         const td1FormUrl = `${window.location.origin}/TD1Form?employee_id=${employee.id}`;
         
         try {
-          await base44.integrations.Core.SendEmail({
+          await supabase.integrations.Core.SendEmail({
             from_name: company?.name || "eFinAuto OFMS",
             to: employee.email,
             subject: "Complete Your TD1 Tax Forms - Action Required",
@@ -111,7 +111,7 @@ ${company?.name || "eFinAuto OFMS"} HR Team`
   });
 
   const updateEmployeeMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Employee.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.Employee.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       toast.success("Employee updated successfully");
@@ -261,7 +261,7 @@ ${company?.name || "eFinAuto OFMS"} HR Team`
   const fetchTaxCreditsWithAI = async () => {
     setAiLoading(true);
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Search the Canada Revenue Agency (CRA) official website for the EXACT tax credit amounts for tax year 2025:
 
 Province: ${td1FormData.province}

@@ -1,4 +1,4 @@
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 export async function sendNotification({
   companyId,
@@ -14,7 +14,7 @@ export async function sendNotification({
 }) {
   try {
     // Check if customer has preferences configured
-    const preferences = await base44.entities.NotificationPreference.filter({ 
+    const preferences = await supabase.entities.NotificationPreference.filter({ 
       customer_id: customerId 
     });
 
@@ -54,19 +54,19 @@ export async function sendNotification({
       reference_type: referenceType
     };
 
-    const log = await base44.entities.NotificationLog.create(logData);
+    const log = await supabase.entities.NotificationLog.create(logData);
 
     // Send notification via email
     if (deliveryMethod === "email" && customerEmail) {
       try {
-        await base44.integrations.Core.SendEmail({
+        await supabase.integrations.Core.SendEmail({
           to: customerEmail,
           subject: subject,
           body: message
         });
 
         // Update log as sent
-        await base44.entities.NotificationLog.update(log.id, {
+        await supabase.entities.NotificationLog.update(log.id, {
           status: "sent",
           sent_date: new Date().toISOString()
         });
@@ -74,7 +74,7 @@ export async function sendNotification({
         return { success: true, logId: log.id };
       } catch (emailError) {
         // Update log as failed
-        await base44.entities.NotificationLog.update(log.id, {
+        await supabase.entities.NotificationLog.update(log.id, {
           status: "failed",
           error_message: emailError.message || "Failed to send email"
         });
@@ -85,7 +85,7 @@ export async function sendNotification({
 
     // SMS sending would go here (not implemented in this example)
     if (deliveryMethod === "sms") {
-      await base44.entities.NotificationLog.update(log.id, {
+      await supabase.entities.NotificationLog.update(log.id, {
         status: "sent",
         sent_date: new Date().toISOString()
       });

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,7 +44,7 @@ export default function AIPartsSearch() {
         ? `\n\nVehicle Information:\n${vehicleInfo.join('\n')}`
         : '';
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Search for automotive parts matching "${searchQuery}" from these Canadian auto parts retailers:
 1. Princess Auto (https://www.princessauto.com)
 2. Canadian Tire Auto Parts
@@ -134,7 +134,7 @@ Provide price comparison and recommendations. If a part is not found at a retail
         category: "other"
       };
 
-      await base44.entities.Part.create(partData);
+      await supabase.entities.Part.create(partData);
       queryClient.invalidateQueries({ queryKey: ['parts'] });
       toast.success(`Part added to inventory from ${source.retailer}`);
     } catch (error) {
@@ -147,7 +147,7 @@ Provide price comparison and recommendations. If a part is not found at a retail
     setIsGeneratingPO(true);
 
     try {
-      const poData = await base44.integrations.Core.InvokeLLM({
+      const poData = await supabase.integrations.Core.InvokeLLM({
         prompt: `Generate a professional purchase order document for the following part:
 
 Supplier: ${source.retailer}
@@ -214,7 +214,7 @@ Notes: ${poData.notes || 'N/A'}
       `;
 
       if (deliveryMethod === 'email') {
-        await base44.integrations.Core.SendEmail({
+        await supabase.integrations.Core.SendEmail({
           to: "orders@example.com",
           subject: `Purchase Order ${poData.po_number} - ${source.retailer}`,
           body: emailBody

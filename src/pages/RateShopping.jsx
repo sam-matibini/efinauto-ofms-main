@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import DocumentAnalyzer from "../components/shipping/DocumentAnalyzer";
 import RateShoppingAI from "../components/shipping/RateShoppingAI";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 export default function RateShopping() {
   const [loading, setLoading] = useState(false);
@@ -56,7 +56,7 @@ Provide realistic cost estimates in USD for:
 
 Consider typical rates, distance, and local market conditions.`;
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt,
         add_context_from_internet: true,
         response_json_schema: {
@@ -377,7 +377,7 @@ Rate Quotes are powered by eFinAuto OFMS
         ? `Shipping Rate Comparison - All Carriers`
         : `Shipping Rate Quote - ${selectedQuote.carrier_name}`;
       
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         to: emailAddress,
         subject,
         body: `<html><body><pre style="font-family: Arial, sans-serif;">${generateShareContent(allRates)}</pre></body></html>`

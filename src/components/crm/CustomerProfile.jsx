@@ -2,14 +2,14 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Car, Wrench, ShoppingCart, DollarSign, Calendar, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 
 export default function CustomerProfile({ customer, companyId }) {
   const { data: sales = [] } = useQuery({
     queryKey: ['customer-sales', customer.id],
-    queryFn: () => base44.entities.Sale.filter({ 
+    queryFn: () => supabase.entities.Sale.filter({ 
       company_id: companyId, 
       customer_id: customer.id 
     }),
@@ -19,8 +19,8 @@ export default function CustomerProfile({ customer, companyId }) {
   const { data: vehicles = [] } = useQuery({
     queryKey: ['customer-vehicles', customer.id],
     queryFn: async () => {
-      const allVehicles = await base44.entities.Vehicle.filter({ company_id: companyId });
-      const customerSales = await base44.entities.Sale.filter({ 
+      const allVehicles = await supabase.entities.Vehicle.filter({ company_id: companyId });
+      const customerSales = await supabase.entities.Sale.filter({ 
         company_id: companyId, 
         customer_id: customer.id 
       });
@@ -32,7 +32,7 @@ export default function CustomerProfile({ customer, companyId }) {
 
   const { data: repairs = [] } = useQuery({
     queryKey: ['customer-repairs', customer.id],
-    queryFn: () => base44.entities.RepairOrder.filter({ 
+    queryFn: () => supabase.entities.RepairOrder.filter({ 
       company_id: companyId, 
       customer_id: customer.id 
     }),

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapPin, Navigation, Share2, Mail, MessageCircle, Truck, User, History } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import "leaflet/dist/leaflet.css";
@@ -73,13 +73,13 @@ export default function LiveTrackingMap({ shipments }) {
   // Fetch internal drivers
   const { data: internalDrivers = [] } = useQuery({
     queryKey: ['internalDrivers'],
-    queryFn: () => base44.entities.Driver.filter({ status: 'on_duty' }),
+    queryFn: () => supabase.entities.Driver.filter({ status: 'on_duty' }),
   });
 
   // Fetch third-party drivers
   const { data: thirdPartyDrivers = [] } = useQuery({
     queryKey: ['thirdPartyDrivers'],
-    queryFn: () => base44.entities.ThirdPartyDriver.filter({ status: 'active' }),
+    queryFn: () => supabase.entities.ThirdPartyDriver.filter({ status: 'active' }),
   });
 
   // Fetch latest GPS points for active shipments
@@ -88,7 +88,7 @@ export default function LiveTrackingMap({ shipments }) {
     queryFn: async () => {
       const allPoints = [];
       for (const shipment of shipments) {
-        const points = await base44.entities.GPSTrackingPoint.filter(
+        const points = await supabase.entities.GPSTrackingPoint.filter(
           { shipment_id: shipment.id },
           '-timestamp',
           1
@@ -106,7 +106,7 @@ export default function LiveTrackingMap({ shipments }) {
   // Fetch route history for selected shipment
   const { data: routeHistory = [] } = useQuery({
     queryKey: ['routeHistory', selectedShipment?.id],
-    queryFn: () => base44.entities.GPSTrackingPoint.filter(
+    queryFn: () => supabase.entities.GPSTrackingPoint.filter(
       { shipment_id: selectedShipment.id },
       '-timestamp',
       100
@@ -168,7 +168,7 @@ Updates every 30 seconds
       if (channel === 'email') {
         const email = prompt("Enter email address:");
         if (email) {
-          await base44.integrations.Core.SendEmail({
+          await supabase.integrations.Core.SendEmail({
             to: email,
             subject: `Live Tracking - ${shipment.shipment_number}`,
             body: message.replace(/\n/g, '<br>')

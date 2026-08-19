@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Users } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function PayGroupManagement({ company }) {
@@ -25,18 +25,18 @@ export default function PayGroupManagement({ company }) {
 
   const { data: payGroups = [] } = useQuery({
     queryKey: ['payGroups', company?.id],
-    queryFn: () => base44.entities.PayGroup.filter({ company_id: company.id }),
+    queryFn: () => supabase.entities.PayGroup.filter({ company_id: company.id }),
     enabled: !!company,
   });
 
   const { data: employees = [] } = useQuery({
     queryKey: ['employees', company?.id],
-    queryFn: () => base44.entities.Employee.filter({ company_id: company.id }),
+    queryFn: () => supabase.entities.Employee.filter({ company_id: company.id }),
     enabled: !!company,
   });
 
   const createPayGroupMutation = useMutation({
-    mutationFn: (data) => base44.entities.PayGroup.create({ ...data, company_id: company.id }),
+    mutationFn: (data) => supabase.entities.PayGroup.create({ ...data, company_id: company.id }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payGroups'] });
       toast.success("Pay group created");

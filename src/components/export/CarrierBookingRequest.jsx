@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Send, CheckCircle, AlertCircle } from "lucide-react";
 import { getCarrierAPIService, isCarrierAPIEnabled } from "./CarrierAPIRegistry";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function CarrierBookingRequest({ order, onBookingConfirmed }) {
@@ -57,7 +57,7 @@ export default function CarrierBookingRequest({ order, onBookingConfirmed }) {
 
       if (result.success) {
         // Update export order with booking reference
-        await base44.entities.ExportOrder.update(order.id, {
+        await supabase.entities.ExportOrder.update(order.id, {
           booking_reference: result.booking_reference,
           export_status: 'logistics_booked',
           notes: `${order.notes || ''}\n[Booking] Request submitted: ${result.booking_reference} at ${new Date().toISOString()}`

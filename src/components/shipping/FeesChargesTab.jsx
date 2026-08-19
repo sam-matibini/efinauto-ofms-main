@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DollarSign, Search, Eye, Download, Calculator, Sparkles, Loader2 } from "lucide-react";
 import { format } from "date-fns";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 const formatCurrency = (amount) => `$${(amount || 0).toLocaleString('en-CA', { minimumFractionDigits: 2 })}`;
@@ -38,7 +38,7 @@ export default function FeesChargesTab({ shipments = [], exports = [], customers
     
     setLoadingAI(true);
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Estimate shipping fees for this shipment:
 
 Route: ${viewShipment.origin_country} → ${viewShipment.destination_country}

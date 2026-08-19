@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,7 +24,7 @@ export default function CustomersTab({ customers, selectedCompanyId }) {
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Customer.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: (data) => supabase.entities.Customer.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       setDialogOpen(false);
@@ -34,7 +34,7 @@ export default function CustomersTab({ customers, selectedCompanyId }) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Customer.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.Customer.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       setDialogOpen(false);
@@ -44,7 +44,7 @@ export default function CustomersTab({ customers, selectedCompanyId }) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Customer.delete(id),
+    mutationFn: (id) => supabase.entities.Customer.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       toast.success("Customer deleted!");
@@ -264,7 +264,7 @@ function CustomerDialog({ open, onClose, customer, onSave }) {
     }
     setIsSearching(true);
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Parse this address and extract the components: "${addressSearch}"
         
 Return a structured address with street address, city, province/state, postal code, and country. If any component is missing, leave it empty.`,

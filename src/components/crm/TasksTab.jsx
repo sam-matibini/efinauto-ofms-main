@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,12 +22,12 @@ export default function TasksTab({ companyId, customerId, leadId, opportunityId 
 
   const { data: tasks = [] } = useQuery({
     queryKey: ['crm-tasks', companyId, customerId, leadId, opportunityId],
-    queryFn: () => base44.entities.CRMTask.filter(filterCriteria, 'due_date'),
+    queryFn: () => supabase.entities.CRMTask.filter(filterCriteria, 'due_date'),
     enabled: !!companyId,
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.CRMTask.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.CRMTask.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crm-tasks'] });
       toast.success("Task updated");
@@ -35,7 +35,7 @@ export default function TasksTab({ companyId, customerId, leadId, opportunityId 
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.CRMTask.delete(id),
+    mutationFn: (id) => supabase.entities.CRMTask.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crm-tasks'] });
       toast.success("Task deleted");

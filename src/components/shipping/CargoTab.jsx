@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Package, Plus, Search, Eye, Trash2, Edit, Scale } from "lucide-react";
 import { format } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { useCompany } from "@/components/shared/CompanyContext";
 
@@ -37,7 +37,7 @@ export default function CargoTab({ cargo = [], shipments = [], containers = [], 
   };
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Cargo.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: (data) => supabase.entities.Cargo.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cargo'] });
       setDialogOpen(false);
@@ -47,7 +47,7 @@ export default function CargoTab({ cargo = [], shipments = [], containers = [], 
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Cargo.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.Cargo.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cargo'] });
       setDialogOpen(false);
@@ -57,7 +57,7 @@ export default function CargoTab({ cargo = [], shipments = [], containers = [], 
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Cargo.delete(id),
+    mutationFn: (id) => supabase.entities.Cargo.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cargo'] });
       toast.success("Cargo deleted!");

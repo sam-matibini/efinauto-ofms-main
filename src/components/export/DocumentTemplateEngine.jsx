@@ -5,8 +5,8 @@
 import { format } from "date-fns";
 
 export const generateCommercialInvoice = async (order, sale, company, aiSuggestions = {}) => {
-  const { data: countries } = await import("@/api/base44Client").then(m => 
-    m.base44.entities.Country.filter({ iso2_code: order.destination_country })
+  const { data: countries } = await import("@/api/supabaseClient").then(m => 
+    m.supabase.entities.Country.filter({ iso2_code: order.destination_country })
   );
   const destCountry = countries?.[0];
 
@@ -222,7 +222,7 @@ export const generatePackingList = async (order, company) => {
 
 export const getAISuggestions = async (order, company, documentType) => {
   try {
-    const { base44 } = await import("@/api/base44Client");
+    const { supabase } = await import("@/api/supabaseClient");
     
     const prompt = `Generate compliance field suggestions for a ${documentType} document:
     
@@ -241,7 +241,7 @@ Provide:
 
 Return JSON format.`;
 
-    const result = await base44.integrations.Core.InvokeLLM({
+    const result = await supabase.integrations.Core.InvokeLLM({
       prompt,
       response_json_schema: {
         type: "object",

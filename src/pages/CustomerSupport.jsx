@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,7 @@ export default function CustomerSupportPage() {
 
   const loadConversations = async () => {
     try {
-      const convs = await base44.agents.listConversations({
+      const convs = await supabase.agents.listConversations({
         agent_name: "customer_support"
       });
       setConversations(convs || []);
@@ -52,7 +52,7 @@ export default function CustomerSupportPage() {
 
   const createNewConversation = async () => {
     try {
-      const conv = await base44.agents.createConversation({
+      const conv = await supabase.agents.createConversation({
         agent_name: "customer_support",
         metadata: {
           name: `Support Chat ${format(new Date(), 'MMM d, h:mm a')}`,
@@ -74,7 +74,7 @@ export default function CustomerSupportPage() {
     setMessage("");
 
     try {
-      await base44.agents.addMessage(selectedConversation, {
+      await supabase.agents.addMessage(selectedConversation, {
         role: "user",
         content: userMessage
       });
@@ -87,7 +87,7 @@ export default function CustomerSupportPage() {
   useEffect(() => {
     if (!selectedConversation) return;
 
-    const unsubscribe = base44.agents.subscribeToConversation(
+    const unsubscribe = supabase.agents.subscribeToConversation(
       selectedConversation.id,
       (data) => {
         setSelectedConversation(prev => ({
@@ -100,7 +100,7 @@ export default function CustomerSupportPage() {
     return () => unsubscribe();
   }, [selectedConversation?.id]);
 
-  const whatsappURL = base44.agents.getWhatsAppConnectURL('customer_support');
+  const whatsappURL = supabase.agents.getWhatsAppConnectURL('customer_support');
 
   return (
     <div className="min-h-screen bg-gray-50">

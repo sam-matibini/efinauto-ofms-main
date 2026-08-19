@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Mail, MessageCircle, Loader2, Send, CheckCircle, Download, Link as LinkIcon, Copy } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import AIDocumentSummary from "@/components/shared/AIDocumentSummary";
@@ -67,7 +67,7 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
         </div>
       `;
 
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         to: emailData.to,
         subject: emailData.subject,
         body: emailBody,
@@ -93,7 +93,7 @@ export default function BillOfSaleShare({ sale, company, onClose }) {
       const result = await generateDocumentPDF(sale.id, "BOS");
       const filename = `BOS_${sale.bos_number || sale.sale_number || Date.now()}.pdf`;
       const file = new File([result.pdf_blob], filename, { type: 'application/pdf' });
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
       URL.revokeObjectURL(result.pdf_url);
       setPdfUrl(file_url);
       toast.success("PDF saved to cloud!");

@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Truck, Plus, Star, Phone, Mail, Shield, AlertCircle, FileCheck, Calendar, Upload, FileText, Sparkles } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -43,13 +43,13 @@ export default function ThirdPartyCarriers() {
 
   const { data: carriers = [] } = useQuery({
     queryKey: ['thirdPartyCarriers', selectedCompanyId],
-    queryFn: () => base44.entities.ThirdPartyCarrier.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.ThirdPartyCarrier.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
   });
 
   const { data: vendors = [] } = useQuery({
     queryKey: ['vendors', selectedCompanyId],
-    queryFn: () => base44.entities.Vendor.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Vendor.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
   });
 
@@ -66,9 +66,9 @@ export default function ThirdPartyCarriers() {
       }
       
       if (selectedCarrier) {
-        return base44.entities.ThirdPartyCarrier.update(selectedCarrier.id, carrierData);
+        return supabase.entities.ThirdPartyCarrier.update(selectedCarrier.id, carrierData);
       }
-      return base44.entities.ThirdPartyCarrier.create(carrierData);
+      return supabase.entities.ThirdPartyCarrier.create(carrierData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['thirdPartyCarriers'] });
@@ -109,7 +109,7 @@ export default function ThirdPartyCarriers() {
 
   const createVendorFromCarrier = async (carrierData) => {
     try {
-      const vendor = await base44.entities.Vendor.create({
+      const vendor = await supabase.entities.Vendor.create({
         company_id: selectedCompanyId,
         vendor_name: carrierData.carrier_name,
         vendor_type: "logistics",
@@ -554,7 +554,7 @@ export default function ThirdPartyCarriers() {
                         if (file) {
                           setUploadingCOI(true);
                           try {
-                            const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                            const { file_url } = await supabase.integrations.Core.UploadFile({ file });
                             setFormData({ 
                               ...formData, 
                               coi_url: file_url,
@@ -609,7 +609,7 @@ export default function ThirdPartyCarriers() {
                         if (file) {
                           setUploadingPackage(true);
                           try {
-                            const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                            const { file_url } = await supabase.integrations.Core.UploadFile({ file });
                             setFormData({ ...formData, carrier_package_url: file_url });
                             toast.success("Carrier package uploaded");
                           } catch (error) {
@@ -644,7 +644,7 @@ export default function ThirdPartyCarriers() {
                       setAnalyzingDoc(true);
                       try {
                         const url = formData.coi_url || formData.carrier_package_url;
-                        const result = await base44.integrations.Core.InvokeLLM({
+                        const result = await supabase.integrations.Core.InvokeLLM({
                           prompt: `Analyze this carrier document (COI or carrier package). Extract: insurance provider, policy number, coverage amount, expiry dates, DOT/MC numbers, SCAC code, service capabilities, and any compliance issues.`,
                           file_urls: [url],
                           response_json_schema: {

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Upload, FileText, Loader2, Sparkles, Download } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function DocumentAnalyzer() {
@@ -28,10 +28,10 @@ export default function DocumentAnalyzer() {
     setAnalyzing(true);
     try {
       // Upload file
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
 
       // Analyze document
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await supabase.integrations.Core.InvokeLLM({
         prompt: `Analyze this shipping/logistics document and provide a comprehensive summary. Extract and organize key information including:
 - Document type and purpose
 - Shipment details (tracking numbers, container numbers, B/L numbers)

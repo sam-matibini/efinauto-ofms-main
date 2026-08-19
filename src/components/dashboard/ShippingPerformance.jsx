@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Ship, TrendingUp, Clock, CheckCircle, Loader2 } from "lucide-react";
 import { differenceInDays } from "date-fns";
@@ -9,13 +9,13 @@ import { differenceInDays } from "date-fns";
 export default function ShippingPerformance({ companyId }) {
   const { data: shipmentTracking = [], isLoading: trackingLoading } = useQuery({
     queryKey: ['shipmentTracking', companyId],
-    queryFn: () => base44.entities.ShipmentTracking.filter({ company_id: companyId }),
+    queryFn: () => supabase.entities.ShipmentTracking.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
 
   const { data: exportOrders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['exportOrders', companyId],
-    queryFn: () => base44.entities.ExportOrder.filter({ company_id: companyId }),
+    queryFn: () => supabase.entities.ExportOrder.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
 

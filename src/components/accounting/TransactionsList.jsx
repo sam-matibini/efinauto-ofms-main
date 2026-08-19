@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Search, ArrowUpCircle, ArrowDownCircle, Download, Printer, FileText, Plus, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import {
   DropdownMenu,
@@ -24,7 +24,7 @@ export default function TransactionsList({ dateRange, comparativePeriods = [] })
 
   const { data: transactions = [] } = useQuery({
     queryKey: ['transactions', selectedCompanyId],
-    queryFn: () => base44.entities.Transaction.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Transaction.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });

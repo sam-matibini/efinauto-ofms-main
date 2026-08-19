@@ -87,9 +87,9 @@ export const validateExportOrder = (order, lineItems = []) => {
   };
 };
 
-export const validateBeforeFinalization = async (orderId, base44Client) => {
+export const validateBeforeFinalization = async (orderId, supabaseClient) => {
   try {
-    const orders = await base44Client.entities.ExportOrder.filter({ id: orderId });
+    const orders = await supabaseClient.entities.ExportOrder.filter({ id: orderId });
     const order = orders[0];
     
     if (!order) {

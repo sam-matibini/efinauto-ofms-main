@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, Trash2 } from "lucide-react";
@@ -29,7 +29,7 @@ export default function OpportunityDialog({ open, onClose, opportunity, companyI
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', companyId],
-    queryFn: () => base44.entities.Customer.filter({ company_id: companyId }),
+    queryFn: () => supabase.entities.Customer.filter({ company_id: companyId }),
     enabled: !!companyId && open,
   });
 
@@ -56,9 +56,9 @@ export default function OpportunityDialog({ open, onClose, opportunity, companyI
   const saveMutation = useMutation({
     mutationFn: (data) => {
       if (opportunity) {
-        return base44.entities.Opportunity.update(opportunity.id, data);
+        return supabase.entities.Opportunity.update(opportunity.id, data);
       } else {
-        return base44.entities.Opportunity.create({ ...data, company_id: companyId });
+        return supabase.entities.Opportunity.create({ ...data, company_id: companyId });
       }
     },
     onSuccess: () => {
@@ -69,7 +69,7 @@ export default function OpportunityDialog({ open, onClose, opportunity, companyI
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Opportunity.delete(id),
+    mutationFn: (id) => supabase.entities.Opportunity.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['opportunities', companyId] });
       toast.success("Opportunity deleted");

@@ -1,4 +1,4 @@
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { format } from "date-fns";
 
 /**
@@ -68,14 +68,14 @@ export const sendBOSCreatedNotification = async (sale, company) => {
     `;
 
     for (const recipient of recipients) {
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         from_name: company.name,
         to: recipient,
         subject: `New Bill of Sale Created - ${sale.sale_number}`,
         body: emailBody
       });
 
-      await base44.entities.NotificationLog.create({
+      await supabase.entities.NotificationLog.create({
         company_id: company.id,
         notification_type: 'bos_created',
         recipient_email: recipient,
@@ -154,14 +154,14 @@ export const sendBOSFinalizedNotification = async (sale, company) => {
     `;
 
     for (const recipient of recipients) {
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         from_name: company.name,
         to: recipient,
         subject: `BOS Finalized - ${sale.bos_number}`,
         body: emailBody
       });
 
-      await base44.entities.NotificationLog.create({
+      await supabase.entities.NotificationLog.create({
         company_id: company.id,
         notification_type: 'bos_finalized',
         recipient_email: recipient,
@@ -235,14 +235,14 @@ export const sendSignatureRequestNotification = async (sale, company, signerEmai
     `;
 
     for (const recipient of recipients) {
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         from_name: company.name,
         to: recipient,
         subject: `Signature Request Sent - ${signerName} (${signerType})`,
         body: emailBody
       });
 
-      await base44.entities.NotificationLog.create({
+      await supabase.entities.NotificationLog.create({
         company_id: company.id,
         notification_type: 'signature_request_sent',
         recipient_email: recipient,
@@ -321,14 +321,14 @@ export const sendCompletionCertificateNotification = async (sale, company) => {
     `;
 
     for (const recipient of recipients) {
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         from_name: company.name,
         to: recipient,
         subject: `Completion Certificate Generated - ${sale.bos_number}`,
         body: emailBody
       });
 
-      await base44.entities.NotificationLog.create({
+      await supabase.entities.NotificationLog.create({
         company_id: company.id,
         notification_type: 'completion_certificate_generated',
         recipient_email: recipient,

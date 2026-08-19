@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,7 +14,7 @@ export default function RecurringBillsTab({ recurringBills, selectedCompanyId })
   const [editingBill, setEditingBill] = useState(null);
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.RecurringBill.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: (data) => supabase.entities.RecurringBill.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recurringBills'] });
       setDialogOpen(false);
@@ -24,7 +24,7 @@ export default function RecurringBillsTab({ recurringBills, selectedCompanyId })
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.RecurringBill.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.RecurringBill.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recurringBills'] });
       setDialogOpen(false);
@@ -34,7 +34,7 @@ export default function RecurringBillsTab({ recurringBills, selectedCompanyId })
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.RecurringBill.delete(id),
+    mutationFn: (id) => supabase.entities.RecurringBill.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recurringBills'] });
       toast.success("Recurring bill deleted!");

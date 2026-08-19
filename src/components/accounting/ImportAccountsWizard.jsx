@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, Loader2, CheckCircle2, ChevronRight, FileText } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -110,7 +110,7 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
       
       setUploading(true);
       try {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const { file_url } = await supabase.integrations.Core.UploadFile({ file });
         
         // Parse CSV to extract headers and data
         const response = await fetch(file_url);
@@ -171,7 +171,7 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
       }
 
       const mappedAccounts = applyFieldMapping(extractedData);
-      const existingAccounts = await base44.entities.Account.filter({ company_id: companyId });
+      const existingAccounts = await supabase.entities.Account.filter({ company_id: companyId });
       const existingCodes = new Set(existingAccounts.map(a => a.account_code));
       
       let created = 0;
@@ -197,7 +197,7 @@ export default function ImportAccountsWizard({ open, onClose, companyId }) {
         }
 
         try {
-          await base44.entities.Account.create({
+          await supabase.entities.Account.create({
             company_id: companyId,
             account_code: accountCode,
             account_name: String(account.account_name).trim(),

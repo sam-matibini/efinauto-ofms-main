@@ -3,7 +3,7 @@
  * Monitors shipment locations and triggers alerts based on user-defined geofences
  */
 
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 export const GeofencingService = {
   /**
@@ -61,7 +61,7 @@ export const GeofencingService = {
   async checkGeofences(companyId, tracking, currentLat, currentLng, previousLat, previousLng) {
     try {
       // Get all active geofences for company
-      const geofences = await base44.entities.Geofence.filter({
+      const geofences = await supabase.entities.Geofence.filter({
         company_id: companyId,
         active: true
       });
@@ -122,7 +122,7 @@ export const GeofencingService = {
   async sendGeofenceAlert(alert, tracking, geofence) {
     try {
       // Get export order details
-      const exportOrder = await base44.entities.ExportOrder.filter({ id: tracking.export_order_id });
+      const exportOrder = await supabase.entities.ExportOrder.filter({ id: tracking.export_order_id });
       const order = exportOrder?.[0];
 
       if (!order) return;
@@ -135,7 +135,7 @@ export const GeofencingService = {
       if (recipients.length === 0) return;
 
       // Create notification records
-      await base44.entities.NotificationLog.create({
+      await supabase.entities.NotificationLog.create({
         company_id: order.company_id,
         notification_type: "export_update",
         recipient_email: order.consignee_email,
@@ -156,7 +156,7 @@ Track your shipment for real-time updates.`,
       });
 
       // Send actual email
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         to: order.consignee_email,
         subject: `📍 Shipment Alert: ${alert.type.replace(/_/g, ' ').toUpperCase()}`,
         body: `${alert.message}
@@ -182,12 +182,12 @@ This is an automated geofencing alert to keep you informed of your shipment's pr
    */
   async monitorAllShipments(companyId) {
     try {
-      const exports = await base44.entities.ExportOrder.filter({ company_id: companyId });
+      const exports = await supabase.entities.ExportOrder.filter({ company_id: companyId });
       const exportIds = exports.map(e => e.id);
       
       if (exportIds.length === 0) return [];
 
-      const trackingRecords = await base44.entities.ShipmentTracking.filter({});
+      const trackingRecords = await supabase.entities.ShipmentTracking.filter({});
       const activeTracking = trackingRecords.filter(t => 
         exportIds.includes(t.export_order_id) &&
         !['delivered', 'cancelled'].includes(t.current_status)

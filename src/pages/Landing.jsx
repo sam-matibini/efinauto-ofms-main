@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -34,7 +34,7 @@ export default function Landing() {
     queryKey: ['currentUser'],
     queryFn: async () => {
       try {
-        return await base44.auth.me();
+        return await supabase.auth.me();
       } catch {
         return null;
       }
@@ -46,7 +46,7 @@ export default function Landing() {
     const fetchFinancialData = async () => {
       setLoadingNews(true);
       try {
-        const response = await base44.integrations.Core.InvokeLLM({
+        const response = await supabase.integrations.Core.InvokeLLM({
           prompt: `Provide current financial market data as of today. Include:
 1. Major currency exchange rates (USD to CAD, EUR, GBP, JPY)
 2. Current inflation rates for US and Canada
@@ -161,14 +161,14 @@ Keep each item concise.`,
       if (plan) {
         // For now, save selected modules to user and redirect to dashboard
         if (user) {
-          await base44.auth.updateMe({
+          await supabase.auth.updateMe({
             subscription_plan: planId,
             accessible_modules: plan.modules,
             subscription_date: new Date().toISOString()
           });
           window.location.href = createPageUrl("Dashboard");
         } else {
-          base44.auth.redirectToLogin(createPageUrl("Landing"));
+          supabase.auth.redirectToLogin(createPageUrl("Landing"));
         }
       }
     } catch (error) {
@@ -218,16 +218,16 @@ Keep each item concise.`,
                     Dashboard
                   </Button>
                 </Link>
-                <Button size="sm" variant="ghost" className="text-gray-300 hover:text-white" onClick={() => base44.auth.logout()}>
+                <Button size="sm" variant="ghost" className="text-gray-300 hover:text-white" onClick={() => supabase.auth.logout()}>
                   Logout
                 </Button>
               </>
             ) : (
               <>
-                <Button size="sm" variant="ghost" className="text-gray-300 hover:text-white" onClick={() => base44.auth.redirectToLogin()}>
+                <Button size="sm" variant="ghost" className="text-gray-300 hover:text-white" onClick={() => supabase.auth.redirectToLogin()}>
                   Sign In
                 </Button>
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => base44.auth.redirectToLogin()}>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => supabase.auth.redirectToLogin()}>
                   Get Started
                 </Button>
               </>
@@ -273,7 +273,7 @@ Keep each item concise.`,
                   </Link>
                 ) : (
                   <>
-                    <Button size="lg" className="bg-blue-600 hover:bg-blue-700" onClick={() => base44.auth.redirectToLogin()}>
+                    <Button size="lg" className="bg-blue-600 hover:bg-blue-700" onClick={() => supabase.auth.redirectToLogin()}>
                       Get Started
                       <ArrowRight className="w-5 h-5 ml-2" />
                     </Button>
@@ -519,14 +519,14 @@ Keep each item concise.`,
                   className="bg-blue-600 hover:bg-blue-700"
                   onClick={() => {
                     if (user) {
-                      base44.auth.updateMe({ 
+                      supabase.auth.updateMe({ 
                         accessible_modules: ["Dashboard", ...selectedModules],
                         subscription_type: "custom"
                       }).then(() => {
                         window.location.href = createPageUrl("Dashboard");
                       });
                     } else {
-                      base44.auth.redirectToLogin();
+                      supabase.auth.redirectToLogin();
                     }
                   }}
                 >

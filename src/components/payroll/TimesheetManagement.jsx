@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Clock, Plus, Check, X, Edit, Users, List, ChevronDown, ChevronRight } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function TimesheetManagement({ company, employees, timeEntries, queryClient }) {
@@ -32,7 +32,7 @@ export default function TimesheetManagement({ company, employees, timeEntries, q
   });
 
   const createTimeEntryMutation = useMutation({
-    mutationFn: (data) => base44.entities.TimeEntry.create(data),
+    mutationFn: (data) => supabase.entities.TimeEntry.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
       toast.success("Time entry added successfully");
@@ -43,7 +43,7 @@ export default function TimesheetManagement({ company, employees, timeEntries, q
   });
 
   const updateTimeEntryMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.TimeEntry.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.TimeEntry.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
       toast.success("Time entry updated successfully");
@@ -54,7 +54,7 @@ export default function TimesheetManagement({ company, employees, timeEntries, q
   });
 
   const approveTimeEntryMutation = useMutation({
-    mutationFn: ({ id, approved }) => base44.entities.TimeEntry.update(id, { 
+    mutationFn: ({ id, approved }) => supabase.entities.TimeEntry.update(id, { 
       approved,
       approved_date: new Date().toISOString()
     }),

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { TrendingUp, Sparkles, AlertCircle } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
@@ -148,7 +148,7 @@ Provide 3-4 actionable insights about:
 
 Be specific and actionable.`;
 
-      const response = await base44.integrations.Core.InvokeLLM({ prompt });
+      const response = await supabase.integrations.Core.InvokeLLM({ prompt });
       setLoading(false);
       return response;
     },

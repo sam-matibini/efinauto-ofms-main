@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,20 +67,20 @@ export default function Parts() {
 
   const { data: parts = [], isLoading } = useQuery({
     queryKey: ['parts', selectedCompanyId],
-    queryFn: () => base44.entities.Part.filter({ company_id: selectedCompanyId }, '-created_date'),
+    queryFn: () => supabase.entities.Part.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: repairs = [] } = useQuery({
     queryKey: ['repairs', selectedCompanyId],
-    queryFn: () => base44.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Part.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: (data) => supabase.entities.Part.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['parts'] });
       setDialogOpen(false);
@@ -90,7 +90,7 @@ export default function Parts() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Part.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.Part.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['parts'] });
       setDialogOpen(false);
@@ -101,7 +101,7 @@ export default function Parts() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Part.delete(id),
+    mutationFn: (id) => supabase.entities.Part.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['parts'] });
       setDeleteDialogOpen(false);

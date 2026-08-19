@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -185,12 +185,12 @@ export default function CustomReportBuilder() {
 
   const { data: savedReports = [] } = useQuery({
     queryKey: ['custom-reports', selectedCompanyId],
-    queryFn: () => base44.entities.CustomReport.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.CustomReport.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
   });
 
   const saveReportMutation = useMutation({
-    mutationFn: (data) => base44.entities.CustomReport.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: (data) => supabase.entities.CustomReport.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['custom-reports'] });
       toast.success("Report saved");
@@ -199,7 +199,7 @@ export default function CustomReportBuilder() {
   });
 
   const deleteReportMutation = useMutation({
-    mutationFn: (id) => base44.entities.CustomReport.delete(id),
+    mutationFn: (id) => supabase.entities.CustomReport.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['custom-reports'] });
       toast.success("Report deleted");
@@ -207,7 +207,7 @@ export default function CustomReportBuilder() {
   });
 
   const updateReportMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.CustomReport.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.CustomReport.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['custom-reports'] })
   });
 
@@ -252,15 +252,15 @@ export default function CustomReportBuilder() {
     setIsRunning(true);
     try {
       const entityMap = {
-        Transaction: base44.entities.Transaction,
-        Sale: base44.entities.Sale,
-        Purchase: base44.entities.Purchase,
-        Vehicle: base44.entities.Vehicle,
-        Part: base44.entities.Part,
-        Customer: base44.entities.Customer,
-        RepairOrder: base44.entities.RepairOrder,
-        Export: base44.entities.Export,
-        FreightShipment: base44.entities.FreightShipment
+        Transaction: supabase.entities.Transaction,
+        Sale: supabase.entities.Sale,
+        Purchase: supabase.entities.Purchase,
+        Vehicle: supabase.entities.Vehicle,
+        Part: supabase.entities.Part,
+        Customer: supabase.entities.Customer,
+        RepairOrder: supabase.entities.RepairOrder,
+        Export: supabase.entities.Export,
+        FreightShipment: supabase.entities.FreightShipment
       };
 
       let data = await entityMap[config.entity_type].filter({ company_id: selectedCompanyId });

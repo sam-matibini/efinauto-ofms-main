@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Download, FileText, Eye } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import PaystubViewer from "@/components/payroll/PaystubViewer";
 
 export default function MyPaystubs({ employee, company }) {
@@ -14,13 +14,13 @@ export default function MyPaystubs({ employee, company }) {
 
   const { data: payrollEntries = [] } = useQuery({
     queryKey: ['myPayrollEntries', employee?.id],
-    queryFn: () => base44.entities.PayrollEntry.filter({ employee_id: employee.id }, '-created_date'),
+    queryFn: () => supabase.entities.PayrollEntry.filter({ employee_id: employee.id }, '-created_date'),
     enabled: !!employee,
   });
 
   const { data: payrollRuns = [] } = useQuery({
     queryKey: ['myPayrollRuns', employee?.company_id],
-    queryFn: () => base44.entities.PayrollRun.filter({ company_id: employee.company_id }),
+    queryFn: () => supabase.entities.PayrollRun.filter({ company_id: employee.company_id }),
     enabled: !!employee,
   });
 

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Send, Loader2, TrendingUp, AlertTriangle, Route, DollarSign, MessageCircle, RotateCcw } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 
@@ -97,7 +97,7 @@ User question: ${message}
 
 Provide practical, actionable advice. Be concise but thorough. If predicting delays or costs, explain your reasoning. If comparing carriers, consider price, transit time, reliability, and service quality. Use data-driven insights when possible.`;
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: fullPrompt,
         add_context_from_internet: true
       });

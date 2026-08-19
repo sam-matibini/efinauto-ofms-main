@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,7 @@ export default function TechnicianScheduler({ open, onClose }) {
 
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians', selectedCompanyId],
-    queryFn: () => base44.entities.Technician.filter({ 
+    queryFn: () => supabase.entities.Technician.filter({ 
       company_id: selectedCompanyId,
       status: 'active'
     }),
@@ -32,20 +32,20 @@ export default function TechnicianScheduler({ open, onClose }) {
 
   const { data: repairOrders = [] } = useQuery({
     queryKey: ['repairs', selectedCompanyId],
-    queryFn: () => base44.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId && open,
     initialData: [],
   });
 
   const { data: timesheets = [] } = useQuery({
     queryKey: ['timesheets-schedule', selectedCompanyId],
-    queryFn: () => base44.entities.Timesheet.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Timesheet.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId && open,
     initialData: [],
   });
 
   const updateOrderMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.RepairOrder.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.RepairOrder.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repairs'] });
       toast.success("Technician assigned successfully");

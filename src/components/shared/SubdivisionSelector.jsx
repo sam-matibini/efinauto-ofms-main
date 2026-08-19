@@ -1,6 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapPin } from "lucide-react";
 
@@ -14,7 +14,7 @@ export default function SubdivisionSelector({
 }) {
   const { data: subdivisions = [], isLoading } = useQuery({
     queryKey: ['subdivisions', countryIso2],
-    queryFn: () => base44.entities.Subdivision.filter({ 
+    queryFn: () => supabase.entities.Subdivision.filter({ 
       country_iso2: countryIso2, 
       active: true 
     }, 'sort_order'),

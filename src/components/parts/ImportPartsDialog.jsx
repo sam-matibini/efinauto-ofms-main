@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2, Undo2, Loader2 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function ImportPartsDialog({ open, onClose, companyId, onSuccess }) {
@@ -85,7 +85,7 @@ export default function ImportPartsDialog({ open, onClose, companyId, onSuccess 
 
       for (const row of rows) {
         try {
-          const createdPart = await base44.entities.Part.create({
+          const createdPart = await supabase.entities.Part.create({
             company_id: companyId,
             part_number: row.part_number || row['Part Number'] || row.part_no,
             name: row.name || row.Name,
@@ -144,7 +144,7 @@ export default function ImportPartsDialog({ open, onClose, companyId, onSuccess 
     setUndoing(true);
     try {
       for (const id of importedIds) {
-        await base44.entities.Part.delete(id);
+        await supabase.entities.Part.delete(id);
       }
       toast.success(`Undone import: Deleted ${importedIds.length} parts`);
       setImportedIds([]);

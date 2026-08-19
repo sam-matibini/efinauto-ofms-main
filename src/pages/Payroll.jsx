@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,48 +43,48 @@ export default function Payroll() {
 
   const { data: company } = useQuery({
     queryKey: ['company', selectedCompanyId],
-    queryFn: () => base44.entities.Company.filter({ id: selectedCompanyId }).then(companies => companies[0]),
+    queryFn: () => supabase.entities.Company.filter({ id: selectedCompanyId }).then(companies => companies[0]),
     enabled: !!selectedCompanyId,
   });
 
   const { data: employees = [] } = useQuery({
     queryKey: ['employees', selectedCompanyId],
-    queryFn: () => base44.entities.Employee.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Employee.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: payrollRuns = [] } = useQuery({
     queryKey: ['payrollRuns', selectedCompanyId],
-    queryFn: () => base44.entities.PayrollRun.filter({ company_id: selectedCompanyId }, '-created_date', 50),
+    queryFn: () => supabase.entities.PayrollRun.filter({ company_id: selectedCompanyId }, '-created_date', 50),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: payrollEntries = [] } = useQuery({
     queryKey: ['payrollEntries', selectedCompanyId],
-    queryFn: () => base44.entities.PayrollEntry.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.PayrollEntry.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: timeEntries = [] } = useQuery({
     queryKey: ['timeEntries', selectedCompanyId],
-    queryFn: () => base44.entities.TimeEntry.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.TimeEntry.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: payGroups = [] } = useQuery({
     queryKey: ['payGroups', selectedCompanyId],
-    queryFn: () => base44.entities.PayGroup.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.PayGroup.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: adjustments = [] } = useQuery({
     queryKey: ['payrollAdjustments', selectedCompanyId],
-    queryFn: () => base44.entities.PayrollAdjustment.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.PayrollAdjustment.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });

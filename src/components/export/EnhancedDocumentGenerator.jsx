@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { FileText, Download, Sparkles, Check, Loader2, Eye } from "lucide-react";
 import { toast } from "sonner";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { 
   generateCommercialInvoice, 
   generateBillOfLading, 
@@ -80,7 +80,7 @@ export default function EnhancedDocumentGenerator({ order, sale, company }) {
         }
       ];
 
-      await base44.entities.ExportOrder.update(order.id, {
+      await supabase.entities.ExportOrder.update(order.id, {
         documents: updatedDocs
       });
 

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -24,7 +24,7 @@ export default function BOSSettings() {
   // Fetch company data
   const { data: company } = useQuery({
     queryKey: ['company', selectedCompanyId],
-    queryFn: () => base44.entities.Company.filter({ id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Company.filter({ id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     select: (data) => data[0],
   });
@@ -32,7 +32,7 @@ export default function BOSSettings() {
   // Fetch current sequences
   const { data: sequences, isLoading } = useQuery({
     queryKey: ['bos-sequences', selectedCompanyId],
-    queryFn: () => base44.entities.DocumentSequence.filter({
+    queryFn: () => supabase.entities.DocumentSequence.filter({
       company_id: selectedCompanyId,
       document_type: 'bill_of_sale',
       year: new Date().getFullYear()
@@ -51,7 +51,7 @@ export default function BOSSettings() {
   // Create location sequence
   const createLocationMutation = useMutation({
     mutationFn: async (locationData) => {
-      return await base44.entities.DocumentSequence.create({
+      return await supabase.entities.DocumentSequence.create({
         company_id: selectedCompanyId,
         document_type: 'bill_of_sale',
         year: new Date().getFullYear(),
@@ -76,7 +76,7 @@ export default function BOSSettings() {
   // Update sequence
   const updateSequenceMutation = useMutation({
     mutationFn: async ({ id, updates }) => {
-      return await base44.entities.DocumentSequence.update(id, updates);
+      return await supabase.entities.DocumentSequence.update(id, updates);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bos-sequences'] });
@@ -92,7 +92,7 @@ export default function BOSSettings() {
   // Delete sequence (admin only)
   const deleteSequenceMutation = useMutation({
     mutationFn: async (sequenceId) => {
-      return await base44.entities.DocumentSequence.delete({ id: sequenceId });
+      return await supabase.entities.DocumentSequence.delete({ id: sequenceId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bos-sequences'] });

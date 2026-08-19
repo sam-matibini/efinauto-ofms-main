@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -66,23 +66,23 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', selectedCompanyId],
-    queryFn: () => base44.entities.Customer.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Customer.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
   });
 
   const { data: services = [] } = useQuery({
     queryKey: ['services', selectedCompanyId],
-    queryFn: () => base44.entities.Service.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Service.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
   });
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const invoice = await base44.entities.SalesInvoice.create({ ...data, company_id: selectedCompanyId });
+      const invoice = await supabase.entities.SalesInvoice.create({ ...data, company_id: selectedCompanyId });
       
       // Create GL transaction for invoice (AR and revenue) when sent or paid
       if (invoice.total_amount > 0 && (data.status === 'sent' || data.status === 'paid')) {
-        await base44.entities.Transaction.create({
+        await supabase.entities.Transaction.create({
           company_id: selectedCompanyId,
           transaction_number: invoice.invoice_number,
           transaction_type: 'service_revenue',
@@ -117,13 +117,13 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
-      const invoicesData = await base44.entities.SalesInvoice.filter({ id });
+      const invoicesData = await supabase.entities.SalesInvoice.filter({ id });
       const oldInvoice = invoicesData[0];
-      const updatedInvoice = await base44.entities.SalesInvoice.update(id, data);
+      const updatedInvoice = await supabase.entities.SalesInvoice.update(id, data);
       
       // If status changed to paid, create payment transaction
       if (data.status === 'paid' && oldInvoice?.status !== 'paid') {
-        await base44.entities.Transaction.create({
+        await supabase.entities.Transaction.create({
           company_id: selectedCompanyId,
           transaction_number: `PMT-${id.slice(0, 8)}`,
           transaction_type: 'payment_received',
@@ -156,7 +156,7 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.SalesInvoice.delete(id),
+    mutationFn: (id) => supabase.entities.SalesInvoice.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       toast.success("Invoice deleted!");

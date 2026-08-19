@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, Trash2 } from "lucide-react";
@@ -43,7 +43,7 @@ export default function CommunicationDialog({
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
-      const user = await base44.auth.me();
+      const user = await supabase.auth.me();
       const payload = {
         ...data,
         company_id: companyId,
@@ -53,9 +53,9 @@ export default function CommunicationDialog({
         logged_by: user.email
       };
       if (communication) {
-        return base44.entities.CommunicationLog.update(communication.id, payload);
+        return supabase.entities.CommunicationLog.update(communication.id, payload);
       } else {
-        return base44.entities.CommunicationLog.create(payload);
+        return supabase.entities.CommunicationLog.create(payload);
       }
     },
     onSuccess: () => {

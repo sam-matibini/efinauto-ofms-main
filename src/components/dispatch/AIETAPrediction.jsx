@@ -1,4 +1,4 @@
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 /**
@@ -74,7 +74,7 @@ Provide:
 - Key factors affecting ETA
 - Recommended actions if running late`;
 
-    const response = await base44.integrations.Core.InvokeLLM({
+    const response = await supabase.integrations.Core.InvokeLLM({
       prompt,
       add_context_from_internet: true,
       response_json_schema: {
@@ -107,7 +107,7 @@ Provide:
  */
 export async function updateShipmentETA(shipmentId, etaPrediction) {
   try {
-    await base44.entities.LocalShipment.update(shipmentId, {
+    await supabase.entities.LocalShipment.update(shipmentId, {
       estimated_arrival: etaPrediction.predicted_eta,
       eta_confidence: etaPrediction.confidence_level,
       eta_last_updated: new Date().toISOString()

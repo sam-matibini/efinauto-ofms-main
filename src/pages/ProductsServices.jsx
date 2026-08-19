@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,20 +35,20 @@ export default function ProductsServicesPage() {
 
   const { data: products = [], isLoading: loadingProducts } = useQuery({
     queryKey: ['products', selectedCompanyId],
-    queryFn: () => base44.entities.Product.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Product.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: services = [], isLoading: loadingServices } = useQuery({
     queryKey: ['services', selectedCompanyId],
-    queryFn: () => base44.entities.Service.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Service.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const createProductMutation = useMutation({
-    mutationFn: (data) => base44.entities.Product.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: (data) => supabase.entities.Product.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       setProductDialogOpen(false);
@@ -58,7 +58,7 @@ export default function ProductsServicesPage() {
   });
 
   const updateProductMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Product.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.Product.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       setProductDialogOpen(false);
@@ -68,7 +68,7 @@ export default function ProductsServicesPage() {
   });
 
   const deleteProductMutation = useMutation({
-    mutationFn: (id) => base44.entities.Product.delete(id),
+    mutationFn: (id) => supabase.entities.Product.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success("Product deleted successfully");
@@ -76,7 +76,7 @@ export default function ProductsServicesPage() {
   });
 
   const createServiceMutation = useMutation({
-    mutationFn: (data) => base44.entities.Service.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: (data) => supabase.entities.Service.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] });
       setServiceDialogOpen(false);
@@ -86,7 +86,7 @@ export default function ProductsServicesPage() {
   });
 
   const updateServiceMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Service.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.Service.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] });
       setServiceDialogOpen(false);
@@ -96,7 +96,7 @@ export default function ProductsServicesPage() {
   });
 
   const deleteServiceMutation = useMutation({
-    mutationFn: (id) => base44.entities.Service.delete(id),
+    mutationFn: (id) => supabase.entities.Service.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] });
       toast.success("Service deleted successfully");

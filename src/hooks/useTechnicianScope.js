@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 // Resolves the technician records owned by the current user (via Technician.employee_id
 // == user.data.employee_entity_id) and role flags used to scope timesheet access in the
@@ -9,7 +9,7 @@ import { base44 } from "@/api/base44Client";
 export function useTechnicianScope() {
   const { data: user } = useQuery({
     queryKey: ["currentUser"],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => supabase.auth.me(),
   });
 
   const role = user?.role;
@@ -20,7 +20,7 @@ export function useTechnicianScope() {
   const { data: ownedTechnicians = [] } = useQuery({
     queryKey: ["ownedTechnicians", employeeEntityId],
     queryFn: () =>
-      base44.entities.Technician.filter({ employee_id: employeeEntityId }),
+      supabase.entities.Technician.filter({ employee_id: employeeEntityId }),
     enabled: !!employeeEntityId && !canViewAll,
     initialData: [],
   });

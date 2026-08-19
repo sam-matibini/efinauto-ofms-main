@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, MessageSquare, Loader2, Plane, Package, FileText, Link2 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function SMSComposer({ customer, customers, exports, shipments, loadingDeclarations, draft, company, invoices, payrollEntries }) {
@@ -31,7 +31,7 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
 
     setUploadingFile(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
       setDocumentLink(file_url);
       setMessage(prev => prev + `\n\nDocument: ${file_url}`);
       toast.success(`File "${file.name}" attached!`);
@@ -96,7 +96,7 @@ export default function SMSComposer({ customer, customers, exports, shipments, l
         details: `${pe.pay_date}`
       }));
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Find documents matching: "${aiDocSearch}"
 
 Documents:
@@ -188,7 +188,7 @@ Return indices of top 3 most relevant documents.`,
       
       const companyName = company?.name || company?.display_name || "eFinAuto OFMS";
       
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `${selectedTemplate.prompt} for ${companyName}.${contextInfo}\n\nKeep it under 160 characters. Be professional and friendly.`,
         response_json_schema: {
           type: "object",
@@ -217,7 +217,7 @@ Return indices of top 3 most relevant documents.`,
     try {
       // Log the SMS communication
       if (customer) {
-        await base44.entities.NotificationLog.create({
+        await supabase.entities.NotificationLog.create({
           company_id: company?.id,
           customer_id: customer.id,
           customer_name: customer.full_name,

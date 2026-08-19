@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,7 +31,7 @@ export default function SignDocument() {
   const { data: sale, isLoading, error } = useQuery({
     queryKey: ['sale', saleId],
     queryFn: async () => {
-      const sales = await base44.entities.Sale.filter({ id: saleId });
+      const sales = await supabase.entities.Sale.filter({ id: saleId });
       return sales[0];
     },
     enabled: !!saleId,
@@ -40,7 +40,7 @@ export default function SignDocument() {
   const { data: company } = useQuery({
     queryKey: ['company', sale?.company_id],
     queryFn: async () => {
-      const companies = await base44.entities.Company.filter({ id: sale.company_id });
+      const companies = await supabase.entities.Company.filter({ id: sale.company_id });
       return companies[0];
     },
     enabled: !!sale?.company_id,
@@ -60,7 +60,7 @@ export default function SignDocument() {
         signature_method: 'electronic_capture'
       };
 
-      return await base44.entities.Sale.update(saleId, updateData);
+      return await supabase.entities.Sale.update(saleId, updateData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sale', saleId] });
@@ -81,7 +81,7 @@ export default function SignDocument() {
       const blob = await response.blob();
       const file = new File([blob], `signature_${signerType}_${Date.now()}.png`, { type: 'image/png' });
       
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
       
       await updateSignatureMutation.mutateAsync(file_url);
       setShowSignaturePad(false);

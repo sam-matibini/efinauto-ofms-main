@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { User, Plus, Phone, Mail, Shield, MapPin, Navigation, Star } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -34,7 +34,7 @@ export default function ThirdPartyDrivers({ carrierId }) {
 
   const { data: drivers = [] } = useQuery({
     queryKey: ['thirdPartyDrivers', carrierId],
-    queryFn: () => base44.entities.ThirdPartyDriver.filter({ carrier_id: carrierId }),
+    queryFn: () => supabase.entities.ThirdPartyDriver.filter({ carrier_id: carrierId }),
     enabled: !!carrierId,
   });
 
@@ -43,7 +43,7 @@ export default function ThirdPartyDrivers({ carrierId }) {
     queryFn: async () => {
       const activeDrivers = drivers.filter(d => d.current_shipment_id);
       const promises = activeDrivers.map(driver =>
-        base44.entities.GPSTrackingPoint.filter(
+        supabase.entities.GPSTrackingPoint.filter(
           { shipment_id: driver.current_shipment_id },
           '-timestamp',
           1
@@ -59,9 +59,9 @@ export default function ThirdPartyDrivers({ carrierId }) {
     mutationFn: (data) => {
       const driverData = { ...data, company_id: selectedCompanyId, carrier_id: carrierId };
       if (selectedDriver) {
-        return base44.entities.ThirdPartyDriver.update(selectedDriver.id, driverData);
+        return supabase.entities.ThirdPartyDriver.update(selectedDriver.id, driverData);
       }
-      return base44.entities.ThirdPartyDriver.create(driverData);
+      return supabase.entities.ThirdPartyDriver.create(driverData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['thirdPartyDrivers'] });

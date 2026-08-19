@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,7 @@ export default function ForeignCurrencyInput({
 
     setIsLoadingRate(true);
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `What is the current exchange rate from ${currency} to ${reportingCurrency}? Return only the numeric rate.`,
         add_context_from_internet: true,
         response_json_schema: {

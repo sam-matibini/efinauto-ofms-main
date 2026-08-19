@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Search, Check, X, Undo2, ArrowUpRight, ArrowDownRight, Sparkles } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -19,7 +19,7 @@ export default function TransactionsList({ transactions, bankAccounts, glAccount
   const queryClient = useQueryClient();
 
   const updateTransactionMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.BankTransaction.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.BankTransaction.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bankTransactions'] });
       toast.success("Transaction updated");
@@ -36,7 +36,7 @@ export default function TransactionsList({ transactions, bankAccounts, glAccount
       }
 
       // Create GL transaction using double-entry bookkeeping
-      const glTransaction = await base44.entities.Transaction.create({
+      const glTransaction = await supabase.entities.Transaction.create({
         company_id: companyId,
         transaction_date: transaction.transaction_date,
         description: transaction.description,
@@ -60,7 +60,7 @@ export default function TransactionsList({ transactions, bankAccounts, glAccount
       });
 
       // Update transaction as posted
-      await base44.entities.BankTransaction.update(transaction.id, {
+      await supabase.entities.BankTransaction.update(transaction.id, {
         posted_to_gl: true,
         transaction_id: glTransaction.id,
         status: "posted"
@@ -80,7 +80,7 @@ export default function TransactionsList({ transactions, bankAccounts, glAccount
 
   const excludeTransactionMutation = useMutation({
     mutationFn: ({ id, reason }) => 
-      base44.entities.BankTransaction.update(id, { status: "excluded", excluded_reason: reason }),
+      supabase.entities.BankTransaction.update(id, { status: "excluded", excluded_reason: reason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bankTransactions'] });
       toast.success("Transaction excluded");
@@ -90,7 +90,7 @@ export default function TransactionsList({ transactions, bankAccounts, glAccount
   const deleteImportBatchMutation = useMutation({
     mutationFn: async (batchId) => {
       const batchTransactions = transactions.filter(t => t.import_batch_id === batchId);
-      await Promise.all(batchTransactions.map(t => base44.entities.BankTransaction.delete(t.id)));
+      await Promise.all(batchTransactions.map(t => supabase.entities.BankTransaction.delete(t.id)));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bankTransactions'] });

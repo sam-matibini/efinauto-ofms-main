@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Edit, Save, X } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function MyProfile({ employee }) {
@@ -23,7 +23,7 @@ export default function MyProfile({ employee }) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data) => base44.entities.Employee.update(employee.id, data),
+    mutationFn: (data) => supabase.entities.Employee.update(employee.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['myEmployee'] });
       toast.success("Profile updated successfully");

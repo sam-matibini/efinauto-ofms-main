@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Mail, MessageCircle, Share2, Printer, FileDown, Copy, Check } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import jsPDF from "jspdf";
 
 export default function ShipmentShareDialog({ open, onClose, trackingData, trackingNumber, carrier }) {
@@ -43,7 +43,7 @@ Track your shipment: ${shareUrl}`;
 
     setSending(true);
     try {
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         to: email,
         subject: `Shipment Tracking - ${trackingNumber}`,
         body: generateTrackingText()

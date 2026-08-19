@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from "recharts";
 import { Sparkles, TrendingUp, AlertTriangle, Package } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function PredictiveInsights({ repairOrders, parts, timesheets, dateRange }) {
@@ -140,7 +140,7 @@ Provide 4-5 specific predictions and recommendations for:
 
 Be specific with numbers and actionable recommendations.`;
 
-      const response = await base44.integrations.Core.InvokeLLM({ prompt });
+      const response = await supabase.integrations.Core.InvokeLLM({ prompt });
       setLoading(false);
       return response;
     },

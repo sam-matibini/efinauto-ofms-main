@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,7 +16,7 @@ export default function VehicleAnalytics() {
     queryKey: ['vehicles', selectedCompanyId],
     queryFn: async () => {
       if (!selectedCompanyId) return [];
-      return await base44.entities.Vehicle.filter({ company_id: selectedCompanyId }, '-created_date');
+      return await supabase.entities.Vehicle.filter({ company_id: selectedCompanyId }, '-created_date');
     },
     enabled: !!selectedCompanyId,
     initialData: [],
@@ -24,13 +24,13 @@ export default function VehicleAnalytics() {
 
   const { data: companies = [] } = useQuery({
     queryKey: ['companies'],
-    queryFn: () => base44.entities.Company.list(),
+    queryFn: () => supabase.entities.Company.list(),
     initialData: [],
   });
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => supabase.auth.me(),
   });
 
   const isAdmin = currentUser?.role === 'admin';

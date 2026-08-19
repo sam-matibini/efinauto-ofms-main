@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +24,7 @@ export default function CustomerTracking() {
     queryKey: ['customer-shipment', shipmentId],
     queryFn: async () => {
       if (!shipmentId) return null;
-      const shipments = await base44.entities.FreightShipment.filter({ id: shipmentId });
+      const shipments = await supabase.entities.FreightShipment.filter({ id: shipmentId });
       return shipments[0] || null;
     },
     enabled: !!shipmentId,
@@ -58,7 +58,7 @@ export default function CustomerTracking() {
     
     setLoading(true);
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Generate real-time tracking update for customer viewing:
 
 Shipment: ${shipment.shipment_number}

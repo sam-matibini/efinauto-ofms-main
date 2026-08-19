@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,14 +25,14 @@ export default function BankingMobilePage() {
 
   const { data: bankAccounts = [] } = useQuery({
     queryKey: ['bankAccounts', selectedCompanyId],
-    queryFn: () => base44.entities.BankAccount.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.BankAccount.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: transactions = [] } = useQuery({
     queryKey: ['bankTransactions', selectedCompanyId],
-    queryFn: () => base44.entities.BankTransaction.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.BankTransaction.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });

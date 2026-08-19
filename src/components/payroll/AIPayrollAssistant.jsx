@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Sparkles, AlertTriangle, CheckCircle, TrendingDown, Shield, Loader2, RefreshCw } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function AIPayrollAssistant({ company, employees, payrollRuns, payrollEntries, payGroups, adjustments }) {
@@ -55,7 +55,7 @@ Provide analysis in these categories:
 
 Be specific and actionable. Reference actual numbers from the data.`;
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt,
         response_json_schema: {
           type: "object",

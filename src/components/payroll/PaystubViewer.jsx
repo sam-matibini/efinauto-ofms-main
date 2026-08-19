@@ -16,7 +16,7 @@ import {
   X
 } from "lucide-react";
 import { toast } from "sonner";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import AIDocumentSummary from "@/components/shared/AIDocumentSummary";
@@ -370,7 +370,7 @@ ${company?.email || ''}
 ${company?.phone || ''}
       `.trim();
 
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         to: emailTo,
         subject: `Pay Statement - ${formatDate(payrollRun.pay_period_start)} to ${formatDate(payrollRun.pay_period_end)}`,
         body: emailBody
@@ -404,7 +404,7 @@ ${company?.phone || ''}
       const filename = `Paystub-${entry.employee_name.replace(/\s/g, '_')}-${payrollRun.pay_date}.pdf`;
       const file = new File([pdfBlob], filename, { type: 'application/pdf' });
       
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
       setPdfUrl(file_url);
       setGeneratingPDF(false);
       return file_url;

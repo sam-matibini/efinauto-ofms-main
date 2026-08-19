@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { Mail, Loader2, Calendar } from "lucide-react";
 import { sendSignatureRequestNotification } from "./SalesNotificationService";
@@ -53,7 +53,7 @@ export default function SignatureRequestDialog({ open, onClose, sale, company })
       expirationDate.setDate(expirationDate.getDate() + formData.expiresInDays);
 
       // Create signature request record in database
-      await base44.entities.SignatureRequest.create({
+      await supabase.entities.SignatureRequest.create({
         company_id: sale.company_id,
         sale_id: sale.id,
         signer_email: formData.signerEmail,
@@ -67,7 +67,7 @@ export default function SignatureRequestDialog({ open, onClose, sale, company })
       });
 
       // Send email notification
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         to: formData.signerEmail,
         subject: `Signature Request - Bill of Sale (BOS ${sale.bos_number || sale.sale_number})`,
         body: `

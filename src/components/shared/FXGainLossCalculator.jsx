@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,7 +50,7 @@ export default function FXGainLossCalculator({
   const queryClient = useQueryClient();
 
   const recordTransactionMutation = useMutation({
-    mutationFn: (data) => base44.entities.Transaction.create({ ...data, company_id: companyId }),
+    mutationFn: (data) => supabase.entities.Transaction.create({ ...data, company_id: companyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       toast.success("FX gain/loss recorded in GL");
@@ -71,7 +71,7 @@ export default function FXGainLossCalculator({
         return;
       }
 
-      const ratesResponse = await base44.integrations.Core.InvokeLLM({
+      const ratesResponse = await supabase.integrations.Core.InvokeLLM({
         prompt: `Get current exchange rates to CAD for these currencies: ${uniqueCurrencies.join(', ')}. 
                  Return the rate as how many CAD equals 1 unit of each currency.`,
         add_context_from_internet: true,

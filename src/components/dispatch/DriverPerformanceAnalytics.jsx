@@ -8,7 +8,7 @@ import {
   TrendingUp, TrendingDown, Clock, Zap, Droplet, AlertTriangle, 
   Trophy, Star, Target, Brain, BarChart3, Download
 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -23,8 +23,8 @@ export default function DriverPerformanceAnalytics() {
   const { data: drivers = [] } = useQuery({
     queryKey: ['allDrivers', selectedCompanyId],
     queryFn: async () => {
-      const internal = await base44.entities.Driver.filter({ company_id: selectedCompanyId });
-      const thirdParty = await base44.entities.ThirdPartyDriver.filter({ company_id: selectedCompanyId });
+      const internal = await supabase.entities.Driver.filter({ company_id: selectedCompanyId });
+      const thirdParty = await supabase.entities.ThirdPartyDriver.filter({ company_id: selectedCompanyId });
       return [
         ...internal.map(d => ({ ...d, driver_type: 'internal', display_name: d.driver_name })),
         ...thirdParty.map(d => ({ ...d, driver_type: 'third_party', display_name: `${d.driver_name} (3rd Party)` }))
@@ -48,7 +48,7 @@ export default function DriverPerformanceAnalytics() {
         query.driver_id = selectedDriver;
       }
       
-      return base44.entities.DriverPerformanceMetric.filter(query, '-metric_date', 500);
+      return supabase.entities.DriverPerformanceMetric.filter(query, '-metric_date', 500);
     },
     enabled: !!selectedCompanyId,
   });

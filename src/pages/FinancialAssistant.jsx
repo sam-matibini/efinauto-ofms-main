@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,42 +14,42 @@ export default function FinancialAssistantPage() {
 
   const { data: sales = [] } = useQuery({
     queryKey: ['sales', selectedCompanyId],
-    queryFn: () => base44.entities.Sale.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Sale.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: transactions = [] } = useQuery({
     queryKey: ['transactions', selectedCompanyId],
-    queryFn: () => base44.entities.Transaction.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Transaction.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: bankTransactions = [] } = useQuery({
     queryKey: ['bankTransactions', selectedCompanyId],
-    queryFn: () => base44.entities.BankTransaction.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.BankTransaction.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: repairs = [] } = useQuery({
     queryKey: ['repairs', selectedCompanyId],
-    queryFn: () => base44.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: expenses = [] } = useQuery({
     queryKey: ['expenses', selectedCompanyId],
-    queryFn: () => base44.entities.Expense.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Expense.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: accounts = [] } = useQuery({
     queryKey: ['accounts', selectedCompanyId],
-    queryFn: () => base44.entities.Account.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Account.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });

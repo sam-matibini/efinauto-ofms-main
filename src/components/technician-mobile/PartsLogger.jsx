@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ export default function PartsLogger({ open, onClose, onAddPart, isOnline }) {
         const cached = localStorage.getItem('cachedParts');
         return cached ? JSON.parse(cached) : [];
       }
-      const result = await base44.entities.Part.filter({ company_id: selectedCompanyId });
+      const result = await supabase.entities.Part.filter({ company_id: selectedCompanyId });
       localStorage.setItem('cachedParts', JSON.stringify(result));
       return result;
     },

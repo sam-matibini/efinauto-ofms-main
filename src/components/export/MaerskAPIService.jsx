@@ -4,7 +4,7 @@
  * In production, replace with actual Maersk API endpoints
  */
 
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 export const MaerskAPIService = {
   /**
@@ -14,7 +14,7 @@ export const MaerskAPIService = {
     try {
       const response = await simulateMaerskBookingAPI(bookingData);
       
-      await base44.integrations.Core.InvokeLLM({
+      await supabase.integrations.Core.InvokeLLM({
         prompt: `Log Maersk booking request submission: ${JSON.stringify(bookingData)}`,
         response_json_schema: {
           type: "object",

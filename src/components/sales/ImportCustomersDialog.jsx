@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function ImportCustomersDialog({ open, onClose, companyId, onSuccess }) {
@@ -81,7 +81,7 @@ export default function ImportCustomersDialog({ open, onClose, companyId, onSucc
 
       for (const row of rows) {
         try {
-          await base44.entities.Customer.create({
+          await supabase.entities.Customer.create({
             company_id: companyId,
             full_name: row.full_name || row['Full Name'] || row.name || row.Name,
             email: row.email || row.Email || '',

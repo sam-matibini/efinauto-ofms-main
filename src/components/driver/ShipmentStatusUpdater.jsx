@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { PlayCircle, MapPin, CheckCircle, Truck } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -28,7 +28,7 @@ export default function ShipmentStatusUpdater({ shipment }) {
         updateData.special_instructions = `${shipment.special_instructions || ''}\n[${new Date().toLocaleString()}] ${notes}`;
       }
 
-      return base44.entities.LocalShipment.update(shipment.id, updateData);
+      return supabase.entities.LocalShipment.update(shipment.id, updateData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activeShipment'] });

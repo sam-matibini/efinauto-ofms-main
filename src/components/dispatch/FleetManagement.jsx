@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Truck, Plus, Wrench, CheckCircle, AlertCircle, Package } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -43,13 +43,13 @@ export default function FleetManagement() {
 
   const { data: trucks = [] } = useQuery({
     queryKey: ['trucks', selectedCompanyId],
-    queryFn: () => base44.entities.TruckVehicle.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.TruckVehicle.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
   });
 
   const { data: trailers = [] } = useQuery({
     queryKey: ['trailers', selectedCompanyId],
-    queryFn: () => base44.entities.Trailer.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Trailer.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
   });
 
@@ -57,9 +57,9 @@ export default function FleetManagement() {
     mutationFn: (data) => {
       const truckData = { ...data, company_id: selectedCompanyId };
       if (selectedTruck) {
-        return base44.entities.TruckVehicle.update(selectedTruck.id, truckData);
+        return supabase.entities.TruckVehicle.update(selectedTruck.id, truckData);
       }
-      return base44.entities.TruckVehicle.create(truckData);
+      return supabase.entities.TruckVehicle.create(truckData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trucks'] });
@@ -74,9 +74,9 @@ export default function FleetManagement() {
     mutationFn: (data) => {
       const trailerData = { ...data, company_id: selectedCompanyId };
       if (selectedTrailer) {
-        return base44.entities.Trailer.update(selectedTrailer.id, trailerData);
+        return supabase.entities.Trailer.update(selectedTrailer.id, trailerData);
       }
-      return base44.entities.Trailer.create(trailerData);
+      return supabase.entities.Trailer.create(trailerData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trailers'] });

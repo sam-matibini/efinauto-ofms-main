@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -20,14 +20,14 @@ export default function Settings() {
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => supabase.auth.me(),
   });
 
   const isAdmin = currentUser?.role === 'admin';
 
   const { data: company, isLoading } = useQuery({
     queryKey: ['company', selectedCompanyId],
-    queryFn: () => base44.entities.Company.list().then(companies => 
+    queryFn: () => supabase.entities.Company.list().then(companies => 
       companies.find(c => c.id === selectedCompanyId)
     ),
     enabled: !!selectedCompanyId,
@@ -86,7 +86,7 @@ export default function Settings() {
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data) => {
-      return await base44.entities.Company.update(selectedCompanyId, data);
+      return await supabase.entities.Company.update(selectedCompanyId, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company', selectedCompanyId] });

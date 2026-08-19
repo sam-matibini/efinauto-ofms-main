@@ -3,7 +3,7 @@
  * Aggregates and compares shipping rates from multiple carriers
  */
 
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { MSCAPIService } from "./MSCAPIService";
 import { MaerskAPIService } from "./MaerskAPIService";
 import { CMACGMAPIService } from "./CMACGMAPIService";
@@ -183,7 +183,7 @@ export const RateComparisonService = {
    */
   async saveComparison(companyId, comparison, selectedQuote) {
     try {
-      await base44.integrations.Core.InvokeLLM({
+      await supabase.integrations.Core.InvokeLLM({
         prompt: `Log rate comparison: ${comparison.quotes.length} quotes received, best rate: $${comparison.best_rate?.total_rate} from ${comparison.best_rate?.carrier_name}. Selected: ${selectedQuote?.carrier_name} at $${selectedQuote?.total_rate}`,
         response_json_schema: {
           type: "object",

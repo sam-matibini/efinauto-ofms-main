@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertTriangle, CheckCircle, Shield, Sparkles } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function AIComplianceChecker({ order, onIssuesDetected }) {
@@ -53,7 +53,7 @@ ANALYZE FOR:
 
 Provide detailed compliance assessment with actionable recommendations.`;
 
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await supabase.integrations.Core.InvokeLLM({
         prompt,
         response_json_schema: {
           type: "object",

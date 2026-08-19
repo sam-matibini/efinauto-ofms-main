@@ -1,6 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Ship } from "lucide-react";
@@ -9,7 +9,7 @@ export default function CarrierSelector({ value, onChange, disabled = false }) {
   const { data: carriers = [] } = useQuery({
     queryKey: ['carriers'],
     queryFn: async () => {
-      const allCarriers = await base44.entities.Carrier.list();
+      const allCarriers = await supabase.entities.Carrier.list();
       return allCarriers.filter(c => c.active);
     },
     initialData: [],

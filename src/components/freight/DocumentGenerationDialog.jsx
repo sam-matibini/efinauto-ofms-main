@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Download, Loader2, Wand2 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany } from "@/components/shared/CompanyContext";
@@ -111,7 +111,7 @@ export default function DocumentGenerationDialog({ open, onClose, shipment, expo
 
   const { data: company } = useQuery({
     queryKey: ['company', selectedCompanyId],
-    queryFn: () => base44.entities.Company.filter({ id: selectedCompanyId }).then(res => res[0]),
+    queryFn: () => supabase.entities.Company.filter({ id: selectedCompanyId }).then(res => res[0]),
     enabled: !!selectedCompanyId && open,
   });
 
@@ -191,7 +191,7 @@ IMPORTANT: If company logo_url is provided, include it at the top of the documen
 
 Generate a complete, professional document ready for use. Include all relevant details from the provided data. Format it clearly with proper sections and professional language.`;
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: prompt,
         add_context_from_internet: false
       });

@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Play, Download, Eye, Check, Loader2, X, StopCircle, Trash2, Edit, FileText, Printer } from "lucide-react";
 import PaystubViewer from "./PaystubViewer";
 import { useMutation } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,7 +28,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
 
   const stopPayrollRunMutation = useMutation({
     mutationFn: async (runId) => {
-      return await base44.entities.PayrollRun.update(runId, { status: 'draft' });
+      return await supabase.entities.PayrollRun.update(runId, { status: 'draft' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payrollRuns'] });
@@ -44,10 +44,10 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       // Delete all payroll entries for this run first
       const entries = payrollEntries.filter(e => e.payroll_run_id === runId);
       for (const entry of entries) {
-        await base44.entities.PayrollEntry.delete(entry.id);
+        await supabase.entities.PayrollEntry.delete(entry.id);
       }
       // Then delete the payroll run
-      return await base44.entities.PayrollRun.delete(runId);
+      return await supabase.entities.PayrollRun.delete(runId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payrollRuns'] });
@@ -67,21 +67,21 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       }
 
       // Delete existing payroll transactions for this run
-      const existingTransactions = await base44.entities.Transaction.filter({ 
+      const existingTransactions = await supabase.entities.Transaction.filter({ 
         company_id: company.id,
         reference_type: 'PayrollRun',
         reference_id: runId
       });
       
       for (const trans of existingTransactions) {
-        await base44.entities.Transaction.delete(trans.id);
+        await supabase.entities.Transaction.delete(trans.id);
       }
 
       // Fetch fresh payroll entries for this run
-      const entries = await base44.entities.PayrollEntry.filter({ payroll_run_id: runId });
+      const entries = await supabase.entities.PayrollEntry.filter({ payroll_run_id: runId });
       
       // Fetch chart of accounts
-      const accounts = await base44.entities.Account.filter({ company_id: company.id });
+      const accounts = await supabase.entities.Account.filter({ company_id: company.id });
 
       // Find specific accounts
       const wagesExpenseAccount = accounts.find(a => 
@@ -115,7 +115,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       const totalProvincialTax = entries.reduce((sum, e) => sum + (e.provincial_tax || 0), 0);
       
       // Create transaction for gross payroll expense
-      await base44.entities.Transaction.create({
+      await supabase.entities.Transaction.create({
         company_id: company.id,
         transaction_number: `PAYROLL-${run.payroll_number}`,
         transaction_type: 'payroll_expense',
@@ -135,7 +135,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       
       // Create transaction for employer CPP contribution
       if (totalCPPEmployer > 0) {
-        await base44.entities.Transaction.create({
+        await supabase.entities.Transaction.create({
           company_id: company.id,
           transaction_number: `CPP-EMP-${run.payroll_number}`,
           transaction_type: 'payroll_expense',
@@ -156,7 +156,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       
       // Create transaction for employer EI contribution
       if (totalEIEmployer > 0) {
-        await base44.entities.Transaction.create({
+        await supabase.entities.Transaction.create({
           company_id: company.id,
           transaction_number: `EI-EMP-${run.payroll_number}`,
           transaction_type: 'payroll_expense',
@@ -178,7 +178,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       // Create liability transaction for payroll deductions
       const totalDeductions = totalCPPEmployee + totalCPPEmployer + totalEIEmployee + totalEIEmployer + totalFederalTax + totalProvincialTax;
       if (totalDeductions > 0) {
-        await base44.entities.Transaction.create({
+        await supabase.entities.Transaction.create({
           company_id: company.id,
           transaction_number: `PAYROLL-LIB-${run.payroll_number}`,
           transaction_type: 'payroll_liability',
@@ -211,13 +211,13 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
   const approvePayrollRunMutation = useMutation({
     mutationFn: async (runId) => {
       // Update payroll run status
-      const updatedRun = await base44.entities.PayrollRun.update(runId, { status: 'approved' });
+      const updatedRun = await supabase.entities.PayrollRun.update(runId, { status: 'approved' });
       
       // Fetch fresh payroll entries for this run
-      const entries = await base44.entities.PayrollEntry.filter({ payroll_run_id: runId });
+      const entries = await supabase.entities.PayrollEntry.filter({ payroll_run_id: runId });
       
       // Fetch chart of accounts
-      const accounts = await base44.entities.Account.filter({ company_id: company.id });
+      const accounts = await supabase.entities.Account.filter({ company_id: company.id });
 
       // Find specific accounts with better matching
       const wagesExpenseAccount = accounts.find(a => 
@@ -258,7 +258,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       
       // DR: Wages Expense, CR: Cash/Payroll Liability
       // Create debit for wages expense
-      await base44.entities.Transaction.create({
+      await supabase.entities.Transaction.create({
         company_id: company.id,
         transaction_number: `PAYROLL-${updatedRun.payroll_number}`,
         transaction_type: 'payroll_expense',
@@ -282,7 +282,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       });
 
       // Create credit for cash (offsetting entry)
-      await base44.entities.Transaction.create({
+      await supabase.entities.Transaction.create({
         company_id: company.id,
         transaction_number: `PAYROLL-CASH-${updatedRun.payroll_number}`,
         transaction_type: 'payment_made',
@@ -307,7 +307,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       
       // DR: CPP Expense, CR: Payroll Liability
       if (totalCPPEmployer > 0) {
-        await base44.entities.Transaction.create({
+        await supabase.entities.Transaction.create({
           company_id: company.id,
           transaction_number: `CPP-EMP-${updatedRun.payroll_number}`,
           transaction_type: 'payroll_expense',
@@ -333,7 +333,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       
       // DR: EI Expense, CR: Payroll Liability
       if (totalEIEmployer > 0) {
-        await base44.entities.Transaction.create({
+        await supabase.entities.Transaction.create({
           company_id: company.id,
           transaction_number: `EI-EMP-${updatedRun.payroll_number}`,
           transaction_type: 'payroll_expense',
@@ -360,7 +360,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       // DR: Payroll Liability (contra to expenses), CR: Payroll Liability (for employee deductions + employer portions)
       const totalDeductions = totalCPPEmployee + totalCPPEmployer + totalEIEmployee + totalEIEmployer + totalFederalTax + totalProvincialTax;
       if (totalDeductions > 0) {
-        await base44.entities.Transaction.create({
+        await supabase.entities.Transaction.create({
           company_id: company.id,
           transaction_number: `PAYROLL-LIB-${updatedRun.payroll_number}`,
           transaction_type: 'payroll_liability',
@@ -394,7 +394,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
   });
 
   const updatePayrollRunMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.PayrollRun.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.PayrollRun.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payrollRuns'] });
       toast.success("Payroll run updated successfully");
@@ -427,7 +427,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       }
 
       // Create payroll run with totals
-      const payrollRun = await base44.entities.PayrollRun.create({
+      const payrollRun = await supabase.entities.PayrollRun.create({
         ...data.runData,
         total_gross: totalGross,
         total_deductions: totalDeductions,
@@ -439,7 +439,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
 
       // Create payroll entries with the run ID
       for (const entryData of entries) {
-        await base44.entities.PayrollEntry.create({
+        await supabase.entities.PayrollEntry.create({
           ...entryData,
           payroll_run_id: payrollRun.id
         });

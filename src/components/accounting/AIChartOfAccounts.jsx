@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,19 +28,19 @@ export default function AIChartOfAccounts() {
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => supabase.auth.me(),
   });
 
   const { data: company } = useQuery({
     queryKey: ['company', selectedCompanyId],
-    queryFn: () => base44.entities.Company.filter({ id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Company.filter({ id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     select: (data) => data[0]
   });
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ['accounts', selectedCompanyId],
-    queryFn: () => base44.entities.Account.filter({ company_id: selectedCompanyId }, 'account_code'),
+    queryFn: () => supabase.entities.Account.filter({ company_id: selectedCompanyId }, 'account_code'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
@@ -48,7 +48,7 @@ export default function AIChartOfAccounts() {
   const hasAccountPermission = currentUser?.role === 'admin' || currentUser?.role === 'user';
 
   const deleteAccountMutation = useMutation({
-    mutationFn: (accountId) => base44.entities.Account.delete(accountId),
+    mutationFn: (accountId) => supabase.entities.Account.delete(accountId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       toast.success("Account deleted successfully");
@@ -60,7 +60,7 @@ export default function AIChartOfAccounts() {
 
   const removeDuplicatesMutation = useMutation({
     mutationFn: async () => {
-      const allAccounts = await base44.entities.Account.filter({ company_id: selectedCompanyId });
+      const allAccounts = await supabase.entities.Account.filter({ company_id: selectedCompanyId });
       const accountsByCode = {};
       const toDelete = [];
       
@@ -87,7 +87,7 @@ export default function AIChartOfAccounts() {
       
       // Delete duplicates
       for (const account of toDelete) {
-        await base44.entities.Account.delete(account.id);
+        await supabase.entities.Account.delete(account.id);
       }
       
       return toDelete.length;
@@ -125,7 +125,7 @@ Include these account types with standard codes:
 Create 40-50 accounts total. Set all account balances to 0.`;
 
       console.log('[AI] Calling InvokeLLM...');
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await supabase.integrations.Core.InvokeLLM({
         prompt,
         add_context_from_internet: false,
         response_json_schema: {
@@ -175,7 +175,7 @@ Create 40-50 accounts total. Set all account balances to 0.`;
         }
 
         // Fetch existing accounts to check for duplicates
-        const existingAccounts = await base44.entities.Account.filter({ company_id: selectedCompanyId });
+        const existingAccounts = await supabase.entities.Account.filter({ company_id: selectedCompanyId });
         const existingCodes = new Set(existingAccounts.map(a => a.account_code?.toLowerCase()));
 
         let created = 0;
@@ -210,7 +210,7 @@ Create 40-50 accounts total. Set all account balances to 0.`;
             };
             
             console.log('[Create] Creating account:', accountData.account_code, accountData.account_name);
-            const result = await base44.entities.Account.create(accountData);
+            const result = await supabase.entities.Account.create(accountData);
             console.log('[Create] Created successfully:', result.id);
             existingCodes.add(accountCode.toLowerCase());
             created++;

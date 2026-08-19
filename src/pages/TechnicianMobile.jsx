@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -71,7 +71,7 @@ export default function TechnicianMobilePage() {
         const cached = localStorage.getItem('cachedRepairOrders');
         return cached ? JSON.parse(cached) : [];
       }
-      const orders = await base44.entities.RepairOrder.filter({ 
+      const orders = await supabase.entities.RepairOrder.filter({ 
         company_id: selectedCompanyId,
         assigned_technician: selectedTechnician?.full_name 
       }, '-created_date');
@@ -84,7 +84,7 @@ export default function TechnicianMobilePage() {
   });
 
   const updateOrderMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.RepairOrder.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.RepairOrder.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repairs-mobile'] });
       toast.success("Order updated successfully");

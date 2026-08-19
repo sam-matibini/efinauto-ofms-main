@@ -1,6 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Anchor } from "lucide-react";
 
@@ -19,7 +19,7 @@ export default function PortSelector({
       const filter = { active: true };
       if (countryIso2) filter.country_iso2 = countryIso2;
       if (portType) filter.port_type = portType;
-      return base44.entities.Port.filter(filter, 'sort_order');
+      return supabase.entities.Port.filter(filter, 'sort_order');
     },
     enabled: !!countryIso2,
     staleTime: 1000 * 60 * 60, // Cache for 1 hour

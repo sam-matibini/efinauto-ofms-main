@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { UserMinus, CheckCircle, AlertCircle, Download, Send, Plus, Trash2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function OffboardingWorkflow({ company, queryClient }) {
@@ -29,13 +29,13 @@ export default function OffboardingWorkflow({ company, queryClient }) {
 
   const { data: employees = [] } = useQuery({
     queryKey: ['employees', company?.id],
-    queryFn: () => base44.entities.Employee.filter({ company_id: company.id, employment_status: 'active' }),
+    queryFn: () => supabase.entities.Employee.filter({ company_id: company.id, employment_status: 'active' }),
     enabled: !!company,
   });
 
   const { data: offboardings = [] } = useQuery({
     queryKey: ['offboardings', company?.id],
-    queryFn: () => base44.entities.EmployeeOffboarding.filter({ company_id: company.id }, '-created_date'),
+    queryFn: () => supabase.entities.EmployeeOffboarding.filter({ company_id: company.id }, '-created_date'),
     enabled: !!company,
   });
 
@@ -44,7 +44,7 @@ export default function OffboardingWorkflow({ company, queryClient }) {
       const employee = employees.find(e => e.id === data.employee_id);
       
       // Create offboarding record
-      const offboarding = await base44.entities.EmployeeOffboarding.create({
+      const offboarding = await supabase.entities.EmployeeOffboarding.create({
         ...data,
         employee_name: `${employee.first_name} ${employee.last_name}`,
         status: 'initiated',
@@ -68,7 +68,7 @@ export default function OffboardingWorkflow({ company, queryClient }) {
       });
 
       // Update employee status
-      await base44.entities.Employee.update(data.employee_id, {
+      await supabase.entities.Employee.update(data.employee_id, {
         employment_status: 'terminated',
         termination_date: data.termination_date
       });
@@ -89,7 +89,7 @@ export default function OffboardingWorkflow({ company, queryClient }) {
   });
 
   const updateChecklistMutation = useMutation({
-    mutationFn: ({ id, checklist }) => base44.entities.EmployeeOffboarding.update(id, { checklist }),
+    mutationFn: ({ id, checklist }) => supabase.entities.EmployeeOffboarding.update(id, { checklist }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['offboardings'] });
       toast.success("Checklist updated");
@@ -101,7 +101,7 @@ export default function OffboardingWorkflow({ company, queryClient }) {
     
     // HR Notification
     if (company.contact_person_email) {
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         from_name: companyName,
         to: company.contact_person_email,
         subject: `Employee Offboarding Initiated - ${employee.first_name} ${employee.last_name}`,
@@ -125,7 +125,7 @@ View offboarding details in the Payroll & HR module.`
     }
 
     // IT Department Notification
-    await base44.integrations.Core.SendEmail({
+    await supabase.integrations.Core.SendEmail({
       from_name: companyName,
       to: company.email,
       subject: `IT Action Required - Employee Departure: ${employee.first_name} ${employee.last_name}`,
@@ -146,7 +146,7 @@ Assets to collect: ${assets.length > 0 ? assets.map(a => a.asset_name).join(', '
     });
 
     // Finance Department Notification
-    await base44.integrations.Core.SendEmail({
+    await supabase.integrations.Core.SendEmail({
       from_name: companyName,
       to: company.email,
       subject: `Finance Action Required - Final Pay: ${employee.first_name} ${employee.last_name}`,
@@ -171,7 +171,7 @@ Please coordinate with HR for final amounts.`
       const employee = employees.find(e => e.id === offboarding.employee_id);
       const serialNumber = `ROE-${Date.now()}`;
       
-      await base44.entities.EmployeeOffboarding.update(offboarding.id, {
+      await supabase.entities.EmployeeOffboarding.update(offboarding.id, {
         roe_serial_number: serialNumber,
         roe_generated_date: new Date().toISOString().split('T')[0],
         checklist: {

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,7 @@ export default function Companies() {
   useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
-      const user = await base44.auth.me();
+      const user = await supabase.auth.me();
       setCurrentUser(user);
       return user;
     },
@@ -42,7 +42,7 @@ export default function Companies() {
   const { data: companies = [], isLoading } = useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
-      const result = await base44.entities.Company.list('-created_date');
+      const result = await supabase.entities.Company.list('-created_date');
       console.log('Fetched companies:', result);
       return result;
     },
@@ -52,7 +52,7 @@ export default function Companies() {
   const createMutation = useMutation({
     mutationFn: async (data) => {
       console.log('Creating company with data:', data);
-      const result = await base44.entities.Company.create(data);
+      const result = await supabase.entities.Company.create(data);
       console.log('Company created:', result);
       return result;
     },
@@ -72,7 +72,7 @@ export default function Companies() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
       console.log('Updating company:', id, data);
-      const result = await base44.entities.Company.update(id, data);
+      const result = await supabase.entities.Company.update(id, data);
       console.log('Company updated:', result);
       return result;
     },
@@ -89,7 +89,7 @@ export default function Companies() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Company.delete(id),
+    mutationFn: (id) => supabase.entities.Company.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       setDeleteDialogOpen(false);

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Camera, Upload, CheckCircle, Loader2 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import SignaturePad from "@/components/shared/SignaturePad";
@@ -31,13 +31,13 @@ export default function ProofOfDeliveryCapture({ open, onClose, shipment, driver
       // Upload photos
       const photoUrls = await Promise.all(
         photos.map(async (photo) => {
-          const { file_url } = await base44.integrations.Core.UploadFile({ file: photo });
+          const { file_url } = await supabase.integrations.Core.UploadFile({ file: photo });
           return file_url;
         })
       );
 
       // Create POD record
-      const pod = await base44.entities.ProofOfDelivery.create({
+      const pod = await supabase.entities.ProofOfDelivery.create({
         shipment_id: shipment.id,
         driver_id: driver.id,
         driver_name: driver.driver_name,
@@ -59,7 +59,7 @@ export default function ProofOfDeliveryCapture({ open, onClose, shipment, driver
       });
 
       // Update shipment status
-      await base44.entities.LocalShipment.update(shipment.id, {
+      await supabase.entities.LocalShipment.update(shipment.id, {
         status: 'delivered',
         actual_delivery_time: new Date().toISOString(),
         pod_id: pod.id

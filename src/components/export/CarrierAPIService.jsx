@@ -1,4 +1,4 @@
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 /**
  * Freight Carrier API Integration Service
@@ -24,7 +24,7 @@ Generate realistic shipping data with:
 
 Return realistic data for international ocean freight or air cargo.`;
 
-    const response = await base44.integrations.Core.InvokeLLM({
+    const response = await supabase.integrations.Core.InvokeLLM({
       prompt,
       response_json_schema: {
         type: "object",
@@ -80,7 +80,7 @@ Generate realistic booking confirmation with:
 - Freight cost estimate
 - Confirmation status`;
 
-    const response = await base44.integrations.Core.InvokeLLM({
+    const response = await supabase.integrations.Core.InvokeLLM({
       prompt,
       response_json_schema: {
         type: "object",
@@ -116,7 +116,7 @@ Generate realistic booking confirmation with:
 
 Provide quotes from 3-5 carriers with varying prices and transit times.`;
 
-    const response = await base44.integrations.Core.InvokeLLM({
+    const response = await supabase.integrations.Core.InvokeLLM({
       prompt,
       response_json_schema: {
         type: "object",

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, Trash2 } from "lucide-react";
@@ -53,9 +53,9 @@ export default function TaskDialog({
         opportunity_id: opportunityId
       };
       if (task) {
-        return base44.entities.CRMTask.update(task.id, payload);
+        return supabase.entities.CRMTask.update(task.id, payload);
       } else {
-        return base44.entities.CRMTask.create(payload);
+        return supabase.entities.CRMTask.create(payload);
       }
     },
     onSuccess: () => {

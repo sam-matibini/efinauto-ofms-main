@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Navigation, MapPin, AlertTriangle, Clock, TrendingUp, Shield, List, MessageSquare, CheckCircle } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { predictShipmentETA, updateShipmentETA, calculateAverageSpeed } from "@/components/dispatch/AIETAPrediction";
@@ -26,13 +26,13 @@ export default function DriverMobile() {
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => supabase.auth.me(),
   });
 
   const { data: driver } = useQuery({
     queryKey: ['myDriver', currentUser?.email],
     queryFn: async () => {
-      const drivers = await base44.entities.Driver.filter({ driver_email: currentUser.email });
+      const drivers = await supabase.entities.Driver.filter({ driver_email: currentUser.email });
       return drivers.length > 0 ? drivers[0] : null;
     },
     enabled: !!currentUser?.email,
@@ -40,13 +40,13 @@ export default function DriverMobile() {
 
   const { data: activeShipment } = useQuery({
     queryKey: ['activeShipment', driver?.current_shipment_id],
-    queryFn: () => base44.entities.LocalShipment.filter({ id: driver.current_shipment_id }),
+    queryFn: () => supabase.entities.LocalShipment.filter({ id: driver.current_shipment_id }),
     enabled: !!driver?.current_shipment_id,
   });
 
   const { data: assignedShipments = [] } = useQuery({
     queryKey: ['assignedShipments', driver?.id],
-    queryFn: () => base44.entities.LocalShipment.filter({ 
+    queryFn: () => supabase.entities.LocalShipment.filter({ 
       driver_id: driver.id,
       status: { $in: ['assigned', 'in_transit', 'near_destination'] }
     }),
@@ -54,7 +54,7 @@ export default function DriverMobile() {
   });
 
   const recordGPSMutation = useMutation({
-    mutationFn: (location) => base44.entities.GPSTrackingPoint.create({
+    mutationFn: (location) => supabase.entities.GPSTrackingPoint.create({
       shipment_id: activeShipment[0].id,
       driver_id: driver.id,
       latitude: location.coords.latitude,
@@ -68,7 +68,7 @@ export default function DriverMobile() {
 
   const { data: recentGPS = [] } = useQuery({
     queryKey: ['recentGPS', activeShipment?.[0]?.id],
-    queryFn: () => base44.entities.GPSTrackingPoint.filter(
+    queryFn: () => supabase.entities.GPSTrackingPoint.filter(
       { shipment_id: activeShipment[0].id },
       '-timestamp',
       10

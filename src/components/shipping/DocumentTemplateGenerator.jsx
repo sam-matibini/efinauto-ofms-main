@@ -14,7 +14,7 @@ import {
   Ship, Package, Car, User, MapPin, Calendar, DollarSign
 } from "lucide-react";
 import { format } from "date-fns";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import VehicleSelector from "./VehicleSelector";
 
@@ -258,7 +258,7 @@ export default function DocumentTemplateGenerator({
     try {
       const selectedVehicleData = vehicles.filter(v => selectedVehicles.includes(v.id));
       
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Generate professional shipping document content for a ${templateTypes.find(t => t.id === templateType)?.name}.
 
 Company: ${company?.name || 'N/A'}

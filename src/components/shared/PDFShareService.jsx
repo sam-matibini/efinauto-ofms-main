@@ -15,7 +15,7 @@ import {
   Link as LinkIcon
 } from "lucide-react";
 import { toast } from "sonner";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -82,7 +82,7 @@ export async function uploadPDFToCloud(pdf, filename) {
   try {
     const pdfBlob = pdf.output('blob');
     const file = new File([pdfBlob], filename, { type: 'application/pdf' });
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const { file_url } = await supabase.integrations.Core.UploadFile({ file });
     return file_url;
   } catch (error) {
     console.error("PDF upload error:", error);
@@ -212,7 +212,7 @@ ${company?.email || ''}
 ${company?.phone ? formatPhone(company.phone) : ''}
       `.trim();
 
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         to: recipient,
         subject: `${documentTitle} ${documentNumber} from ${company?.name || 'Our Company'}`,
         body: emailBody

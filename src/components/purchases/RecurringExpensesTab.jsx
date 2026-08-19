@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,7 +14,7 @@ export default function RecurringExpensesTab({ recurringExpenses, selectedCompan
   const [editingExpense, setEditingExpense] = useState(null);
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.RecurringExpense.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: (data) => supabase.entities.RecurringExpense.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recurringExpenses'] });
       setDialogOpen(false);
@@ -24,7 +24,7 @@ export default function RecurringExpensesTab({ recurringExpenses, selectedCompan
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.RecurringExpense.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.RecurringExpense.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recurringExpenses'] });
       setDialogOpen(false);
@@ -34,7 +34,7 @@ export default function RecurringExpensesTab({ recurringExpenses, selectedCompan
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.RecurringExpense.delete(id),
+    mutationFn: (id) => supabase.entities.RecurringExpense.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recurringExpenses'] });
       toast.success("Recurring expense deleted!");

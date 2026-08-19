@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, TrendingUp, CheckCircle, Loader2, RefreshCw, Sparkles } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function ProactiveInsights({ financialData, companyId, insightType = "performance" }) {
@@ -73,7 +73,7 @@ Top Expenses: ${JSON.stringify(financialData.expenses
           
           Provide 4-6 insights with specific recommendations.`;
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: prompt,
         response_json_schema: {
           type: "object",

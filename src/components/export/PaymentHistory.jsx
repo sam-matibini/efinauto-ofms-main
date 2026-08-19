@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, CreditCard, CheckCircle, XCircle, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { format } from "date-fns";
 
 export default function PaymentHistory({ orderId }) {
   const { data: payments = [], isLoading } = useQuery({
     queryKey: ['paymentTransactions', orderId],
-    queryFn: () => base44.entities.PaymentTransaction.filter({ export_order_id: orderId }, '-payment_date'),
+    queryFn: () => supabase.entities.PaymentTransaction.filter({ export_order_id: orderId }, '-payment_date'),
     enabled: !!orderId,
   });
 

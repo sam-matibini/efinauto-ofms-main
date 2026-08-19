@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sparkles, Loader2, CheckCircle, AlertTriangle, DollarSign, TrendingDown, ShieldAlert } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { useCompany } from "@/components/shared/CompanyContext";
 
@@ -26,7 +26,7 @@ export default function AIPurchaseOrderGenerator({ listing, open, onClose, onSuc
   const generatePOWithAI = async () => {
     setGenerating(true);
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Generate a detailed Purchase Order for this vehicle listing with AI analysis:
 
 Listing Details:
@@ -110,7 +110,7 @@ Be realistic and data-driven.`,
 
   const handleCreatePO = async () => {
     try {
-      await base44.entities.Purchase.create({
+      await supabase.entities.Purchase.create({
         company_id: selectedCompanyId,
         purchase_number: poData.po_number,
         vendor_name: poData.vendor_name,

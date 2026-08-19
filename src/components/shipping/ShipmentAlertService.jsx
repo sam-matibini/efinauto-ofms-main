@@ -3,7 +3,7 @@
  * Provides proactive notifications for delays, exceptions, and critical events
  */
 
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { differenceInDays } from "date-fns";
 
 export const ShipmentAlertService = {
@@ -91,7 +91,7 @@ export const ShipmentAlertService = {
    */
   async sendProactiveAlert(alert, tracking) {
     try {
-      const exportOrder = await base44.entities.ExportOrder.filter({ id: tracking.export_order_id });
+      const exportOrder = await supabase.entities.ExportOrder.filter({ id: tracking.export_order_id });
       const order = exportOrder?.[0];
 
       if (!order) return { success: false, error: "Order not found" };
@@ -106,7 +106,7 @@ export const ShipmentAlertService = {
       const subject = `${severityEmoji[alert.severity]} Shipment Alert: ${alert.type.replace(/_/g, ' ').toUpperCase()}`;
 
       // Create notification log
-      await base44.entities.NotificationLog.create({
+      await supabase.entities.NotificationLog.create({
         company_id: order.company_id,
         notification_type: "export_update",
         recipient_email: order.consignee_email || 'customer@example.com',
@@ -121,7 +121,7 @@ export const ShipmentAlertService = {
 
       // Send email notification
       if (order.consignee_email) {
-        await base44.integrations.Core.SendEmail({
+        await supabase.integrations.Core.SendEmail({
           to: order.consignee_email,
           subject: subject,
           body: `${alert.message}
@@ -151,12 +151,12 @@ This is an automated alert to keep you informed of important shipment updates.`
    */
   async monitorAllShipments(companyId) {
     try {
-      const exports = await base44.entities.ExportOrder.filter({ company_id: companyId });
+      const exports = await supabase.entities.ExportOrder.filter({ company_id: companyId });
       const exportIds = exports.map(e => e.id);
       
       if (exportIds.length === 0) return { alerts: [], notifications_sent: 0 };
 
-      const trackingRecords = await base44.entities.ShipmentTracking.filter({});
+      const trackingRecords = await supabase.entities.ShipmentTracking.filter({});
       const activeTracking = trackingRecords.filter(t => 
         exportIds.includes(t.export_order_id) &&
         !['delivered', 'cancelled'].includes(t.current_status)

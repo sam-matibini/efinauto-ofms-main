@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Loader2, ChevronDown, ChevronUp, Copy, Check } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 const formatCurrency = (amount, currency = "CAD") => {
@@ -122,7 +122,7 @@ Vehicle Details: ${documentData?.vehicles?.map(v => `${v.year} ${v.make_model} (
     try {
       const context = getDocumentContext();
       
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Analyze this ${context.type} document and provide a concise executive summary with key highlights. Include the most important financial figures, dates, and identifiers. Format as bullet points.
 
 Company: ${company?.name || 'Company'}

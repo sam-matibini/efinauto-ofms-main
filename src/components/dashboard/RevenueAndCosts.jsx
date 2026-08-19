@@ -4,12 +4,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DollarSign, TrendingUp, Globe } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from "recharts";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 export default function RevenueAndCosts({ companyId }) {
   const { data: exportOrders = [] } = useQuery({
     queryKey: ['exportOrders', companyId],
-    queryFn: () => base44.entities.ExportOrder.filter({ company_id: companyId }),
+    queryFn: () => supabase.entities.ExportOrder.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
 

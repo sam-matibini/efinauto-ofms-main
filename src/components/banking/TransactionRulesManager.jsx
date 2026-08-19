@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -18,7 +18,7 @@ export default function TransactionRulesManager({ rules, glAccounts, companyId }
   const queryClient = useQueryClient();
 
   const createRuleMutation = useMutation({
-    mutationFn: (data) => base44.entities.TransactionRule.create({ ...data, company_id: companyId }),
+    mutationFn: (data) => supabase.entities.TransactionRule.create({ ...data, company_id: companyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactionRules'] });
       setDialogOpen(false);
@@ -28,7 +28,7 @@ export default function TransactionRulesManager({ rules, glAccounts, companyId }
   });
 
   const updateRuleMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.TransactionRule.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.TransactionRule.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactionRules'] });
       setDialogOpen(false);
@@ -38,7 +38,7 @@ export default function TransactionRulesManager({ rules, glAccounts, companyId }
   });
 
   const deleteRuleMutation = useMutation({
-    mutationFn: (id) => base44.entities.TransactionRule.delete(id),
+    mutationFn: (id) => supabase.entities.TransactionRule.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactionRules'] });
       toast.success("Rule deleted successfully");

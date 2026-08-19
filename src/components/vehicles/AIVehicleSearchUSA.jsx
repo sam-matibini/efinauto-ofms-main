@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +40,7 @@ export default function AIVehicleSearchUSA() {
         ? `\n\nSearch Criteria:\n${searchCriteria.join('\n')}`
         : '';
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Search for used vehicles for sale from major USA automotive marketplaces:
 1. Cars.com
 2. Autotrader.com
@@ -132,7 +132,7 @@ Provide comparison and recommendations across marketplaces.`,
         ownership_type: "dealership_owned"
       };
 
-      await base44.entities.Vehicle.create(vehicleData);
+      await supabase.entities.Vehicle.create(vehicleData);
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       toast.success(`Vehicle added from ${listing.marketplace}`);
     } catch (error) {

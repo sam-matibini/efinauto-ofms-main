@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,21 +31,21 @@ export default function Notifications() {
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', selectedCompanyId],
-    queryFn: () => base44.entities.Customer.filter({ company_id: selectedCompanyId }, '-created_date'),
+    queryFn: () => supabase.entities.Customer.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: preferences = [], isLoading } = useQuery({
     queryKey: ['notification-preferences', selectedCompanyId],
-    queryFn: () => base44.entities.NotificationPreference.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.NotificationPreference.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: logs = [] } = useQuery({
     queryKey: ['notification-logs', selectedCompanyId],
-    queryFn: () => base44.entities.NotificationLog.filter({ company_id: selectedCompanyId }, '-created_date', 50),
+    queryFn: () => supabase.entities.NotificationLog.filter({ company_id: selectedCompanyId }, '-created_date', 50),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
@@ -53,9 +53,9 @@ export default function Notifications() {
   const saveMutation = useMutation({
     mutationFn: async ({ id, data }) => {
       if (id) {
-        return await base44.entities.NotificationPreference.update(id, data);
+        return await supabase.entities.NotificationPreference.update(id, data);
       } else {
-        return await base44.entities.NotificationPreference.create(data);
+        return await supabase.entities.NotificationPreference.create(data);
       }
     },
     onSuccess: () => {

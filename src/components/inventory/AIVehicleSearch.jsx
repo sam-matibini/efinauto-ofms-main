@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Sparkles, Search, TrendingDown, TrendingUp, ShieldCheck, AlertTriangle, FileText, Loader2, MapPin, Globe, ChevronDown, ChevronUp, Filter, Truck, Car, Printer, Download, Mail, MessageCircle, Share2, Heart } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -36,11 +36,11 @@ export default function AIVehicleSearch({ onSelectListing }) {
 
   const { data: favorites = [] } = useQuery({
     queryKey: ['favoriteListings'],
-    queryFn: () => base44.entities.FavoriteVehicleListing.list(),
+    queryFn: () => supabase.entities.FavoriteVehicleListing.list(),
   });
 
   const addFavoriteMutation = useMutation({
-    mutationFn: (listing) => base44.entities.FavoriteVehicleListing.create({
+    mutationFn: (listing) => supabase.entities.FavoriteVehicleListing.create({
       listing_data: listing,
       search_query: searchQuery,
       search_type: searchType
@@ -53,7 +53,7 @@ export default function AIVehicleSearch({ onSelectListing }) {
   });
 
   const removeFavoriteMutation = useMutation({
-    mutationFn: (favoriteId) => base44.entities.FavoriteVehicleListing.delete(favoriteId),
+    mutationFn: (favoriteId) => supabase.entities.FavoriteVehicleListing.delete(favoriteId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['favoriteListings'] });
       toast.success("Removed from favorites");
@@ -95,7 +95,7 @@ export default function AIVehicleSearch({ onSelectListing }) {
 
       const itemType = searchType === "vehicle" ? "vehicles (cars, trucks, SUVs, commercial vehicles)" : "industrial equipment (excavators, loaders, forklifts, construction machinery, heavy equipment)";
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Search for ${itemType} matching: "${searchQuery}"
 
 Geographic Scope: ${scopeDescriptions[geoScope]}
@@ -476,7 +476,7 @@ Make diverse listings with varying quality, prices, and locations.`,
           ? `${listings[0].year || ''} ${listings[0].make || ''} ${listings[0].model || ''} - Listing`
           : `${searchType === "vehicle" ? "Vehicle" : "Equipment"} Search Results (${listings.length} items)`;
 
-        await base44.integrations.Core.SendEmail({
+        await supabase.integrations.Core.SendEmail({
           to: emailAddress,
           subject,
           body: formatEmailHTML(listings)

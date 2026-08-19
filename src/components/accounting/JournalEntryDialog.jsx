@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ export default function JournalEntryDialog({ open, onClose }) {
     queryKey: ['accounts', selectedCompanyId],
     queryFn: async () => {
       console.log("Fetching accounts for company:", selectedCompanyId);
-      const result = await base44.entities.Account.filter({ company_id: selectedCompanyId }, 'account_code');
+      const result = await supabase.entities.Account.filter({ company_id: selectedCompanyId }, 'account_code');
       console.log("Fetched accounts:", result?.length || 0, "accounts");
       return result || [];
     },
@@ -43,7 +43,7 @@ export default function JournalEntryDialog({ open, onClose }) {
       const promises = data.entries.map(entry => {
         if (!entry.account_id || (entry.debit === 0 && entry.credit === 0)) return null;
         
-        return base44.entities.Transaction.create({
+        return supabase.entities.Transaction.create({
           company_id: selectedCompanyId,
           transaction_number: data.reference_number,
           transaction_type: 'other_income',

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,10 +15,10 @@ export default function VendorCreditsTab({ vendorCredits, selectedCompanyId }) {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const credit = await base44.entities.VendorCredit.create({ ...data, company_id: selectedCompanyId });
+      const credit = await supabase.entities.VendorCredit.create({ ...data, company_id: selectedCompanyId });
       
       // Create GL transaction for vendor credit (reduces AP)
-      await base44.entities.Transaction.create({
+      await supabase.entities.Transaction.create({
         company_id: selectedCompanyId,
         transaction_number: credit.credit_number || `VCREDIT-${credit.id.slice(0, 8)}`,
         transaction_type: 'other_income',
@@ -49,7 +49,7 @@ export default function VendorCreditsTab({ vendorCredits, selectedCompanyId }) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.VendorCredit.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.VendorCredit.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendorCredits'] });
       setDialogOpen(false);
@@ -59,7 +59,7 @@ export default function VendorCreditsTab({ vendorCredits, selectedCompanyId }) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.VendorCredit.delete(id),
+    mutationFn: (id) => supabase.entities.VendorCredit.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendorCredits'] });
       toast.success("Vendor credit deleted!");

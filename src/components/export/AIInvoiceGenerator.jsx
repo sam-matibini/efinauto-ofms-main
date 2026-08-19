@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, Loader2, FileText, CheckCircle } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -78,7 +78,7 @@ Generate a professional invoice with:
 
 Be precise with calculations and comply with Canadian export tax regulations.`;
 
-      const aiResponse = await base44.integrations.Core.InvokeLLM({
+      const aiResponse = await supabase.integrations.Core.InvokeLLM({
         prompt,
         response_json_schema: {
           type: "object",
@@ -147,7 +147,7 @@ Be precise with calculations and comply with Canadian export tax regulations.`;
         payment_terms: aiResponse.payment_terms
       };
 
-      const createdInvoice = await base44.entities.SalesInvoice.create(invoiceData);
+      const createdInvoice = await supabase.entities.SalesInvoice.create(invoiceData);
       
       queryClient.invalidateQueries({ queryKey: ['salesInvoices'] });
       onInvoiceCreated?.(createdInvoice);

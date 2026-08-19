@@ -9,7 +9,7 @@ import {
   Sparkles, Loader2, RefreshCw, Globe, Anchor,
   MessageCircle, Bell, Send, Copy, Check, ExternalLink
 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -25,7 +25,7 @@ export default function AdvancedTrackingPanel({ shipment, onClose }) {
     
     setLoading(true);
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Generate realistic real-time vessel tracking data for this shipment:
 
 Vessel/Flight: ${shipment.vessel_flight_number || 'Unknown Vessel'}
@@ -88,7 +88,7 @@ Provide realistic GPS tracking data including:
   const generateETAUpdate = async () => {
     setLoading(true);
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Analyze and provide updated ETA for this shipment:
 
 Current Route: ${shipment.origin_country} → ${shipment.destination_country}
@@ -136,7 +136,7 @@ Provide:
   const generateDelayPrediction = async () => {
     setLoading(true);
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Predict potential delays for this shipment using AI analysis:
 
 Shipment Details:

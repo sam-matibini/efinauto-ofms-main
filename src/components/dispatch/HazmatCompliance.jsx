@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, Shield, CheckCircle, XCircle, FileText, Cloud } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { checkWeatherHazards } from "./HazmatWeatherAlerts";
@@ -28,7 +28,7 @@ export default function HazmatCompliance({ shipments }) {
 
   const { data: incidents = [] } = useQuery({
     queryKey: ['hazmatIncidents'],
-    queryFn: () => base44.entities.HazmatIncident.list('-reported_at', 50),
+    queryFn: () => supabase.entities.HazmatIncident.list('-reported_at', 50),
   });
 
   // Check weather for active HAZMAT shipments
@@ -46,11 +46,11 @@ export default function HazmatCompliance({ shipments }) {
       const complianceData = {
         hazmat_compliance: {
           ...data,
-          compliance_checked_by: (await base44.auth.me()).email,
+          compliance_checked_by: (await supabase.auth.me()).email,
           compliance_checked_at: new Date().toISOString()
         }
       };
-      return base44.entities.LocalShipment.update(selectedShipment.id, complianceData);
+      return supabase.entities.LocalShipment.update(selectedShipment.id, complianceData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['localShipments'] });

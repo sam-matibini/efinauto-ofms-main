@@ -11,7 +11,7 @@ import {
   Upload, CheckCircle, XCircle, AlertCircle, FileText, 
   Shield, Calendar, Loader2, Brain 
 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import AICarrierDocumentAnalyzer from "./AICarrierDocumentAnalyzer";
 import ThirdPartyDrivers from "./ThirdPartyDrivers";
@@ -43,7 +43,7 @@ export default function CarrierOnboardingDialog({ carrier, open, onClose, onUpda
 
   const handleChecklistUpdate = async (key, checked) => {
     const updatedChecklist = { ...checklist, [key]: checked };
-    await base44.entities.ThirdPartyCarrier.update(carrier.id, {
+    await supabase.entities.ThirdPartyCarrier.update(carrier.id, {
       compliance_checklist: updatedChecklist
     });
     
@@ -62,7 +62,7 @@ export default function CarrierOnboardingDialog({ carrier, open, onClose, onUpda
 
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: documentFile });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file: documentFile });
 
       const newDocument = {
         document_type: documentType,
@@ -74,7 +74,7 @@ export default function CarrierOnboardingDialog({ carrier, open, onClose, onUpda
       };
 
       const updatedDocs = [...documents, newDocument];
-      await base44.entities.ThirdPartyCarrier.update(carrier.id, {
+      await supabase.entities.ThirdPartyCarrier.update(carrier.id, {
         compliance_documents: updatedDocs
       });
 
@@ -96,11 +96,11 @@ export default function CarrierOnboardingDialog({ carrier, open, onClose, onUpda
     updatedDocs[docIndex] = {
       ...updatedDocs[docIndex],
       verified,
-      verified_by: verified ? (await base44.auth.me()).email : null,
+      verified_by: verified ? (await supabase.auth.me()).email : null,
       verified_at: verified ? new Date().toISOString() : null
     };
 
-    await base44.entities.ThirdPartyCarrier.update(carrier.id, {
+    await supabase.entities.ThirdPartyCarrier.update(carrier.id, {
       compliance_documents: updatedDocs
     });
     
@@ -122,9 +122,9 @@ export default function CarrierOnboardingDialog({ carrier, open, onClose, onUpda
       return;
     }
 
-    await base44.entities.ThirdPartyCarrier.update(carrier.id, {
+    await supabase.entities.ThirdPartyCarrier.update(carrier.id, {
       onboarding_status: 'approved',
-      approved_by: (await base44.auth.me()).email,
+      approved_by: (await supabase.auth.me()).email,
       approved_at: new Date().toISOString(),
       onboarding_completed_at: new Date().toISOString(),
       status: 'active'

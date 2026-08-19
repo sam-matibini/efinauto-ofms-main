@@ -1,13 +1,13 @@
 // Document Sharing Service - Email, WhatsApp, SMS, Google Chat
 // Uses secure links for chat platforms, direct PDF for email
 
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { generateDocumentPDF } from "./DocumentPDFService";
 
 export const generateSecureDownloadLink = async (documentId, documentType = "BOS", expiresInHours = 72) => {
   try {
     // Load document from database
-    const sales = await base44.entities.Sale.filter({ id: documentId });
+    const sales = await supabase.entities.Sale.filter({ id: documentId });
     const document = sales[0];
     if (!document) throw new Error("Sale not found");
     
@@ -16,9 +16,9 @@ export const generateSecureDownloadLink = async (documentId, documentType = "BOS
     const pdfUrl = result.pdf_url; // blob URL
     
     // Log link generation
-    const user = await base44.auth.me().catch(() => null);
+    const user = await supabase.auth.me().catch(() => null);
     if (user) {
-      await base44.entities.AuditLog.create({
+      await supabase.entities.AuditLog.create({
         company_id: document.company_id,
         user_id: user.id,
         user_email: user.email,
@@ -49,11 +49,11 @@ export const generateSecureDownloadLink = async (documentId, documentType = "BOS
 
 export const shareViaEmail = async (documentId, recipientEmail, recipientName, message = "") => {
   try {
-    const sales = await base44.entities.Sale.filter({ id: documentId });
+    const sales = await supabase.entities.Sale.filter({ id: documentId });
     const document = sales[0];
     if (!document) throw new Error("Sale not found");
     
-    const companies = await base44.entities.Company.filter({ id: document.company_id });
+    const companies = await supabase.entities.Company.filter({ id: document.company_id });
     const company = companies[0];
     if (!company) throw new Error("Company not found");
     
@@ -102,7 +102,7 @@ export const shareViaEmail = async (documentId, recipientEmail, recipientName, m
       </div>
     `;
     
-    await base44.integrations.Core.SendEmail({
+    await supabase.integrations.Core.SendEmail({
       to: recipientEmail,
       subject: `Bill of Sale - ${document.bos_number || document.sale_number} - ${company.name}`,
       body: emailBody,
@@ -121,11 +121,11 @@ export const shareViaEmail = async (documentId, recipientEmail, recipientName, m
 
 export const shareViaWhatsApp = async (documentId, recipientPhone) => {
   try {
-    const sales = await base44.entities.Sale.filter({ id: documentId });
+    const sales = await supabase.entities.Sale.filter({ id: documentId });
     const document = sales[0];
     if (!document) throw new Error("Sale not found");
     
-    const companies = await base44.entities.Company.filter({ id: document.company_id });
+    const companies = await supabase.entities.Company.filter({ id: document.company_id });
     const company = companies[0];
     if (!company) throw new Error("Company not found");
     
@@ -165,11 +165,11 @@ export const shareViaWhatsApp = async (documentId, recipientPhone) => {
 
 export const shareViaSMS = async (documentId, recipientPhone) => {
   try {
-    const sales = await base44.entities.Sale.filter({ id: documentId });
+    const sales = await supabase.entities.Sale.filter({ id: documentId });
     const document = sales[0];
     if (!document) throw new Error("Sale not found");
     
-    const companies = await base44.entities.Company.filter({ id: document.company_id });
+    const companies = await supabase.entities.Company.filter({ id: document.company_id });
     const company = companies[0];
     if (!company) throw new Error("Company not found");
     
@@ -200,11 +200,11 @@ export const shareViaSMS = async (documentId, recipientPhone) => {
 
 export const shareViaGoogleChat = async (documentId, webhookUrl) => {
   try {
-    const sales = await base44.entities.Sale.filter({ id: documentId });
+    const sales = await supabase.entities.Sale.filter({ id: documentId });
     const document = sales[0];
     if (!document) throw new Error("Sale not found");
     
-    const companies = await base44.entities.Company.filter({ id: document.company_id });
+    const companies = await supabase.entities.Company.filter({ id: document.company_id });
     const company = companies[0];
     if (!company) throw new Error("Company not found");
     
@@ -311,7 +311,7 @@ export const shareViaGoogleChat = async (documentId, webhookUrl) => {
 
 export const printDocument = async (documentId) => {
   try {
-    const sales = await base44.entities.Sale.filter({ id: documentId });
+    const sales = await supabase.entities.Sale.filter({ id: documentId });
     const document = sales[0];
     if (!document) throw new Error("Sale not found");
     
@@ -330,7 +330,7 @@ export const printDocument = async (documentId) => {
 
 export const downloadDocument = async (documentId) => {
   try {
-    const sales = await base44.entities.Sale.filter({ id: documentId });
+    const sales = await supabase.entities.Sale.filter({ id: documentId });
     const document = sales[0];
     if (!document) throw new Error("Sale not found");
     
@@ -358,8 +358,8 @@ export const downloadDocument = async (documentId) => {
 
 const logSharingAction = async (document, channel, recipient) => {
   try {
-    const user = await base44.auth.me();
-    await base44.entities.AuditLog.create({
+    const user = await supabase.auth.me();
+    await supabase.entities.AuditLog.create({
       company_id: document.company_id,
       user_id: user.id,
       user_email: user.email,

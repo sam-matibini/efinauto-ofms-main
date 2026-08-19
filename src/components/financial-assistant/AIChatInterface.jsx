@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Send, Sparkles, Loader2, TrendingUp, DollarSign, AlertTriangle } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function AIChatInterface({ financialData, companyId }) {
@@ -76,7 +76,7 @@ Recent Expenses: ${JSON.stringify(financialData.expenses.slice(0, 10).map(e => (
 })))}
 `;
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `You are a financial assistant helping analyze a company's financial data. 
         
 User question: ${userMessage}

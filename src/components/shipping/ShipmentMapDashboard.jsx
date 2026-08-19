@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Ship, Package, AlertTriangle, Clock, MapPin, Filter } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { format } from "date-fns";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -58,12 +58,12 @@ export default function ShipmentMapDashboard({ companyId }) {
   const { data: trackingRecords = [], isLoading } = useQuery({
     queryKey: ['allShipmentTracking', companyId],
     queryFn: async () => {
-      const exports = await base44.entities.ExportOrder.filter({ company_id: companyId });
+      const exports = await supabase.entities.ExportOrder.filter({ company_id: companyId });
       const exportIds = exports.map(e => e.id);
       
       if (exportIds.length === 0) return [];
       
-      const tracking = await base44.entities.ShipmentTracking.filter({});
+      const tracking = await supabase.entities.ShipmentTracking.filter({});
       return tracking.filter(t => exportIds.includes(t.export_order_id));
     },
     refetchInterval: 30000, // Refresh every 30 seconds
@@ -71,12 +71,12 @@ export default function ShipmentMapDashboard({ companyId }) {
 
   const { data: exports = [] } = useQuery({
     queryKey: ['exports', companyId],
-    queryFn: () => base44.entities.ExportOrder.filter({ company_id: companyId }),
+    queryFn: () => supabase.entities.ExportOrder.filter({ company_id: companyId }),
   });
 
   const { data: geofences = [] } = useQuery({
     queryKey: ['geofences', companyId],
-    queryFn: () => base44.entities.Geofence.filter({ company_id: companyId, active: true }),
+    queryFn: () => supabase.entities.Geofence.filter({ company_id: companyId, active: true }),
     enabled: !!companyId
   });
 

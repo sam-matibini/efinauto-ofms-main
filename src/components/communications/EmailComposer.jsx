@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sparkles, Send, Loader2, Plane, Package, FileText, Paperclip, Link2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function EmailComposer({ customer, customers, exports, shipments, loadingDeclarations, draft, company, invoices, paystubs, payrollEntries, salesInvoices }) {
@@ -65,7 +65,7 @@ export default function EmailComposer({ customer, customers, exports, shipments,
 
     setUploadingFile(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
       setAttachedLinks(prev => [...prev, { url: file_url, name: file.name, type: "uploaded" }]);
       const linkText = `\n📎 ${file.name}: ${file_url}`;
       setBody(prev => prev ? prev + "\n\n--- Attached Documents ---" + linkText : linkText);
@@ -140,7 +140,7 @@ export default function EmailComposer({ customer, customers, exports, shipments,
         date: pe.pay_date
       }));
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Find documents matching this search: "${aiDocSearch}"
 
 Available documents:
@@ -349,7 +349,7 @@ Return the indices of the top 5 most relevant documents that match the search qu
       if (htmlContent) {
         const blob = new Blob([htmlContent], { type: 'text/html' });
         const file = new File([blob], fileName, { type: 'text/html' });
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const { file_url } = await supabase.integrations.Core.UploadFile({ file });
         return { url: file_url, name: fileName, type };
       }
     } catch (error) {
@@ -456,7 +456,7 @@ Return the indices of the top 5 most relevant documents that match the search qu
       const companyName = company?.name || company?.display_name || "eFinAuto OFMS";
       const companyInfo = company ? `\nCompany: ${companyName}` : "";
       
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `${selectedTemplate.prompt} for ${companyName} car dealership.${companyInfo}${contextInfo}\n\nProvide both a subject line and email body. Be professional, friendly, and concise.`,
         response_json_schema: {
           type: "object",
@@ -513,7 +513,7 @@ Return the indices of the top 5 most relevant documents that match the search qu
     try {
       const fromName = company?.name || company?.display_name || "eFinAuto OFMS";
       
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         from_name: fromName,
         to: to,
         subject: subject,
@@ -523,7 +523,7 @@ Return the indices of the top 5 most relevant documents that match the search qu
       // Log communication
       if (customer && company?.id) {
         try {
-          await base44.entities.NotificationLog.create({
+          await supabase.entities.NotificationLog.create({
             company_id: company.id,
             customer_id: customer.id,
             customer_name: customer.full_name,

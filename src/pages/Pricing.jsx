@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,13 +29,13 @@ export default function Pricing() {
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => supabase.auth.me(),
   });
 
   const subscribeMutation = useMutation({
     mutationFn: async ({ planId, modules }) => {
       // Update user with subscription info
-      await base44.auth.updateMe({
+      await supabase.auth.updateMe({
         subscription_plan: planId,
         accessible_modules: modules,
         subscription_date: new Date().toISOString(),

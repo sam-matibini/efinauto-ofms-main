@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,28 +15,28 @@ export default function ISODataManagement() {
 
   const { data: countries = [] } = useQuery({
     queryKey: ['countries'],
-    queryFn: () => base44.entities.Country.list('-sort_order'),
+    queryFn: () => supabase.entities.Country.list('-sort_order'),
   });
 
   const { data: subdivisions = [] } = useQuery({
     queryKey: ['subdivisions'],
-    queryFn: () => base44.entities.Subdivision.list('-sort_order'),
+    queryFn: () => supabase.entities.Subdivision.list('-sort_order'),
   });
 
   const { data: currencies = [] } = useQuery({
     queryKey: ['currencies'],
-    queryFn: () => base44.entities.Currency.list('-sort_order'),
+    queryFn: () => supabase.entities.Currency.list('-sort_order'),
   });
 
   const { data: ports = [] } = useQuery({
     queryKey: ['ports'],
-    queryFn: () => base44.entities.Port.list('-sort_order'),
+    queryFn: () => supabase.entities.Port.list('-sort_order'),
   });
 
   const seedCanadaData = async () => {
     try {
       // Seed Canada
-      await base44.entities.Country.create({
+      await supabase.entities.Country.create({
         iso2_code: "CA",
         iso3_code: "CAN",
         country_name: "Canada",
@@ -64,7 +64,7 @@ export default function ISODataManagement() {
       ];
 
       for (const prov of provinces) {
-        await base44.entities.Subdivision.create({
+        await supabase.entities.Subdivision.create({
           iso_code: prov.iso_code,
           country_iso2: "CA",
           subdivision_name: prov.name,
@@ -74,7 +74,7 @@ export default function ISODataManagement() {
       }
 
       // Seed USA
-      await base44.entities.Country.create({
+      await supabase.entities.Country.create({
         iso2_code: "US",
         iso3_code: "USA",
         country_name: "United States",
@@ -95,7 +95,7 @@ export default function ISODataManagement() {
       ];
 
       for (const curr of currenciesData) {
-        await base44.entities.Currency.create({
+        await supabase.entities.Currency.create({
           iso_code: curr.iso_code,
           currency_name: curr.name,
           symbol: curr.symbol,
@@ -115,7 +115,7 @@ export default function ISODataManagement() {
       ];
 
       for (const port of portsData) {
-        await base44.entities.Port.create({
+        await supabase.entities.Port.create({
           un_locode: port.un_locode,
           port_name: port.name,
           country_iso2: port.country,

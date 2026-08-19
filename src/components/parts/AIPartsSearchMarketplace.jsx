@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,7 +50,7 @@ export default function AIPartsSearchMarketplace() {
         ? `\n\nVehicle Information:\n${vehicleInfo.join('\n')}`
         : '';
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Search for automotive parts matching "${searchQuery}" on Facebook Marketplace, Kijiji, and Amazon for location "${location}".
       ${vehicleContext}
 
@@ -178,7 +178,7 @@ Organize results by platform, showing best matches first. Include at least 3-5 l
         category: "other"
       };
 
-      await base44.entities.Part.create(partData);
+      await supabase.entities.Part.create(partData);
       queryClient.invalidateQueries({ queryKey: ['parts'] });
       toast.success(`Part added to inventory from ${platform}`);
     } catch (error) {

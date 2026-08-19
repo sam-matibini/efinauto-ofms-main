@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,12 +54,12 @@ export default function CurrencyConverter({
 
   const { data: savedRates = [] } = useQuery({
     queryKey: ['exchangeRates', companyId],
-    queryFn: () => base44.entities.ExchangeRate.filter({ company_id: companyId }),
+    queryFn: () => supabase.entities.ExchangeRate.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
 
   const saveRateMutation = useMutation({
-    mutationFn: (data) => base44.entities.ExchangeRate.create({ ...data, company_id: companyId }),
+    mutationFn: (data) => supabase.entities.ExchangeRate.create({ ...data, company_id: companyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exchangeRates'] });
       toast.success("Exchange rate saved");
@@ -81,7 +81,7 @@ export default function CurrencyConverter({
   const fetchAIRate = async () => {
     setIsLoadingRate(true);
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `What is the current exchange rate from ${sourceCurrency} to ${targetCurrency} as of today? 
                  Provide the rate as a single number representing how many ${targetCurrency} equals 1 ${sourceCurrency}.
                  Also provide the inverse rate.`,

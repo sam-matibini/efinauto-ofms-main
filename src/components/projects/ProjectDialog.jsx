@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
@@ -49,7 +49,7 @@ export default function ProjectDialog({ open, onClose, project, onSave, isLoadin
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', selectedCompanyId],
-    queryFn: () => base44.entities.Customer.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Customer.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId
   });
 

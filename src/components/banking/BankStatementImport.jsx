@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, FileText, Sparkles, Loader2, Download, HelpCircle } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function BankStatementImport({ open, onClose, bankAccounts, glAccounts, companyId, onSuccess }) {
@@ -33,11 +33,11 @@ export default function BankStatementImport({ open, onClose, bankAccounts, glAcc
 
     try {
       // Upload file
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
       
       // Use AI to extract transactions from statement
       toast.info("AI is analyzing your statement...");
-      const extractedData = await base44.integrations.Core.InvokeLLM({
+      const extractedData = await supabase.integrations.Core.InvokeLLM({
         prompt: `Analyze this bank statement and extract all transactions. For each transaction, extract:
         - transaction_date (YYYY-MM-DD format)
         - post_date (if different from transaction date)
@@ -113,7 +113,7 @@ export default function BankStatementImport({ open, onClose, bankAccounts, glAcc
         ai_confidence: 75
       }));
 
-      await base44.entities.BankTransaction.bulkCreate(transactionsToCreate);
+      await supabase.entities.BankTransaction.bulkCreate(transactionsToCreate);
 
       toast.success(`Successfully imported ${transactionsToCreate.length} transactions`);
       onSuccess();

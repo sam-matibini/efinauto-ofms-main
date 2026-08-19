@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Camera, Loader2, CheckCircle, AlertCircle } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 
@@ -23,10 +23,10 @@ export default function AIVINScanner({ onVINDetected }) {
 
     try {
       // Upload the image first
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
 
       // Use AI to extract VIN from the image
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Analyze this image and extract the Vehicle Identification Number (VIN). 
         The VIN is typically 17 characters long and contains both letters and numbers.
         Look for VIN labels on the vehicle, dashboard, door jamb, or any visible VIN plate.

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,10 +20,10 @@ export default function CreditNotesTab({ creditNotes, selectedCompanyId }) {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const credit = await base44.entities.CreditNote.create({ ...data, company_id: selectedCompanyId });
+      const credit = await supabase.entities.CreditNote.create({ ...data, company_id: selectedCompanyId });
       
       // Create GL transaction for credit note (reduces AR)
-      await base44.entities.Transaction.create({
+      await supabase.entities.Transaction.create({
         company_id: selectedCompanyId,
         transaction_number: credit.credit_note_number || `CN-${credit.id.slice(0, 8)}`,
         transaction_type: 'other_expense',
@@ -66,7 +66,7 @@ export default function CreditNotesTab({ creditNotes, selectedCompanyId }) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.CreditNote.delete(id),
+    mutationFn: (id) => supabase.entities.CreditNote.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['creditNotes'] });
       toast.success("Credit note deleted!");

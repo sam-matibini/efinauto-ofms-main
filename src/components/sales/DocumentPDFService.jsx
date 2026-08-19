@@ -1,7 +1,7 @@
 // Core PDF Generation Service - Single Source of Truth
 // Generates PDFs from finalized database records only
 
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -31,7 +31,7 @@ export const generateDocumentPDF = async (documentId, documentType = "BOS") => {
     // Step 1: Load fresh document from database
     let document;
     if (documentType === "BOS") {
-      const sales = await base44.entities.Sale.filter({ id: documentId });
+      const sales = await supabase.entities.Sale.filter({ id: documentId });
       document = sales[0];
       if (!document) throw new Error("Sale not found");
     }
@@ -43,7 +43,7 @@ export const generateDocumentPDF = async (documentId, documentType = "BOS") => {
     }
     
     // Step 3: Load company data
-    const companies = await base44.entities.Company.filter({ id: document.company_id });
+    const companies = await supabase.entities.Company.filter({ id: document.company_id });
     const company = companies[0];
     if (!company) throw new Error("Company not found");
     
@@ -372,8 +372,8 @@ const renderElementToPDF = async (element) => {
 
 const logDocumentAction = async (document, action, metadata = {}) => {
   try {
-    const user = await base44.auth.me();
-    await base44.entities.AuditLog.create({
+    const user = await supabase.auth.me();
+    await supabase.entities.AuditLog.create({
       company_id: document.company_id,
       user_id: user.id,
       user_email: user.email,

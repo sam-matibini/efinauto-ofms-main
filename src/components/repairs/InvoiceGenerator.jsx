@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -21,13 +21,13 @@ export default function InvoiceGenerator({ open, onClose, repairOrder }) {
 
   const { data: company } = useQuery({
     queryKey: ['company', selectedCompanyId],
-    queryFn: () => base44.entities.Company.filter({ id: selectedCompanyId }).then(res => res[0]),
+    queryFn: () => supabase.entities.Company.filter({ id: selectedCompanyId }).then(res => res[0]),
     enabled: !!selectedCompanyId && open,
   });
 
   const { data: customer } = useQuery({
     queryKey: ['customer', repairOrder?.customer_id],
-    queryFn: () => base44.entities.Customer.filter({ id: repairOrder.customer_id }).then(res => res[0]),
+    queryFn: () => supabase.entities.Customer.filter({ id: repairOrder.customer_id }).then(res => res[0]),
     enabled: !!repairOrder?.customer_id && open,
   });
 
@@ -100,7 +100,7 @@ export default function InvoiceGenerator({ open, onClose, repairOrder }) {
 
       // Use AI to enhance invoice notes
       try {
-        const aiResponse = await base44.integrations.Core.InvokeLLM({
+        const aiResponse = await supabase.integrations.Core.InvokeLLM({
           prompt: `Generate a professional, concise invoice note for an auto repair service. 
           Services: ${repairOrder.description}
           Diagnosis: ${repairOrder.diagnosis || 'N/A'}
@@ -114,7 +114,7 @@ export default function InvoiceGenerator({ open, onClose, repairOrder }) {
       }
 
       // Create invoice in database
-      const createdInvoice = await base44.entities.Invoice.create(invoice);
+      const createdInvoice = await supabase.entities.Invoice.create(invoice);
       setGenerating(false);
       return createdInvoice;
     },
@@ -156,7 +156,7 @@ ${company?.name || 'Auto Repair Team'}
 ${company?.phone || ''}
       `.trim();
 
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         to: invoiceData.customer_email || repairOrder.customer_phone,
         subject: `Invoice ${invoiceData.invoice_number} - ${company?.name || 'Auto Repair'}`,
         body: emailBody,
@@ -164,7 +164,7 @@ ${company?.phone || ''}
       });
 
       // Update invoice to mark as sent
-      await base44.entities.Invoice.update(invoiceData.id, {
+      await supabase.entities.Invoice.update(invoiceData.id, {
         email_sent: true,
         email_sent_date: new Date().toISOString()
       });

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,12 +17,12 @@ export default function OpportunitiesPipeline({ companyId }) {
 
   const { data: opportunities = [] } = useQuery({
     queryKey: ['opportunities', companyId],
-    queryFn: () => base44.entities.Opportunity.filter({ company_id: companyId }, '-created_date'),
+    queryFn: () => supabase.entities.Opportunity.filter({ company_id: companyId }, '-created_date'),
     enabled: !!companyId,
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Opportunity.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.Opportunity.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['opportunities', companyId] });
     },

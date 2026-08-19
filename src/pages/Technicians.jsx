@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,20 +37,20 @@ export default function TechniciansPage() {
 
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians', selectedCompanyId],
-    queryFn: () => base44.entities.Technician.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Technician.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: timesheets = [] } = useQuery({
     queryKey: ['timesheets', selectedCompanyId],
-    queryFn: () => base44.entities.Timesheet.filter({ company_id: selectedCompanyId }, '-date'),
+    queryFn: () => supabase.entities.Timesheet.filter({ company_id: selectedCompanyId }, '-date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Technician.create(data),
+    mutationFn: (data) => supabase.entities.Technician.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
       toast.success("Technician added");
@@ -60,7 +60,7 @@ export default function TechniciansPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Technician.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.Technician.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
       toast.success("Technician updated");
@@ -70,7 +70,7 @@ export default function TechniciansPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Technician.delete(id),
+    mutationFn: (id) => supabase.entities.Technician.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
       toast.success("Technician deleted");

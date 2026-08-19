@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Upload, Loader2, FileSpreadsheet, Download } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -41,13 +41,13 @@ export default function ImportAccountsDialog({ open, onClose, companyId }) {
 
     try {
       // Upload the file first
-      const uploadResponse = await base44.integrations.Core.UploadFile({ file });
+      const uploadResponse = await supabase.integrations.Core.UploadFile({ file });
       const fileUrl = uploadResponse.file_url;
 
       toast.info("Extracting account data...");
 
       // Extract data from the uploaded file - returns array of objects
-      const extractResponse = await base44.integrations.Core.ExtractDataFromUploadedFile({
+      const extractResponse = await supabase.integrations.Core.ExtractDataFromUploadedFile({
         file_url: fileUrl,
         json_schema: {
           type: "object",
@@ -100,7 +100,7 @@ export default function ImportAccountsDialog({ open, onClose, companyId }) {
               continue;
             }
 
-            await base44.entities.Account.create({
+            await supabase.entities.Account.create({
               company_id: companyId,
               account_code: String(account.account_code).trim(),
               account_name: String(account.account_name).trim(),

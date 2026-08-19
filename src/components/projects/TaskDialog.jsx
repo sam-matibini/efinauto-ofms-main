@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
@@ -46,7 +46,7 @@ export default function TaskDialog({ open, onClose, task, projectId, projectName
 
   const { data: employees = [] } = useQuery({
     queryKey: ['employees', selectedCompanyId],
-    queryFn: () => base44.entities.Employee.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Employee.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId
   });
 

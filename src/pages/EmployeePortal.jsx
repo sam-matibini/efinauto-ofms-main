@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,14 +14,14 @@ export default function EmployeePortal() {
   
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => supabase.auth.me(),
   });
 
   const employeeEntityId = currentUser?.employee_entity_id || currentUser?.data?.employee_entity_id;
 
   const { data: company } = useQuery({
     queryKey: ['company', selectedCompanyId],
-    queryFn: () => base44.entities.Company.filter({ id: selectedCompanyId }).then(c => c[0]),
+    queryFn: () => supabase.entities.Company.filter({ id: selectedCompanyId }).then(c => c[0]),
     enabled: !!selectedCompanyId,
   });
 
@@ -30,7 +30,7 @@ export default function EmployeePortal() {
     queryFn: async () => {
       // First try by employee_entity_id in the selected company
       if (employeeEntityId && selectedCompanyId) {
-        const emps = await base44.entities.Employee.filter({ 
+        const emps = await supabase.entities.Employee.filter({ 
           id: employeeEntityId,
           company_id: selectedCompanyId 
         });
@@ -39,7 +39,7 @@ export default function EmployeePortal() {
       
       // Then try by email in the selected company
       if (currentUser?.email && selectedCompanyId) {
-        const emps = await base44.entities.Employee.filter({ 
+        const emps = await supabase.entities.Employee.filter({ 
           email: currentUser.email,
           company_id: selectedCompanyId
         });
@@ -48,7 +48,7 @@ export default function EmployeePortal() {
       
       // Try to find any employee in the selected company
       if (selectedCompanyId) {
-        const emps = await base44.entities.Employee.filter({ 
+        const emps = await supabase.entities.Employee.filter({ 
           company_id: selectedCompanyId
         });
         if (emps[0]) return emps[0];

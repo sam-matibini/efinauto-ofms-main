@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Printer, Download, Mail, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function PaymentReceiptDialog({ open, onClose, payment, company }) {
@@ -23,7 +23,7 @@ export default function PaymentReceiptDialog({ open, onClose, payment, company }
     }
 
     try {
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         to: payment.customer_email,
         subject: `Payment Receipt - ${payment.payment_number}`,
         body: `

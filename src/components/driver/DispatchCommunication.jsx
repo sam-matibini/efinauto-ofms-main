@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Phone, MessageSquare, Send, Loader2 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -12,14 +12,14 @@ export default function DispatchCommunication({ open, onClose, shipment, driver 
 
   const { data: company } = useQuery({
     queryKey: ['company', shipment?.company_id],
-    queryFn: () => base44.entities.Company.filter({ id: shipment.company_id }),
+    queryFn: () => supabase.entities.Company.filter({ id: shipment.company_id }),
     enabled: !!shipment?.company_id,
   });
 
   const sendMessageMutation = useMutation({
     mutationFn: async () => {
       // Log communication
-      await base44.entities.CommunicationLog.create({
+      await supabase.entities.CommunicationLog.create({
         company_id: shipment.company_id,
         related_entity_type: 'LocalShipment',
         related_entity_id: shipment.id,

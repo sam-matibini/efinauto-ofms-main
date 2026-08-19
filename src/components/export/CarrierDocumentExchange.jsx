@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Download, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { getCarrierAPIService, isCarrierAPIEnabled } from "./CarrierAPIRegistry";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -38,7 +38,7 @@ export default function CarrierDocumentExchange({ order, onDocumentFetched }) {
           }
         ];
 
-        await base44.entities.ExportOrder.update(order.id, {
+        await supabase.entities.ExportOrder.update(order.id, {
           documents: updatedDocuments,
           bl_issued: true,
           bl_issued_at: new Date().toISOString()
@@ -80,7 +80,7 @@ export default function CarrierDocumentExchange({ order, onDocumentFetched }) {
         doc
       ];
 
-      await base44.entities.ExportOrder.update(order.id, {
+      await supabase.entities.ExportOrder.update(order.id, {
         documents: updatedDocuments
       });
 

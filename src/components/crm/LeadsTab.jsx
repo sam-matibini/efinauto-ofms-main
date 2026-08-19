@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,12 +18,12 @@ export default function LeadsTab({ companyId }) {
 
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ['leads', companyId],
-    queryFn: () => base44.entities.Lead.filter({ company_id: companyId }, '-created_date'),
+    queryFn: () => supabase.entities.Lead.filter({ company_id: companyId }, '-created_date'),
     enabled: !!companyId,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Lead.delete(id),
+    mutationFn: (id) => supabase.entities.Lead.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads', companyId] });
       toast.success("Lead deleted");
@@ -32,7 +32,7 @@ export default function LeadsTab({ companyId }) {
 
   const convertMutation = useMutation({
     mutationFn: async (lead) => {
-      const customer = await base44.entities.Customer.create({
+      const customer = await supabase.entities.Customer.create({
         company_id: companyId,
         full_name: lead.full_name,
         email: lead.email,
@@ -46,7 +46,7 @@ export default function LeadsTab({ companyId }) {
         notes: lead.notes,
         tags: lead.tags
       });
-      await base44.entities.Lead.update(lead.id, {
+      await supabase.entities.Lead.update(lead.id, {
         status: 'won',
         converted_to_customer_id: customer.id,
         converted_date: new Date().toISOString()

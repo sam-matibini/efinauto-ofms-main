@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, Loader2, CheckCircle } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -130,7 +130,7 @@ export default function ExportDocumentGenerator({ order, sale, company }) {
       // Convert to PDF and upload
       const blob = new Blob([html], { type: 'text/html' });
       const file = new File([blob], `COO_${order.export_order_number}.html`, { type: 'text/html' });
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
 
       // Update order with document
       const updatedDocs = [...(order.documents || []), {
@@ -140,7 +140,7 @@ export default function ExportDocumentGenerator({ order, sale, company }) {
         generated_at: new Date().toISOString()
       }];
 
-      await base44.entities.ExportOrder.update(order.id, {
+      await supabase.entities.ExportOrder.update(order.id, {
         documents: updatedDocs
       });
 
@@ -282,7 +282,7 @@ export default function ExportDocumentGenerator({ order, sale, company }) {
 
       const blob = new Blob([html], { type: 'text/html' });
       const file = new File([blob], `Commercial_Invoice_${order.export_order_number}.html`, { type: 'text/html' });
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
 
       const updatedDocs = [...(order.documents || []), {
         type: 'commercial_invoice',
@@ -291,7 +291,7 @@ export default function ExportDocumentGenerator({ order, sale, company }) {
         generated_at: new Date().toISOString()
       }];
 
-      await base44.entities.ExportOrder.update(order.id, {
+      await supabase.entities.ExportOrder.update(order.id, {
         documents: updatedDocs
       });
 
@@ -400,7 +400,7 @@ export default function ExportDocumentGenerator({ order, sale, company }) {
 
       const blob = new Blob([html], { type: 'text/html' });
       const file = new File([blob], `Packing_List_${order.export_order_number}.html`, { type: 'text/html' });
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
 
       const updatedDocs = [...(order.documents || []), {
         type: 'packing_list',
@@ -409,7 +409,7 @@ export default function ExportDocumentGenerator({ order, sale, company }) {
         generated_at: new Date().toISOString()
       }];
 
-      await base44.entities.ExportOrder.update(order.id, {
+      await supabase.entities.ExportOrder.update(order.id, {
         documents: updatedDocs
       });
 

@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Plus, DollarSign } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function DeductionsManagement({ company, employees }) {
@@ -29,14 +29,14 @@ export default function DeductionsManagement({ company, employees }) {
 
   const { data: deductions = [] } = useQuery({
     queryKey: ['deductions', company?.id],
-    queryFn: () => base44.entities.Deduction.filter({ company_id: company.id }),
+    queryFn: () => supabase.entities.Deduction.filter({ company_id: company.id }),
     enabled: !!company,
   });
 
   const createDeductionMutation = useMutation({
     mutationFn: (data) => {
       const employee = employees.find(e => e.id === data.employee_id);
-      return base44.entities.Deduction.create({
+      return supabase.entities.Deduction.create({
         ...data,
         company_id: company.id,
         employee_name: `${employee.first_name} ${employee.last_name}`,

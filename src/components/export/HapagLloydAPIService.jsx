@@ -4,7 +4,7 @@
  * In production, replace with actual Hapag-Lloyd API endpoints
  */
 
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 export const HapagLloydAPIService = {
   /**
@@ -14,7 +14,7 @@ export const HapagLloydAPIService = {
     try {
       const response = await simulateHapagLloydBookingAPI(bookingData);
       
-      await base44.integrations.Core.InvokeLLM({
+      await supabase.integrations.Core.InvokeLLM({
         prompt: `Log Hapag-Lloyd booking request submission: ${JSON.stringify(bookingData)}`,
         response_json_schema: {
           type: "object",

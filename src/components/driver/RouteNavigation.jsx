@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Navigation, MapPin, Clock, AlertTriangle, ExternalLink } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function RouteNavigation({ shipment, currentLocation }) {
@@ -20,7 +20,7 @@ export default function RouteNavigation({ shipment, currentLocation }) {
 
     setLoading(true);
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await supabase.integrations.Core.InvokeLLM({
         prompt: `Calculate the optimal route from current location to destination.
         
 Current Location: ${currentLocation.coords.latitude}, ${currentLocation.coords.longitude}

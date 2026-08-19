@@ -4,7 +4,7 @@
  * In production, replace with actual CMA CGM API endpoints
  */
 
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 export const CMACGMAPIService = {
   /**
@@ -14,7 +14,7 @@ export const CMACGMAPIService = {
     try {
       const response = await simulateCMACGMBookingAPI(bookingData);
       
-      await base44.integrations.Core.InvokeLLM({
+      await supabase.integrations.Core.InvokeLLM({
         prompt: `Log CMA CGM booking request submission: ${JSON.stringify(bookingData)}`,
         response_json_schema: {
           type: "object",

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Truck, MapPin, Package, AlertTriangle, Clock, CheckCircle, Plus, TrendingUp } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { toast } from "sonner";
 import ShipmentDialog from "@/components/dispatch/ShipmentDialog";
@@ -26,26 +26,26 @@ export default function DispatchDashboard() {
 
   const { data: shipments = [] } = useQuery({
     queryKey: ['localShipments', selectedCompanyId],
-    queryFn: () => base44.entities.LocalShipment.filter({ company_id: selectedCompanyId }, '-created_date'),
+    queryFn: () => supabase.entities.LocalShipment.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
   });
 
   const { data: drivers = [] } = useQuery({
     queryKey: ['drivers', selectedCompanyId],
-    queryFn: () => base44.entities.Driver.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Driver.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
   });
 
   const { data: trucks = [] } = useQuery({
     queryKey: ['trucks', selectedCompanyId],
-    queryFn: () => base44.entities.TruckVehicle.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.TruckVehicle.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
   });
 
   const predictETAMutation = useMutation({
     mutationFn: async (shipmentId) => {
       const shipment = shipments.find(s => s.id === shipmentId);
-      const gpsPoints = await base44.entities.GPSTrackingPoint.filter(
+      const gpsPoints = await supabase.entities.GPSTrackingPoint.filter(
         { shipment_id: shipmentId },
         '-timestamp',
         20

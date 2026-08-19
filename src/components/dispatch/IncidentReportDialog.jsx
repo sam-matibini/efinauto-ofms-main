@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, Upload, Camera, Loader2, Send } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { sendEmergencyAlert } from "./HazmatWeatherAlerts";
 
@@ -43,7 +43,7 @@ export default function IncidentReportDialog({ open, onClose, shipment, driver }
       }
 
       // Create incident
-      const incident = await base44.entities.HazmatIncident.create({
+      const incident = await supabase.entities.HazmatIncident.create({
         company_id: shipment.company_id,
         shipment_id: shipment.id,
         driver_id: driver.id,

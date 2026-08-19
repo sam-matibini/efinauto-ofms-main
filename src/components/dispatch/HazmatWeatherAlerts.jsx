@@ -1,4 +1,4 @@
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 /**
  * Real-time Weather and Road Hazard Monitoring for HAZMAT Shipments
@@ -27,7 +27,7 @@ Provide real-time analysis of:
 
 Output critical alerts only. If conditions are safe, indicate "no_alerts".`;
 
-    const response = await base44.integrations.Core.InvokeLLM({
+    const response = await supabase.integrations.Core.InvokeLLM({
       prompt,
       add_context_from_internet: true,
       response_json_schema: {
@@ -97,12 +97,12 @@ Emergency Services: ${incident.emergency_services_notified ? 'NOTIFIED' : 'NOT Y
     `.trim();
 
     // Get company data for contacts
-    const companies = await base44.entities.Company.filter({ id: shipment.company_id });
+    const companies = await supabase.entities.Company.filter({ id: shipment.company_id });
     const company = companies[0];
 
     // Alert dispatch (company contact)
     if (company?.contact_person_email) {
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         to: company.contact_person_email,
         subject: `🚨 CRITICAL HAZMAT INCIDENT - ${incident.incident_number}`,
         body: message.replace(/\n/g, '<br>')
@@ -124,7 +124,7 @@ Emergency Services: ${incident.emergency_services_notified ? 'NOTIFIED' : 'NOT Y
     }
 
     // Update incident with notification log
-    await base44.entities.HazmatIncident.update(incident.id, {
+    await supabase.entities.HazmatIncident.update(incident.id, {
       authorities_notified: incident.severity === 'critical' || incident.severity === 'high',
       notifications_sent: notifications
     });

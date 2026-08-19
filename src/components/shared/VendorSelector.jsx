@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "./CompanyContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ export default function VendorSelector({ value, onSelect, onCreateNew }) {
 
   const { data: vendors = [] } = useQuery({
     queryKey: ['vendors', selectedCompanyId],
-    queryFn: () => base44.entities.Vendor.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Vendor.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
   });
 

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,62 +21,62 @@ export default function CustomerCommunications() {
 
   const { data: company } = useQuery({
     queryKey: ['company', selectedCompanyId],
-    queryFn: () => base44.entities.Company.filter({ id: selectedCompanyId }).then(companies => companies[0]),
+    queryFn: () => supabase.entities.Company.filter({ id: selectedCompanyId }).then(companies => companies[0]),
     enabled: !!selectedCompanyId,
   });
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', selectedCompanyId],
-    queryFn: () => base44.entities.Customer.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Customer.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: sales = [] } = useQuery({
     queryKey: ['sales', selectedCompanyId],
-    queryFn: () => base44.entities.Sale.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Sale.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: exports = [] } = useQuery({
     queryKey: ['exports', selectedCompanyId],
-    queryFn: () => base44.entities.Export.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Export.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: shipments = [] } = useQuery({
     queryKey: ['shipments', selectedCompanyId],
-    queryFn: () => base44.entities.FreightShipment.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.FreightShipment.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: loadingDeclarations = [] } = useQuery({
     queryKey: ['loadingDeclarations', selectedCompanyId],
-    queryFn: () => base44.entities.LoadingDeclaration.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.LoadingDeclaration.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: repairs = [] } = useQuery({
     queryKey: ['repairs', selectedCompanyId],
-    queryFn: () => base44.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: invoices = [] } = useQuery({
     queryKey: ['invoices', selectedCompanyId],
-    queryFn: () => base44.entities.Invoice.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Invoice.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: payrollEntries = [] } = useQuery({
     queryKey: ['payrollEntries', selectedCompanyId],
-    queryFn: () => base44.entities.PayrollEntry.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.PayrollEntry.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });

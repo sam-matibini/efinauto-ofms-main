@@ -14,7 +14,7 @@ import {
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { useCompany } from "@/components/shared/CompanyContext";
 import DocumentTemplateGenerator from "./DocumentTemplateGenerator";
@@ -49,7 +49,7 @@ export default function DocumentsTab({ documents = [], loadingDeclarations = [],
     queryKey: ['company', selectedCompanyId],
     queryFn: async () => {
       if (!selectedCompanyId) return null;
-      const companies = await base44.entities.Company.filter({ id: selectedCompanyId });
+      const companies = await supabase.entities.Company.filter({ id: selectedCompanyId });
       return companies[0] || null;
     },
     enabled: !!selectedCompanyId,
@@ -68,7 +68,7 @@ export default function DocumentsTab({ documents = [], loadingDeclarations = [],
   };
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.ShippingDocument.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: (data) => supabase.entities.ShippingDocument.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shipping-documents'] });
       handleUploadDialogClose();
@@ -77,7 +77,7 @@ export default function DocumentsTab({ documents = [], loadingDeclarations = [],
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.ShippingDocument.delete(id),
+    mutationFn: (id) => supabase.entities.ShippingDocument.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shipping-documents'] });
       toast.success("Document deleted!");
@@ -389,7 +389,7 @@ function UploadDocumentDialog({ open, onClose, onSave, shipments, containers, ve
 
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
       
       const fileType = file.type.startsWith('image/') ? 'image' : 
                        file.type === 'application/pdf' ? 'pdf' : 'document';

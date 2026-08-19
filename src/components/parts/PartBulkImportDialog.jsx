@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Upload, Download, FileSpreadsheet, Loader2, CheckCircle, XCircle } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { useCompany } from "@/components/shared/CompanyContext";
 
@@ -49,10 +49,10 @@ P-003,Air Filter,Premium cabin air filter,filters,Toyota;Nissan,All models,75,15
     setImporting(true);
     try {
       // Upload file
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
 
       // Extract data using AI
-      const extractionResult = await base44.integrations.Core.ExtractDataFromUploadedFile({
+      const extractionResult = await supabase.integrations.Core.ExtractDataFromUploadedFile({
         file_url,
         json_schema: {
           type: "object",
@@ -129,7 +129,7 @@ P-003,Air Filter,Premium cabin air filter,filters,Toyota;Nissan,All models,75,15
       }));
 
       // Bulk create parts
-      const imported = await base44.entities.Part.bulkCreate(partsToImport);
+      const imported = await supabase.entities.Part.bulkCreate(partsToImport);
 
       setResults({
         success: true,

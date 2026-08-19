@@ -15,7 +15,7 @@ import {
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { useCompany } from "@/components/shared/CompanyContext";
 import LoadingDeclarationDialog from "@/components/freight/LoadingDeclarationDialog";
@@ -77,11 +77,11 @@ export default function ShipmentsTab({ shipments = [], exports = [], customers =
         company_id: selectedCompanyId,
         shipment_number: data.shipment_number || generateShipmentNumber()
       };
-      const shipment = await base44.entities.FreightShipment.create(shipmentData);
+      const shipment = await supabase.entities.FreightShipment.create(shipmentData);
       
       // Create GL transactions for shipping fees
       if (data.freight_cost > 0) {
-        await base44.entities.Transaction.create({
+        await supabase.entities.Transaction.create({
           company_id: selectedCompanyId,
           transaction_number: `FRT-${shipment.id.slice(0, 8)}`,
           transaction_type: 'other_expense',
@@ -101,7 +101,7 @@ export default function ShipmentsTab({ shipments = [], exports = [], customers =
       }
       
       if (data.customs_fees > 0) {
-        await base44.entities.Transaction.create({
+        await supabase.entities.Transaction.create({
           company_id: selectedCompanyId,
           transaction_number: `CUST-${shipment.id.slice(0, 8)}`,
           transaction_type: 'other_expense',
@@ -131,7 +131,7 @@ export default function ShipmentsTab({ shipments = [], exports = [], customers =
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.FreightShipment.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.FreightShipment.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
       handleDialogClose();
@@ -140,7 +140,7 @@ export default function ShipmentsTab({ shipments = [], exports = [], customers =
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.FreightShipment.delete(id),
+    mutationFn: (id) => supabase.entities.FreightShipment.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
       toast.success("Shipment deleted!");
@@ -415,7 +415,7 @@ export default function ShipmentsTab({ shipments = [], exports = [], customers =
         onClose={() => { setLoadingDeclOpen(false); setSelectedShipment(null); }}
         shipment={selectedShipment}
         onSave={(data) => {
-          base44.entities.LoadingDeclaration.create({ ...data, company_id: selectedCompanyId });
+          supabase.entities.LoadingDeclaration.create({ ...data, company_id: selectedCompanyId });
           setLoadingDeclOpen(false);
           toast.success("Loading declaration created!");
         }}

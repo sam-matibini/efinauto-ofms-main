@@ -4,7 +4,7 @@
  * In production, replace with actual MSC API endpoints
  */
 
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 export const MSCAPIService = {
   /**
@@ -17,7 +17,7 @@ export const MSCAPIService = {
       const response = await simulateMSCBookingAPI(bookingData);
       
       // Log the booking request
-      await base44.integrations.Core.InvokeLLM({
+      await supabase.integrations.Core.InvokeLLM({
         prompt: `Log MSC booking request submission: ${JSON.stringify(bookingData)}`,
         response_json_schema: {
           type: "object",

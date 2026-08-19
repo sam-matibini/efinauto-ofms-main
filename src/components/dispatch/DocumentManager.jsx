@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Upload, Eye, Download, CheckCircle, Loader2, PenTool } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -38,13 +38,13 @@ export default function DocumentManager() {
 
   const { data: shipments = [] } = useQuery({
     queryKey: ['localShipments', selectedCompanyId],
-    queryFn: () => base44.entities.LocalShipment.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.LocalShipment.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
   });
 
   const { data: documents = [] } = useQuery({
     queryKey: ['shipmentDocuments'],
-    queryFn: () => base44.entities.ShipmentDocument.list('-upload_timestamp', 100),
+    queryFn: () => supabase.entities.ShipmentDocument.list('-upload_timestamp', 100),
   });
 
   const handleFileUpload = async () => {
@@ -55,16 +55,16 @@ export default function DocumentManager() {
 
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: uploadFormData.file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file: uploadFormData.file });
       
-      await base44.entities.ShipmentDocument.create({
+      await supabase.entities.ShipmentDocument.create({
         shipment_id: uploadFormData.shipment_id,
         document_type: uploadFormData.document_type,
         document_url: file_url,
         file_name: uploadFormData.file.name,
         file_size_bytes: uploadFormData.file.size,
         mime_type: uploadFormData.file.type,
-        uploaded_by: (await base44.auth.me()).email,
+        uploaded_by: (await supabase.auth.me()).email,
         uploaded_via: "web",
         upload_timestamp: new Date().toISOString()
       });
@@ -91,10 +91,10 @@ export default function DocumentManager() {
       // Upload signature
       const signatureBlob = await fetch(podFormData.signature).then(r => r.blob());
       const signatureFile = new File([signatureBlob], 'signature.png', { type: 'image/png' });
-      const { file_url: signatureUrl } = await base44.integrations.Core.UploadFile({ file: signatureFile });
+      const { file_url: signatureUrl } = await supabase.integrations.Core.UploadFile({ file: signatureFile });
 
       // Get last GPS point
-      const gpsPoints = await base44.entities.GPSTrackingPoint.filter(
+      const gpsPoints = await supabase.entities.GPSTrackingPoint.filter(
         { shipment_id: selectedShipment.id },
         '-timestamp',
         1
@@ -125,10 +125,10 @@ export default function DocumentManager() {
         legally_binding: true
       };
 
-      const pod = await base44.entities.ProofOfDelivery.create(podData);
+      const pod = await supabase.entities.ProofOfDelivery.create(podData);
 
       // Update shipment status
-      await base44.entities.LocalShipment.update(selectedShipment.id, {
+      await supabase.entities.LocalShipment.update(selectedShipment.id, {
         status: 'delivered',
         pod_id: pod.id,
         actual_delivery_time: new Date().toISOString()

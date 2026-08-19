@@ -8,7 +8,7 @@ import { Plus, Trash2, Mail, Loader2, Edit, Save, Printer, Download, Share2, X, 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCompany } from "@/components/shared/CompanyContext";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -33,7 +33,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     queryKey: ['company', selectedCompanyId],
     queryFn: async () => {
       if (!selectedCompanyId) return null;
-      const companies = await base44.entities.Company.filter({ id: selectedCompanyId });
+      const companies = await supabase.entities.Company.filter({ id: selectedCompanyId });
       return companies[0] || null;
     },
     enabled: open && !!selectedCompanyId,
@@ -41,14 +41,14 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', selectedCompanyId],
-    queryFn: () => base44.entities.Customer.list(),
+    queryFn: () => supabase.entities.Customer.list(),
     enabled: open && !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles', selectedCompanyId],
-    queryFn: () => base44.entities.Vehicle.list(),
+    queryFn: () => supabase.entities.Vehicle.list(),
     enabled: open && !!selectedCompanyId,
     initialData: [],
   });
@@ -96,7 +96,7 @@ export default function LoadingDeclarationDialog({ open, onClose, shipment, onSa
     const checkExistingDeclaration = async () => {
       if (open && shipment?.id) {
         try {
-          const existing = await base44.entities.LoadingDeclaration.filter({ 
+          const existing = await supabase.entities.LoadingDeclaration.filter({ 
             shipment_id: shipment.id 
           });
           if (existing && existing.length > 0) {
@@ -359,7 +359,7 @@ Important:
 - If no VIN is found, return empty string for vin
 - Extract year from descriptions like "2013 NISSAN ROGUE" = year 2013`;
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt,
         response_json_schema: {
           type: "object",
@@ -504,7 +504,7 @@ Important:
     try {
       const emailBody = generateEmailBody(savedData || formData);
 
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         to: recipientEmail,
         subject: `Loading Declaration - ${(savedData || formData).booking_number}`,
         body: emailBody
@@ -722,12 +722,12 @@ Important:
       const filename = `loading-declaration-${data.declaration_number || data.booking_number || 'draft'}.pdf`;
       const file = new File([pdfBlob], filename, { type: 'application/pdf' });
       
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
       setPdfUrl(file_url);
       
       // Update the declaration with the PDF URL if it exists
       if (existingDeclaration?.id) {
-        await base44.entities.LoadingDeclaration.update(existingDeclaration.id, {
+        await supabase.entities.LoadingDeclaration.update(existingDeclaration.id, {
           document_url: file_url
         });
       }

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,7 +32,7 @@ export default function RecurringInvoicesTab({ recurringInvoices, selectedCompan
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.RecurringInvoice.delete(id),
+    mutationFn: (id) => supabase.entities.RecurringInvoice.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recurringInvoices'] });
       toast.success("Recurring invoice deleted!");

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles, Check, Pen, X, Mail, Shield } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import Barcode from "react-barcode";
 import SignaturePad from "@/components/shared/SignaturePad";
@@ -158,7 +158,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
     const sellerName = sale.salesman || company?.contact_person_name || company?.name || 'Seller';
     setGeneratingSignature(true);
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await supabase.integrations.Core.InvokeLLM({
         prompt: `Generate a stylized digital signature representation for "${sellerName}". 
         Return ONLY an SVG path data string (the 'd' attribute value) that looks like a handwritten signature.
         The signature should be elegant, flowing cursive style.

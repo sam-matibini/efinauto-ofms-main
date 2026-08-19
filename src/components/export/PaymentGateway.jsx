@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, DollarSign, Loader2, CheckCircle, AlertCircle, Banknote } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -20,7 +20,7 @@ export default function PaymentGateway({ order, onPaymentComplete }) {
   const processPaymentMutation = useMutation({
     mutationFn: async (paymentData) => {
       // Simulate Stripe payment processing with AI
-      const { base44 } = await import("@/api/base44Client");
+      const { supabase } = await import("@/api/supabaseClient");
       
       const prompt = `Simulate a payment gateway response for:
 Amount: ${paymentData.amount} ${paymentData.currency}
@@ -29,7 +29,7 @@ Order: ${order.export_order_number}
 
 Generate realistic payment gateway response with charge ID, receipt URL, and status.`;
 
-      const gatewayResponse = await base44.integrations.Core.InvokeLLM({
+      const gatewayResponse = await supabase.integrations.Core.InvokeLLM({
         prompt,
         response_json_schema: {
           type: "object",
@@ -49,7 +49,7 @@ Generate realistic payment gateway response with charge ID, receipt URL, and sta
 
       // Create payment transaction record
       const txnId = `PAY-${Date.now()}`;
-      const payment = await base44.entities.PaymentTransaction.create({
+      const payment = await supabase.entities.PaymentTransaction.create({
         company_id: order.company_id,
         export_order_id: order.id,
         transaction_id: txnId,
@@ -74,15 +74,15 @@ Generate realistic payment gateway response with charge ID, receipt URL, and sta
       const newPaymentStatus = newBalance <= 0 ? "paid" : 
                                newAmountPaid > 0 ? "partially_paid" : "unpaid";
 
-      await base44.entities.ExportOrder.update(order.id, {
+      await supabase.entities.ExportOrder.update(order.id, {
         amount_paid: newAmountPaid,
         balance_due: newBalance,
         payment_status: newPaymentStatus
       });
 
       // Create GL transaction
-      const user = await base44.auth.me();
-      await base44.entities.Transaction.create({
+      const user = await supabase.auth.me();
+      await supabase.entities.Transaction.create({
         company_id: order.company_id,
         transaction_type: "payment_received",
         date: new Date().toISOString(),
@@ -99,7 +99,7 @@ Generate realistic payment gateway response with charge ID, receipt URL, and sta
 
       // Record transaction fee as expense
       const fee = gatewayResponse.transaction_fee || paymentData.amount * 0.029;
-      await base44.entities.Transaction.create({
+      await supabase.entities.Transaction.create({
         company_id: order.company_id,
         transaction_type: "bank_expense",
         date: new Date().toISOString(),

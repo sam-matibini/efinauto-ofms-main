@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Shield, Users } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function BenefitsManagement({ company, employees }) {
@@ -36,18 +36,18 @@ export default function BenefitsManagement({ company, employees }) {
 
   const { data: benefits = [] } = useQuery({
     queryKey: ['benefits', company?.id],
-    queryFn: () => base44.entities.Benefit.filter({ company_id: company.id }),
+    queryFn: () => supabase.entities.Benefit.filter({ company_id: company.id }),
     enabled: !!company,
   });
 
   const { data: enrollments = [] } = useQuery({
     queryKey: ['employeeBenefits', company?.id],
-    queryFn: () => base44.entities.EmployeeBenefit.filter({ company_id: company.id }),
+    queryFn: () => supabase.entities.EmployeeBenefit.filter({ company_id: company.id }),
     enabled: !!company,
   });
 
   const createBenefitMutation = useMutation({
-    mutationFn: (data) => base44.entities.Benefit.create({ ...data, company_id: company.id }),
+    mutationFn: (data) => supabase.entities.Benefit.create({ ...data, company_id: company.id }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['benefits'] });
       toast.success("Benefit created");
@@ -60,7 +60,7 @@ export default function BenefitsManagement({ company, employees }) {
     mutationFn: (data) => {
       const employee = employees.find(e => e.id === data.employee_id);
       const benefit = benefits.find(b => b.id === data.benefit_id);
-      return base44.entities.EmployeeBenefit.create({
+      return supabase.entities.EmployeeBenefit.create({
         ...data,
         company_id: company.id,
         employee_name: `${employee.first_name} ${employee.last_name}`,

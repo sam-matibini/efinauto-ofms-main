@@ -15,7 +15,7 @@ import {
   FileText
 } from "lucide-react";
 import { toast } from "sonner";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import AIDocumentSummary from "@/components/shared/AIDocumentSummary";
@@ -363,7 +363,7 @@ export default function DocumentViewer({
 
     setSendingEmail(true);
     try {
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         to: emailTo,
         subject: `${docTitle} ${documentData.invoice_number || documentData.quote_number || documentData.sale_number || ''} from ${company?.name || 'Our Company'}`,
         body: generatePlainText()
@@ -406,7 +406,7 @@ export default function DocumentViewer({
       const filename = `${docTitle.replace(/\s/g, '_')}-${documentData.invoice_number || documentData.quote_number || documentData.sale_number || Date.now()}.pdf`;
       const file = new File([pdfBlob], filename, { type: 'application/pdf' });
       
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
       setPdfUrl(file_url);
       setGeneratingPDF(false);
       return file_url;

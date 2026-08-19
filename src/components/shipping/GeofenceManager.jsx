@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,12 +35,12 @@ export default function GeofenceManager({ companyId }) {
 
   const { data: geofences = [], isLoading } = useQuery({
     queryKey: ['geofences', companyId],
-    queryFn: () => base44.entities.Geofence.filter({ company_id: companyId }),
+    queryFn: () => supabase.entities.Geofence.filter({ company_id: companyId }),
     enabled: !!companyId
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Geofence.create({
+    mutationFn: (data) => supabase.entities.Geofence.create({
       ...data,
       company_id: companyId,
       alert_recipients: data.alert_recipients ? data.alert_recipients.split(',').map(e => e.trim()) : []
@@ -53,7 +53,7 @@ export default function GeofenceManager({ companyId }) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Geofence.update(id, {
+    mutationFn: ({ id, data }) => supabase.entities.Geofence.update(id, {
       ...data,
       alert_recipients: data.alert_recipients ? data.alert_recipients.split(',').map(e => e.trim()) : []
     }),
@@ -65,7 +65,7 @@ export default function GeofenceManager({ companyId }) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Geofence.delete(id),
+    mutationFn: (id) => supabase.entities.Geofence.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['geofences'] });
       toast.success("Geofence deleted");

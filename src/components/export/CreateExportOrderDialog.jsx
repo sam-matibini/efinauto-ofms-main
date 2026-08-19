@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, AlertCircle, Ship } from "lucide-react";
 import { toast } from "sonner";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import ExportLineItemsManager from "./ExportLineItemsManager";
 import CountrySelector from "../shared/CountrySelector";
 import SubdivisionSelector from "../shared/SubdivisionSelector";
@@ -45,7 +45,7 @@ export default function CreateExportOrderDialog({ open, onClose, sale, onSuccess
   // Auto-default currency when country changes
   const { data: countries = [] } = useQuery({
     queryKey: ['countries'],
-    queryFn: () => base44.entities.Country.list(),
+    queryFn: () => supabase.entities.Country.list(),
   });
 
   useEffect(() => {
@@ -108,7 +108,7 @@ export default function CreateExportOrderDialog({ open, onClose, sale, onSuccess
 
     setLoading(true);
     try {
-      const user = await base44.auth.me();
+      const user = await supabase.auth.me();
       
       // Generate export order number
       const year = new Date().getFullYear();
@@ -124,7 +124,7 @@ export default function CreateExportOrderDialog({ open, onClose, sale, onSuccess
       const exportType = itemTypes.length > 1 ? 'mixed' : itemTypes[0];
 
       // Create export order
-      const exportOrder = await base44.entities.ExportOrder.create({
+      const exportOrder = await supabase.entities.ExportOrder.create({
         company_id: sale?.company_id || companyId,
         export_order_number: exportOrderNumber,
         linked_sales_document_id: sale?.id,
@@ -139,7 +139,7 @@ export default function CreateExportOrderDialog({ open, onClose, sale, onSuccess
       });
 
       // Log creation
-      await base44.entities.AuditLog.create({
+      await supabase.entities.AuditLog.create({
         company_id: sale?.company_id || companyId,
         user_id: user.id,
         user_email: user.email,

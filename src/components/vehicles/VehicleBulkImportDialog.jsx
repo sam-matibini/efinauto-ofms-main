@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Upload, Download, Loader2, CheckCircle, XCircle } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { useCompany } from "@/components/shared/CompanyContext";
 
@@ -42,9 +42,9 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
     setLoading(true);
     
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
 
-      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+      const result = await supabase.integrations.Core.ExtractDataFromUploadedFile({
         file_url,
         json_schema: {
           type: "object",
@@ -88,7 +88,7 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
 
       const vehicles = result.output.vehicles;
       
-      const companies = await base44.entities.Company.filter({ id: selectedCompanyId });
+      const companies = await supabase.entities.Company.filter({ id: selectedCompanyId });
       const company = companies[0];
 
       const imported = [];
@@ -143,7 +143,7 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
         if (hasValue(v.vendor_email)) vehicleData.vendor_email = String(v.vendor_email).trim();
         if (hasValue(v.province)) vehicleData.province = String(v.province).trim();
 
-        const created = await base44.entities.Vehicle.create(vehicleData);
+        const created = await supabase.entities.Vehicle.create(vehicleData);
         imported.push(created);
       }
 

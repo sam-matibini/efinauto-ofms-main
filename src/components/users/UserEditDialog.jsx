@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 export default function UserEditDialog({ open, onClose, user, onSave, isLoading }) {
   const { selectedCompanyId } = useCompany();
@@ -21,7 +21,7 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
 
   const { data: companies = [] } = useQuery({
     queryKey: ['companies'],
-    queryFn: () => base44.entities.Company.list(),
+    queryFn: () => supabase.entities.Company.list(),
     enabled: open,
     initialData: [],
   });

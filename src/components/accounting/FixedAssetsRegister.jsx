@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,14 +27,14 @@ export default function FixedAssetsRegister({ comparativePeriods = [] }) {
 
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles', selectedCompanyId],
-    queryFn: () => base44.entities.Vehicle.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Vehicle.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: purchases = [] } = useQuery({
     queryKey: ['purchases', selectedCompanyId],
-    queryFn: () => base44.entities.Purchase.filter({ 
+    queryFn: () => supabase.entities.Purchase.filter({ 
       company_id: selectedCompanyId, 
       purchase_type: 'equipment' 
     }),

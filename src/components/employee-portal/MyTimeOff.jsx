@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Plus, Clock } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function MyTimeOff({ employee }) {
@@ -24,7 +24,7 @@ export default function MyTimeOff({ employee }) {
 
   const { data: requests = [] } = useQuery({
     queryKey: ['myTimeOffRequests', employee?.id],
-    queryFn: () => base44.entities.TimeOffRequest.filter({ employee_id: employee.id }, '-created_date'),
+    queryFn: () => supabase.entities.TimeOffRequest.filter({ employee_id: employee.id }, '-created_date'),
     enabled: !!employee,
   });
 
@@ -34,7 +34,7 @@ export default function MyTimeOff({ employee }) {
       const end = new Date(data.end_date);
       const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
 
-      return base44.entities.TimeOffRequest.create({
+      return supabase.entities.TimeOffRequest.create({
         ...data,
         company_id: employee.company_id,
         employee_id: employee.id,

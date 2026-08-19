@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Camera, Upload, X } from "lucide-react";
 import { toast } from "sonner";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation } from "@tanstack/react-query";
 
 export default function PhotoCapture({ open, onClose, onCapture, isOnline }) {
@@ -19,7 +19,7 @@ export default function PhotoCapture({ open, onClose, onCapture, isOnline }) {
 
   const uploadMutation = useMutation({
     mutationFn: async (file) => {
-      const result = await base44.integrations.Core.UploadFile({ file });
+      const result = await supabase.integrations.Core.UploadFile({ file });
       return result.file_url;
     },
   });

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,12 +21,12 @@ export default function CommunicationsTab({ companyId, customerId, leadId, oppor
 
   const { data: communications = [] } = useQuery({
     queryKey: ['communications', companyId, customerId, leadId, opportunityId],
-    queryFn: () => base44.entities.CommunicationLog.filter(filterCriteria, '-communication_date'),
+    queryFn: () => supabase.entities.CommunicationLog.filter(filterCriteria, '-communication_date'),
     enabled: !!companyId,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.CommunicationLog.delete(id),
+    mutationFn: (id) => supabase.entities.CommunicationLog.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['communications'] });
       toast.success("Communication deleted");

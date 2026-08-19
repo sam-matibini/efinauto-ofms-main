@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,7 +55,7 @@ export default function RepairOrderDialog({ open, onClose, order, selectedPackag
 
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians', selectedCompanyId],
-    queryFn: () => base44.entities.Technician.filter({ company_id: selectedCompanyId, status: 'active' }),
+    queryFn: () => supabase.entities.Technician.filter({ company_id: selectedCompanyId, status: 'active' }),
     enabled: !!selectedCompanyId && open,
     initialData: [],
   });

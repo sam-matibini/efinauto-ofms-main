@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Ship, FileText, Package, CheckCircle, Clock, AlertCircle, Loader2, TrendingDown } from "lucide-react";
 import { format } from "date-fns";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import AIComplianceChecker from "./AIComplianceChecker";
 import ExportDocumentGenerator from "./ExportDocumentGenerator";
@@ -34,14 +34,14 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
 
   const { data: sale } = useQuery({
     queryKey: ['sale', order?.linked_sales_document_id],
-    queryFn: () => base44.entities.Sale.filter({ id: order.linked_sales_document_id }),
+    queryFn: () => supabase.entities.Sale.filter({ id: order.linked_sales_document_id }),
     enabled: !!order?.linked_sales_document_id,
     select: (data) => data?.[0]
   });
 
   const { data: company } = useQuery({
     queryKey: ['company', companyId],
-    queryFn: () => base44.entities.Company.filter({ id: companyId }),
+    queryFn: () => supabase.entities.Company.filter({ id: companyId }),
     enabled: !!companyId,
     select: (data) => data?.[0]
   });
@@ -77,8 +77,8 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
         console.warn("Export validation warnings:", validation.warnings);
       }
 
-      const user = await base44.auth.me();
-      await base44.entities.ExportOrder.update(order.id, {
+      const user = await supabase.auth.me();
+      await supabase.entities.ExportOrder.update(order.id, {
         export_status: "approved",
         compliance_reviewed_by: user.email,
         compliance_reviewed_at: new Date().toISOString(),
@@ -101,7 +101,7 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
   const handleShip = async () => {
     setUpdatingStatus(true);
     try {
-      await base44.entities.ExportOrder.update(order.id, {
+      await supabase.entities.ExportOrder.update(order.id, {
         export_status: "shipped",
         actual_departure: new Date().toISOString().split('T')[0],
         locked: true
@@ -571,7 +571,7 @@ export default function ExportOrderDetailDialog({ open, onClose, order, companyI
           exportOrder={order}
           onSelectRate={(quote) => {
             // Update export order with selected rate details
-            base44.entities.ExportOrder.update(order.id, {
+            supabase.entities.ExportOrder.update(order.id, {
               carrier_code: quote.carrier_code,
               carrier_name: quote.carrier_name,
               freight_cost: quote.total_rate,

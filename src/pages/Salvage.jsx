@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCompany } from "../components/shared/CompanyContext";
 import { Button } from "@/components/ui/button";
@@ -28,25 +28,25 @@ export default function Salvage() {
 
   const { data: salvageVehicles = [], isLoading } = useQuery({
     queryKey: ['salvage-vehicles', selectedCompanyId],
-    queryFn: () => base44.entities.SalvageVehicle.filter({ company_id: selectedCompanyId }, '-created_date'),
+    queryFn: () => supabase.entities.SalvageVehicle.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: parts = [] } = useQuery({
     queryKey: ['parts', selectedCompanyId],
-    queryFn: () => base44.entities.Part.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Part.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const salvage = await base44.entities.SalvageVehicle.create({ ...data, company_id: selectedCompanyId });
+      const salvage = await supabase.entities.SalvageVehicle.create({ ...data, company_id: selectedCompanyId });
       
       // Create GL transaction for salvage vehicle purchase
       if (salvage.purchase_price > 0) {
-        await base44.entities.Transaction.create({
+        await supabase.entities.Transaction.create({
           company_id: selectedCompanyId,
           transaction_number: `SALV-${salvage.id.slice(0, 8)}`,
           transaction_type: 'vehicle_purchase',
@@ -80,11 +80,11 @@ export default function Salvage() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
       const oldSalvage = salvageVehicles.find(s => s.id === id);
-      const updated = await base44.entities.SalvageVehicle.update(id, data);
+      const updated = await supabase.entities.SalvageVehicle.update(id, data);
       
       // If status changed to 'scrapped' and has scrap value, record scrap revenue
       if (data.status === 'scrapped' && oldSalvage?.status !== 'scrapped' && data.scrap_weights?.scrap_value > 0) {
-        await base44.entities.Transaction.create({
+        await supabase.entities.Transaction.create({
           company_id: selectedCompanyId,
           transaction_number: `SCRAP-${id.slice(0, 8)}`,
           transaction_type: 'other_income',
@@ -923,7 +923,7 @@ function PartsExtractedTab({ formData, setFormData, companyId, salvageVehicle, a
   // const { data: parts = [] } = useQuery({ ... });
 
   const createPartMutation = useMutation({
-    mutationFn: (data) => base44.entities.Part.create({ ...data, company_id: companyId }),
+    mutationFn: (data) => supabase.entities.Part.create({ ...data, company_id: companyId }),
     onSuccess: (newPart) => {
       queryClient.invalidateQueries({ queryKey: ['parts'] }); // Invalidate global parts query
       

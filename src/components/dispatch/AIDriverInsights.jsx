@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Brain, TrendingUp, AlertTriangle, Target, Lightbulb } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function AIDriverInsights({ metrics, drivers }) {
@@ -55,7 +55,7 @@ Provide analysis in the following JSON format:
   "cost_savings_potential": "Estimated potential cost savings from implementing recommendations"
 }`;
 
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await supabase.integrations.Core.InvokeLLM({
         prompt,
         response_json_schema: {
           type: "object",

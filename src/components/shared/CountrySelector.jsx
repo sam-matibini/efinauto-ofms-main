@@ -1,13 +1,13 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Globe } from "lucide-react";
 
 export default function CountrySelector({ value, onChange, placeholder = "Select country...", disabled = false, className = "" }) {
   const { data: countries = [], isLoading } = useQuery({
     queryKey: ['countries'],
-    queryFn: () => base44.entities.Country.filter({ active: true }, 'sort_order'),
+    queryFn: () => supabase.entities.Country.filter({ active: true }, 'sort_order'),
     staleTime: 1000 * 60 * 60, // Cache for 1 hour
   });
 

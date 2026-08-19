@@ -17,7 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { Download, FileSpreadsheet, FileText, Loader2, Sparkles, Check, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 export default function BillOfSaleExport({ sales, company }) {
   const [exporting, setExporting] = useState(false);

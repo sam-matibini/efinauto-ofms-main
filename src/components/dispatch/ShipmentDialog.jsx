@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -94,9 +94,9 @@ export default function ShipmentDialog({ open, onClose, shipment, drivers, truck
       };
 
       if (shipment?.id) {
-        return base44.entities.LocalShipment.update(shipment.id, shipmentData);
+        return supabase.entities.LocalShipment.update(shipment.id, shipmentData);
       } else {
-        return base44.entities.LocalShipment.create(shipmentData);
+        return supabase.entities.LocalShipment.create(shipmentData);
       }
     },
     onSuccess: () => {

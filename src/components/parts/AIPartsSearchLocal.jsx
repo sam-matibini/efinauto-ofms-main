@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,7 +50,7 @@ export default function AIPartsSearchLocal() {
         ? `\n\nVehicle Information:\n${vehicleInfo.join('\n')}`
         : '';
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Search for automotive parts matching "${searchQuery}" from LOCAL auto parts stores near "${location}".
       ${vehicleContext}
 
@@ -139,7 +139,7 @@ Prioritize stores that are most likely to have the part in stock. Include both c
         category: "other"
       };
 
-      await base44.entities.Part.create(partData);
+      await supabase.entities.Part.create(partData);
       queryClient.invalidateQueries({ queryKey: ['parts'] });
       toast.success(`Part added to inventory from ${store.store_name}`);
     } catch (error) {

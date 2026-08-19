@@ -4,12 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Mail, MessageSquare, Phone, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 export default function CommunicationHistory({ customer }) {
   const { data: communications = [] } = useQuery({
     queryKey: ['communicationHistory', customer?.id],
-    queryFn: () => base44.entities.NotificationLog.filter({ customer_id: customer.id }, '-sent_date'),
+    queryFn: () => supabase.entities.NotificationLog.filter({ customer_id: customer.id }, '-sent_date'),
     enabled: !!customer,
     initialData: [],
   });

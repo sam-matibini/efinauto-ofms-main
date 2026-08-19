@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { GitCompare, Plus, Check } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -20,12 +20,12 @@ export default function ReconciliationManager({ bankAccounts, transactions, reco
 
   const createReconciliationMutation = useMutation({
     mutationFn: async (data) => {
-      const reconciliation = await base44.entities.BankReconciliation.create(data);
+      const reconciliation = await supabase.entities.BankReconciliation.create(data);
       
       // Mark transactions as reconciled
       await Promise.all(
         selectedTransactions.map(t =>
-          base44.entities.BankTransaction.update(t.id, {
+          supabase.entities.BankTransaction.update(t.id, {
             reconciled: true,
             reconciliation_id: reconciliation.id
           })

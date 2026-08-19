@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 export default function UserInviteDialog({ open, onClose }) {
   const [inviteData, setInviteData] = useState({
@@ -21,7 +21,7 @@ export default function UserInviteDialog({ open, onClose }) {
 
   const { data: companies = [] } = useQuery({
     queryKey: ['companies'],
-    queryFn: () => base44.entities.Company.list(),
+    queryFn: () => supabase.entities.Company.list(),
     enabled: open,
     initialData: [],
   });

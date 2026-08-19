@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, FileText, TrendingUp, Package, Globe } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import ExportReportFilters from "./ExportReportFilters";
 import ExportMetrics from "./ExportMetrics";
@@ -23,7 +23,7 @@ export default function ExportReportsTab({ companyId }) {
 
   const { data: exportOrders = [], isLoading } = useQuery({
     queryKey: ['exportOrders', companyId],
-    queryFn: () => base44.entities.ExportOrder.filter({ company_id: companyId }, '-created_date'),
+    queryFn: () => supabase.entities.ExportOrder.filter({ company_id: companyId }, '-created_date'),
     enabled: !!companyId,
   });
 

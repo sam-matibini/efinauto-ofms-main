@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -10,7 +10,7 @@ import { toast } from "sonner";
 export async function suggestAccount(transactionData, companyId) {
   try {
     // Get chart of accounts
-    const accounts = await base44.entities.Account.filter({ company_id: companyId });
+    const accounts = await supabase.entities.Account.filter({ company_id: companyId });
     
     if (accounts.length === 0) {
       return null;
@@ -35,7 +35,7 @@ ${accountsList}
 
 Return the account code, name, and reason for selection.`;
 
-    const result = await base44.integrations.Core.InvokeLLM({
+    const result = await supabase.integrations.Core.InvokeLLM({
       prompt,
       add_context_from_internet: false
     });

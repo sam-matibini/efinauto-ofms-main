@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -75,7 +75,7 @@ export default function AuditLogs() {
   // Check if user is admin
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => supabase.auth.me(),
   });
 
   const isAdmin = currentUser?.role === 'admin';
@@ -89,7 +89,7 @@ export default function AuditLogs() {
       if (filters.action !== "all") query.action = filters.action;
       if (filters.status !== "all") query.status = filters.status;
       
-      const logs = await base44.entities.AuditLog.filter(query, '-created_date', pageSize, page * pageSize);
+      const logs = await supabase.entities.AuditLog.filter(query, '-created_date', pageSize, page * pageSize);
       return logs;
     },
     enabled: isAdmin,

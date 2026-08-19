@@ -1,6 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DollarSign } from "lucide-react";
 
@@ -13,7 +13,7 @@ export default function CurrencySelector({
 }) {
   const { data: currencies = [], isLoading } = useQuery({
     queryKey: ['currencies'],
-    queryFn: () => base44.entities.Currency.filter({ active: true }, 'sort_order'),
+    queryFn: () => supabase.entities.Currency.filter({ active: true }, 'sort_order'),
     staleTime: 1000 * 60 * 60, // Cache for 1 hour
   });
 

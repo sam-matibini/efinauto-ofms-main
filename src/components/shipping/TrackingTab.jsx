@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MapPin, Search, Ship, Package, Car, Clock, CheckCircle, Loader2, Sparkles, Navigation, Globe } from "lucide-react";
 import { format } from "date-fns";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import AdvancedTrackingPanel from "./AdvancedTrackingPanel";
 
@@ -89,7 +89,7 @@ export default function TrackingTab({ shipments = [], containers = [], vehicles 
     
     setLoading(true);
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Generate a realistic shipping tracking update for this shipment:
         
 Shipment: ${searchResult.shipment.shipment_number}

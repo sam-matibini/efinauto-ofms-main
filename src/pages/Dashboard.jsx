@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { Car, Settings, Wrench, DollarSign, ShoppingCart, Plane, Package, TrendingUp, LayoutGrid, List } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,7 +51,7 @@ export default function Dashboard() {
     queryKey: ['vehicles', selectedCompanyId],
     queryFn: async () => {
       if (!selectedCompanyId) return [];
-      return await base44.entities.Vehicle.filter({ company_id: selectedCompanyId });
+      return await supabase.entities.Vehicle.filter({ company_id: selectedCompanyId });
     },
     enabled: !!selectedCompanyId,
     initialData: [],
@@ -61,7 +61,7 @@ export default function Dashboard() {
     queryKey: ['parts', selectedCompanyId],
     queryFn: async () => {
       if (!selectedCompanyId) return [];
-      return await base44.entities.Part.filter({ company_id: selectedCompanyId });
+      return await supabase.entities.Part.filter({ company_id: selectedCompanyId });
     },
     enabled: !!selectedCompanyId,
     initialData: [],
@@ -71,7 +71,7 @@ export default function Dashboard() {
     queryKey: ['sales', selectedCompanyId],
     queryFn: async () => {
       if (!selectedCompanyId) return [];
-      return await base44.entities.Sale.filter({ company_id: selectedCompanyId });
+      return await supabase.entities.Sale.filter({ company_id: selectedCompanyId });
     },
     enabled: !!selectedCompanyId,
     initialData: [],
@@ -81,7 +81,7 @@ export default function Dashboard() {
     queryKey: ['repairs', selectedCompanyId],
     queryFn: async () => {
       if (!selectedCompanyId) return [];
-      return await base44.entities.RepairOrder.filter({ company_id: selectedCompanyId });
+      return await supabase.entities.RepairOrder.filter({ company_id: selectedCompanyId });
     },
     enabled: !!selectedCompanyId,
     initialData: [],
@@ -91,7 +91,7 @@ export default function Dashboard() {
     queryKey: ['exports', selectedCompanyId],
     queryFn: async () => {
       if (!selectedCompanyId) return [];
-      return await base44.entities.Export.filter({ company_id: selectedCompanyId });
+      return await supabase.entities.Export.filter({ company_id: selectedCompanyId });
     },
     enabled: !!selectedCompanyId,
     initialData: [],
@@ -101,7 +101,7 @@ export default function Dashboard() {
     queryKey: ['shipments', selectedCompanyId],
     queryFn: async () => {
       if (!selectedCompanyId) return [];
-      return await base44.entities.FreightShipment.filter({ company_id: selectedCompanyId });
+      return await supabase.entities.FreightShipment.filter({ company_id: selectedCompanyId });
     },
     enabled: !!selectedCompanyId,
     initialData: [],

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,7 @@ export default function TimesheetView({ technicians }) {
 
   const { data: timesheets = [] } = useQuery({
     queryKey: ['timesheets', selectedCompanyId, dateFilter],
-    queryFn: () => base44.entities.Timesheet.filter({ 
+    queryFn: () => supabase.entities.Timesheet.filter({ 
       company_id: selectedCompanyId,
       date: dateFilter 
     }, '-clock_in'),
@@ -34,13 +34,13 @@ export default function TimesheetView({ technicians }) {
 
   const { data: repairOrders = [] } = useQuery({
     queryKey: ['repairs', selectedCompanyId],
-    queryFn: () => base44.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Timesheet.create(data),
+    mutationFn: (data) => supabase.entities.Timesheet.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timesheets'] });
       toast.success("Timesheet entry added");
@@ -50,7 +50,7 @@ export default function TimesheetView({ technicians }) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Timesheet.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.Timesheet.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timesheets'] });
       toast.success("Timesheet updated");
@@ -60,7 +60,7 @@ export default function TimesheetView({ technicians }) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Timesheet.delete(id),
+    mutationFn: (id) => supabase.entities.Timesheet.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timesheets'] });
       toast.success("Timesheet deleted");

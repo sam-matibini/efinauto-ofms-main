@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ export default function TechnicianLogin({ onLogin }) {
 
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians', selectedCompanyId],
-    queryFn: () => base44.entities.Technician.filter({ 
+    queryFn: () => supabase.entities.Technician.filter({ 
       company_id: selectedCompanyId,
       status: 'active'
     }),

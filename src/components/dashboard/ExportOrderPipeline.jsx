@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Ship, TrendingUp } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 const statusColors = {
   draft: "#9ca3af",
@@ -21,7 +21,7 @@ const statusColors = {
 export default function ExportOrderPipeline({ companyId }) {
   const { data: exportOrders = [] } = useQuery({
     queryKey: ['exportOrders', companyId],
-    queryFn: () => base44.entities.ExportOrder.filter({ company_id: companyId }),
+    queryFn: () => supabase.entities.ExportOrder.filter({ company_id: companyId }),
     enabled: !!companyId,
   });
 

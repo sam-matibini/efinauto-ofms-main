@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Search, Loader2, Sparkles } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function AIAddressLookup({ onAddressSelected }) {
@@ -21,7 +21,7 @@ export default function AIAddressLookup({ onAddressSelected }) {
     setResults(null);
 
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `You are a geocoding assistant. Look up this address and provide structured location data: "${searchQuery}"
         
 Return the address components in a structured format. If the address is ambiguous, provide the most likely match.

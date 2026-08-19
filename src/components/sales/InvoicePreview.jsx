@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Printer, Mail, MessageCircle, X, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import AIDocumentSummary from "@/components/shared/AIDocumentSummary";
@@ -107,7 +107,7 @@ export default function InvoicePreview({ open, onClose, invoice, company }) {
       const filename = `Invoice-${invoice.invoice_number}.pdf`;
       const file = new File([pdfBlob], filename, { type: 'application/pdf' });
       
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
       setPdfUrl(file_url);
       setGeneratingPDF(false);
       return file_url;
@@ -171,7 +171,7 @@ ${company?.pst_number ? 'PST #: ' + company.pst_number : ''}
 ${company?.dealer_permit_number ? 'Dealer Permit #: ' + company.dealer_permit_number : ''}
       `.trim();
 
-      await base44.integrations.Core.SendEmail({
+      await supabase.integrations.Core.SendEmail({
         to: invoice.customer_email,
         subject: `Invoice ${invoice.invoice_number} from ${company?.name || 'Our Company'}`,
         body: emailBody

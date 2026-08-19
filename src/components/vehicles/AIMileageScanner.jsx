@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Camera, Loader2, CheckCircle, AlertCircle } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 
@@ -23,10 +23,10 @@ export default function AIMileageScanner({ onMileageDetected }) {
 
     try {
       // Upload the image first
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
 
       // Use AI to extract mileage from the image
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Analyze this image of a vehicle's dashboard or odometer and extract the mileage reading.
         Look for:
         - Digital odometer displays

@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Plus, DollarSign, AlertCircle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function PayrollAdjustments({ company, employees }) {
@@ -29,14 +29,14 @@ export default function PayrollAdjustments({ company, employees }) {
 
   const { data: adjustments = [] } = useQuery({
     queryKey: ['payrollAdjustments', company?.id],
-    queryFn: () => base44.entities.PayrollAdjustment.filter({ company_id: company.id }, '-adjustment_date'),
+    queryFn: () => supabase.entities.PayrollAdjustment.filter({ company_id: company.id }, '-adjustment_date'),
     enabled: !!company,
   });
 
   const createAdjustmentMutation = useMutation({
     mutationFn: (data) => {
       const employee = employees.find(e => e.id === data.employee_id);
-      return base44.entities.PayrollAdjustment.create({
+      return supabase.entities.PayrollAdjustment.create({
         ...data,
         company_id: company.id,
         employee_name: `${employee.first_name} ${employee.last_name}`,

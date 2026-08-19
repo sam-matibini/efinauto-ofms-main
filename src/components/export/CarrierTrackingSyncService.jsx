@@ -3,7 +3,7 @@
  * Scheduled sync job to fetch tracking updates from carrier APIs
  */
 
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { getCarrierAPIService, isCarrierAPIEnabled } from "./CarrierAPIRegistry";
 
 export const CarrierTrackingSyncService = {
@@ -34,15 +34,15 @@ export const CarrierTrackingSyncService = {
           notes: `${order.notes || ''}\n[Auto-sync] ${new Date().toISOString()}: ${result.tracking.last_event}`
         };
 
-        await base44.entities.ExportOrder.update(order.id, updateData);
+        await supabase.entities.ExportOrder.update(order.id, updateData);
 
         // Update or create tracking record
-        const trackingRecords = await base44.entities.ShipmentTracking.filter({
+        const trackingRecords = await supabase.entities.ShipmentTracking.filter({
           export_order_id: order.id
         });
 
         if (trackingRecords.length > 0) {
-          await base44.entities.ShipmentTracking.update(trackingRecords[0].id, {
+          await supabase.entities.ShipmentTracking.update(trackingRecords[0].id, {
             current_status: result.tracking.status,
             current_location: result.tracking.location,
             estimated_delivery: result.tracking.estimated_arrival,
@@ -53,7 +53,7 @@ export const CarrierTrackingSyncService = {
 
         // Send notification if status changed significantly
         if (shouldNotifyStatusChange(order.export_status, updateData.export_status)) {
-          await base44.integrations.Core.SendEmail({
+          await supabase.integrations.Core.SendEmail({
             to: order.consignee_email || 'shipping@company.com',
             subject: `Shipment Status Update - ${order.export_order_number}`,
             body: `Your shipment status has been updated:
@@ -85,7 +85,7 @@ Track your shipment for real-time updates.`
    * This can be called by a scheduled job
    */
   async syncAllActiveShipments(companyId) {
-    const activeOrders = await base44.entities.ExportOrder.filter({
+    const activeOrders = await supabase.entities.ExportOrder.filter({
       company_id: companyId,
       export_status: {
         $in: ["shipped", "in_transit"]
@@ -116,7 +116,7 @@ Track your shipment for real-time updates.`
    * Manual refresh tracking for specific order
    */
   async refreshTracking(orderId) {
-    const orders = await base44.entities.ExportOrder.filter({ id: orderId });
+    const orders = await supabase.entities.ExportOrder.filter({ id: orderId });
     if (orders.length === 0) {
       return { success: false, message: "Order not found" };
     }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,13 +19,13 @@ export default function TD1Form() {
 
   const { data: employee, isLoading } = useQuery({
     queryKey: ['employee', employeeId],
-    queryFn: () => base44.entities.Employee.filter({ id: employeeId }).then(emps => emps[0]),
+    queryFn: () => supabase.entities.Employee.filter({ id: employeeId }).then(emps => emps[0]),
     enabled: !!employeeId,
   });
 
   const { data: company } = useQuery({
     queryKey: ['company', employee?.company_id],
-    queryFn: () => base44.entities.Company.filter({ id: employee.company_id }).then(companies => companies[0]),
+    queryFn: () => supabase.entities.Company.filter({ id: employee.company_id }).then(companies => companies[0]),
     enabled: !!employee?.company_id,
   });
 
@@ -68,7 +68,7 @@ export default function TD1Form() {
   }, [provincialData.basic_personal_amount, provincialData.additional_amount]);
 
   const updateEmployeeMutation = useMutation({
-    mutationFn: (data) => base44.entities.Employee.update(employeeId, data),
+    mutationFn: (data) => supabase.entities.Employee.update(employeeId, data),
     onSuccess: () => {
       setSubmitted(true);
       toast.success("TD1 forms submitted successfully!");
@@ -79,7 +79,7 @@ export default function TD1Form() {
   const fetchTaxCreditsWithAI = async () => {
     setAiLoading(true);
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Search the Canada Revenue Agency (CRA) official website for the EXACT tax credit amounts for tax year 2025:
 
 Province/Territory: ${selectedProvince}

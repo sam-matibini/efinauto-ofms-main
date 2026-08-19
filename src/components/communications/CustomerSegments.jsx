@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Users, TrendingUp, ShoppingCart, Star, Sparkles, Loader2 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function CustomerSegments({ customers, sales }) {
@@ -61,7 +61,7 @@ export default function CustomerSegments({ customers, sales }) {
   const generateAIInsights = async () => {
     setLoading(true);
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await supabase.integrations.Core.InvokeLLM({
         prompt: `Analyze this customer data and provide marketing insights:
         
 Total Customers: ${customers.length}

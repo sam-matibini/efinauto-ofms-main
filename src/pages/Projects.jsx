@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -65,18 +65,18 @@ export default function Projects() {
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['projects', selectedCompanyId],
-    queryFn: () => base44.entities.Project.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Project.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId
   });
 
   const { data: tasks = [] } = useQuery({
     queryKey: ['project-tasks', selectedCompanyId],
-    queryFn: () => base44.entities.ProjectTask.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.ProjectTask.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId
   });
 
   const createProjectMutation = useMutation({
-    mutationFn: (data) => base44.entities.Project.create(data),
+    mutationFn: (data) => supabase.entities.Project.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       setProjectDialog({ open: false, project: null });
@@ -85,7 +85,7 @@ export default function Projects() {
   });
 
   const updateProjectMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Project.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.Project.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       setProjectDialog({ open: false, project: null });
@@ -94,7 +94,7 @@ export default function Projects() {
   });
 
   const deleteProjectMutation = useMutation({
-    mutationFn: (id) => base44.entities.Project.delete(id),
+    mutationFn: (id) => supabase.entities.Project.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       setDeleteDialog({ open: false, project: null });
@@ -104,7 +104,7 @@ export default function Projects() {
   });
 
   const createTaskMutation = useMutation({
-    mutationFn: (data) => base44.entities.ProjectTask.create(data),
+    mutationFn: (data) => supabase.entities.ProjectTask.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
       setTaskDialog({ open: false, task: null, parentTaskId: null });
@@ -113,7 +113,7 @@ export default function Projects() {
   });
 
   const updateTaskMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.ProjectTask.update(id, data),
+    mutationFn: ({ id, data }) => supabase.entities.ProjectTask.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
       setTaskDialog({ open: false, task: null, parentTaskId: null });

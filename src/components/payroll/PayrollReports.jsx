@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Download, FileText, Calendar } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 export default function PayrollReports({ company, employees, payrollRuns, payrollEntries, timeEntries }) {
   const [dateRange, setDateRange] = useState({
@@ -19,19 +19,19 @@ export default function PayrollReports({ company, employees, payrollRuns, payrol
 
   const { data: benefits = [] } = useQuery({
     queryKey: ['employeeBenefits', company?.id],
-    queryFn: () => base44.entities.EmployeeBenefit.filter({ company_id: company.id }),
+    queryFn: () => supabase.entities.EmployeeBenefit.filter({ company_id: company.id }),
     enabled: !!company,
   });
 
   const { data: deductions = [] } = useQuery({
     queryKey: ['deductions', company?.id],
-    queryFn: () => base44.entities.Deduction.filter({ company_id: company.id }),
+    queryFn: () => supabase.entities.Deduction.filter({ company_id: company.id }),
     enabled: !!company,
   });
 
   const { data: vacationTransactions = [] } = useQuery({
     queryKey: ['vacationTransactions', company?.id],
-    queryFn: () => base44.entities.VacationTransaction.filter({ company_id: company.id }),
+    queryFn: () => supabase.entities.VacationTransaction.filter({ company_id: company.id }),
     enabled: !!company,
   });
 

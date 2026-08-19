@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,13 +18,13 @@ export default function ChartOfAccounts() {
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ['accounts', selectedCompanyId],
-    queryFn: () => base44.entities.Account.filter({ company_id: selectedCompanyId }, 'account_code'),
+    queryFn: () => supabase.entities.Account.filter({ company_id: selectedCompanyId }, 'account_code'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const deleteAccountMutation = useMutation({
-    mutationFn: (accountId) => base44.entities.Account.delete(accountId),
+    mutationFn: (accountId) => supabase.entities.Account.delete(accountId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       toast.success("Account deleted successfully");

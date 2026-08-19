@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,7 +45,7 @@ export default function QuotesTab({ quotes, selectedCompanyId, company }) {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Quote.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: (data) => supabase.entities.Quote.create({ ...data, company_id: selectedCompanyId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotes'] });
       setDialogOpen(false);
@@ -55,7 +55,7 @@ export default function QuotesTab({ quotes, selectedCompanyId, company }) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Quote.delete(id),
+    mutationFn: (id) => supabase.entities.Quote.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotes'] });
       toast.success("Quote deleted!");

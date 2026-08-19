@@ -2,7 +2,7 @@
  * Shipment Tracking Service
  * Integrates with logistics providers to fetch real-time tracking data
  */
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 export const fetchTrackingData = async (trackingNumber, carrier) => {
   try {
@@ -16,7 +16,7 @@ Include current status, location, and estimated delivery.
 
 Return realistic data with timestamps, locations, and event descriptions.`;
 
-    const result = await base44.integrations.Core.InvokeLLM({
+    const result = await supabase.integrations.Core.InvokeLLM({
       prompt,
       response_json_schema: {
         type: "object",
@@ -60,14 +60,14 @@ Return realistic data with timestamps, locations, and event descriptions.`;
 
 export const updateTrackingData = async (trackingId, companyId) => {
   try {
-    const trackings = await base44.entities.ShipmentTracking.filter({ id: trackingId });
+    const trackings = await supabase.entities.ShipmentTracking.filter({ id: trackingId });
     const tracking = trackings[0];
     
     if (!tracking) throw new Error("Tracking record not found");
 
     const liveData = await fetchTrackingData(tracking.tracking_number, tracking.carrier);
     
-    await base44.entities.ShipmentTracking.update(trackingId, {
+    await supabase.entities.ShipmentTracking.update(trackingId, {
       current_status: liveData.current_status,
       current_location: liveData.current_location,
       estimated_delivery: liveData.estimated_delivery,

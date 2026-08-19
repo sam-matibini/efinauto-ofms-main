@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, UserCheck, Trash2 } from "lucide-react";
@@ -60,9 +60,9 @@ export default function LeadDialog({ open, onClose, lead, companyId, onConvert, 
   const saveMutation = useMutation({
     mutationFn: (data) => {
       if (lead) {
-        return base44.entities.Lead.update(lead.id, data);
+        return supabase.entities.Lead.update(lead.id, data);
       } else {
-        return base44.entities.Lead.create({ ...data, company_id: companyId });
+        return supabase.entities.Lead.create({ ...data, company_id: companyId });
       }
     },
     onSuccess: () => {

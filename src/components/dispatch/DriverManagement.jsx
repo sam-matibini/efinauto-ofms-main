@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Plus, User, Phone, Shield, AlertCircle } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -29,7 +29,7 @@ export default function DriverManagement() {
 
   const { data: drivers = [] } = useQuery({
     queryKey: ['drivers', selectedCompanyId],
-    queryFn: () => base44.entities.Driver.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Driver.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
   });
 
@@ -37,9 +37,9 @@ export default function DriverManagement() {
     mutationFn: (data) => {
       const driverData = { ...data, company_id: selectedCompanyId, status: data.status || 'active' };
       if (selectedDriver) {
-        return base44.entities.Driver.update(selectedDriver.id, driverData);
+        return supabase.entities.Driver.update(selectedDriver.id, driverData);
       }
-      return base44.entities.Driver.create(driverData);
+      return supabase.entities.Driver.create(driverData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['drivers'] });

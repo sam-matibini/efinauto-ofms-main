@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { toast } from "sonner";
 
@@ -51,7 +51,7 @@ export default function AccountDialog({ open, onClose, account, accounts = [] })
     mutationFn: async (data) => {
       // Check for duplicate account code if creating new account
       if (!account) {
-        const existingAccounts = await base44.entities.Account.filter({ 
+        const existingAccounts = await supabase.entities.Account.filter({ 
           company_id: selectedCompanyId,
           account_code: String(data.account_code).trim()
         });
@@ -74,9 +74,9 @@ export default function AccountDialog({ open, onClose, account, accounts = [] })
       
       if (account) {
         delete accountData.company_id; // Don't update company_id on existing accounts
-        return await base44.entities.Account.update(account.id, accountData);
+        return await supabase.entities.Account.update(account.id, accountData);
       } else {
-        return await base44.entities.Account.create(accountData);
+        return await supabase.entities.Account.create(accountData);
       }
     },
     onSuccess: () => {

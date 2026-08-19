@@ -1,4 +1,4 @@
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 /**
  * GLIntegration - Centralized General Ledger integration service
@@ -63,7 +63,7 @@ export const createGLTransaction = async ({
   province = null
 }) => {
   try {
-    const transaction = await base44.entities.Transaction.create({
+    const transaction = await supabase.entities.Transaction.create({
       company_id: companyId,
       transaction_number: `TXN-${Date.now()}`,
       transaction_type: transactionType,
@@ -351,11 +351,11 @@ export const recordPartsExtraction = async (companyId, salvageVehicle, part) => 
  */
 export const updatePartsInventory = async (partId, quantityChange) => {
   try {
-    const part = await base44.entities.Part.filter({ id: partId });
+    const part = await supabase.entities.Part.filter({ id: partId });
     if (part && part.length > 0) {
       const currentPart = part[0];
       const newQuantity = Math.max(0, (currentPart.quantity || 0) + quantityChange);
-      await base44.entities.Part.update(partId, { quantity: newQuantity });
+      await supabase.entities.Part.update(partId, { quantity: newQuantity });
     }
   } catch (error) {
     console.error('[Inventory Update Error]', error);

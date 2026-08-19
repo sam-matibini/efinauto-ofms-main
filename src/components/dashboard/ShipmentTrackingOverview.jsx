@@ -3,15 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Clock, AlertTriangle, CheckCircle } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 
 export default function ShipmentTrackingOverview({ companyId }) {
   const { data: trackingRecords = [] } = useQuery({
     queryKey: ['allShipmentTracking', companyId],
     queryFn: async () => {
-      const exports = await base44.entities.ExportOrder.filter({ company_id: companyId });
+      const exports = await supabase.entities.ExportOrder.filter({ company_id: companyId });
       const trackingPromises = exports.map(exp => 
-        base44.entities.ShipmentTracking.filter({ export_order_id: exp.id })
+        supabase.entities.ShipmentTracking.filter({ export_order_id: exp.id })
       );
       const results = await Promise.all(trackingPromises);
       return results.flat();

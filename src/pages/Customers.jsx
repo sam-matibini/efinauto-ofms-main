@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LeadsTab from "@/components/crm/LeadsTab";
@@ -62,7 +62,7 @@ export default function Customers() {
 
   const { data: customers = [], isLoading } = useQuery({
     queryKey: ['customers', selectedCompanyId],
-    queryFn: () => base44.entities.Customer.filter({ company_id: selectedCompanyId }, '-created_date'),
+    queryFn: () => supabase.entities.Customer.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
@@ -70,7 +70,7 @@ export default function Customers() {
   const createMutation = useMutation({
     mutationFn: async (data) => {
       console.log("Creating customer with data:", data);
-      return await base44.entities.Customer.create(data);
+      return await supabase.entities.Customer.create(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -87,7 +87,7 @@ export default function Customers() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
       console.log("Updating customer with data:", data);
-      return await base44.entities.Customer.update(id, data);
+      return await supabase.entities.Customer.update(id, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -103,7 +103,7 @@ export default function Customers() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      return await base44.entities.Customer.delete(id);
+      return await supabase.entities.Customer.delete(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -654,7 +654,7 @@ function CustomerDialog({ open, onClose, customer, onSave, isSaving }) {
 
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
       setFormData({ ...formData, profile_picture_url: file_url });
       toast.success("Profile picture uploaded!");
     } catch (error) {

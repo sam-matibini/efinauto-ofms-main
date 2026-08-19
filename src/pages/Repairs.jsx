@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,32 +51,32 @@ export default function RepairsPage() {
 
   const { data: repairOrders = [], isLoading } = useQuery({
     queryKey: ['repairs', selectedCompanyId],
-    queryFn: () => base44.entities.RepairOrder.filter({ company_id: selectedCompanyId }, '-created_date'),
+    queryFn: () => supabase.entities.RepairOrder.filter({ company_id: selectedCompanyId }, '-created_date'),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', selectedCompanyId],
-    queryFn: () => base44.entities.Customer.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Customer.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians', selectedCompanyId],
-    queryFn: () => base44.entities.Technician.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Technician.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const repairOrder = await base44.entities.RepairOrder.create(data);
+      const repairOrder = await supabase.entities.RepairOrder.create(data);
       
       // Create accounting transaction for service revenue
       if (repairOrder.total_cost > 0) {
-        await base44.entities.Transaction.create({
+        await supabase.entities.Transaction.create({
           company_id: selectedCompanyId,
           transaction_number: repairOrder.order_number || `RO-${repairOrder.id.slice(0, 8)}`,
           transaction_type: 'service_revenue',
@@ -109,13 +109,13 @@ export default function RepairsPage() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
       const oldOrder = repairOrders.find(r => r.id === id);
-      const updated = await base44.entities.RepairOrder.update(id, data);
+      const updated = await supabase.entities.RepairOrder.update(id, data);
       
       // If status changed to completed and has costs, record revenue
       if (data.status === 'completed' && oldOrder?.status !== 'completed') {
         // Record labor revenue
         if (data.labor_cost > 0) {
-          await base44.entities.Transaction.create({
+          await supabase.entities.Transaction.create({
             company_id: selectedCompanyId,
             transaction_number: `SRV-${id.slice(0, 8)}`,
             transaction_type: 'service_revenue',
@@ -138,7 +138,7 @@ export default function RepairsPage() {
         if (data.parts_used?.length > 0) {
           const partsCost = data.parts_used.reduce((sum, p) => sum + (p.total_cost || 0), 0);
           if (partsCost > 0) {
-            await base44.entities.Transaction.create({
+            await supabase.entities.Transaction.create({
               company_id: selectedCompanyId,
               transaction_number: `COGS-${id.slice(0, 8)}`,
               transaction_type: 'other_expense',
@@ -160,11 +160,11 @@ export default function RepairsPage() {
             for (const part of data.parts_used) {
               if (part.part_id) {
                 try {
-                  const existingParts = await base44.entities.Part.filter({ id: part.part_id });
+                  const existingParts = await supabase.entities.Part.filter({ id: part.part_id });
                   if (existingParts.length > 0) {
                     const currentPart = existingParts[0];
                     const newQty = Math.max(0, (currentPart.quantity || 0) - (part.quantity || 1));
-                    await base44.entities.Part.update(part.part_id, { quantity: newQty });
+                    await supabase.entities.Part.update(part.part_id, { quantity: newQty });
                   }
                 } catch (e) {
                   console.error('Failed to update part inventory', e);
@@ -189,7 +189,7 @@ export default function RepairsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.RepairOrder.delete(id),
+    mutationFn: (id) => supabase.entities.RepairOrder.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repairs'] });
       toast.success("Repair order deleted");

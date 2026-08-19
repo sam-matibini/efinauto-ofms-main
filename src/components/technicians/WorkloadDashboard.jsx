@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ export default function WorkloadDashboard() {
 
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians', selectedCompanyId],
-    queryFn: () => base44.entities.Technician.filter({ 
+    queryFn: () => supabase.entities.Technician.filter({ 
       company_id: selectedCompanyId,
       status: 'active'
     }),
@@ -22,14 +22,14 @@ export default function WorkloadDashboard() {
 
   const { data: repairOrders = [] } = useQuery({
     queryKey: ['repairs', selectedCompanyId],
-    queryFn: () => base44.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
 
   const { data: timesheets = [] } = useQuery({
     queryKey: ['timesheets', selectedCompanyId],
-    queryFn: () => base44.entities.Timesheet.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Timesheet.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
   });

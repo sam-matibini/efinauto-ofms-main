@@ -12,7 +12,7 @@ import {
   RefreshCw,
   Eye
 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function LogoUpload({ company, onUpdate, isUpdating }) {
@@ -54,7 +54,7 @@ export default function LogoUpload({ company, onUpdate, isUpdating }) {
     // Upload file
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
       
       // Add cache-busting parameter
       const logoUrlWithCache = `${file_url}?v=${Date.now()}`;

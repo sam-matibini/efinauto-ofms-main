@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Save } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { useCompany } from "../shared/CompanyContext";
 
@@ -27,7 +27,7 @@ export default function PartDialog({ open, onClose, part, onSave, isSaving }) {
   
   const { data: vendors = [] } = useQuery({
     queryKey: ['vendors', selectedCompanyId],
-    queryFn: () => base44.entities.Vendor.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Vendor.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId && open,
     initialData: [],
   });
@@ -35,7 +35,7 @@ export default function PartDialog({ open, onClose, part, onSave, isSaving }) {
   const { data: company } = useQuery({
     queryKey: ['company', selectedCompanyId],
     queryFn: async () => {
-      const companies = await base44.entities.Company.filter({ id: selectedCompanyId });
+      const companies = await supabase.entities.Company.filter({ id: selectedCompanyId });
       return companies[0];
     },
     enabled: !!selectedCompanyId && open,
