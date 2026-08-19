@@ -317,7 +317,7 @@ export default function Layout({ children, currentPageName }) {
   });
 
   const handleLogout = () => {
-    logout(true);
+    logout(false);
     queryClient.invalidateQueries({ queryKey: ["currentUser"] });
   };
 
