@@ -288,7 +288,7 @@ export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const queryClient = useQueryClient();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
 
   const { data: currentUser } = useQuery({
     queryKey: ["currentUser"],
@@ -317,7 +317,7 @@ export default function Layout({ children, currentPageName }) {
   });
 
   const handleLogout = () => {
-    supabase.auth.logout();
+    logout(false);
     queryClient.invalidateQueries({ queryKey: ["currentUser"] });
   };
 
