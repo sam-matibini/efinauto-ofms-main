@@ -21,7 +21,12 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoadingAuth(true);
       const currentUser = await supabase.auth.me();
-      setUser(currentUser.user_metadata);
+      const { user_metadata, ...rest } = currentUser ?? {};
+      const formattedUser = {
+        ...rest,
+        ...user_metadata,
+      };
+      setUser(formattedUser);
       setIsAuthenticated(true);
     } catch (error) {
       console.error('User auth check failed:', error);
