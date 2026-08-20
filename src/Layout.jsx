@@ -290,8 +290,6 @@ export default function Layout({ children, currentPageName }) {
   const queryClient = useQueryClient();
   const { user: currentUser, isAuthenticated, logout } = useAuth();
 
-  console.log("Current User:", currentUser);
-
   // Filter navigation items based on user's accessible modules
   // If user or company has no modules defined, show all items
   const userModules = currentUser?.data?.accessible_modules;
