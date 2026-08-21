@@ -6,13 +6,14 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Building2 } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 import { useCompany } from "./CompanyContext";
 
-export default function CompanySelector() {
+export default function CompanySelector({ onAddCompany }) {
   const { selectedCompanyId, setSelectedCompanyId } = useCompany();
 
   const { user: currentUser } = useAuth();
@@ -78,6 +79,19 @@ export default function CompanySelector() {
             </div>
           </SelectItem>
         ))}
+        {isAdmin && onAddCompany && (
+          <>
+            <SelectSeparator />
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onAddCompany(); }}
+              className="relative flex w-full items-center rounded-sm py-1.5 pl-2 pr-8 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground outline-none"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Company
+            </button>
+          </>
+        )}
       </SelectContent>
     </Select>
   );

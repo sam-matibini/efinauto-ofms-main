@@ -52,6 +52,7 @@ import ProfileDialog from "@/components/users/ProfileDialog";
 import ErrorBoundary from "@/components/shared/ErrorBoundary";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import CompanyDialog from "@/components/shared/CompanyDialog";
 
 const allNavigationItems = [
   {
@@ -287,6 +288,7 @@ const allNavigationItems = [
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { user: currentUser, isAuthenticated, logout } = useAuth();
 
@@ -307,6 +309,43 @@ export default function Layout({ children, currentPageName }) {
     },
     onError: () => {
       toast.error("Failed to update profile");
+    },
+  });
+
+  const createCompanyMutation = useMutation({
+    mutationFn: async (data) => {
+      const cleanData = {
+        name: data.name?.trim(),
+        display_name: data.display_name?.trim() || "",
+        code: data.code?.trim(),
+        dealer_permit_number: data.dealer_permit_number?.trim() || "",
+        gst_number: data.gst_number?.trim() || "",
+        pst_number: data.pst_number?.trim() || "",
+        address: data.address?.trim() || "",
+        city: data.city?.trim() || "",
+        province: data.province?.trim() || "",
+        postal_code: data.postal_code?.trim() || "",
+        country: data.country?.trim() || "",
+        phone: data.phone?.trim() || "",
+        email: data.email?.trim() || "",
+        tax_id: data.tax_id?.trim() || "",
+        contact_person_name: data.contact_person_name?.trim() || "",
+        contact_person_title: data.contact_person_title?.trim() || "",
+        contact_person_email: data.contact_person_email?.trim() || "",
+        contact_person_phone: data.contact_person_phone?.trim() || "",
+        logo_url: data.logo_url?.trim() || "",
+        status: data.status || "active",
+        tax_rates: data.tax_rates
+      };
+      return await supabase.entities.Company.create(cleanData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+      toast.success("Company created successfully");
+      setCompanyDialogOpen(false);
+    },
+    onError: () => {
+      toast.error("Failed to create company");
     },
   });
 
@@ -346,7 +385,7 @@ export default function Layout({ children, currentPageName }) {
                     </p>
                   </div>
                 </div>
-                <CompanySelector />
+                <CompanySelector onAddCompany={() => setCompanyDialogOpen(true)} />
               </SidebarHeader>
 
               <SidebarContent
@@ -452,6 +491,13 @@ export default function Layout({ children, currentPageName }) {
               user={currentUser}
               onSave={(data) => updateProfileMutation.mutate(data)}
               isLoading={updateProfileMutation.isPending}
+            />
+            <CompanyDialog
+              open={companyDialogOpen}
+              onClose={() => setCompanyDialogOpen(false)}
+              company={null}
+              onSave={(data) => createCompanyMutation.mutate(data)}
+              isLoading={createCompanyMutation.isPending}
             />
           </div>
         </SidebarProvider>
