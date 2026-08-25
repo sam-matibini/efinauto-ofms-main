@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,10 +6,17 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Mail } from "lucide-react";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/api/supabaseClient";
 
+const getInviteErrorMessage = async (error) => {
+  const data = await error?.context?.json?.().catch(() => null);
+  if (data?.error) return data.error;
+  return error?.message || "Failed to send invitation";
+};
+
 export default function UserInviteDialog({ open, onClose }) {
+  const queryClient = useQueryClient();
   const [inviteData, setInviteData] = useState({
     email: "",
     full_name: "",
@@ -28,20 +35,35 @@ export default function UserInviteDialog({ open, onClose }) {
   const [isInviting, setIsInviting] = useState(false);
 
   const handleInvite = async () => {
-    if (!inviteData.email || !inviteData.full_name) {
+    const email = inviteData.email.trim();
+    if (!email || !inviteData.full_name.trim()) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      toast.error("Please enter a valid email address");
       return;
     }
 
     setIsInviting(true);
-    
-    // In a real implementation, this would send an invitation email
-    // For now, we'll show a message that the user should be invited through the dashboard
-    toast.info("Please use the Base44 dashboard to invite users with email invitations.");
-    
-    setIsInviting(false);
-    setInviteData({ email: "", full_name: "", role: "user", company_id: "", department: "", employee_id: "" });
-    onClose();
+    try {
+      await supabase.functions.invoke("invite-user", {
+        email,
+        full_name: inviteData.full_name.trim(),
+        role: inviteData.role,
+        company_id: inviteData.company_id || null,
+        department: inviteData.department.trim(),
+        employee_id: inviteData.employee_id.trim(),
+      });
+      toast.success(`Invitation sent to ${email}`);
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setInviteData({ email: "", full_name: "", role: "user", company_id: "", department: "", employee_id: "" });
+      onClose();
+    } catch (error) {
+      toast.error(await getInviteErrorMessage(error));
+    } finally {
+      setIsInviting(false);
+    }
   };
 
   return (
@@ -139,11 +161,6 @@ export default function UserInviteDialog({ open, onClose }) {
             </p>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              <strong>Note:</strong> To invite users with email invitations, please use the Base44 dashboard's user management section.
-            </p>
-          </div>
         </div>
 
         <div className="flex justify-end gap-3">
