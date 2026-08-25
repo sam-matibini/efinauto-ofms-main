@@ -342,8 +342,9 @@ export default function Settings() {
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription>
-                    <strong>Note:</strong> Backend functions must be enabled in Dashboard → Settings to send SMS. 
-                    Currently, SMS messages are logged only. Once backend functions are enabled, actual SMS delivery will work.
+                    To enable SMS, deploy the <code>sms-send</code> Edge Function and select your provider above.
+                    The function reads your Twilio or Vonage credentials from this company profile automatically.
+                    Run <code>supabase functions deploy sms-send</code> to deploy.
                   </AlertDescription>
                 </Alert>
 
@@ -483,8 +484,10 @@ export default function Settings() {
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription>
-                    Email sending is already configured and working through the Base44 SendEmail integration. 
-                    You can customize sender details in Company Settings.
+                    Email is sent via the <code>send-email</code> Edge Function using SMTP. Deploy it and set
+                    the following secrets: <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>,
+                    {" "}<code>SMTP_PASS</code>, and <code>SMTP_FROM</code>. Run{" "}
+                    <code>supabase functions deploy send-email</code> to deploy.
                   </AlertDescription>
                 </Alert>
                 
