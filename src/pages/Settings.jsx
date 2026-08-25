@@ -342,9 +342,8 @@ export default function Settings() {
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription>
-                    To enable SMS, deploy the <code>sms-send</code> Edge Function and select your provider above.
-                    The function reads your Twilio or Vonage credentials from this company profile automatically.
-                    Run <code>supabase functions deploy sms-send</code> to deploy.
+                    Select a provider below and fill in your credentials. SMS messages will be sent
+                    from this company's configured provider. All fields are stored securely.
                   </AlertDescription>
                 </Alert>
 
@@ -484,10 +483,8 @@ export default function Settings() {
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription>
-                    Email is sent via the <code>send-email</code> Edge Function using SMTP. Deploy it and set
-                    the following secrets: <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>,
-                    {" "}<code>SMTP_PASS</code>, and <code>SMTP_FROM</code>. Run{" "}
-                    <code>supabase functions deploy send-email</code> to deploy.
+                    Emails are sent through your configured SMTP provider. The sender name and address
+                    are pulled from your company profile below. 
                   </AlertDescription>
                 </Alert>
                 
