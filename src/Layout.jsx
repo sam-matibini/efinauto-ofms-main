@@ -1,10 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import {
   LayoutDashboard,
-  Car,
-  Settings,
   ShoppingCart,
   Wrench,
   Plane,
@@ -45,7 +43,6 @@ import {
 } from "@/components/ui/sidebar";
 import { supabase } from "@/api/supabaseClient";
 import { useAuth } from "@/lib/AuthContext";
-import { useQuery } from "@tanstack/react-query";
 import { CompanyProvider } from "@/components/shared/CompanyContext";
 import CompanySelector from "@/components/shared/CompanySelector";
 import ProfileDialog from "@/components/users/ProfileDialog";
@@ -294,7 +291,7 @@ export default function Layout({ children, currentPageName }) {
 
   // Filter navigation items based on user's accessible modules
   // If user or company has no modules defined, show all items
-  const userModules = currentUser?.data?.accessible_modules;
+  const userModules = currentUser?.accessible_modules;
   const navigationItems =
     userModules && userModules.length > 0
       ? allNavigationItems.filter((item) => userModules.includes(item.pageId))

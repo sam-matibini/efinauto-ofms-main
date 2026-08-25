@@ -26,6 +26,17 @@ export const AuthProvider = ({ children }) => {
         ...rest,
         ...user_metadata,
       };
+
+      // Merge profile data from core.users so company_id, role, etc. are available
+      if (formattedUser.id) {
+        try {
+          const { data: profile } = await supabase
+            .schema('core').from('users').select('*')
+            .eq('id', formattedUser.id).maybeSingle();
+          if (profile) Object.assign(formattedUser, profile);
+        } catch { /* profile row may not exist yet for new users */ }
+      }
+      console.log('User auth check successful:', formattedUser);
       setUser(formattedUser);
       setIsAuthenticated(true);
     } catch (error) {

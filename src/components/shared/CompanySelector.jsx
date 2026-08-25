@@ -25,7 +25,7 @@ export default function CompanySelector({ onAddCompany }) {
   });
 
   const isAdmin = currentUser?.role === 'admin';
-  const userCompanyId = currentUser?.data?.company_id;
+  const userCompanyId = currentUser?.company_id;
 
   // Filter companies based on user role
   const activeCompanies = companies.filter(c => {

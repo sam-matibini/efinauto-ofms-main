@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Check, Loader2, CreditCard, Settings, Pencil, Save, XCircle, Zap, Key } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { defaultSubscriptionPlans, defaultModuleCategories, loadSavedPricing, savePricing as savePricingToStorage } from "@/components/shared/PricingConfig";
+import { loadSavedPricing, savePricing as savePricingToStorage } from "@/components/shared/PricingConfig";
 import StripeSettingsDialog from "@/components/pricing/StripeSettingsDialog";
 
 export default function Pricing() {
@@ -88,7 +88,7 @@ export default function Pricing() {
     }, 0);
   };
 
-  const currentPlan = user?.data?.subscription_plan;
+  const currentPlan = user?.subscription_plan;
   const isAdmin = user?.role === 'admin';
 
   const updatePlanPrice = (planId, newPrice) => {

@@ -13,7 +13,7 @@ export function useTechnicianScope() {
   const role = user?.role;
   const canViewAll = ["admin", "manager", "accountant"].includes(role);
   const canEditAll = ["admin", "manager"].includes(role);
-  const employeeEntityId = user?.data?.employee_entity_id;
+  const employeeEntityId = user?.employee_entity_id;
 
   const { data: ownedTechnicians = [] } = useQuery({
     queryKey: ["ownedTechnicians", employeeEntityId],

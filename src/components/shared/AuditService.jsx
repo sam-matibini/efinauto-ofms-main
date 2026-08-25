@@ -244,7 +244,7 @@ export const AuditService = {
       userId: user?.id,
       userEmail: user?.email,
       userName: user?.full_name,
-      companyId: user?.data?.company_id,
+      companyId: user?.company_id,
       module: 'Authentication',
       action: 'LOGIN',
       metadata
@@ -256,7 +256,7 @@ export const AuditService = {
       userId: user?.id,
       userEmail: user?.email,
       userName: user?.full_name,
-      companyId: user?.data?.company_id,
+      companyId: user?.company_id,
       module: 'Authentication',
       action: 'LOGOUT',
       metadata

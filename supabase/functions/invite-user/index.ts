@@ -149,7 +149,8 @@ Deno.serve(async (req: Request) => {
       role,
       department: body.department?.trim() || null,
       employee_id: body.employee_id?.trim() || null,
-      data: { company_id: body.company_id || null, accessible_modules: [] },
+      company_id: body.company_id || null,
+      accessible_modules: [],
     };
 
     const { data: profile, error: profileErr } = await service

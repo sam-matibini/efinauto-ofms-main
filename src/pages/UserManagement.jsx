@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/api/supabaseClient";
@@ -144,7 +144,7 @@ export default function UserManagement() {
     if (sortBy === 'name') {
       return (a.full_name || '').localeCompare(b.full_name || '');
     } else if (sortBy === 'company') {
-      return getCompanyName(a.data?.company_id).localeCompare(getCompanyName(b.data?.company_id));
+      return getCompanyName(a.company_id).localeCompare(getCompanyName(b.company_id));
     } else {
       return new Date(b.created_date) - new Date(a.created_date);
     }
@@ -386,21 +386,21 @@ export default function UserManagement() {
                         <span className="truncate">{user.email}</span>
                       </div>
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        {user.data?.company_id && (
+                        {user.company_id && (
                           <div className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">
                             <Building2 className="w-3 h-3" />
-                            <span className="truncate max-w-[120px]">{getCompanyName(user.data.company_id)}</span>
+                            <span className="truncate max-w-[120px]">{getCompanyName(user.company_id)}</span>
                           </div>
                         )}
-                        {user.data?.department && (
+                        {user.department && (
                           <div className="flex items-center gap-1 text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full">
-                            {user.data.department}
+                            {user.department}
                           </div>
                         )}
-                        {user.data?.accessible_modules?.length > 0 && (
+                        {user.accessible_modules?.length > 0 && (
                           <div className="flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">
                             <CheckCircle className="w-3 h-3" />
-                            {user.data.accessible_modules.length} modules
+                            {user.accessible_modules.length} modules
                           </div>
                         )}
                         <div className="flex items-center gap-1 text-xs text-gray-500 px-2 py-1">

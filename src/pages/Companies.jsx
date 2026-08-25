@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
@@ -6,15 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, Building2, Edit, Mail, Phone, MapPin, Trash2, User, LayoutGrid, List, ArrowUpDown, CreditCard, Crown, Zap } from "lucide-react";
+import { Plus, Search, Building2, Edit, Mail, Phone, MapPin, Trash2, LayoutGrid, List, ArrowUpDown, Crown, Zap } from "lucide-react";
 import { motion } from "framer-motion";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CompanyDialog from "@/components/shared/CompanyDialog";
 
 export default function Companies() {
@@ -100,7 +96,7 @@ export default function Companies() {
       // Admin can see all companies
       if (currentUser?.role === 'admin') return true;
       // Non-admin users only see their own company
-      return c.id === currentUser?.data?.company_id;
+      return c.id === currentUser?.company_id;
     })
     .filter(c =>
       c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||

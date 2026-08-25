@@ -1,9 +1,8 @@
-import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, FileText, Calendar, DollarSign } from "lucide-react";
 import MyProfile from "@/components/employee-portal/MyProfile";
@@ -15,7 +14,7 @@ export default function EmployeePortal() {
   
   const { user: currentUser } = useAuth();
 
-  const employeeEntityId = currentUser?.employee_entity_id || currentUser?.data?.employee_entity_id;
+  const employeeEntityId = currentUser?.employee_entity_id;
 
   const { data: company } = useQuery({
     queryKey: ['company', selectedCompanyId],

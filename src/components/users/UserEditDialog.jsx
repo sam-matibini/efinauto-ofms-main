@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,10 +31,10 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
       setUserData({
         full_name: user.full_name || "",
         role: user.role || "user",
-        company_id: user.data?.company_id || "",
+        company_id: user.company_id || "",
         department: user.department || "",
         employee_id: user.employee_id || "",
-        accessible_modules: user.data?.accessible_modules || []
+        accessible_modules: user.accessible_modules || []
       });
     }
   }, [user]);
@@ -49,11 +49,8 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
       role: userData.role,
       department: userData.department,
       employee_id: userData.employee_id,
-      data: {
-        ...user?.data,
-        company_id: userData.company_id || null,
-        accessible_modules: userData.accessible_modules || []
-      }
+      company_id: userData.company_id || null,
+      accessible_modules: userData.accessible_modules || []
     };
     
     onSave(updateData);
