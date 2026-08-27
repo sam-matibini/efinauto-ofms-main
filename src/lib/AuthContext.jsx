@@ -28,13 +28,14 @@ export const AuthProvider = ({ children }) => {
       };
 
       // Merge profile data from core.users so company_id, role, etc. are available
+      // The shim client maps the shared 'User' entity to the core schema's users table.
       if (formattedUser.id) {
         try {
-          const { data: profile } = await supabase
-            .schema('core').from('users').select('*')
-            .eq('id', formattedUser.id).maybeSingle();
+          const profile = await supabase.entities.User.get(formattedUser.id);
           if (profile) Object.assign(formattedUser, profile);
-        } catch { /* profile row may not exist yet for new users */ }
+        } catch (e) { 
+          console.error('Failed to fetch user profile from core.users table:', e);
+        }
       }
       console.log('User auth check successful:', formattedUser);
       setUser(formattedUser);

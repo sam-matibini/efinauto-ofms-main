@@ -29,7 +29,7 @@ export default function CompanySelector({ onAddCompany }) {
 
   // Filter companies based on user role
   const activeCompanies = companies.filter(c => {
-    if (c.status !== 'active') return false;
+    if (c.status && c.status !== 'active') return false;
     if (isAdmin) return true;
     return c.id === userCompanyId;
   });
