@@ -71,6 +71,8 @@ export default function Sales() {
   const [selectedSaleForExport, setSelectedSaleForExport] = useState(null);
   const [pdfLoadingId, setPdfLoadingId] = useState(null);
   const { selectedCompanyId } = useCompany();
+  const { user: currentUser } = useAuth();
+  const canManageCustomers = currentUser?.role === 'admin' || currentUser?.role === 'manager';
 
   const handleDownloadBOS = async (sale) => {
     setPdfLoadingId(sale.id);
@@ -364,7 +366,12 @@ export default function Sales() {
   });
 
   const createCustomerMutation = useMutation({
-    mutationFn: (data) => supabase.entities.Customer.create(data),
+    mutationFn: (data) => {
+      if (!canManageCustomers) {
+        throw new Error("You don't have permission to add customers");
+      }
+      return supabase.entities.Customer.create(data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       setCustomerDialogOpen(false);
@@ -958,7 +965,7 @@ export default function Sales() {
             createMutation.mutate(data);
           }
         }}
-        onCreateCustomer={() => setCustomerDialogOpen(true)}
+        onCreateCustomer={canManageCustomers ? () => setCustomerDialogOpen(true) : undefined}
         editingSale={editingSale}
       />
 
@@ -983,7 +990,7 @@ export default function Sales() {
       </AlertDialog>
 
       <QuickCustomerDialog
-        open={customerDialogOpen}
+        open={canManageCustomers && customerDialogOpen}
         onClose={() => setCustomerDialogOpen(false)}
         onSave={(data) => createCustomerMutation.mutate(data)}
       />

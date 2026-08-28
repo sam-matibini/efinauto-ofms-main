@@ -12,6 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import ImportCustomersDialog from "./ImportCustomersDialog";
+import { useAuth } from "@/lib/AuthContext";
+import { canManageCustomers as hasCustomerManagePermission } from "@/utils";
 
 export default function CustomersTab({ customers, selectedCompanyId }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,6 +24,9 @@ export default function CustomersTab({ customers, selectedCompanyId }) {
   const [sortBy, setSortBy] = useState("created_date");
   const [sortOrder, setSortOrder] = useState("desc");
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
+
+  const canManageCustomers = hasCustomerManagePermission(currentUser);
 
   const createMutation = useMutation({
     mutationFn: (data) => supabase.entities.Customer.create({ ...data, company_id: selectedCompanyId }),
@@ -66,6 +71,10 @@ export default function CustomersTab({ customers, selectedCompanyId }) {
   });
 
   const handleSave = (data) => {
+    if (!canManageCustomers) {
+      toast.error("You don't have permission to add or edit customers");
+      return;
+    }
     if (editingCustomer) {
       updateMutation.mutate({ id: editingCustomer.id, data });
     } else {
@@ -77,6 +86,7 @@ export default function CustomersTab({ customers, selectedCompanyId }) {
     <>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Customers</h2>
+        {canManageCustomers && (
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
             <Upload className="w-4 h-4 mr-2" />
@@ -87,6 +97,7 @@ export default function CustomersTab({ customers, selectedCompanyId }) {
             Add Customer
           </Button>
         </div>
+        )}
       </div>
 
       <Card className="mb-6">
@@ -162,8 +173,12 @@ export default function CustomersTab({ customers, selectedCompanyId }) {
                   <TableCell>{customer.city ? `${customer.city}, ${customer.country}` : "-"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
-                      <Button variant="ghost" size="sm" onClick={() => { setEditingCustomer(customer); setDialogOpen(true); }}><Edit className="w-4 h-4" /></Button>
-                      <Button variant="ghost" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(customer.id)}><Trash2 className="w-4 h-4" /></Button>
+                      {canManageCustomers && (
+                        <>
+                          <Button variant="ghost" size="sm" onClick={() => { setEditingCustomer(customer); setDialogOpen(true); }}><Edit className="w-4 h-4" /></Button>
+                          <Button variant="ghost" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(customer.id)}><Trash2 className="w-4 h-4" /></Button>
+                        </>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -204,6 +219,7 @@ export default function CustomersTab({ customers, selectedCompanyId }) {
                     </div>
                   )}
                 </div>
+                {canManageCustomers && (
                 <div className="flex gap-2 mt-4">
                   <Button variant="outline" size="sm" className="flex-1" onClick={() => { setEditingCustomer(customer); setDialogOpen(true); }}>
                     <Edit className="w-4 h-4 mr-2" />
@@ -213,6 +229,7 @@ export default function CustomersTab({ customers, selectedCompanyId }) {
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
+                )}
               </CardContent>
             </Card>
           ))}

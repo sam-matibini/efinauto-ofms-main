@@ -46,6 +46,8 @@ import {
 import { useCompany } from "../components/shared/CompanyContext";
 import CustomerMap from "../components/customers/CustomerMap";
 import AIAddressLookup from "../components/shared/AIAddressLookup";
+import { useAuth } from "@/lib/AuthContext";
+import { canManageCustomers as hasCustomerManagePermission } from "@/utils";
 
 export default function Customers() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -57,6 +59,9 @@ export default function Customers() {
   const [sortBy, setSortBy] = useState("created_date");
   const [sortOrder, setSortOrder] = useState("desc");
   const { selectedCompanyId } = useCompany();
+  const { user: currentUser } = useAuth();
+
+  const canManageCustomers = hasCustomerManagePermission(currentUser);
 
   const queryClient = useQueryClient();
 
@@ -149,6 +154,11 @@ export default function Customers() {
   const handleSave = (formData) => {
     console.log("handleSave called with:", formData);
     
+    if (!canManageCustomers) {
+      toast.error("You don't have permission to add or edit customers");
+      return;
+    }
+
     if (!selectedCompanyId) {
       toast.error("Please select a company first");
       return;
@@ -249,6 +259,7 @@ export default function Customers() {
             columns={customerExportColumns} 
             filename="customers" 
           />
+          {canManageCustomers && (
           <Button 
             onClick={() => {
               setEditingCustomer(null);
@@ -260,6 +271,7 @@ export default function Customers() {
             <Plus className="w-3 h-3 md:w-4 md:h-4 mr-2" />
             <span className="text-xs md:text-sm">Add Customer</span>
           </Button>
+          )}
           </div>
           </div>
           </div>
@@ -299,6 +311,12 @@ export default function Customers() {
         </TabsList>
 
         <TabsContent value="customers" className="space-y-6">
+      {!canManageCustomers && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg px-4 py-3 text-sm flex items-center gap-2">
+          <AlertCircle className="w-4 h-4" />
+          You have <strong>view-only</strong> access to customers. Contact an admin or manager to add, edit, or delete customers.
+        </div>
+      )}
       <div className="bg-white rounded-xl shadow-md p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="relative">
@@ -393,12 +411,16 @@ export default function Customers() {
                   <TableCell className="text-sm">{customer.tax_id || "-"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => { setEditingCustomer(customer); setDialogOpen(true); }}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setDeletingCustomer(customer)} className="text-red-600 hover:text-red-700">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {canManageCustomers && (
+                        <>
+                          <Button size="sm" variant="ghost" onClick={() => { setEditingCustomer(customer); setDialogOpen(true); }}>
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setDeletingCustomer(customer)} className="text-red-600 hover:text-red-700">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -468,6 +490,7 @@ export default function Customers() {
                     )}
                   </div>
 
+                  {canManageCustomers && (
                   <div className="flex gap-2 pt-2 border-t">
                     <Button 
                       onClick={() => {
@@ -488,6 +511,7 @@ export default function Customers() {
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -543,7 +567,7 @@ export default function Customers() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteMutation.mutate(deletingCustomer.id)}
+              onClick={() => canManageCustomers && deleteMutation.mutate(deletingCustomer.id)}
               className="bg-red-600 hover:bg-red-700"
             >
               Delete
