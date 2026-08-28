@@ -11,9 +11,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MessageSquare, Mail, Shield, Save, Info, CheckCircle, Image as ImageIcon, Building2, ExternalLink, Lock } from "lucide-react";
+import { MessageSquare, Mail, Shield, Save, Info, CheckCircle, Image as ImageIcon, Building2, ExternalLink, Lock, Users } from "lucide-react";
 import { toast } from "sonner";
 import LogoUpload from "@/components/settings/LogoUpload";
+import AssignedUsersTab from "@/components/settings/AssignedUsersTab";
 
 export default function Settings() {
   const { selectedCompanyId } = useCompany();
@@ -134,7 +135,7 @@ export default function Settings() {
 
       <div className="p-6 md:p-8 max-w-5xl mx-auto">
         <Tabs defaultValue="company" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="company">
               <Building2 className="w-4 h-4 mr-2" />
               Company Info
@@ -150,6 +151,10 @@ export default function Settings() {
             <TabsTrigger value="email">
               <Mail className="w-4 h-4 mr-2" />
               Email Settings
+            </TabsTrigger>
+            <TabsTrigger value="users">
+              <Users className="w-4 h-4 mr-2" />
+              Assigned Users
             </TabsTrigger>
           </TabsList>
 
@@ -513,6 +518,10 @@ export default function Settings() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="users">
+            <AssignedUsersTab companyId={selectedCompanyId} isAdmin={isAdmin} />
           </TabsContent>
         </Tabs>
       </div>

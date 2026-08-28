@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ const getInviteErrorMessage = async (error) => {
   return error?.message || "Failed to send invitation";
 };
 
-export default function UserInviteDialog({ open, onClose }) {
+export default function UserInviteDialog({ open, onClose, defaultCompanyId }) {
   const queryClient = useQueryClient();
   const [inviteData, setInviteData] = useState({
     email: "",
@@ -33,6 +33,15 @@ export default function UserInviteDialog({ open, onClose }) {
     initialData: [],
   });
   const [isInviting, setIsInviting] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setInviteData((prev) => ({
+        ...prev,
+        company_id: defaultCompanyId || prev.company_id || "",
+      }));
+    }
+  }, [open, defaultCompanyId]);
 
   const handleInvite = async () => {
     const email = inviteData.email.trim();
