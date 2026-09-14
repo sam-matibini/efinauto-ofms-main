@@ -36,6 +36,9 @@ import AIMileageScanner from "../components/vehicles/AIMileageScanner";
 import AIInventoryInsights from "@/components/shared/AIInventoryInsights";
 import DocumentAutoscan from "@/components/shared/DocumentAutoscan";
 import { mergeDocumentFields } from "@/lib/documentAutoscan";
+import VehiclePurchaseTaxSection from "@/components/vehicles/VehiclePurchaseTaxSection";
+import { postVehiclePurchaseAccounting } from "@/lib/postVehiclePurchase";
+import { vehiclePurchaseTaxes } from "@/lib/vehiclePurchaseTaxes";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -87,15 +90,31 @@ export default function Vehicles() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data) => {
-      console.log("Creating vehicle with data:", data);
-      return await supabase.entities.Vehicle.create(data);
+    mutationFn: async (payload) => {
+      const postToGl = payload.post_to_gl !== false;
+      const { post_to_gl: _post, ...data } = payload;
+      const vehicle = await supabase.entities.Vehicle.create(data);
+      if (postToGl) {
+        try {
+          await postVehiclePurchaseAccounting({
+            companyId: selectedCompanyId,
+            vehicle,
+            form: data,
+          });
+        } catch (error) {
+          console.error("Vehicle GL post failed", error);
+          toast.error("Vehicle saved, but GL/purchase posting failed: " + (error.message || "Unknown error"));
+        }
+      }
+      return vehicle;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles', selectedCompanyId] }); // Invalidate with company ID
+      queryClient.invalidateQueries({ queryKey: ['vehicles', selectedCompanyId] });
+      queryClient.invalidateQueries({ queryKey: ['purchases'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setDialogOpen(false);
       setEditingVehicle(null);
-      toast.success("Vehicle added successfully!");
+      toast.success("Vehicle added to inventory");
     },
     onError: (error) => {
       console.error("Create error:", error);
@@ -105,8 +124,8 @@ export default function Vehicles() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
-      console.log("Updating vehicle with data:", data);
-      return await supabase.entities.Vehicle.update(id, data);
+      const { post_to_gl: _post, ...vehicleData } = data;
+      return await supabase.entities.Vehicle.update(id, vehicleData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles', selectedCompanyId] });
@@ -188,6 +207,10 @@ export default function Vehicles() {
     { label: "Condition", accessor: (v) => v.condition },
     { label: "Mileage", accessor: (v) => v.mileage },
     { label: "Purchase Price", accessor: (v) => v.purchase_price },
+    { label: "GST Paid", accessor: (v) => v.tax_gst },
+    { label: "PST Paid", accessor: (v) => v.tax_pst },
+    { label: "RST Paid", accessor: (v) => v.tax_rst ?? v.tax_total },
+    { label: "Total Expenditure", accessor: (v) => v.total_vehicle_expenditure || v.total_cost },
     { label: "Selling Price", accessor: (v) => v.selling_price },
     { label: "Location", accessor: (v) => v.location },
     { label: "Fuel Type", accessor: (v) => v.fuel_type },
@@ -198,7 +221,7 @@ export default function Vehicles() {
     total: filteredVehicles.length,
     inStock: filteredVehicles.filter(v => v.status === "in_stock").length,
     sold: filteredVehicles.filter(v => v.status === "sold").length,
-    totalValue: filteredVehicles.reduce((sum, v) => sum + (v.selling_price || 0), 0),
+    totalValue: filteredVehicles.reduce((sum, v) => sum + (v.total_cost || v.purchase_price || v.selling_price || 0), 0),
   };
 
   const handleSave = (formData) => {
@@ -214,6 +237,16 @@ export default function Vehicles() {
       return;
     }
 
+    const taxes = vehiclePurchaseTaxes({
+      pretax: Number(formData.purchase_price) || 0,
+      tax_gst: formData.tax_gst,
+      tax_pst: formData.tax_pst,
+      tax_hst: formData.tax_hst,
+      province: formData.province,
+      tax_status: formData.tax_status,
+      pst_exempt: formData.pst_exempt,
+    });
+
     const cleanData = {
       company_id: selectedCompanyId,
       ownership_type: formData.ownership_type || "dealership_owned",
@@ -227,8 +260,21 @@ export default function Vehicles() {
       transmission: formData.transmission || "manual",
       mileage: Number(formData.mileage) || 0,
       weight: Number(formData.weight) || 0,
-      purchase_price: Number(formData.purchase_price) || 0,
-      selling_price: Number(formData.selling_price) || 0
+      purchase_price: taxes.purchase_price,
+      selling_price: Number(formData.selling_price) || 0,
+      province: formData.province || "",
+      tax_status: formData.tax_status || "taxable",
+      pst_exempt: Boolean(formData.pst_exempt),
+      tax_gst: taxes.tax_gst,
+      tax_pst: taxes.tax_pst,
+      tax_hst: taxes.tax_hst,
+      tax_rst: taxes.tax_rst,
+      tax_total: taxes.tax_total,
+      total_cost: taxes.total_vehicle_expenditure,
+      total_vehicle_expenditure: taxes.total_vehicle_expenditure,
+      post_to_gl: formData.post_to_gl !== false && !formData.gl_posted && !formData.purchase_id,
+      gl_posted: Boolean(formData.gl_posted),
+      purchase_id: formData.purchase_id || undefined,
     };
 
     if (formData.color?.trim()) cleanData.color = formData.color.trim();
@@ -240,6 +286,10 @@ export default function Vehicles() {
     if (formData.features?.trim()) cleanData.features = formData.features.trim();
     if (formData.notes?.trim()) cleanData.notes = formData.notes.trim();
     if (formData.images && formData.images.length > 0) cleanData.images = formData.images;
+    if (formData.vendor_id) cleanData.vendor_id = formData.vendor_id;
+    if (formData.vendor_name?.trim()) cleanData.vendor_name = formData.vendor_name.trim();
+    if (formData.vendor_phone?.trim()) cleanData.vendor_phone = formData.vendor_phone.trim();
+    if (formData.vendor_email?.trim()) cleanData.vendor_email = formData.vendor_email.trim();
 
     console.log("Saving vehicle data:", cleanData);
 
@@ -752,7 +802,9 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
     transmission: "manual", engine_capacity: "", features: "",
     location: "", images: [], notes: "",
     vendor_id: "", vendor_name: "", vendor_phone: "", vendor_email: "",
-    province: "", tax_status: "taxable", pst_exempt: false, tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0, total_cost: 0
+    province: "", tax_status: "taxable", pst_exempt: false,
+    tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_rst: 0, tax_total: 0,
+    total_cost: 0, total_vehicle_expenditure: 0, post_to_gl: true
           });
 
   React.useEffect(() => {
@@ -791,8 +843,13 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
                           tax_gst: vehicle.tax_gst || 0,
           tax_pst: vehicle.tax_pst || 0,
           tax_hst: vehicle.tax_hst || 0,
+          tax_rst: vehicle.tax_rst || vehicle.tax_total || 0,
           tax_total: vehicle.tax_total || 0,
-          total_cost: vehicle.total_cost || 0
+          total_cost: vehicle.total_cost || 0,
+          total_vehicle_expenditure: vehicle.total_vehicle_expenditure || vehicle.total_cost || 0,
+          post_to_gl: false,
+          gl_posted: Boolean(vehicle.gl_posted),
+          purchase_id: vehicle.purchase_id || ""
         });
       } else {
         setFormData({
@@ -804,42 +861,28 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
           transmission: "manual", engine_capacity: "", features: "",
           location: "", images: [], notes: "",
           vendor_id: "", vendor_name: "", vendor_phone: "", vendor_email: "",
-          province: "", tax_status: "taxable", pst_exempt: false, tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0, total_cost: 0
+          province: "", tax_status: "taxable", pst_exempt: false,
+          tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_rst: 0, tax_total: 0,
+          total_cost: 0, total_vehicle_expenditure: 0, post_to_gl: true
                       });
       }
     }
   }, [vehicle, open]);
 
   const calculateTaxes = (price, province, taxStatus, pstExempt = false) => {
-        if (taxStatus !== "taxable" || !province || !price) {
-          return { tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0, total_cost: price || 0 };
-        }
-        const rates = company?.tax_rates?.[province] || { gst: 5, pst: 0, hst: 0 };
-        const tax_gst = (price * (rates.gst || 0)) / 100;
-        const tax_pst = pstExempt ? 0 : (price * (rates.pst || 0)) / 100;
-        const tax_hst = (price * (rates.hst || 0)) / 100;
-        const tax_total = tax_gst + tax_pst + tax_hst;
-        return { tax_gst, tax_pst, tax_hst, tax_total, total_cost: price + tax_total };
-      };
-
-  const handleProvinceChange = (province) => {
-        const taxes = calculateTaxes(formData.purchase_price, province, formData.tax_status, formData.pst_exempt);
-        setFormData({ ...formData, province, ...taxes });
-      };
-
-      const handleTaxStatusChange = (taxStatus) => {
-        const taxes = calculateTaxes(formData.purchase_price, formData.province, taxStatus, formData.pst_exempt);
-        setFormData({ ...formData, tax_status: taxStatus, ...taxes });
+        return vehiclePurchaseTaxes({
+          pretax: price,
+          province,
+          tax_status: taxStatus,
+          pst_exempt: pstExempt,
+          companyRates: company?.tax_rates,
+          useRates: true,
+        });
       };
 
       const handlePurchasePriceChange = (price) => {
         const taxes = calculateTaxes(price, formData.province, formData.tax_status, formData.pst_exempt);
         setFormData({ ...formData, purchase_price: price, ...taxes });
-      };
-
-      const handlePstExemptChange = (checked) => {
-        const taxes = calculateTaxes(formData.purchase_price, formData.province, formData.tax_status, checked);
-        setFormData({ ...formData, pst_exempt: checked, ...taxes });
       };
 
   const handleVendorSelect = (vendorId) => {
@@ -1021,7 +1064,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Purchase Price ($)</Label>
+              <Label>Pretax amount ($)</Label>
               <Input 
                 type="number" 
                 value={formData.purchase_price} 
@@ -1105,71 +1148,11 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
           </div>
 
           {/* Tax Section */}
-          <div className="col-span-2 border-t pt-4 mt-4">
-            <h3 className="font-semibold text-gray-900 mb-4">Sales Tax Information</h3>
-          </div>
-          <div className="space-y-2">
-            <Label>Province</Label>
-            <Select value={formData.province} onValueChange={handleProvinceChange}>
-              <SelectTrigger><SelectValue placeholder="Select province" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="AB">Alberta</SelectItem>
-                <SelectItem value="BC">British Columbia</SelectItem>
-                <SelectItem value="MB">Manitoba</SelectItem>
-                <SelectItem value="NB">New Brunswick</SelectItem>
-                <SelectItem value="NL">Newfoundland</SelectItem>
-                <SelectItem value="NT">Northwest Territories</SelectItem>
-                <SelectItem value="NS">Nova Scotia</SelectItem>
-                <SelectItem value="NU">Nunavut</SelectItem>
-                <SelectItem value="ON">Ontario</SelectItem>
-                <SelectItem value="PE">Prince Edward Island</SelectItem>
-                <SelectItem value="QC">Quebec</SelectItem>
-                <SelectItem value="SK">Saskatchewan</SelectItem>
-                <SelectItem value="YT">Yukon</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-                            <Label>Tax Status</Label>
-                            <Select value={formData.tax_status} onValueChange={handleTaxStatusChange}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="taxable">Taxable</SelectItem>
-                                <SelectItem value="zero_rated">Zero-Rated</SelectItem>
-                                <SelectItem value="exempt">Exempt</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2 flex items-center gap-2 pt-6">
-                            <input
-                              type="checkbox"
-                              id="pst_exempt"
-                              checked={formData.pst_exempt || false}
-                              onChange={(e) => handlePstExemptChange(e.target.checked)}
-                              className="h-4 w-4 rounded border-gray-300"
-                            />
-                            <Label htmlFor="pst_exempt" className="cursor-pointer">PST Exempt</Label>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>GST Amount</Label>
-            <Input type="number" step="0.01" value={formData.tax_gst} readOnly className="bg-gray-50" />
-          </div>
-          <div className="space-y-2">
-            <Label>PST Amount</Label>
-            <Input type="number" step="0.01" value={formData.tax_pst} readOnly className="bg-gray-50" />
-          </div>
-          <div className="space-y-2">
-            <Label>HST Amount</Label>
-            <Input type="number" step="0.01" value={formData.tax_hst} readOnly className="bg-gray-50" />
-          </div>
-          <div className="space-y-2">
-            <Label>Total Tax</Label>
-            <Input type="number" step="0.01" value={formData.tax_total} readOnly className="bg-gray-50" />
-          </div>
-          <div className="space-y-2 col-span-2">
-            <Label>Total Cost (Purchase + Tax)</Label>
-            <Input type="number" step="0.01" value={formData.total_cost} readOnly className="bg-gray-100 font-semibold" />
-          </div>
+          <VehiclePurchaseTaxSection
+            formData={formData}
+            companyRates={company?.tax_rates}
+            onChange={setFormData}
+          />
 
           <div className="space-y-2 col-span-2">
             <Label>Upload Image</Label>
@@ -1213,18 +1196,18 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
             onApply={(fields) => {
               setFormData((prev) => {
                 const merged = mergeDocumentFields(prev, fields);
-                if (fields.purchase_price != null) {
-                  return {
-                    ...merged,
-                    ...calculateTaxes(
-                      fields.purchase_price,
-                      merged.province,
-                      merged.tax_status,
-                      merged.pst_exempt
-                    ),
-                  };
-                }
-                return merged;
+                const withPrice = fields.purchase_price != null
+                  ? { ...merged, purchase_price: fields.purchase_price }
+                  : merged;
+                const taxes = vehiclePurchaseTaxes({
+                  pretax: withPrice.purchase_price,
+                  province: withPrice.province,
+                  tax_status: withPrice.tax_status,
+                  pst_exempt: withPrice.pst_exempt,
+                  companyRates: company?.tax_rates,
+                  useRates: true,
+                });
+                return { ...withPrice, ...taxes };
               });
             }}
           />

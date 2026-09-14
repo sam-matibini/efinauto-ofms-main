@@ -29,6 +29,9 @@ import AIVehicleSearch from "@/components/inventory/AIVehicleSearch";
 import AIPurchaseOrderGenerator from "@/components/inventory/AIPurchaseOrderGenerator";
 import DocumentAutoscan from "@/components/shared/DocumentAutoscan";
 import { mergeDocumentFields } from "@/lib/documentAutoscan";
+import VehiclePurchaseTaxSection from "@/components/vehicles/VehiclePurchaseTaxSection";
+import { postVehiclePurchaseAccounting } from "@/lib/postVehiclePurchase";
+import { vehiclePurchaseTaxes } from "@/lib/vehiclePurchaseTaxes";
 
 export default function InventoryManagement() {
   const { selectedCompanyId } = useCompany();
@@ -130,17 +133,39 @@ export default function InventoryManagement() {
 
   // Vehicle mutations
   const createVehicleMutation = useMutation({
-    mutationFn: (data) => supabase.entities.Vehicle.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: async (payload) => {
+      const postToGl = payload.post_to_gl !== false;
+      const { post_to_gl: _post, ...data } = payload;
+      const vehicle = await supabase.entities.Vehicle.create({ ...data, company_id: selectedCompanyId });
+      if (postToGl) {
+        try {
+          await postVehiclePurchaseAccounting({
+            companyId: selectedCompanyId,
+            vehicle,
+            form: { ...data, company_id: selectedCompanyId },
+          });
+        } catch (error) {
+          console.error("Vehicle GL post failed", error);
+          toast.error("Vehicle saved, but GL/purchase posting failed: " + (error.message || "Unknown error"));
+        }
+      }
+      return vehicle;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['purchases'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setVehicleDialogOpen(false);
       setEditingVehicle(null);
-      toast.success("Vehicle added successfully");
+      toast.success("Vehicle added to inventory");
     },
   });
 
   const updateVehicleMutation = useMutation({
-    mutationFn: ({ id, data }) => supabase.entities.Vehicle.update(id, data),
+    mutationFn: ({ id, data }) => {
+      const { post_to_gl: _post, ...vehicleData } = data;
+      return supabase.entities.Vehicle.update(id, vehicleData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       setVehicleDialogOpen(false);
@@ -875,10 +900,25 @@ export default function InventoryManagement() {
         onClose={() => { setVehicleDialogOpen(false); setEditingVehicle(null); }}
         vehicle={editingVehicle}
         onSave={(data) => {
+          const taxes = vehiclePurchaseTaxes({
+            pretax: data.purchase_price,
+            tax_gst: data.tax_gst,
+            tax_pst: data.tax_pst,
+            tax_hst: data.tax_hst,
+            province: data.province,
+            tax_status: data.tax_status,
+            pst_exempt: data.pst_exempt,
+          });
+          const payload = {
+            ...data,
+            ...taxes,
+            purchase_price: taxes.purchase_price,
+            total_cost: taxes.total_vehicle_expenditure,
+          };
           if (editingVehicle) {
-            updateVehicleMutation.mutate({ id: editingVehicle.id, data });
+            updateVehicleMutation.mutate({ id: editingVehicle.id, data: payload });
           } else {
-            createVehicleMutation.mutate(data);
+            createVehicleMutation.mutate(payload);
           }
         }}
       />
@@ -928,20 +968,24 @@ export default function InventoryManagement() {
   );
 }
 
-function VehicleDialog({ open, onClose, vehicle, onSave }) {
-  const [formData, setFormData] = React.useState(vehicle || {
+function emptyVehicleForm() {
+  return {
     vin: "", make: "", model: "", year: new Date().getFullYear(), color: "",
     mileage: 0, condition: "used", status: "in_stock", purchase_price: 0, selling_price: 0,
-    fuel_type: "petrol", transmission: "automatic", location: "", notes: ""
-  });
+    fuel_type: "petrol", transmission: "automatic", location: "", notes: "",
+    province: "", tax_status: "taxable", pst_exempt: false,
+    tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_rst: 0, tax_total: 0,
+    total_cost: 0, total_vehicle_expenditure: 0, post_to_gl: true,
+    vendor_name: "",
+  };
+}
+
+function VehicleDialog({ open, onClose, vehicle, onSave }) {
+  const [formData, setFormData] = React.useState(vehicle ? { ...emptyVehicleForm(), ...vehicle, post_to_gl: false } : emptyVehicleForm());
 
   React.useEffect(() => {
-    setFormData(vehicle || {
-      vin: "", make: "", model: "", year: new Date().getFullYear(), color: "",
-      mileage: 0, condition: "used", status: "in_stock", purchase_price: 0, selling_price: 0,
-      fuel_type: "petrol", transmission: "automatic", location: "", notes: ""
-    });
-  }, [vehicle]);
+    setFormData(vehicle ? { ...emptyVehicleForm(), ...vehicle, post_to_gl: false } : emptyVehicleForm());
+  }, [vehicle, open]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -998,8 +1042,26 @@ function VehicleDialog({ open, onClose, vehicle, onSave }) {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Purchase Price ($)</Label>
-            <Input type="number" value={formData.purchase_price} onChange={(e) => setFormData({...formData, purchase_price: parseFloat(e.target.value)})} />
+            <Label>Pretax amount ($)</Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={formData.purchase_price}
+              onChange={(e) => {
+                const purchase_price = parseFloat(e.target.value) || 0;
+                setFormData({
+                  ...formData,
+                  purchase_price,
+                  ...vehiclePurchaseTaxes({
+                    pretax: purchase_price,
+                    province: formData.province,
+                    tax_status: formData.tax_status,
+                    pst_exempt: formData.pst_exempt,
+                    useRates: true,
+                  }),
+                });
+              }}
+            />
           </div>
           <div className="space-y-2">
             <Label>Selling Price ($)</Label>
@@ -1036,11 +1098,27 @@ function VehicleDialog({ open, onClose, vehicle, onSave }) {
             <Label>Notes</Label>
             <Textarea value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={2} />
           </div>
+          <VehiclePurchaseTaxSection
+            formData={formData}
+            onChange={setFormData}
+          />
         </div>
         <DocumentAutoscan
           profile="vehicle"
           resetKey={open}
-          onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
+          onApply={(fields) => setFormData((prev) => {
+            const merged = mergeDocumentFields(prev, fields);
+            return {
+              ...merged,
+              ...vehiclePurchaseTaxes({
+                pretax: merged.purchase_price,
+                province: merged.province,
+                tax_status: merged.tax_status,
+                pst_exempt: merged.pst_exempt,
+                useRates: true,
+              }),
+            };
+          })}
         />
         <div className="flex justify-end gap-3 pt-3">
           <Button variant="outline" onClick={onClose}>Cancel</Button>

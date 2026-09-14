@@ -10,6 +10,7 @@ export const GL_ACCOUNTS = {
   // Assets (1000-1999)
   CASH: { code: '1000', name: 'Cash', type: 'asset' },
   ACCOUNTS_RECEIVABLE: { code: '1100', name: 'Accounts Receivable', type: 'asset' },
+  GST_RECEIVABLE: { code: '1150', name: 'GST/HST Receivable (ITC)', type: 'asset' },
   INVENTORY_VEHICLES: { code: '1200', name: 'Vehicle Inventory', type: 'asset' },
   INVENTORY_PARTS: { code: '1210', name: 'Parts Inventory', type: 'asset' },
   

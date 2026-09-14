@@ -32,6 +32,15 @@ Required env vars:
 
 Add Vehicle, expenses, bills, purchase orders, invoices, bills of sale, repair orders, parts, and customers include an **Autoscan document** panel at the bottom of the form. Upload a PDF/photo or paste text from an invoice or bill of sale, click **Scan document**, then click **Update form** to copy extracted VIN, prices, dates, and vendor details into the fields above. Review the filled fields before saving. Scanned PDFs use on-device OCR when the file has no text layer.
 
+## Vehicle purchase taxes and GL
+
+Add Vehicle includes **Sales taxes (RST) paid**: pretax amount, GST, PST, HST, RST (GST+PST+HST), and total vehicle expenditure. With **Post amounts to the general ledger** checked (default for new vehicles), saving:
+
+- stores GST/PST/HST on the vehicle and values inventory at pretax + PST (`total_cost`)
+- creates a received vehicle purchase for the net tax amount
+- posts Dr Vehicle Inventory (1200) / Cr AP, and Dr GST/HST Receivable ITC (1150) / Cr AP
+
+
 ## Deploy
 
 `vercel.json` is configured for a Vite static build on Vercel.
