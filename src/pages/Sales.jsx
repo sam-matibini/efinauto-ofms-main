@@ -1407,11 +1407,6 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
           </TabsList>
 
           <TabsContent value="basic" className="space-y-4">
-            <DocumentAutoscan
-              profile="sale"
-              resetKey={open}
-              onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
-            />
             {!editingSale && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <div className="flex items-start gap-3">
@@ -1554,6 +1549,11 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
               <Label>Notes</Label>
               <Textarea value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={3} />
             </div>
+            <DocumentAutoscan
+              profile="sale"
+              resetKey={open}
+              onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
+            />
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-4">

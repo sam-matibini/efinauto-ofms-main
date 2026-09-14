@@ -169,11 +169,6 @@ export default function PartDialog({ open, onClose, part, onSave, isSaving }) {
           </TabsList>
 
           <TabsContent value="basic" className="space-y-4 py-4">
-            <DocumentAutoscan
-              profile="part"
-              resetKey={open}
-              onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
-            />
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Part Number *</Label>
@@ -235,6 +230,11 @@ export default function PartDialog({ open, onClose, part, onSave, isSaving }) {
                 />
               </div>
             </div>
+            <DocumentAutoscan
+              profile="part"
+              resetKey={open}
+              onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
+            />
           </TabsContent>
 
           <TabsContent value="vendor" className="space-y-4 py-4">

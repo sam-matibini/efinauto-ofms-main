@@ -1,3 +1,10 @@
+import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
+import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+
+GlobalWorkerOptions.workerSrc = pdfWorker;
+
+const THIN_TEXT_CHARS = 80;
+
 async function inflateBytes(bytes) {
   const attempts = ["deflate", "deflate-raw"];
   for (const format of attempts) {
@@ -63,7 +70,18 @@ function extractPdfOperators(text) {
   return chunks.join("\n");
 }
 
-async function extractPdfText(file) {
+function cleanupText(text) {
+  return (text || "")
+    .replace(/[^\S\n]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function meaningfulLength(text) {
+  return (text || "").replace(/[^A-Za-z0-9]/g, "").length;
+}
+
+async function extractPdfTextLegacy(file) {
   const bytes = new Uint8Array(await file.arrayBuffer());
   const raw = bytesToLatin1(bytes);
   const inflated = [];
@@ -84,11 +102,93 @@ async function extractPdfText(file) {
     parts.push(extractPdfOperators(latin1), printableLines(chunk));
   }
 
-  return parts
-    .join("\n")
-    .replace(/[^\S\n]+/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  return cleanupText(parts.join("\n"));
+}
+
+async function extractPdfTextLayer(file) {
+  const data = await file.arrayBuffer();
+  const pdf = await getDocument({ data, disableWorker: false }).promise;
+  const parts = [];
+  const maxPages = Math.min(pdf.numPages, 8);
+  for (let pageNumber = 1; pageNumber <= maxPages; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber);
+    const content = await page.getTextContent();
+    const pageText = content.items
+      .map((item) => ("str" in item ? item.str : ""))
+      .join(" ");
+    if (pageText.trim()) parts.push(pageText);
+  }
+  return { pdf, text: cleanupText(parts.join("\n")) };
+}
+
+async function ocrCanvas(canvas, onProgress) {
+  const { createWorker } = await import("tesseract.js");
+  const worker = await createWorker("eng", 1, {
+    logger: (message) => {
+      if (message.status === "recognizing text" && typeof message.progress === "number") {
+        onProgress?.(Math.round(message.progress * 100));
+      }
+    },
+  });
+  try {
+    const { data } = await worker.recognize(canvas);
+    return (data?.text || "").trim();
+  } finally {
+    await worker.terminate();
+  }
+}
+
+async function extractPdfWithOcr(pdf, onProgress) {
+  if (typeof document === "undefined") return "";
+  const maxPages = Math.min(pdf.numPages, 3);
+  const texts = [];
+  for (let pageNumber = 1; pageNumber <= maxPages; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber);
+    const viewport = page.getViewport({ scale: 2 });
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: context, canvas, viewport }).promise;
+    onProgress?.(40 + Math.round((pageNumber / maxPages) * 50));
+    texts.push(await ocrCanvas(canvas, onProgress));
+  }
+  return cleanupText(texts.join("\n"));
+}
+
+async function extractPdfText(file, onProgress) {
+  onProgress?.(15);
+  const legacy = await extractPdfTextLegacy(file);
+  let pdfJsText = "";
+  let pdf = null;
+  try {
+    const layered = await extractPdfTextLayer(file);
+    pdfJsText = layered.text;
+    pdf = layered.pdf;
+  } catch (error) {
+    console.warn("PDF.js text extraction failed, using fallback parser", error);
+  }
+
+  const combined = cleanupText([legacy, pdfJsText].filter(Boolean).join("\n"));
+  if (meaningfulLength(combined) >= THIN_TEXT_CHARS) {
+    onProgress?.(100);
+    return combined;
+  }
+
+  if (pdf) {
+    try {
+      onProgress?.(40);
+      const ocrText = await extractPdfWithOcr(pdf, onProgress);
+      const withOcr = cleanupText([combined, ocrText].filter(Boolean).join("\n"));
+      onProgress?.(100);
+      return withOcr || combined;
+    } catch (error) {
+      console.warn("PDF OCR fallback failed", error);
+    }
+  }
+
+  onProgress?.(100);
+  return combined;
 }
 
 async function extractImageText(file, onProgress) {
@@ -118,10 +218,7 @@ export async function extractDocumentText(file, { onProgress } = {}) {
   }
 
   if (type === "application/pdf" || name.endsWith(".pdf")) {
-    onProgress?.(15);
-    const text = await extractPdfText(file);
-    onProgress?.(100);
-    return text;
+    return extractPdfText(file, onProgress);
   }
 
   if (type.startsWith("image/") || /\.(png|jpe?g|webp|gif|bmp|tiff?)$/i.test(name)) {

@@ -949,11 +949,6 @@ function VehicleDialog({ open, onClose, vehicle, onSave }) {
         <DialogHeader>
           <DialogTitle>{vehicle ? 'Edit Vehicle' : 'Add Vehicle'}</DialogTitle>
         </DialogHeader>
-        <DocumentAutoscan
-          profile="vehicle"
-          resetKey={open}
-          onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
-        />
         <div className="grid grid-cols-2 gap-4 py-4">
           <div className="space-y-2">
             <Label>VIN *</Label>
@@ -1042,7 +1037,12 @@ function VehicleDialog({ open, onClose, vehicle, onSave }) {
             <Textarea value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={2} />
           </div>
         </div>
-        <div className="flex justify-end gap-3">
+        <DocumentAutoscan
+          profile="vehicle"
+          resetKey={open}
+          onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
+        />
+        <div className="flex justify-end gap-3 pt-3">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700" disabled={!formData.vin || !formData.make || !formData.model}>
             {vehicle ? 'Update' : 'Add'} Vehicle
@@ -1072,11 +1072,6 @@ function PartDialog({ open, onClose, part, onSave }) {
         <DialogHeader>
           <DialogTitle>{part ? 'Edit Part' : 'Add Part'}</DialogTitle>
         </DialogHeader>
-        <DocumentAutoscan
-          profile="part"
-          resetKey={open}
-          onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
-        />
         <div className="grid grid-cols-2 gap-4 py-4">
           <div className="space-y-2">
             <Label>Part Number *</Label>
@@ -1131,7 +1126,12 @@ function PartDialog({ open, onClose, part, onSave }) {
             <Textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} rows={2} />
           </div>
         </div>
-        <div className="flex justify-end gap-3">
+        <DocumentAutoscan
+          profile="part"
+          resetKey={open}
+          onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
+        />
+        <div className="flex justify-end gap-3 pt-3">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700" disabled={!formData.part_number || !formData.name}>
             {part ? 'Update' : 'Add'} Part

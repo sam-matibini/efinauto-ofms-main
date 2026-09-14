@@ -54,6 +54,22 @@ checks.push(
   ["expense reference", /RCP-8821/.test(expense.reference_number || "")],
 );
 
+const spacedVin = parseDocumentFields(
+  `BILL OF SALE
+VIN: 1G1 BE5 SM0 J7226676
+Year 2018
+Make Chevrolet
+Model Cruze
+Color White
+Mileage 12,450 km`,
+  "vehicle"
+);
+checks.push(
+  ["spaced vin", spacedVin.vin === "1G1BE5SM0J7226676"],
+  ["inline year", spacedVin.year === 2018],
+  ["spaced make", /chevrolet/i.test(spacedVin.make)],
+);
+
 const failed = checks.filter(([, ok]) => !ok);
 console.log(JSON.stringify({ vehicle: fields, expense }, null, 2));
 if (failed.length) {

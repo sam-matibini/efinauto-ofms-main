@@ -181,26 +181,6 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
         </DialogHeader>
 
         <div className="space-y-6">
-          <DocumentAutoscan
-            profile="invoice"
-            resetKey={open}
-            onApply={(fields) => setFormData((prev) => {
-              const merged = mergeDocumentFields(prev, fields);
-              if (merged.line_items?.length) {
-                const subtotal = merged.line_items.reduce((sum, item) => sum + (item.total || 0), 0);
-                const taxAmount = subtotal * ((merged.tax_rate || 0) / 100);
-                const totalAmount = subtotal + taxAmount;
-                return {
-                  ...merged,
-                  subtotal,
-                  tax_amount: taxAmount,
-                  total_amount: totalAmount,
-                  balance_due: totalAmount - (merged.amount_paid || 0),
-                };
-              }
-              return merged;
-            })}
-          />
           {/* Customer Selection */}
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
@@ -494,6 +474,27 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
               />
             </div>
           </div>
+
+          <DocumentAutoscan
+            profile="invoice"
+            resetKey={open}
+            onApply={(fields) => setFormData((prev) => {
+              const merged = mergeDocumentFields(prev, fields);
+              if (merged.line_items?.length) {
+                const subtotal = merged.line_items.reduce((sum, item) => sum + (item.total || 0), 0);
+                const taxAmount = subtotal * ((merged.tax_rate || 0) / 100);
+                const totalAmount = subtotal + taxAmount;
+                return {
+                  ...merged,
+                  subtotal,
+                  tax_amount: taxAmount,
+                  total_amount: totalAmount,
+                  balance_due: totalAmount - (merged.amount_paid || 0),
+                };
+              }
+              return merged;
+            })}
+          />
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t">

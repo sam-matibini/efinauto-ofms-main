@@ -353,11 +353,6 @@ Return a structured address with street address, city, province/state, postal co
           <DialogTitle>{customer ? 'Edit Customer' : 'Add Customer'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
-          <DocumentAutoscan
-            profile="customer"
-            resetKey={open}
-            onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
-          />
           <div className="space-y-2">
             <Label>Full Name *</Label>
             <Input value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} />
@@ -450,6 +445,11 @@ Return a structured address with street address, city, province/state, postal co
               </div>
             </div>
           </div>
+          <DocumentAutoscan
+            profile="customer"
+            resetKey={open}
+            onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
+          />
         </div>
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={onClose}>Cancel</Button>

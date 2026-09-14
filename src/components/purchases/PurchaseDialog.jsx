@@ -183,22 +183,6 @@ export default function PurchaseDialog({ open, onClose, purchase, onSave, isSavi
           </TabsContent>
 
           <TabsContent value="basic" className="space-y-4">
-            <DocumentAutoscan
-              profile="purchase"
-              resetKey={open}
-              onApply={(fields) => setFormData((prev) => {
-                const merged = mergeDocumentFields(prev, fields);
-                if (merged.items?.length) {
-                  const { subtotal, taxAmount, totalAmount } = calculateTotals(
-                    merged.items,
-                    merged.tax_rate,
-                    merged.shipping_cost
-                  );
-                  return { ...merged, subtotal, tax_amount: taxAmount, total_amount: totalAmount };
-                }
-                return merged;
-              })}
-            />
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>PO Number</Label>
@@ -270,6 +254,22 @@ export default function PurchaseDialog({ open, onClose, purchase, onSave, isSavi
                 />
               </div>
             </div>
+            <DocumentAutoscan
+              profile="purchase"
+              resetKey={open}
+              onApply={(fields) => setFormData((prev) => {
+                const merged = mergeDocumentFields(prev, fields);
+                if (merged.items?.length) {
+                  const { subtotal, taxAmount, totalAmount } = calculateTotals(
+                    merged.items,
+                    merged.tax_rate,
+                    merged.shipping_cost
+                  );
+                  return { ...merged, subtotal, tax_amount: taxAmount, total_amount: totalAmount };
+                }
+                return merged;
+              })}
+            />
           </TabsContent>
 
           <TabsContent value="items" className="space-y-4">

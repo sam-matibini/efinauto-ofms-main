@@ -58,11 +58,6 @@ export default function RecurringExpenseDialog({ open, onClose, recurringExpense
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <DocumentAutoscan
-            profile="expense"
-            resetKey={open}
-            onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
-          />
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Template Name *</Label>
@@ -192,6 +187,12 @@ export default function RecurringExpenseDialog({ open, onClose, recurringExpense
               </Select>
             </div>
           </div>
+
+          <DocumentAutoscan
+            profile="expense"
+            resetKey={open}
+            onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
+          />
 
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>

@@ -892,27 +892,6 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
         </DialogHeader>
         
         <div className="space-y-4 py-4">
-          <DocumentAutoscan
-            profile="vehicle"
-            resetKey={open}
-            onApply={(fields) => {
-              setFormData((prev) => {
-                const merged = mergeDocumentFields(prev, fields);
-                if (fields.purchase_price != null) {
-                  return {
-                    ...merged,
-                    ...calculateTaxes(
-                      fields.purchase_price,
-                      merged.province,
-                      merged.tax_status,
-                      merged.pst_exempt
-                    ),
-                  };
-                }
-                return merged;
-              });
-            }}
-          />
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Ownership Type</Label>
@@ -1228,6 +1207,28 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
             />
           </div>
           </div>
+          <DocumentAutoscan
+            profile="vehicle"
+            resetKey={open}
+            onApply={(fields) => {
+              setFormData((prev) => {
+                const merged = mergeDocumentFields(prev, fields);
+                if (fields.purchase_price != null) {
+                  return {
+                    ...merged,
+                    ...calculateTaxes(
+                      fields.purchase_price,
+                      merged.province,
+                      merged.tax_status,
+                      merged.pst_exempt
+                    ),
+                  };
+                }
+                return merged;
+              });
+            }}
+          />
+        </div>
 
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>

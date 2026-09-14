@@ -216,12 +216,23 @@ function toIsoDate(value) {
   return "";
 }
 
+function compactVin(value) {
+  return String(value || "").toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, "");
+}
+
 function findVin(text) {
   const labeled = labeledValue(text, ["VIN", "Vehicle Identification Number", "Serial Number"]);
-  const fromLabel = labeled.match(VIN_RE);
-  if (fromLabel) return fromLabel[1].toUpperCase();
+  const labeledCompact = compactVin(labeled);
+  if (VIN_RE.test(labeledCompact)) return labeledCompact.match(VIN_RE)[1];
   const match = text.match(VIN_RE);
-  return match ? match[1].toUpperCase() : "";
+  if (match) return match[1].toUpperCase();
+  const spaced = text.toUpperCase().match(/\b([A-HJ-NPR-Z0-9](?:[\s\-]*[A-HJ-NPR-Z0-9]){16})\b/);
+  if (spaced) {
+    const compact = compactVin(spaced[1]);
+    const vinMatch = compact.match(VIN_RE);
+    if (vinMatch) return vinMatch[1];
+  }
+  return "";
 }
 
 export function decodeVin(vin) {
@@ -232,6 +243,18 @@ export function decodeVin(vin) {
     make: WMI_MAKES[wmi] || "",
     year: YEAR_CODES[yearCode] || undefined,
   };
+}
+
+function findYear(text, decodedYear) {
+  const maxYear = new Date().getFullYear() + 1;
+  const labeled = parseInteger(labeledValue(text, ["Year", "Model Year", "Yr"]));
+  if (labeled && labeled >= 1980 && labeled <= maxYear) return labeled;
+  const inline = text.match(/\b(?:year|model year)\s*[:#-]?\s*(19[89]\d|20[0-3]\d)\b/i);
+  if (inline) {
+    const year = parseInt(inline[1], 10);
+    if (year >= 1980 && year <= maxYear) return year;
+  }
+  return decodedYear;
 }
 
 function findMake(text) {
@@ -393,12 +416,11 @@ function parseVehicleFields(text) {
   const vin = findVin(text);
   const decoded = decodeVin(vin);
   const make = findMake(text) || decoded.make || "";
-  const year = parseInteger(labeledValue(text, ["Year", "Model Year"])) || decoded.year;
   const purchase = findMoneyNear(text, ["Purchase Price", "Purchase Amount", "Cost", "Amount Paid", "Total Price", "Invoice Total", "Total"]);
   const selling = findMoneyNear(text, ["Selling Price", "List Price", "Asking Price", "Sale Price", "Retail"]);
   return compact({
     vin,
-    year: year && year >= 1980 && year <= new Date().getFullYear() + 1 ? year : decoded.year,
+    year: findYear(text, decoded.year),
     make,
     model: findModel(text, make),
     color: findColor(text),
@@ -705,7 +727,18 @@ export async function analyzeDocument({ file, pastedText, profile = "vehicle", o
   }
 
   onProgress?.(20);
-  const text = (pastedText || "").trim() || (file ? await extractDocumentText(file, { onProgress }) : "");
+  const extracted = file ? await extractDocumentText(file, { onProgress }) : "";
+  const pasted = (pastedText || "").trim();
+  let text = extracted;
+  if (pasted) {
+    if (!extracted) text = pasted;
+    else if (extracted.includes(pasted) || pasted.includes(extracted)) {
+      text = extracted.length >= pasted.length ? extracted : pasted;
+    } else {
+      text = `${extracted}\n\n${pasted}`;
+    }
+  }
+  text = text.trim();
   if (!text) {
     const reason = llmError?.message ? `AI scan unavailable (${llmError.message}).` : "No readable text found.";
     throw new Error(`${reason} Upload a clearer photo/PDF or paste the document text.`);

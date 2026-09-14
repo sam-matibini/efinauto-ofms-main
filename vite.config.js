@@ -11,5 +11,11 @@ export default defineConfig({
       legacySDKImports: process.env.BASE44_LEGACY_SDK_IMPORTS === 'true'
     }),
     react(),
-  ]
+  ],
+  optimizeDeps: {
+    include: ["pdfjs-dist"],
+  },
+  worker: {
+    format: "es",
+  },
 });

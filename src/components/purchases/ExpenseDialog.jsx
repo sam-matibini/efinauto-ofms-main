@@ -63,11 +63,6 @@ export default function ExpenseDialog({ open, onClose, expense, onSave, isSaving
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <DocumentAutoscan
-            profile="expense"
-            resetKey={open}
-            onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
-          />
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Select Vendor</Label>
@@ -201,6 +196,12 @@ export default function ExpenseDialog({ open, onClose, expense, onSave, isSaving
               rows={2}
             />
           </div>
+
+          <DocumentAutoscan
+            profile="expense"
+            resetKey={open}
+            onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
+          />
 
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>

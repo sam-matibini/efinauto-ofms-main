@@ -133,11 +133,6 @@ export default function RepairOrderDialog({ open, onClose, order, selectedPackag
           </TabsList>
 
           <TabsContent value="basic" className="space-y-4">
-            <DocumentAutoscan
-              profile="repair"
-              resetKey={open}
-              onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
-            />
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Order Number</Label>
@@ -194,6 +189,11 @@ export default function RepairOrderDialog({ open, onClose, order, selectedPackag
                 </Select>
               </div>
             </div>
+            <DocumentAutoscan
+              profile="repair"
+              resetKey={open}
+              onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
+            />
           </TabsContent>
 
           <TabsContent value="vehicle" className="space-y-4">

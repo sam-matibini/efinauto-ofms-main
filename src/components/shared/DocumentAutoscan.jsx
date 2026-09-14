@@ -9,6 +9,7 @@ import {
   Upload,
   FileText,
   CheckCircle2,
+  ClipboardCheck,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -16,6 +17,8 @@ import {
   analyzeDocument,
   AUTOSCAN_PROFILES,
   fieldLabel,
+  parseDocumentFields,
+  summarizeExtraction,
 } from "@/lib/documentAutoscan";
 
 function formatFieldValue(value) {
@@ -41,6 +44,7 @@ export default function DocumentAutoscan({
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState(null);
   const [dragOver, setDragOver] = useState(false);
+  const [appliedCount, setAppliedCount] = useState(0);
   const spec = AUTOSCAN_PROFILES[profile] || AUTOSCAN_PROFILES.vehicle;
 
   useEffect(() => {
@@ -50,12 +54,26 @@ export default function DocumentAutoscan({
     setResult(null);
     setScanning(false);
     setProgress(0);
+    setAppliedCount(0);
   }, [profile, resetKey]);
 
   const handleFiles = (nextFile) => {
     if (!nextFile) return;
     setFile(nextFile);
     setResult(null);
+    setAppliedCount(0);
+  };
+
+  const applyFields = (fields, analysis) => {
+    const count = Object.keys(fields || {}).length;
+    if (count === 0) {
+      toast.warning("No matching fields to copy into the form. Edit the extracted text and click Update form.");
+      return false;
+    }
+    onApply?.(fields, analysis);
+    setAppliedCount(count);
+    toast.success(`Updated ${count} field${count === 1 ? "" : "s"} on the form`);
+    return true;
   };
 
   const runScan = async (sourceFile = file, sourceText = pastedText) => {
@@ -67,6 +85,7 @@ export default function DocumentAutoscan({
     setScanning(true);
     setProgress(5);
     setResult(null);
+    setAppliedCount(0);
     try {
       const analysis = await analyzeDocument({
         file: sourceFile,
@@ -75,13 +94,15 @@ export default function DocumentAutoscan({
         onProgress: setProgress,
       });
       setResult(analysis);
+      if (analysis.text) {
+        setPastedText(analysis.text);
+        setPasteOpen(true);
+      }
       const count = Object.keys(analysis.fields || {}).length;
       if (count === 0) {
-        toast.warning("Document read, but no matching fields were found. Try a clearer scan or paste the text.");
+        toast.warning("Document read, but no matching fields were found. Review the text below, then click Update form.");
         return;
       }
-      onApply?.(analysis.fields, analysis);
-      toast.success(`Filled ${count} field${count === 1 ? "" : "s"} from ${analysis.summary.document_type}`);
     } catch (error) {
       console.error("Document autoscan error:", error);
       toast.error(error.message || "Failed to scan document");
@@ -91,7 +112,31 @@ export default function DocumentAutoscan({
     }
   };
 
+  const handleUpdateForm = () => {
+    const text = pastedText.trim() || result?.text || "";
+    if (text) {
+      const fields = parseDocumentFields(text, profile);
+      const summary = summarizeExtraction(text, fields, profile);
+      const analysis = {
+        ...(result || {}),
+        fields,
+        summary,
+        text,
+        source: result?.source || "local",
+      };
+      setResult(analysis);
+      applyFields(fields, analysis);
+      return;
+    }
+    if (result?.fields && Object.keys(result.fields).length) {
+      applyFields(result.fields, result);
+      return;
+    }
+    toast.error("Scan a document or paste its text first, then click Update form.");
+  };
+
   const fieldEntries = Object.entries(result?.fields || {});
+  const canUpdate = Boolean(pastedText.trim() || result?.text || fieldEntries.length);
 
   return (
     <div className="rounded-lg border border-indigo-200 bg-gradient-to-r from-indigo-50 via-white to-purple-50 p-3 space-y-3" data-testid={`autoscan-${profile}`}>
@@ -103,7 +148,7 @@ export default function DocumentAutoscan({
           </p>
           {!compact && (
             <p className="text-xs text-indigo-700 mt-0.5">
-              Upload or paste a {spec.title}. Extracted values fill this form so you can review before saving.
+              Upload or paste a {spec.title}. Review extracted values, then click Update form to copy them into the fields above.
             </p>
           )}
         </div>
@@ -142,7 +187,7 @@ export default function DocumentAutoscan({
           <p className="text-xs text-gray-700">
             {file ? file.name : "Drop invoice, bill of sale, or receipt — or click to upload"}
           </p>
-          <p className="text-[11px] text-gray-500 mt-0.5">PDF, photo, or text · OCR runs on images</p>
+          <p className="text-[11px] text-gray-500 mt-0.5">PDF, photo, or text · OCR runs on images and scanned PDFs</p>
         </label>
       </div>
 
@@ -162,7 +207,7 @@ export default function DocumentAutoscan({
           ) : (
             <>
               <Sparkles className="w-4 h-4 mr-2" />
-              Scan & fill form
+              Scan document
             </>
           )}
         </Button>
@@ -175,6 +220,17 @@ export default function DocumentAutoscan({
           <FileText className="w-4 h-4 mr-2" />
           Paste text
         </Button>
+        <Button
+          type="button"
+          onClick={handleUpdateForm}
+          disabled={scanning || !canUpdate}
+          className="bg-emerald-600 hover:bg-emerald-700"
+          size="sm"
+          data-testid="autoscan-update-form"
+        >
+          <ClipboardCheck className="w-4 h-4 mr-2" />
+          Update form
+        </Button>
         {(file || pastedText || result) && (
           <Button
             type="button"
@@ -184,6 +240,7 @@ export default function DocumentAutoscan({
               setFile(null);
               setPastedText("");
               setResult(null);
+              setAppliedCount(0);
               if (fileRef.current) fileRef.current.value = "";
             }}
           >
@@ -193,12 +250,15 @@ export default function DocumentAutoscan({
         )}
       </div>
 
-      {pasteOpen && (
+      {(pasteOpen || pastedText) && (
         <Textarea
           value={pastedText}
-          onChange={(event) => setPastedText(event.target.value)}
-          placeholder="Paste invoice or bill of sale text here, then click Scan & fill form."
-          rows={4}
+          onChange={(event) => {
+            setPastedText(event.target.value);
+            setAppliedCount(0);
+          }}
+          placeholder="Paste invoice or bill of sale text here, then click Update form. Scanning a file also fills this box."
+          rows={6}
         />
       )}
 
@@ -218,9 +278,14 @@ export default function DocumentAutoscan({
               ))}
             </div>
           )}
-          {result.source === "local" && (
+          {appliedCount > 0 && (
+            <p className="text-xs font-medium text-emerald-700">
+              Copied {appliedCount} field{appliedCount === 1 ? "" : "s"} into the form above. Review values before saving.
+            </p>
+          )}
+          {result.source === "local" && appliedCount === 0 && (
             <p className="text-[11px] text-gray-500">
-              Filled from on-device document reading. Review values before saving.
+              Click Update form to copy these values into the {profile} fields above.
             </p>
           )}
         </div>
