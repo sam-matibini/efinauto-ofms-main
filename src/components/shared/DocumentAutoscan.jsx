@@ -94,7 +94,7 @@ export default function DocumentAutoscan({
   const fieldEntries = Object.entries(result?.fields || {});
 
   return (
-    <div className="rounded-lg border border-indigo-200 bg-gradient-to-r from-indigo-50 via-white to-purple-50 p-3 space-y-3">
+    <div className="rounded-lg border border-indigo-200 bg-gradient-to-r from-indigo-50 via-white to-purple-50 p-3 space-y-3" data-testid={`autoscan-${profile}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
