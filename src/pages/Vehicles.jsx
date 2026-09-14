@@ -1228,7 +1228,6 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
               });
             }}
           />
-        </div>
 
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
