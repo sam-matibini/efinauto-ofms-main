@@ -426,7 +426,12 @@ function parseExpenseFields(text) {
   const tax = findMoneyNear(text, ["HST", "GST", "PST", "Tax", "VAT"]);
   const amount = tax != null && total != null ? Math.max(0, +(total - tax).toFixed(2)) : total;
   const vendor = labeledValue(text, ["Vendor", "Merchant", "Store", "From", "Sold By", "Supplier"])
-    || text.split("\n").map((line) => line.trim()).find((line) => line.length > 2 && line.length < 40 && !/\d{5,}/.test(line));
+    || text.split("\n").map((line) => line.trim()).find((line) =>
+      line.length > 2 &&
+      line.length < 40 &&
+      !/\d{5,}/.test(line) &&
+      !/^(receipt|invoice|bill of sale|statement|tax invoice|document|paid)$/i.test(line)
+    );
   return compact({
     vendor_name: vendor,
     category: mapExpenseCategory(text) || "other",

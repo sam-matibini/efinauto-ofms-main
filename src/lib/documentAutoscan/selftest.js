@@ -37,8 +37,25 @@ const checks = [
   ["merge", merged.vin === fields.vin],
 ];
 
+const expense = parseDocumentFields(`RECEIPT
+Petro Canada
+Date: 2026-03-04
+Invoice #: RCP-8821
+Fuel: $84.20
+HST: $10.95
+Total: $95.15
+Paid by Visa`, "expense");
+
+checks.push(
+  ["expense vendor", /petro/i.test(expense.vendor_name || "")],
+  ["expense amount", expense.amount === 84.2 || expense.amount === 95.15],
+  ["expense tax", expense.tax_amount === 10.95],
+  ["expense category", expense.category === "fuel"],
+  ["expense reference", /RCP-8821/.test(expense.reference_number || "")],
+);
+
 const failed = checks.filter(([, ok]) => !ok);
-console.log(JSON.stringify(fields, null, 2));
+console.log(JSON.stringify({ vehicle: fields, expense }, null, 2));
 if (failed.length) {
   console.error("FAILED", failed.map(([name]) => name));
   process.exit(1);
