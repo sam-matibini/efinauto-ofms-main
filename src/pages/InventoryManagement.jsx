@@ -27,6 +27,8 @@ import InventoryExport from "@/components/shared/InventoryExport";
 import CustomReportBuilder from "@/components/inventory/CustomReportBuilder";
 import AIVehicleSearch from "@/components/inventory/AIVehicleSearch";
 import AIPurchaseOrderGenerator from "@/components/inventory/AIPurchaseOrderGenerator";
+import DocumentAutoscan from "@/components/shared/DocumentAutoscan";
+import { mergeDocumentFields } from "@/lib/documentAutoscan";
 
 export default function InventoryManagement() {
   const { selectedCompanyId } = useCompany();
@@ -947,6 +949,11 @@ function VehicleDialog({ open, onClose, vehicle, onSave }) {
         <DialogHeader>
           <DialogTitle>{vehicle ? 'Edit Vehicle' : 'Add Vehicle'}</DialogTitle>
         </DialogHeader>
+        <DocumentAutoscan
+          profile="vehicle"
+          resetKey={open}
+          onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
+        />
         <div className="grid grid-cols-2 gap-4 py-4">
           <div className="space-y-2">
             <Label>VIN *</Label>
@@ -1065,6 +1072,11 @@ function PartDialog({ open, onClose, part, onSave }) {
         <DialogHeader>
           <DialogTitle>{part ? 'Edit Part' : 'Add Part'}</DialogTitle>
         </DialogHeader>
+        <DocumentAutoscan
+          profile="part"
+          resetKey={open}
+          onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
+        />
         <div className="grid grid-cols-2 gap-4 py-4">
           <div className="space-y-2">
             <Label>Part Number *</Label>

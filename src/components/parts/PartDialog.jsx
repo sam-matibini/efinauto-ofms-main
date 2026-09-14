@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Save } from "lucide-react";
+import DocumentAutoscan from "@/components/shared/DocumentAutoscan";
+import { mergeDocumentFields } from "@/lib/documentAutoscan";
 import { supabase } from "@/api/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { useCompany } from "../shared/CompanyContext";
@@ -167,6 +169,11 @@ export default function PartDialog({ open, onClose, part, onSave, isSaving }) {
           </TabsList>
 
           <TabsContent value="basic" className="space-y-4 py-4">
+            <DocumentAutoscan
+              profile="part"
+              resetKey={open}
+              onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
+            />
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Part Number *</Label>

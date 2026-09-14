@@ -17,6 +17,8 @@ import PartsSelector from "@/components/repairs/PartsSelector";
 import TimeTrackingTab from "@/components/repairs/TimeTrackingTab";
 import AIVINScanner from "@/components/vehicles/AIVINScanner";
 import AIMileageScanner from "@/components/vehicles/AIMileageScanner";
+import DocumentAutoscan from "@/components/shared/DocumentAutoscan";
+import { mergeDocumentFields } from "@/lib/documentAutoscan";
 
 export default function RepairOrderDialog({ open, onClose, order, selectedPackage, onSave, customers }) {
   const { selectedCompanyId } = useCompany();
@@ -131,6 +133,11 @@ export default function RepairOrderDialog({ open, onClose, order, selectedPackag
           </TabsList>
 
           <TabsContent value="basic" className="space-y-4">
+            <DocumentAutoscan
+              profile="repair"
+              resetKey={open}
+              onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
+            />
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Order Number</Label>

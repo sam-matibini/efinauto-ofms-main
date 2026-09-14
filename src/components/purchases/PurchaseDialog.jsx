@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Trash2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import AIPartsSearchPurchase from "./AIPartsSearchPurchase";
+import DocumentAutoscan from "@/components/shared/DocumentAutoscan";
+import { mergeDocumentFields } from "@/lib/documentAutoscan";
 
 export default function PurchaseDialog({ open, onClose, purchase, onSave, isSaving }) {
   const [formData, setFormData] = useState({
@@ -181,6 +183,22 @@ export default function PurchaseDialog({ open, onClose, purchase, onSave, isSavi
           </TabsContent>
 
           <TabsContent value="basic" className="space-y-4">
+            <DocumentAutoscan
+              profile="purchase"
+              resetKey={open}
+              onApply={(fields) => setFormData((prev) => {
+                const merged = mergeDocumentFields(prev, fields);
+                if (merged.items?.length) {
+                  const { subtotal, taxAmount, totalAmount } = calculateTotals(
+                    merged.items,
+                    merged.tax_rate,
+                    merged.shipping_cost
+                  );
+                  return { ...merged, subtotal, tax_amount: taxAmount, total_amount: totalAmount };
+                }
+                return merged;
+              })}
+            />
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>PO Number</Label>

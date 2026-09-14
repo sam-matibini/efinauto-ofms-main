@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2 } from "lucide-react";
 import VendorSelector from "../shared/VendorSelector";
+import DocumentAutoscan from "@/components/shared/DocumentAutoscan";
+import { mergeDocumentFields } from "@/lib/documentAutoscan";
 
 export default function BillDialog({ open, onClose, bill, onSave, isSaving }) {
   const [formData, setFormData] = useState({
@@ -101,6 +103,11 @@ export default function BillDialog({ open, onClose, bill, onSave, isSaving }) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          <DocumentAutoscan
+            profile="bill"
+            resetKey={open}
+            onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
+          />
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Bill Number</Label>

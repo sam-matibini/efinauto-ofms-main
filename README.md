@@ -28,6 +28,10 @@ Required env vars:
 | `npm run preview` | Serve the production build |
 | `npm run lint` | ESLint |
 
+## Autoscan documents
+
+Add Vehicle, expenses, bills, purchase orders, invoices, bills of sale, repair orders, parts, and customers include an **Autoscan document** panel. Upload a PDF/photo or paste text from an invoice or bill of sale to extract VIN, prices, dates, and vendor details into the form. Review the filled fields before saving.
+
 ## Deploy
 
 `vercel.json` is configured for a Vite static build on Vercel.

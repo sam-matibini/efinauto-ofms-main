@@ -14,6 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import ImportCustomersDialog from "./ImportCustomersDialog";
 import { useAuth } from "@/lib/AuthContext";
 import { canManageCustomers as hasCustomerManagePermission } from "@/utils";
+import DocumentAutoscan from "@/components/shared/DocumentAutoscan";
+import { mergeDocumentFields } from "@/lib/documentAutoscan";
 
 export default function CustomersTab({ customers, selectedCompanyId }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -351,6 +353,11 @@ Return a structured address with street address, city, province/state, postal co
           <DialogTitle>{customer ? 'Edit Customer' : 'Add Customer'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          <DocumentAutoscan
+            profile="customer"
+            resetKey={open}
+            onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
+          />
           <div className="space-y-2">
             <Label>Full Name *</Label>
             <Input value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} />

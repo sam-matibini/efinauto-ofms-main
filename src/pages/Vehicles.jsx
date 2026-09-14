@@ -34,6 +34,8 @@ import VehicleBulkImportDialog from "../components/vehicles/VehicleBulkImportDia
 import AIVINScanner from "../components/vehicles/AIVINScanner";
 import AIMileageScanner from "../components/vehicles/AIMileageScanner";
 import AIInventoryInsights from "@/components/shared/AIInventoryInsights";
+import DocumentAutoscan from "@/components/shared/DocumentAutoscan";
+import { mergeDocumentFields } from "@/lib/documentAutoscan";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -890,6 +892,27 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
         </DialogHeader>
         
         <div className="space-y-4 py-4">
+          <DocumentAutoscan
+            profile="vehicle"
+            resetKey={open}
+            onApply={(fields) => {
+              setFormData((prev) => {
+                const merged = mergeDocumentFields(prev, fields);
+                if (fields.purchase_price != null) {
+                  return {
+                    ...merged,
+                    ...calculateTaxes(
+                      fields.purchase_price,
+                      merged.province,
+                      merged.tax_status,
+                      merged.pst_exempt
+                    ),
+                  };
+                }
+                return merged;
+              });
+            }}
+          />
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Ownership Type</Label>

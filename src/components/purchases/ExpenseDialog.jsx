@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import VendorSelector from "../shared/VendorSelector";
+import DocumentAutoscan from "@/components/shared/DocumentAutoscan";
+import { mergeDocumentFields } from "@/lib/documentAutoscan";
 
 export default function ExpenseDialog({ open, onClose, expense, onSave, isSaving }) {
   const [formData, setFormData] = useState({
@@ -61,6 +63,11 @@ export default function ExpenseDialog({ open, onClose, expense, onSave, isSaving
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          <DocumentAutoscan
+            profile="expense"
+            resetKey={open}
+            onApply={(fields) => setFormData((prev) => mergeDocumentFields(prev, fields))}
+          />
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Select Vendor</Label>
