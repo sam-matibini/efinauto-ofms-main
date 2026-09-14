@@ -57,6 +57,7 @@ export default function BillOfSaleExport({ sales, company }) {
     { label: "Payment Status", accessor: (s) => s.payment_status || "" },
     { label: "Status", accessor: (s) => s.status || "" },
     { label: "Salesman", accessor: (s) => s.salesman || "" },
+    { label: "Salesman Phone", accessor: (s) => s.salesman_phone || "" },
     { label: "Notes", accessor: (s) => s.notes || "" },
   ];
 

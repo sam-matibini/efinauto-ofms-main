@@ -26,6 +26,8 @@ const normalizeSaleData = (sale) => {
     customer_email: sale.customer_email || '',
     province: sale.province || '',
     salesman: sale.salesman || '',
+    salesman_phone: sale.salesman_phone || '',
+    seller_signature_url: sale.seller_signature_url || '',
     vehicle_details: sale.vehicle_details || '',
     vehicle_year: sale.vehicle_year || '',
     vehicle_make_model: sale.vehicle_make_model || '',
@@ -388,6 +390,12 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           <div className="border-b border-gray-800 pb-1">
             <span className="text-sm font-semibold">Salesman:</span>
             <span className="ml-2">{safeSale.salesman || ''}</span>
+            {safeSale.salesman_phone ? (
+              <span className="block text-sm mt-1">
+                <span className="font-semibold">Tel:</span>
+                <span className="ml-2">{safeSale.salesman_phone}</span>
+              </span>
+            ) : null}
           </div>
         </div>
 
@@ -567,7 +575,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           <p className="font-semibold mb-2">Purchaser's Signature:</p>
           {buyerSignature ? (
             <div className="border-2 border-green-200 bg-green-50 rounded-lg p-3 relative">
-              {typeof buyerSignature === 'string' && buyerSignature.startsWith('http') ? (
+              {typeof buyerSignature === 'string' && (buyerSignature.startsWith('http') || buyerSignature.startsWith('data:') || buyerSignature.startsWith('blob:')) ? (
                 <img src={buyerSignature} alt="Buyer Signature" className="h-12 object-contain mx-auto" />
               ) : (
                 <div className="text-center">
@@ -638,7 +646,7 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           <p className="font-semibold mb-2">Salesman/Seller Signature:</p>
           {sellerSignature ? (
             <div className="border-2 border-green-200 bg-green-50 rounded-lg p-3 relative">
-              {typeof sellerSignature === 'string' && sellerSignature.startsWith('http') ? (
+              {typeof sellerSignature === 'string' && (sellerSignature.startsWith('http') || sellerSignature.startsWith('data:') || sellerSignature.startsWith('blob:')) ? (
                 <img src={sellerSignature} alt="Seller Signature" className="h-12 object-contain mx-auto" />
               ) : sellerSignature?.textBased ? (
                 <div className="text-center">

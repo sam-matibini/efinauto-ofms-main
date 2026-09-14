@@ -38,6 +38,8 @@ import { printDocument } from "../components/sales/DocumentSharingService";
 import { generateDocumentPDF } from "../components/sales/DocumentPDFService";
 import AIDocumentSummary from "../components/shared/AIDocumentSummary";
 import DocumentAutoscan from "../components/shared/DocumentAutoscan";
+import SalesmanSection from "../components/sales/SalesmanSection";
+import { getDefaultSalesmanProfile } from "@/lib/salesmanProfiles";
 import { mergeDocumentFields } from "@/lib/documentAutoscan";
 import { useCompany } from "../components/shared/CompanyContext";
 import { generateBOSNumber, voidBOS } from "../components/sales/BOSNumberingService";
@@ -1172,7 +1174,12 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
     status: "pending",
     financing: { enabled: false },
     trade_in: { has_trade_in: false },
-    notes: ""
+    notes: "",
+    salesman: "",
+    salesman_phone: "",
+    seller_name: "",
+    seller_signature_url: "",
+    seller_signed_at: ""
   });
 
   // Load editing sale data
@@ -1217,9 +1224,16 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
         status: editingSale.status || "pending",
         financing: editingSale.financing || { enabled: false },
         trade_in: editingSale.trade_in || { has_trade_in: false },
-        notes: editingSale.notes || ""
+        notes: editingSale.notes || "",
+        salesman: editingSale.salesman || editingSale.seller_name || "",
+        salesman_phone: editingSale.salesman_phone || "",
+        seller_name: editingSale.seller_name || editingSale.salesman || "",
+        seller_signature_url: editingSale.seller_signature_url || "",
+        seller_signed_at: editingSale.seller_signed_at || ""
       });
     } else if (open && !editingSale) {
+      const saved = getDefaultSalesmanProfile(currentUser?.id || currentUser?.email);
+      const salesmanName = saved?.name || currentUser?.full_name || "";
       setFormData({
         sale_number: `SALE-${Date.now()}`,
         sale_type: "domestic",
@@ -1259,10 +1273,15 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
         status: "pending",
         financing: { enabled: false },
         trade_in: { has_trade_in: false },
-        notes: ""
+        notes: "",
+        salesman: salesmanName,
+        salesman_phone: saved?.phone || currentUser?.phone || "",
+        seller_name: salesmanName,
+        seller_signature_url: saved?.signature || "",
+        seller_signed_at: saved?.signature ? new Date().toISOString() : ""
       });
     }
-  }, [open, editingSale]);
+  }, [open, editingSale, currentUser]);
 
   // Auto-set tax_status to zero_rated when sale_type is export
   const handleSaleTypeChange = (isExport) => {
@@ -1351,6 +1370,18 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
     
     // Add PST exemption audit fields if exempt
     const dataToSave = { ...formData };
+    if (dataToSave.seller_signature_url && dataToSave.seller_signature_url.startsWith("data:")) {
+      try {
+        const response = await fetch(dataToSave.seller_signature_url);
+        const blob = await response.blob();
+        const file = new File([blob], `salesman-signature-${Date.now()}.png`, { type: "image/png" });
+        const uploaded = await supabase.integrations.Core.UploadFile({ file });
+        dataToSave.seller_signature_url = uploaded?.file_url || uploaded?.url || dataToSave.seller_signature_url;
+      } catch (error) {
+        console.warn("Could not upload salesman signature; saving locally captured image.", error);
+      }
+    }
+    dataToSave.seller_name = dataToSave.salesman || dataToSave.seller_name;
     if (formData.pst_exempt && !editingSale?.pst_exempt) {
       const user = await supabase.auth.me();
       dataToSave.pst_exempt_by = user.email;
@@ -1493,6 +1524,16 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
                 </Select>
               </div>
             </div>
+
+            <SalesmanSection
+              userId={currentUser?.id || currentUser?.email}
+              value={{
+                salesman: formData.salesman,
+                salesman_phone: formData.salesman_phone,
+                seller_signature_url: formData.seller_signature_url,
+              }}
+              onChange={(fields) => setFormData((prev) => ({ ...prev, ...fields }))}
+            />
 
             <CanadianTaxCalculator
               value={formData.province}

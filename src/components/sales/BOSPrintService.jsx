@@ -79,6 +79,7 @@ export const sanitizeBOSForPrint = (sale) => {
     sale_type: sale.sale_type || 'domestic',
     province: sale.province || '',
     salesman: sale.salesman || '',
+    salesman_phone: sale.salesman_phone || '',
     
     // PST exemption
     pst_exempt: sale.pst_exempt || false,

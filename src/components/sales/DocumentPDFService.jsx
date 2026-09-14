@@ -194,6 +194,10 @@ const generateCleanHTMLTemplate = (document, company, type) => {
         <div class="buyer-value">${safe(document.salesman)}</div>
       </div>
       <div class="buyer-field">
+        <div class="buyer-label">Salesman Telephone</div>
+        <div class="buyer-value">${safe(document.salesman_phone)}</div>
+      </div>
+      <div class="buyer-field">
         <div class="buyer-label">Phone</div>
         <div class="buyer-value">${safe(document.customer_phone)}</div>
       </div>
@@ -269,6 +273,7 @@ const generateCleanHTMLTemplate = (document, company, type) => {
       ${document.seller_signature_url ? `<img src="${document.seller_signature_url}" class="sig-image" />` : '<div style="height:44px;"></div>'}
       <div class="sig-line"></div>
       <div class="sig-label">Salesman / Seller Signature</div>
+      ${document.salesman || document.seller_name ? `<div class="sig-name">${safe(document.salesman || document.seller_name)}${document.salesman_phone ? ' · ' + safe(document.salesman_phone) : ''}</div>` : ''}
       ${document.seller_signed_at ? `<div class="sig-name">Signed: ${new Date(document.seller_signed_at).toLocaleDateString('en-CA')}</div>` : ''}
     </div>
   </div>
