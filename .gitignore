@@ -29,3 +29,5 @@ dist-ssr
 
 .env
 base44/.app.jsonc
+.github-token
+github-token.txt
