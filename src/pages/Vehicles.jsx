@@ -119,7 +119,15 @@ export default function Vehicles() {
       }
       return vehicle;
     },
-    onSuccess: () => {
+    onSuccess: (vehicle) => {
+      queryClient.setQueryData(['vehicles', selectedCompanyId], (prev = []) => {
+        if (!vehicle?.id) return prev;
+        const list = Array.isArray(prev) ? prev : [];
+        if (list.some((item) => item.id === vehicle.id)) {
+          return list.map((item) => (item.id === vehicle.id ? { ...item, ...vehicle } : item));
+        }
+        return [vehicle, ...list];
+      });
       queryClient.invalidateQueries({ queryKey: ['vehicles', selectedCompanyId] });
       queryClient.invalidateQueries({ queryKey: ['purchases'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -244,7 +252,9 @@ export default function Vehicles() {
     totalValue: filteredVehicles.reduce((sum, v) => sum + (v.total_cost || v.purchase_price || v.selling_price || 0), 0),
   };
 
-  const handleSave = async (formData) => {
+  const handleSave = async (formData, event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
     if (!selectedCompanyId) {
       toast.error("Please select a company first");
       return;
@@ -813,6 +823,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
   });
 
   const [formData, setFormData] = useState(emptyForm);
+  const [submitting, setSubmitting] = useState(false);
 
   React.useEffect(() => {
     if (open) {
@@ -902,15 +913,42 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
   };
 
   const canSave = vehicleFormCanSave(formData);
+  const busy = Boolean(isSaving || submitting);
+
+  const handleSubmit = async (event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    if (busy || !canSave) return;
+    setSubmitting(true);
+    try {
+      await onSave(formData, event);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
-    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={(next) => { if (!next && !busy) onClose(); }}>
+      <DialogContent
+        className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-6"
+        onPointerDownOutside={(event) => { if (busy) event.preventDefault(); }}
+        onInteractOutside={(event) => {
+          const target = event.target;
+          if (busy) {
+            event.preventDefault();
+            return;
+          }
+          if (target instanceof Element && target.closest("[data-radix-select-content],[data-radix-popper-content-wrapper],[data-radix-popover-content]")) {
+            event.preventDefault();
+          }
+        }}
+        onEscapeKeyDown={(event) => { if (busy) event.preventDefault(); }}
+      >
         <DialogHeader>
           <DialogTitle>{vehicle ? 'Edit Vehicle' : 'Add Vehicle'}</DialogTitle>
         </DialogHeader>
-        
-        <div className="space-y-4 py-4">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-4 pr-1">
           <VehicleVendorSection
             formData={formData}
             onChange={setFormData}
@@ -1130,15 +1168,14 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
           />
         </div>
 
-        <div className="sticky bottom-0 flex justify-end gap-3 bg-background pt-3">
-          <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
+        <div className="flex justify-end gap-3 border-t bg-background pt-3" data-vehicle-dialog-footer="true">
+          <Button type="button" variant="outline" onClick={onClose} disabled={busy}>Cancel</Button>
           <Button 
-            type="button"
-            onClick={() => onSave(formData)} 
+            type="submit"
             className="bg-blue-600 hover:bg-blue-700"
-            disabled={isSaving || !canSave}
+            disabled={busy || !canSave}
           >
-            {isSaving ? (
+            {busy ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Saving...
@@ -1148,6 +1185,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
             )}
           </Button>
         </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

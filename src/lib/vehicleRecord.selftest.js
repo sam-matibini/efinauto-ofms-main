@@ -152,7 +152,7 @@ const saved = await persistVehicleRecord({
 });
 const live = liveVehiclePayload(payload);
 checks.push(["persist retry omitted unknown", created && created.pst_exempt == null && created.tax_rst == null && saved.id === "veh-1"]);
-checks.push(["persist used live columns quickly", attempts <= 3]);
+checks.push(["persist used live columns quickly", attempts === 1]);
 checks.push(["fallback notes keep GST", /GST#\s*R122001191/i.test(created?.notes || live.notes || "")]);
 checks.push(["fallback notes keep MPI doc", /51901903/.test(created?.notes || "")]);
 

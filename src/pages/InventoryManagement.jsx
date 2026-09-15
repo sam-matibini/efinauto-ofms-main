@@ -160,7 +160,15 @@ export default function InventoryManagement() {
       }
       return vehicle;
     },
-    onSuccess: () => {
+    onSuccess: (vehicle) => {
+      queryClient.setQueryData(['vehicles', selectedCompanyId], (prev = []) => {
+        if (!vehicle?.id) return prev;
+        const list = Array.isArray(prev) ? prev : [];
+        if (list.some((item) => item.id === vehicle.id)) {
+          return list.map((item) => (item.id === vehicle.id ? { ...item, ...vehicle } : item));
+        }
+        return [vehicle, ...list];
+      });
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       queryClient.invalidateQueries({ queryKey: ['purchases'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -918,6 +926,7 @@ export default function InventoryManagement() {
         open={vehicleDialogOpen}
         onClose={() => { setVehicleDialogOpen(false); setEditingVehicle(null); }}
         vehicle={editingVehicle}
+        isSaving={createVehicleMutation.isPending || updateVehicleMutation.isPending}
         onSave={async (data) => {
           if (!vehicleFormCanSave(data)) {
             toast.error("Please fill in all required fields (VIN, Make, Model, Year)");
@@ -1006,7 +1015,7 @@ function emptyVehicleForm() {
   };
 }
 
-function VehicleDialog({ open, onClose, vehicle, onSave }) {
+function VehicleDialog({ open, onClose, vehicle, onSave, isSaving }) {
   const { selectedCompanyId } = useCompany();
   const { data: vendors = [] } = useQuery({
     queryKey: ["vendors", selectedCompanyId],
@@ -1015,20 +1024,49 @@ function VehicleDialog({ open, onClose, vehicle, onSave }) {
     initialData: [],
   });
   const [formData, setFormData] = React.useState(vehicle ? { ...emptyVehicleForm(), ...vehicle, post_to_gl: false } : emptyVehicleForm());
+  const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
     setFormData(vehicle ? { ...emptyVehicleForm(), ...vehicle, post_to_gl: false } : emptyVehicleForm());
   }, [vehicle, open]);
 
   const canSave = vehicleFormCanSave(formData);
+  const busy = Boolean(isSaving || submitting);
+
+  const handleSubmit = async (event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    if (busy || !canSave) return;
+    setSubmitting(true);
+    try {
+      await onSave(formData);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
-    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={(next) => { if (!next && !busy) onClose(); }}>
+      <DialogContent
+        className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-6"
+        onPointerDownOutside={(event) => { if (busy) event.preventDefault(); }}
+        onInteractOutside={(event) => {
+          const target = event.target;
+          if (busy) {
+            event.preventDefault();
+            return;
+          }
+          if (target instanceof Element && target.closest("[data-radix-select-content],[data-radix-popper-content-wrapper],[data-radix-popover-content]")) {
+            event.preventDefault();
+          }
+        }}
+        onEscapeKeyDown={(event) => { if (busy) event.preventDefault(); }}
+      >
         <DialogHeader>
           <DialogTitle>{vehicle ? 'Edit Vehicle' : 'Add Vehicle'}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-4 pr-1">
           <VehicleVendorSection
             formData={formData}
             onChange={setFormData}
@@ -1166,12 +1204,13 @@ function VehicleDialog({ open, onClose, vehicle, onSave }) {
             onApply={(fields) => setFormData((prev) => applyVehicleDocumentScan(prev, fields, { vendors }))}
           />
         </div>
-        <div className="sticky bottom-0 flex justify-end gap-3 bg-background pt-3">
-          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-          <Button type="button" onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700" disabled={!canSave}>
+        <div className="flex justify-end gap-3 border-t bg-background pt-3">
+          <Button type="button" variant="outline" onClick={onClose} disabled={busy}>Cancel</Button>
+          <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={busy || !canSave}>
             {vehicle ? 'Update' : 'Add'} Vehicle
           </Button>
         </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -294,6 +294,29 @@ export function liveVehiclePayload(payload = {}) {
   return live;
 }
 
+function isNoRowReturnedError(error) {
+  const text = errorText(error);
+  return /PGRST116|Results contain 0 rows|Cannot coerce the result to a single JSON object/i.test(text);
+}
+
+async function writeVehicleRecord(supabase, payload, existingId) {
+  try {
+    if (existingId) return await supabase.entities.Vehicle.update(existingId, payload);
+    return await supabase.entities.Vehicle.create(payload);
+  } catch (error) {
+    if (!isNoRowReturnedError(error) || !payload.vin || !payload.company_id) throw error;
+    const rows = await supabase.entities.Vehicle.filter({
+      company_id: payload.company_id,
+      vin: payload.vin,
+    });
+    const found = (Array.isArray(rows) ? rows : []).find((row) => (
+      String(row?.vin || "").toUpperCase() === String(payload.vin).toUpperCase()
+    ));
+    if (found) return found;
+    throw error;
+  }
+}
+
 export async function persistVehicleRecord({
   supabase,
   companyId,
@@ -311,18 +334,28 @@ export async function persistVehicleRecord({
   const live = liveVehiclePayload(data);
 
   try {
-    return await persistWithUnknownColumnRetry({
-      write: (payload) => (
-        existingId
-          ? supabase.entities.Vehicle.update(existingId, payload)
-          : supabase.entities.Vehicle.create(payload)
-      ),
-      data,
-      fallback: live,
-      onUnknownColumn: (column) => (
-        VEHICLE_LIVE_COLUMNS.has(column) ? null : live
-      ),
+    const saved = await persistWithUnknownColumnRetry({
+      write: (payload) => writeVehicleRecord(supabase, payload, existingId),
+      data: live,
+      fallback: {
+        company_id: live.company_id,
+        vin: live.vin,
+        make: live.make,
+        model: live.model,
+        year: live.year,
+        condition: live.condition || "used",
+        status: live.status || "in_stock",
+        ownership_type: live.ownership_type || "dealership_owned",
+        purchase_price: live.purchase_price || 0,
+        selling_price: live.selling_price || 0,
+        mileage: live.mileage || 0,
+        notes: live.notes,
+      },
     });
+    if (!saved?.id && !existingId) {
+      throw new Error("Vehicle was not saved. Please try again.");
+    }
+    return saved;
   } catch (error) {
     const detail = errorText(error) || "Unknown error";
     const wrapped = new Error(`Vehicle could not be saved: ${detail}`);
