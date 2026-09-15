@@ -62,6 +62,36 @@ const VEHICLE_CORE_KEYS = [
   "total_cost",
 ];
 
+export const VEHICLE_LIVE_COLUMNS = new Set([
+  ...VEHICLE_CORE_KEYS,
+  "stock_number",
+  "invoice_number",
+  "transaction_date",
+  "engine_capacity",
+  "features",
+  "images",
+  "vendor_id",
+  "vendor_name",
+  "vendor_phone",
+  "vendor_email",
+]);
+
+const EXTRA_NOTE_FIELDS = [
+  ["Vendor address", "vendor_address"],
+  ["Vendor city", "vendor_city"],
+  ["Vendor province", "vendor_province"],
+  ["Vendor country", "vendor_country"],
+  ["Vendor postal", "vendor_postal_code"],
+  ["Vendor GST#", "vendor_gst_number"],
+  ["Vendor PST#", "vendor_pst_number"],
+  ["Bidder#", "bidder_number"],
+  ["Storage yard", "storage_yard"],
+  ["Auction#", "auction_number"],
+  ["MPI DOC#", "mpi_doc_number"],
+  ["Tax exemption", "tax_exemption_reason"],
+  ["Odometer as of", "odometer_as_of"],
+];
+
 export function asString(value, max = 8000) {
   if (value == null) return "";
   return String(value).replace(/\u0000/g, " ").replace(/[ \t]+/g, " ").trim().slice(0, max);
@@ -237,6 +267,33 @@ export function buildVehiclePersistPayload(form = {}, companyId) {
   return payload;
 }
 
+export function extraVehicleFieldsNote(payload = {}) {
+  const bits = [];
+  if (payload.pst_exempt) bits.push("PST/RST exempt.");
+  for (const [label, key] of EXTRA_NOTE_FIELDS) {
+    const value = payload[key];
+    if (value == null || value === "") continue;
+    bits.push(`${label} ${value}`.trim());
+  }
+  if (Array.isArray(payload.purchase_documents)) {
+    const docs = payload.purchase_documents.map((doc) => doc?.url || doc?.name).filter(Boolean);
+    if (docs.length) bits.push(`Purchase documents: ${docs.join("; ")}`);
+  }
+  return bits.join(" ").trim();
+}
+
+export function liveVehiclePayload(payload = {}) {
+  const live = {};
+  for (const [key, value] of Object.entries(payload)) {
+    if (!VEHICLE_LIVE_COLUMNS.has(key) || value == null || value === "") continue;
+    live[key] = value;
+  }
+  const extraNote = extraVehicleFieldsNote(payload);
+  const notes = [live.notes, extraNote].filter(Boolean).join(" ").trim().slice(0, 2000);
+  if (notes) live.notes = notes;
+  return live;
+}
+
 export async function persistVehicleRecord({
   supabase,
   companyId,
@@ -251,10 +308,7 @@ export async function persistVehicleRecord({
     throw new Error("Please fill in all required fields (VIN, Make, Model, Year)");
   }
 
-  const core = {};
-  for (const key of VEHICLE_CORE_KEYS) {
-    if (data[key] != null && data[key] !== "") core[key] = data[key];
-  }
+  const live = liveVehiclePayload(data);
 
   try {
     return await persistWithUnknownColumnRetry({
@@ -264,7 +318,10 @@ export async function persistVehicleRecord({
           : supabase.entities.Vehicle.create(payload)
       ),
       data,
-      fallback: core,
+      fallback: live,
+      onUnknownColumn: (column) => (
+        VEHICLE_LIVE_COLUMNS.has(column) ? null : live
+      ),
     });
   } catch (error) {
     const detail = errorText(error) || "Unknown error";

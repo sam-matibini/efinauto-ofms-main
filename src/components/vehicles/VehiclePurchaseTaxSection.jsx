@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { vehiclePurchaseTaxes } from "@/lib/vehiclePurchaseTaxes";
+import { selectValue } from "@/lib/vehicleRecord";
 
 const PROVINCES = [
   ["AB", "Alberta"],
@@ -64,7 +65,7 @@ export default function VehiclePurchaseTaxSection({
         <div className="space-y-2">
           <Label>Province</Label>
           <Select
-            value={formData.province || undefined}
+            value={selectValue(formData.province, PROVINCES.map(([code]) => code))}
             onValueChange={(province) => applyComputed({ province }, true)}
           >
             <SelectTrigger>
@@ -80,7 +81,7 @@ export default function VehiclePurchaseTaxSection({
         <div className="space-y-2">
           <Label>Tax status</Label>
           <Select
-            value={formData.tax_status || "taxable"}
+            value={selectValue(formData.tax_status, ["taxable", "zero_rated", "exempt"]) || "taxable"}
             onValueChange={(tax_status) => applyComputed({ tax_status }, true)}
           >
             <SelectTrigger>

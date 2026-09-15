@@ -17,10 +17,13 @@ export function errorText(error) {
 
 export function unknownColumnFromError(error) {
   const text = errorText(error);
-  return text.match(/Could not find the '([^']+)' column/i)?.[1]
-    || text.match(/column "([^"]+)"(?: of relation)?/i)?.[1]
-    || text.match(/unknown column [`'"]([^`'"]+)[`'"]/i)?.[1]
+  const raw = text.match(/Could not find the '([^']+)' column/i)?.[1]
+    || text.match(/column "([^"]+)"/i)?.[1]
+    || text.match(/column ([\w]+)\.([a-z_][a-z0-9_]*) does not exist/i)?.[2]
+    || text.match(/\bcolumn ([a-z_][a-z0-9_]*) does not exist/i)?.[1]
     || null;
+  if (!raw) return null;
+  return String(raw).split(".").pop();
 }
 
 export function fieldToDropFromPersistError(error, data = {}) {
@@ -28,7 +31,12 @@ export function fieldToDropFromPersistError(error, data = {}) {
   if (column && Object.prototype.hasOwnProperty.call(data, column)) return column;
 
   const text = errorText(error);
-  if (/invalid input syntax for type json|malformed array literal|22P02/i.test(text)) {
+  if (/invalid input syntax for type uuid|foreign key constraint|23503/i.test(text)) {
+    if ("vendor_id" in data) return "vendor_id";
+    if ("purchase_id" in data) return "purchase_id";
+  }
+
+  if (/invalid input syntax for type json|malformed array literal/i.test(text) || (/\b22P02\b/.test(text) && !/uuid/i.test(text))) {
     if ("purchase_documents" in data) return "purchase_documents";
     if ("images" in data) return "images";
   }
@@ -77,7 +85,8 @@ export async function persistWithUnknownColumnRetry({
   write,
   data,
   fallback,
-  maxAttempts = 16,
+  onUnknownColumn,
+  maxAttempts = 40,
 }) {
   let current = { ...data };
   let usedFallback = false;
@@ -90,6 +99,13 @@ export async function persistWithUnknownColumnRetry({
       lastError = error;
       const drop = fieldToDropFromPersistError(error, current);
       if (drop) {
+        if (typeof onUnknownColumn === "function") {
+          const replacement = onUnknownColumn(drop, current, error);
+          if (replacement && typeof replacement === "object") {
+            current = { ...replacement };
+            continue;
+          }
+        }
         const { [drop]: _removed, ...rest } = current;
         current = rest;
         continue;

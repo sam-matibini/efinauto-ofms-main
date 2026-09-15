@@ -2,6 +2,7 @@ import { parseMpiSalvageBillOfSale } from "./documentAutoscan/parseMpiBillOfSale
 import {
   buildVehiclePersistPayload,
   cleanVehicleModel,
+  liveVehiclePayload,
   persistVehicleRecord,
   sanitizeVehicleForm,
   selectValue,
@@ -121,15 +122,22 @@ checks.push(["pdf notes stripped", sanitizeVehicleForm({
 }).notes === ""]);
 
 let created;
+const unknownColumns = new Set([
+  "pst_exempt", "tax_rst", "total_vehicle_expenditure", "gl_posted", "purchase_id",
+  "purchase_documents", "vendor_address", "vendor_city", "vendor_province",
+  "vendor_country", "vendor_postal_code", "vendor_gst_number", "vendor_pst_number",
+  "bidder_number", "storage_yard", "auction_number", "mpi_doc_number",
+  "tax_exemption_reason", "odometer_as_of",
+]);
+let attempts = 0;
 const fakeSupabase = {
   entities: {
     Vehicle: {
       create: async (data) => {
-        if ("pst_exempt" in data) {
-          throw { message: "Could not find the 'pst_exempt' column of 'vehicles' in the schema cache" };
-        }
-        if ("tax_rst" in data) {
-          throw { details: 'column "tax_rst" of relation "vehicles" does not exist', code: "42703" };
+        attempts += 1;
+        const unknown = Object.keys(data).find((key) => unknownColumns.has(key));
+        if (unknown) {
+          throw { message: `column vehicles.${unknown} does not exist`, code: "42703" };
         }
         created = data;
         return { id: "veh-1", ...data };
@@ -140,9 +148,13 @@ const fakeSupabase = {
 const saved = await persistVehicleRecord({
   supabase: fakeSupabase,
   companyId: "co-1",
-  form: { ...scanned, company_id: "co-1" },
+  form: { ...scanned, company_id: "co-1", purchase_documents: [{ name: "bos.pdf", url: "https://files.example/bos.pdf" }] },
 });
+const live = liveVehiclePayload(payload);
 checks.push(["persist retry omitted unknown", created && created.pst_exempt == null && created.tax_rst == null && saved.id === "veh-1"]);
+checks.push(["persist used live columns quickly", attempts <= 3]);
+checks.push(["fallback notes keep GST", /GST#\s*R122001191/i.test(created?.notes || live.notes || "")]);
+checks.push(["fallback notes keep MPI doc", /51901903/.test(created?.notes || "")]);
 
 const failed = checks.filter(([, ok]) => !ok);
 if (failed.length) {

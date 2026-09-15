@@ -1,5 +1,6 @@
 import { supabase } from "@/api/supabaseClient";
 import { createGLTransaction, GL_ACCOUNTS } from "@/components/shared/GLIntegration";
+import { persistWithUnknownColumnRetry } from "@/lib/persistErrors";
 import { vehiclePurchaseTaxes, roundMoney } from "@/lib/vehiclePurchaseTaxes";
 
 function today() {
@@ -46,7 +47,7 @@ export async function postVehiclePurchaseAccounting({
   const purchaseDate = form.transaction_date || vehicle.transaction_date || today();
   const purchaseNumber = `VEH-${(vin || vehicle.id).toString().slice(-8).toUpperCase()}-${Date.now().toString().slice(-4)}`;
 
-  const purchase = await supabase.entities.Purchase.create({
+  const purchasePayload = {
     company_id: companyId,
     purchase_number: purchaseNumber,
     supplier_name: form.vendor_name || vehicle.vendor_name || "Vehicle vendor",
@@ -116,6 +117,25 @@ export async function postVehiclePurchaseAccounting({
     ].filter(Boolean).join(" "),
     vehicle_id: vehicle.id,
     vehicle_vin: vin,
+  };
+
+  const purchase = await persistWithUnknownColumnRetry({
+    write: (payload) => supabase.entities.Purchase.create(payload),
+    data: purchasePayload,
+    fallback: {
+      company_id: companyId,
+      purchase_number: purchaseNumber,
+      supplier_name: purchasePayload.supplier_name,
+      purchase_type: "vehicle",
+      items: purchasePayload.items,
+      subtotal: pretax,
+      tax_amount: taxes.net_tax_to_purchases,
+      total_amount: taxes.total_vehicle_expenditure,
+      payment_status: "pending",
+      status: "received",
+      order_date: purchaseDate,
+      notes: purchasePayload.notes,
+    },
   });
 
   const glEntries = [];
@@ -166,18 +186,30 @@ export async function postVehiclePurchaseAccounting({
     );
   }
 
-  const posted = await supabase.entities.Vehicle.update(vehicle.id, {
-    purchase_price: pretax,
-    tax_gst: taxes.tax_gst,
-    tax_pst: taxes.tax_pst,
-    tax_hst: taxes.tax_hst,
-    tax_rst: taxes.tax_rst,
-    tax_total: taxes.tax_total,
-    total_cost: taxes.total_vehicle_expenditure,
-    total_vehicle_expenditure: taxes.total_vehicle_expenditure,
-    purchase_id: purchase.id,
-    gl_posted: true,
-    status: vehicle.status || form.status || "in_stock",
+  const posted = await persistWithUnknownColumnRetry({
+    write: (payload) => supabase.entities.Vehicle.update(vehicle.id, payload),
+    data: {
+      purchase_price: pretax,
+      tax_gst: taxes.tax_gst,
+      tax_pst: taxes.tax_pst,
+      tax_hst: taxes.tax_hst,
+      tax_rst: taxes.tax_rst,
+      tax_total: taxes.tax_total,
+      total_cost: taxes.total_vehicle_expenditure,
+      total_vehicle_expenditure: taxes.total_vehicle_expenditure,
+      purchase_id: purchase.id,
+      gl_posted: true,
+      status: vehicle.status || form.status || "in_stock",
+    },
+    fallback: {
+      purchase_price: pretax,
+      tax_gst: taxes.tax_gst,
+      tax_pst: taxes.tax_pst,
+      tax_hst: taxes.tax_hst,
+      tax_total: taxes.tax_total,
+      total_cost: taxes.total_vehicle_expenditure,
+      status: vehicle.status || form.status || "in_stock",
+    },
   });
 
   return { purchase, glEntries, vehicle: posted, taxes };
