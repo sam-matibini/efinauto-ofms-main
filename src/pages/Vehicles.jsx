@@ -41,7 +41,7 @@ import VehiclePurchaseDocuments from "@/components/vehicles/VehiclePurchaseDocum
 import { postVehiclePurchaseAccounting } from "@/lib/postVehiclePurchase";
 import { applyVehicleDocumentScan } from "@/lib/applyVehicleDocumentScan";
 import { addPurchaseDocument } from "@/lib/vehiclePurchaseDocuments";
-import { persistVehicleRecord, selectValue, VEHICLE_ENUMS, ensureVehicleSaveDefaults } from "@/lib/vehicleRecord";
+import { persistVehicleRecord, selectValue, VEHICLE_ENUMS, ensureVehicleSaveDefaults, vehicleSelectIsHidden } from "@/lib/vehicleRecord";
 import {
   emptyVehicleVendorFields,
   fillMissingVendorFields,
@@ -106,7 +106,7 @@ export default function Vehicles() {
         companyId: selectedCompanyId,
         form,
       });
-      if (postToGl) {
+      if (postToGl && vehicle?.id && !vehicleSelectIsHidden(vehicle)) {
         postVehiclePurchaseAccounting({
           companyId: selectedCompanyId,
           vehicle,
@@ -120,16 +120,22 @@ export default function Vehicles() {
     },
     onSuccess: (vehicle) => {
       queryClient.setQueryData(['vehicles', selectedCompanyId], (prev = []) => {
-        if (!vehicle?.id) return prev;
+        if (!vehicle?.id && !vehicle?.vin) return prev;
         const list = Array.isArray(prev) ? prev : [];
-        if (list.some((item) => item.id === vehicle.id)) {
-          return list.map((item) => (item.id === vehicle.id ? { ...item, ...vehicle } : item));
+        const match = (item) => (
+          (vehicle.id && item.id === vehicle.id)
+          || (vehicle.vin && String(item.vin || "").toUpperCase() === String(vehicle.vin).toUpperCase())
+        );
+        if (list.some(match)) {
+          return list.map((item) => (match(item) ? { ...item, ...vehicle } : item));
         }
         return [vehicle, ...list];
       });
-      queryClient.invalidateQueries({ queryKey: ['vehicles', selectedCompanyId] });
-      queryClient.invalidateQueries({ queryKey: ['purchases'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      if (!vehicleSelectIsHidden(vehicle)) {
+        queryClient.invalidateQueries({ queryKey: ['vehicles', selectedCompanyId] });
+        queryClient.invalidateQueries({ queryKey: ['purchases'] });
+        queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      }
       setDialogOpen(false);
       setEditingVehicle(null);
       toast.success("Vehicle added to inventory");

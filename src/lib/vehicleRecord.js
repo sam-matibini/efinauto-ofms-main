@@ -2,6 +2,8 @@ import { isPdfStructureNoise } from "./documentAutoscan/pdfNoise.js";
 import {
   errorText,
   isNoRowReturnedError,
+  isRlsViolation,
+  isUniqueViolation,
   persistWithUnknownColumnRetry,
 } from "./persistErrors.js";
 import {
@@ -69,12 +71,13 @@ export const VEHICLE_LIVE_COLUMNS = new Set([
   "invoice_number",
   "transaction_date",
   "engine_capacity",
-  "features",
   "images",
   "vendor_id",
   "vendor_name",
   "vendor_phone",
   "vendor_email",
+  "created_by",
+  "created_by_id",
 ]);
 
 const EXTRA_NOTE_FIELDS = [
@@ -91,6 +94,7 @@ const EXTRA_NOTE_FIELDS = [
   ["MPI DOC#", "mpi_doc_number"],
   ["Tax exemption", "tax_exemption_reason"],
   ["Odometer as of", "odometer_as_of"],
+  ["Features", "features"],
 ];
 
 export function asString(value, max = 8000) {
@@ -297,7 +301,11 @@ export function extraVehicleFieldsNote(payload = {}) {
   for (const [label, key] of EXTRA_NOTE_FIELDS) {
     const value = payload[key];
     if (value == null || value === "") continue;
-    bits.push(`${label} ${value}`.trim());
+    const text = Array.isArray(value)
+      ? value.filter(Boolean).join(", ")
+      : String(value).trim();
+    if (!text) continue;
+    bits.push(`${label} ${text}`.trim());
   }
   if (Array.isArray(payload.purchase_documents)) {
     const docs = payload.purchase_documents.map((doc) => doc?.url || doc?.name).filter(Boolean);
@@ -322,6 +330,87 @@ function rawSupabase(supabase) {
   return supabase?.supabase || supabase;
 }
 
+function compactPayload(payload = {}) {
+  const next = { ...payload };
+  Object.keys(next).forEach((key) => {
+    if (next[key] === undefined || next[key] === "") delete next[key];
+  });
+  return next;
+}
+
+export async function getVehicleActorFields(supabase) {
+  const fields = {};
+  const readSession = async (auth) => {
+    if (typeof auth?.getSession !== "function") return null;
+    const result = await Promise.race([
+      auth.getSession(),
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("session timeout")), 2500);
+      }),
+    ]);
+    if (!result) return null;
+    if (result.user) return result;
+    return result.data?.session || null;
+  };
+
+  try {
+    const session = await readSession(supabase?.auth) || await readSession(rawSupabase(supabase)?.auth);
+    const user = session?.user;
+    if (!user) return fields;
+    const email = asString(user.email, 240);
+    const uid = asString(user.id, 80);
+    if (email) fields.created_by = email;
+    else if (uid) fields.created_by = uid;
+    if (uid) fields.created_by_id = uid;
+  } catch {
+    /* Saving must not wait on a hanging auth lookup. */
+  }
+  return fields;
+}
+
+export function vehicleActorPayloads(payload = {}) {
+  const email = asString(payload.created_by, 240);
+  const uid = asString(payload.created_by_id, 80);
+  const variants = [];
+  const seen = new Set();
+  const push = (next) => {
+    const copy = compactPayload(next);
+    const key = `${copy.created_by || ""}|${copy.created_by_id || ""}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    variants.push(copy);
+  };
+
+  push(payload);
+  if (email && uid) {
+    push({ ...payload, created_by: email, created_by_id: uid });
+    push({ ...payload, created_by: uid, created_by_id: uid });
+    push({ ...payload, created_by: email, created_by_id: undefined });
+    push({ ...payload, created_by: uid, created_by_id: undefined });
+  } else if (uid) {
+    push({ ...payload, created_by: uid, created_by_id: uid });
+    push({ ...payload, created_by: uid, created_by_id: undefined });
+  } else if (email) {
+    push({ ...payload, created_by: email, created_by_id: undefined });
+  }
+  push({ ...payload, created_by: undefined, created_by_id: undefined });
+  return variants;
+}
+
+export function optimisticVehicleRecord(payload = {}) {
+  const vin = asString(payload.vin, 32) || String(Date.now());
+  return {
+    ...payload,
+    id: payload.id || `pending-${vin}`,
+    created_date: payload.created_date || new Date().toISOString(),
+    _selectHidden: true,
+  };
+}
+
+export function vehicleSelectIsHidden(vehicle) {
+  return Boolean(vehicle?._selectHidden) || String(vehicle?.id || "").startsWith("pending-");
+}
+
 async function findVehicleByVin(supabase, payload) {
   if (!payload?.vin || !payload?.company_id) return null;
   const rows = await supabase.entities.Vehicle.filter({
@@ -333,6 +422,13 @@ async function findVehicleByVin(supabase, payload) {
   )) || null;
 }
 
+function recoverSavedVehicle(payload, error) {
+  if (isNoRowReturnedError(error) || isUniqueViolation(error)) {
+    return optimisticVehicleRecord(payload);
+  }
+  return null;
+}
+
 async function insertVehicleRow(supabase, payload) {
   const client = rawSupabase(supabase);
   if (typeof client?.from !== "function") {
@@ -341,44 +437,64 @@ async function insertVehicleRow(supabase, payload) {
   const table = typeof client.schema === "function"
     ? client.schema("public").from("vehicles")
     : client.from("vehicles");
-  const { data, error } = await table.insert(payload).select("*").maybeSingle();
-  if (!error && data?.id) return data;
-  if (error && !isNoRowReturnedError(error)) throw error;
-  const found = await findVehicleByVin(supabase, payload);
-  if (found) return found;
-  if (error) throw error;
-  return data;
+  const { error } = await table.insert(payload);
+  if (!error) {
+    const found = await findVehicleByVin(supabase, payload).catch(() => null);
+    return found || optimisticVehicleRecord(payload);
+  }
+  const recovered = recoverSavedVehicle(payload, error);
+  if (recovered) {
+    const found = await findVehicleByVin(supabase, payload).catch(() => null);
+    return found || recovered;
+  }
+  throw error;
 }
 
 async function writeVehicleRecord(supabase, payload, existingId) {
   if (existingId) {
     try {
-      return await supabase.entities.Vehicle.update(existingId, payload);
+      const updated = await supabase.entities.Vehicle.update(existingId, payload);
+      if (updated?.id) return updated;
+      return { ...payload, ...(updated || {}), id: existingId };
     } catch (error) {
-      if (!isNoRowReturnedError(error)) throw error;
-      const found = await supabase.entities.Vehicle.get?.(existingId);
-      if (found) return { ...found, ...payload, id: existingId };
+      if (isNoRowReturnedError(error)) {
+        const found = await supabase.entities.Vehicle.get?.(existingId).catch(() => null);
+        return found || { ...payload, id: existingId, _selectHidden: !found };
+      }
+      throw error;
+    }
+  }
+
+  let lastError;
+  for (const attempt of vehicleActorPayloads(payload)) {
+    try {
+      const created = await supabase.entities.Vehicle.create(attempt);
+      if (created?.id) return created;
+      const found = await findVehicleByVin(supabase, attempt).catch(() => null);
+      if (found) return found;
+      if (created) return created;
+      return optimisticVehicleRecord(attempt);
+    } catch (error) {
+      lastError = error;
+      const found = await findVehicleByVin(supabase, attempt).catch(() => null);
+      if (found) return found;
+      if (isNoRowReturnedError(error) || isUniqueViolation(error)) {
+        return optimisticVehicleRecord(attempt);
+      }
+      if (isRlsViolation(error)) continue;
       throw error;
     }
   }
 
   try {
-    const created = await supabase.entities.Vehicle.create(payload);
-    if (created?.id) return created;
-    const found = await findVehicleByVin(supabase, payload);
-    if (found) return found;
-    if (created) return created;
+    return await insertVehicleRow(supabase, payload);
   } catch (error) {
     const found = await findVehicleByVin(supabase, payload).catch(() => null);
     if (found) return found;
-    throw error;
+    const recovered = recoverSavedVehicle(payload, error) || recoverSavedVehicle(payload, lastError);
+    if (recovered) return recovered;
+    throw lastError || error;
   }
-
-  const inserted = await insertVehicleRow(supabase, payload);
-  if (inserted?.id) return inserted;
-  const found = await findVehicleByVin(supabase, payload);
-  if (found) return found;
-  throw new Error("Vehicle was not saved. Please try again.");
 }
 
 export async function persistVehicleRecord({
@@ -387,40 +503,59 @@ export async function persistVehicleRecord({
   form,
   existingId,
 }) {
-  const data = buildVehiclePersistPayload(ensureVehicleSaveDefaults(form), companyId);
+  const actor = existingId ? {} : await getVehicleActorFields(supabase);
+  const data = buildVehiclePersistPayload(
+    ensureVehicleSaveDefaults({ ...form, ...actor }),
+    companyId,
+  );
   if (!data.company_id) {
     throw new Error("Please select a company first");
   }
 
-  const live = liveVehiclePayload(data);
+  const live = compactPayload({
+    ...liveVehiclePayload(data),
+    ...actor,
+  });
 
   try {
     const saved = await persistWithUnknownColumnRetry({
       write: (payload) => writeVehicleRecord(supabase, payload, existingId),
       data: live,
       maxAttempts: 12,
-      fallback: {
-        company_id: live.company_id,
-        vin: live.vin,
-        make: live.make,
-        model: live.model,
-        year: live.year,
-        condition: live.condition || "used",
-        status: live.status || "in_stock",
-        ownership_type: live.ownership_type || "dealership_owned",
-        purchase_price: live.purchase_price || 0,
-        selling_price: live.selling_price || 0,
-        mileage: live.mileage || 0,
-        notes: live.notes,
+      onUnknownColumn: (drop, current) => {
+        if (drop !== "features" || current.features == null || current.features === "") return null;
+        const { features, ...rest } = current;
+        rest.notes = [rest.notes, `Features ${features}`].filter(Boolean).join(" ").trim().slice(0, 500);
+        return rest;
       },
+      fallback: (current) => compactPayload({
+        company_id: current.company_id,
+        vin: current.vin,
+        make: current.make,
+        model: current.model,
+        year: current.year,
+        condition: current.condition || "used",
+        status: current.status || "in_stock",
+        ownership_type: current.ownership_type || "dealership_owned",
+        purchase_price: current.purchase_price || 0,
+        selling_price: current.selling_price || 0,
+        mileage: current.mileage || 0,
+        notes: current.notes,
+        created_by: current.created_by,
+        created_by_id: current.created_by_id,
+      }),
     });
     if (!saved?.id && !existingId) {
-      throw new Error("Vehicle was not saved. Please try again.");
+      return optimisticVehicleRecord(live);
     }
     return saved;
   } catch (error) {
     const detail = errorText(error) || "Unknown error";
-    const wrapped = new Error(`Vehicle could not be saved: ${detail}`);
+    const wrapped = new Error(
+      isRlsViolation(error)
+        ? `Vehicle could not be saved: the database blocked this insert (${detail}). Sign out and sign back in, then try again.`
+        : `Vehicle could not be saved: ${detail}`,
+    );
     wrapped.cause = error;
     throw wrapped;
   }

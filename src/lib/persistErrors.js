@@ -20,6 +20,16 @@ export function isNoRowReturnedError(error) {
   return /PGRST116|Results contain 0 rows|Cannot coerce the result to a single JSON object/i.test(text);
 }
 
+export function isRlsViolation(error) {
+  const text = errorText(error);
+  return /42501|row-level security|violates row-level security/i.test(text);
+}
+
+export function isUniqueViolation(error) {
+  const text = errorText(error);
+  return /23505|duplicate key value|unique constraint/i.test(text);
+}
+
 export function unknownColumnFromError(error) {
   const text = errorText(error);
   const raw = text.match(/Could not find the '([^']+)' column/i)?.[1]
@@ -37,13 +47,20 @@ export function fieldToDropFromPersistError(error, data = {}) {
 
   const text = errorText(error);
   if (/invalid input syntax for type uuid|foreign key constraint|23503/i.test(text)) {
+    const named = text.match(/column "([^"]+)"/i)?.[1]
+      || text.match(/\b(?:column|key)\s+([a-z_][a-z0-9_]*)/i)?.[1];
+    if (named && Object.prototype.hasOwnProperty.call(data, named)) return named;
+    if ("created_by_id" in data) return "created_by_id";
+    if ("created_by" in data && /created_by/i.test(text)) return "created_by";
     if ("vendor_id" in data) return "vendor_id";
     if ("purchase_id" in data) return "purchase_id";
   }
 
   if (/invalid input syntax for type json|malformed array literal/i.test(text) || (/\b22P02\b/.test(text) && !/uuid/i.test(text))) {
+    if ("features" in data && typeof data.features === "string") return "features";
     if ("purchase_documents" in data) return "purchase_documents";
     if ("images" in data) return "images";
+    if ("features" in data) return "features";
   }
 
   const enumValue = text.match(/invalid input value for enum [\w.]+: "([^"]*)"/i)?.[1];
@@ -116,7 +133,7 @@ export async function persistWithUnknownColumnRetry({
         current = rest;
         continue;
       }
-      if (!usedFallback && fallback && !isNoRowReturnedError(error)) {
+      if (!usedFallback && fallback && !isNoRowReturnedError(error) && !isUniqueViolation(error)) {
         const next = typeof fallback === "function" ? fallback(current, error) : fallback;
         if (next && typeof next === "object" && Object.keys(next).length) {
           current = { ...next };

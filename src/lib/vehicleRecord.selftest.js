@@ -1,7 +1,14 @@
 import { parseMpiSalvageBillOfSale } from "./documentAutoscan/parseMpiBillOfSale.js";
 import {
+  fieldToDropFromPersistError,
+  isNoRowReturnedError,
+  isRlsViolation,
+  isUniqueViolation,
+} from "./persistErrors.js";
+import {
   buildVehiclePersistPayload,
   cleanVehicleModel,
+  extraVehicleFieldsNote,
   liveVehiclePayload,
   missingVehicleSaveFields,
   persistVehicleRecord,
@@ -9,6 +16,8 @@ import {
   selectValue,
   vehicleFormCanSave,
   ensureVehicleSaveDefaults,
+  vehicleActorPayloads,
+  vehicleSelectIsHidden,
 } from "./vehicleRecord.js";
 
 const mpiText = `
@@ -161,6 +170,90 @@ checks.push(["defaults fill vin", /^PEND/i.test(blank.vin)]);
 checks.push(["defaults fill make", blank.make === "Unknown"]);
 checks.push(["defaults fill model", blank.model === "Unknown"]);
 checks.push(["defaults fill year", blank.year >= 1980]);
+
+const withActor = liveVehiclePayload({
+  ...payload,
+  created_by: "sam@example.com",
+  created_by_id: "uid-1",
+  features: "heated seats",
+});
+checks.push(["actor stays on live payload", withActor.created_by === "sam@example.com"]);
+checks.push(["created_by_id stays on live payload", withActor.created_by_id === "uid-1"]);
+checks.push(["features not a live column", withActor.features == null]);
+checks.push(["features land in notes", /heated seats/i.test(withActor.notes || extraVehicleFieldsNote({ ...payload, features: "heated seats" }))]);
+checks.push(["rls detector", isRlsViolation({ code: "42501", message: 'new row violates row-level security policy for table "vehicles"' })]);
+checks.push(["unique detector", isUniqueViolation({ code: "23505", message: "duplicate key value violates unique constraint" })]);
+checks.push(["pgrst detector", isNoRowReturnedError({ code: "PGRST116", message: "JSON object requested, multiple (or no) rows returned" })]);
+checks.push(["uuid error drops created_by_id", fieldToDropFromPersistError({ message: 'invalid input syntax for type uuid: "sam@example.com"' }, { created_by_id: "sam@example.com", vendor_id: "abc" }) === "created_by_id"]);
+checks.push(["actor variants try email then uid", vehicleActorPayloads({
+  company_id: "co-1",
+  vin: "1G1BE5SM0J7226676",
+  created_by: "sam@example.com",
+  created_by_id: "uid-1",
+}).some((row) => row.created_by === "uid-1")]);
+
+let rlsCreated;
+const rlsSupabase = {
+  auth: {
+    getSession: async () => ({ user: { id: "uid-1", email: "sam@example.com" } }),
+  },
+  entities: {
+    Vehicle: {
+      create: async (data) => {
+        if (!data.created_by) {
+          throw { code: "42501", message: 'new row violates row-level security policy for table "vehicles"' };
+        }
+        rlsCreated = data;
+        return { id: "veh-rls", ...data };
+      },
+      filter: async () => [],
+    },
+  },
+};
+const rlsSaved = await persistVehicleRecord({
+  supabase: rlsSupabase,
+  companyId: "co-1",
+  form: { ...scanned, company_id: "co-1" },
+});
+checks.push(["rls save sends created_by", rlsCreated?.created_by === "sam@example.com"]);
+checks.push(["rls save returns id", rlsSaved.id === "veh-rls"]);
+
+const hiddenSupabase = {
+  auth: { getSession: async () => ({ user: { id: "uid-1", email: "sam@example.com" } }) },
+  entities: {
+    Vehicle: {
+      create: async () => {
+        throw { code: "PGRST116", message: "JSON object requested, multiple (or no) rows returned" };
+      },
+      filter: async () => [],
+    },
+  },
+};
+const hiddenSaved = await persistVehicleRecord({
+  supabase: hiddenSupabase,
+  companyId: "co-1",
+  form: { ...scanned, company_id: "co-1" },
+});
+checks.push(["hidden select still counts as saved", Boolean(hiddenSaved?.id)]);
+checks.push(["hidden select flagged", vehicleSelectIsHidden(hiddenSaved) === true]);
+
+const uniqueSupabase = {
+  auth: { getSession: async () => null },
+  entities: {
+    Vehicle: {
+      create: async () => {
+        throw { code: "23505", message: 'duplicate key value violates unique constraint "vehicles_vin_key"' };
+      },
+      filter: async () => [{ id: "already", vin: scanned.vin, company_id: "co-1" }],
+    },
+  },
+};
+const uniqueSaved = await persistVehicleRecord({
+  supabase: uniqueSupabase,
+  companyId: "co-1",
+  form: { ...scanned, company_id: "co-1" },
+});
+checks.push(["unique vin returns existing", uniqueSaved.id === "already"]);
 
 const failed = checks.filter(([, ok]) => !ok);
 if (failed.length) {
