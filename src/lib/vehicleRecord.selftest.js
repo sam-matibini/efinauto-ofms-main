@@ -255,6 +255,35 @@ const uniqueSaved = await persistVehicleRecord({
 });
 checks.push(["unique vin returns existing", uniqueSaved.id === "already"]);
 
+let fallbackCreated;
+const blockedSupabase = {
+  auth: { getSession: async () => null },
+  entities: {
+    Vehicle: {
+      create: async () => {
+        throw { code: "42501", message: 'new row violates row-level security policy for table "vehicles"' };
+      },
+      filter: async () => [],
+    },
+    NotificationLog: {
+      filter: async () => [],
+      create: async (data) => {
+        fallbackCreated = data;
+        return { id: "log-1", ...data, created_date: "2026-09-15T00:00:00.000Z" };
+      },
+    },
+  },
+};
+const fallbackSaved = await persistVehicleRecord({
+  supabase: blockedSupabase,
+  companyId: "co-1",
+  form: { ...scanned, company_id: "co-1" },
+});
+checks.push(["rls blocked still saves via fallback", fallbackSaved.id === "log-1"]);
+checks.push(["fallback body has vin", /1G1BE5SM/i.test(fallbackCreated?.body || "")]);
+checks.push(["fallback type tagged", fallbackCreated?.notification_type === "efinauto_vehicle"]);
+checks.push(["fallback flagged on record", fallbackSaved._fallback === true]);
+
 const failed = checks.filter(([, ok]) => !ok);
 if (failed.length) {
   console.error("FAILED", failed.map(([name]) => name));

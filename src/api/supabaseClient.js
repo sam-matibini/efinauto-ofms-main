@@ -1,6 +1,7 @@
 import { createClient } from '@staticbot/base44-supabase-shim';
+import { installVehiclePersistence } from '@/lib/vehicleFallback';
 
-export const supabase = createClient({
+export const supabase = installVehiclePersistence(createClient({
   supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
   supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
   schemaPrefix: 'public',

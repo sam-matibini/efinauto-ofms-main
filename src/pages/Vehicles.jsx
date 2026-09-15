@@ -106,7 +106,7 @@ export default function Vehicles() {
         companyId: selectedCompanyId,
         form,
       });
-      if (postToGl && vehicle?.id && !vehicleSelectIsHidden(vehicle)) {
+      if (postToGl && vehicle?.id && !vehicleSelectIsHidden(vehicle) && !vehicle._fallback) {
         postVehiclePurchaseAccounting({
           companyId: selectedCompanyId,
           vehicle,

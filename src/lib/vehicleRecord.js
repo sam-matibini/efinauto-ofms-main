@@ -6,6 +6,7 @@ import {
   isUniqueViolation,
   persistWithUnknownColumnRetry,
 } from "./persistErrors.js";
+import { saveFallbackVehicle } from "./vehicleFallback.js";
 import {
   VEHICLE_VENDOR_FIELD_KEYS,
   cleanCanadianPostal,
@@ -450,6 +451,49 @@ async function insertVehicleRow(supabase, payload) {
   throw error;
 }
 
+async function insertVehicleViaRest(supabase, payload) {
+  const url = import.meta.env?.VITE_SUPABASE_URL;
+  const anon = import.meta.env?.VITE_SUPABASE_ANON_KEY;
+  if (!url || !anon || typeof fetch !== "function") return null;
+
+  let token = anon;
+  try {
+    const session = await supabase.auth?.getSession?.();
+    token = session?.access_token || session?.data?.session?.access_token || anon;
+  } catch {
+    token = anon;
+  }
+
+  const res = await fetch(`${url}/rest/v1/vehicles`, {
+    method: "POST",
+    headers: {
+      apikey: anon,
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify(payload),
+  });
+  const text = await res.text();
+  let json = null;
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch {
+    json = null;
+  }
+  if (res.ok) {
+    const row = Array.isArray(json) ? json[0] : json;
+    return row?.id ? row : optimisticVehicleRecord(payload);
+  }
+  const error = json && typeof json === "object" ? json : { message: text || `HTTP ${res.status}`, status: res.status };
+  if (isUniqueViolation(error) || isNoRowReturnedError(error)) {
+    const found = await findVehicleByVin(supabase, payload).catch(() => null);
+    return found || (isNoRowReturnedError(error) ? optimisticVehicleRecord(payload) : null);
+  }
+  if (isRlsViolation(error)) return null;
+  throw error;
+}
+
 async function writeVehicleRecord(supabase, payload, existingId) {
   if (existingId) {
     try {
@@ -464,6 +508,12 @@ async function writeVehicleRecord(supabase, payload, existingId) {
       throw error;
     }
   }
+
+  const viaRest = await insertVehicleViaRest(supabase, payload).catch((error) => {
+    if (isRlsViolation(error)) return null;
+    throw error;
+  });
+  if (viaRest?.id) return viaRest;
 
   let lastError;
   for (const attempt of vehicleActorPayloads(payload)) {
@@ -492,7 +542,10 @@ async function writeVehicleRecord(supabase, payload, existingId) {
     const found = await findVehicleByVin(supabase, payload).catch(() => null);
     if (found) return found;
     const recovered = recoverSavedVehicle(payload, error) || recoverSavedVehicle(payload, lastError);
-    if (recovered) return recovered;
+    if (recovered && !isRlsViolation(error) && !isRlsViolation(lastError)) return recovered;
+    if (isRlsViolation(error) || isRlsViolation(lastError)) {
+      return saveFallbackVehicle(supabase, payload);
+    }
     throw lastError || error;
   }
 }
@@ -550,6 +603,14 @@ export async function persistVehicleRecord({
     }
     return saved;
   } catch (error) {
+    if (!existingId && isRlsViolation(error)) {
+      try {
+        const fallback = await saveFallbackVehicle(supabase, live);
+        if (fallback?.id) return fallback;
+      } catch {
+        /* keep original error */
+      }
+    }
     const detail = errorText(error) || "Unknown error";
     const wrapped = new Error(
       isRlsViolation(error)
