@@ -73,10 +73,6 @@ export async function postVehiclePurchaseAccounting({
     subtotal: pretax,
     tax_rate: pretax ? roundMoney((taxes.net_tax_to_purchases / pretax) * 100) : 0,
     tax_amount: taxes.net_tax_to_purchases,
-    tax_gst: taxes.tax_gst,
-    tax_pst: taxes.tax_pst,
-    tax_hst: taxes.tax_hst,
-    tax_rst: taxes.tax_rst,
     shipping_cost: 0,
     total_amount: taxes.total_vehicle_expenditure,
     payment_status: "pending",
@@ -115,8 +111,6 @@ export async function postVehiclePurchaseAccounting({
         ? `Tax exemption: ${form.tax_exemption_reason || vehicle.tax_exemption_reason}.`
         : "",
     ].filter(Boolean).join(" "),
-    vehicle_id: vehicle.id,
-    vehicle_vin: vin,
   };
 
   const purchase = await persistWithUnknownColumnRetry({
