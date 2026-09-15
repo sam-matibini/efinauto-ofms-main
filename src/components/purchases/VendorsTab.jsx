@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { persistVendorRecord, VENDOR_TYPES } from "@/lib/vendorDirectory";
+import { persistVendorRecord, VENDOR_TYPES, cleanCanadianPostal, cleanCityName } from "@/lib/vendorDirectory";
 import { selectValue } from "@/lib/vehicleRecord";
 import { errorText } from "@/lib/persistErrors";
 
@@ -314,14 +314,17 @@ function emptyVendor() {
 
 function VendorDialog({ open, onClose, vendor, onSave, isSaving }) {
   const [formData, setFormData] = useState(vendor ? { ...emptyVendor(), ...vendor } : emptyVendor());
+  const [lookupSeed, setLookupSeed] = useState("");
 
   React.useEffect(() => {
-    setFormData(vendor ? { ...emptyVendor(), ...vendor } : emptyVendor());
+    const next = vendor ? { ...emptyVendor(), ...vendor } : emptyVendor();
+    setFormData(next);
+    setLookupSeed([next.address, next.city, next.province, next.postal_code].filter(Boolean).join(", "));
   }, [vendor, open]);
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{vendor ? 'Edit Vendor' : 'Add Vendor'}</DialogTitle>
         </DialogHeader>
@@ -358,16 +361,21 @@ function VendorDialog({ open, onClose, vendor, onSave, isSaving }) {
             <div className="space-y-2 col-span-2">
               <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-2">
                 <p className="text-xs text-purple-700 mb-2">🔍 AI Address Lookup</p>
-                <AIAddressLookup 
+                <AIAddressLookup
+                  key={`${open ? "open" : "closed"}-${vendor?.id || "new"}`}
+                  initialQuery={lookupSeed}
                   onAddressSelected={(data) => {
-                    setFormData({
-                      ...formData,
-                      address: data.address || formData.address,
-                      city: data.city || formData.city,
-                      province: data.province || formData.province,
-                      postal_code: data.postal_code || formData.postal_code,
-                      country: data.country || formData.country
-                    });
+                    setFormData((prev) => ({
+                      ...prev,
+                      address: data.address || prev.address,
+                      city: cleanCityName(data.city) || prev.city,
+                      province: data.province || prev.province,
+                      postal_code: cleanCanadianPostal(data.postal_code) || data.postal_code || prev.postal_code,
+                      country: data.country || prev.country,
+                      phone: data.contact_phone || prev.phone,
+                      contact_person: data.contact_person || prev.contact_person,
+                      vendor_name: prev.vendor_name || data.business_name || prev.vendor_name,
+                    }));
                   }}
                 />
               </div>
