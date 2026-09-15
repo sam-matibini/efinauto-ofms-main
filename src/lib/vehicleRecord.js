@@ -490,7 +490,7 @@ async function insertVehicleViaRest(supabase, payload) {
     const found = await findVehicleByVin(supabase, payload).catch(() => null);
     return found || (isNoRowReturnedError(error) ? optimisticVehicleRecord(payload) : null);
   }
-  if (isRlsViolation(error)) return null;
+  if (isRlsViolation(error)) return { blocked: true };
   throw error;
 }
 
@@ -510,10 +510,13 @@ async function writeVehicleRecord(supabase, payload, existingId) {
   }
 
   const viaRest = await insertVehicleViaRest(supabase, payload).catch((error) => {
-    if (isRlsViolation(error)) return null;
+    if (isRlsViolation(error)) return { blocked: true };
     throw error;
   });
   if (viaRest?.id) return viaRest;
+  if (viaRest?.blocked) {
+    return saveFallbackVehicle(supabase, payload);
+  }
 
   let lastError;
   for (const attempt of vehicleActorPayloads(payload)) {
