@@ -97,6 +97,7 @@ function App() {
           <AuthenticatedApp />
         </Router>
         <Toaster />
+        <SonnerToaster />
         <VisualEditAgent />
       </QueryClientProvider>
     </AuthProvider>

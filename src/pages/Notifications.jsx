@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { VEHICLE_FALLBACK_TYPE } from "@/lib/vehicleFallback";
 import { useCompany } from "../components/shared/CompanyContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -47,7 +48,7 @@ export default function Notifications() {
     queryKey: ['notification-logs', selectedCompanyId],
     queryFn: async () => {
       const rows = await supabase.entities.NotificationLog.filter({ company_id: selectedCompanyId }, '-created_date', 50);
-      return (Array.isArray(rows) ? rows : []).filter((row) => row?.notification_type !== "efinauto_vehicle");
+      return (Array.isArray(rows) ? rows : []).filter((row) => row?.notification_type !== VEHICLE_FALLBACK_TYPE);
     },
     enabled: !!selectedCompanyId,
     initialData: [],
