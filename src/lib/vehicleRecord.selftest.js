@@ -8,6 +8,7 @@ import {
   sanitizeVehicleForm,
   selectValue,
   vehicleFormCanSave,
+  ensureVehicleSaveDefaults,
 } from "./vehicleRecord.js";
 
 const mpiText = `
@@ -154,6 +155,12 @@ checks.push(["persist retry omitted unknown", created && created.pst_exempt == n
 checks.push(["persist used live columns quickly", attempts === 1]);
 checks.push(["fallback notes keep GST", /GST#\s*R122001191/i.test(created?.notes || live.notes || "")]);
 checks.push(["fallback notes keep MPI doc", /51901903/.test(created?.notes || "")]);
+
+const blank = ensureVehicleSaveDefaults({ vin: "", make: "", model: "", year: "" });
+checks.push(["defaults fill vin", /^PEND/i.test(blank.vin)]);
+checks.push(["defaults fill make", blank.make === "Unknown"]);
+checks.push(["defaults fill model", blank.model === "Unknown"]);
+checks.push(["defaults fill year", blank.year >= 1980]);
 
 const failed = checks.filter(([, ok]) => !ok);
 if (failed.length) {

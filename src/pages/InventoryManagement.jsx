@@ -34,9 +34,9 @@ import VehicleVendorSection from "@/components/vehicles/VehicleVendorSection";
 import VehiclePurchaseDocuments from "@/components/vehicles/VehiclePurchaseDocuments";
 import { postVehiclePurchaseAccounting } from "@/lib/postVehiclePurchase";
 import { applyVehicleDocumentScan } from "@/lib/applyVehicleDocumentScan";
-import { emptyVehicleVendorFields, resolveVehicleVendor } from "@/lib/vendorDirectory";
+import { emptyVehicleVendorFields, fillMissingVendorFields, findMatchingVendor } from "@/lib/vendorDirectory";
 import { addPurchaseDocument } from "@/lib/vehiclePurchaseDocuments";
-import { persistVehicleRecord, selectValue, VEHICLE_ENUMS, missingVehicleSaveFields, vehicleFormCanSave } from "@/lib/vehicleRecord";
+import { persistVehicleRecord, selectValue, VEHICLE_ENUMS, ensureVehicleSaveDefaults } from "@/lib/vehicleRecord";
 import { errorText } from "@/lib/persistErrors";
 
 export default function InventoryManagement() {
@@ -147,16 +147,14 @@ export default function InventoryManagement() {
         form,
       });
       if (postToGl) {
-        try {
-          await postVehiclePurchaseAccounting({
-            companyId: selectedCompanyId,
-            vehicle,
-            form: { ...form, company_id: selectedCompanyId, ...vehicle },
-          });
-        } catch (error) {
+        postVehiclePurchaseAccounting({
+          companyId: selectedCompanyId,
+          vehicle,
+          form: { ...form, company_id: selectedCompanyId, ...vehicle },
+        }).catch((error) => {
           console.error("Vehicle GL post failed", error);
           toast.error("Vehicle saved, but GL/purchase posting failed: " + (error.message || "Unknown error"));
-        }
+        });
       }
       return vehicle;
     },
@@ -928,28 +926,15 @@ export default function InventoryManagement() {
         vehicle={editingVehicle}
         isSaving={createVehicleMutation.isPending || updateVehicleMutation.isPending}
         onSave={async (data) => {
-          if (!vehicleFormCanSave(data)) {
-            toast.error("Please fill in all required fields (VIN, Make, Model, Year)");
-            return;
-          }
-          let source = data;
-          try {
-            const vendors = queryClient.getQueryData(["vendors", selectedCompanyId])
-              || await supabase.entities.Vendor.filter({ company_id: selectedCompanyId });
-            source = await resolveVehicleVendor({
-              form: data,
-              vendors,
-              companyId: selectedCompanyId,
-              queryClient,
-            });
-          } catch (error) {
-            toast.error("Vendor could not be saved: " + (errorText(error) || "Unknown error"));
-          }
+          const source = ensureVehicleSaveDefaults(data);
+          const vendors = queryClient.getQueryData(["vendors", selectedCompanyId]) || [];
+          const match = findMatchingVendor(vendors, source);
+          const next = match ? fillMissingVendorFields(source, match) : source;
           try {
             if (editingVehicle) {
-              await updateVehicleMutation.mutateAsync({ id: editingVehicle.id, form: source });
+              await updateVehicleMutation.mutateAsync({ id: editingVehicle.id, form: next });
             } else {
-              await createVehicleMutation.mutateAsync(source);
+              await createVehicleMutation.mutateAsync(next);
             }
           } catch {
             // mutation onError already toasted
@@ -1036,11 +1021,6 @@ function VehicleDialog({ open, onClose, vehicle, onSave, isSaving }) {
     event?.preventDefault?.();
     event?.stopPropagation?.();
     if (busy) return;
-    const missing = missingVehicleSaveFields(formData);
-    if (missing.length) {
-      toast.error(`Please fill in ${missing.join(", ")} before saving`);
-      return;
-    }
     setSubmitting(true);
     try {
       await onSave(formData);
@@ -1208,7 +1188,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, isSaving }) {
         <div className="flex justify-end gap-3 border-t bg-background pt-4">
           <Button type="button" variant="outline" onClick={onClose} disabled={busy}>Cancel</Button>
           <Button type="button" className="bg-blue-600 hover:bg-blue-700" disabled={busy} onClick={handleSubmit}>
-            {busy ? "Saving..." : vehicle ? "Update" : "Add"} Vehicle
+            {busy ? "Saving..." : vehicle ? "Update Vehicle" : "Add Vehicle"}
           </Button>
         </div>
         </form>

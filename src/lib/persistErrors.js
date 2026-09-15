@@ -53,6 +53,7 @@ export function fieldToDropFromPersistError(error, data = {}) {
   }
 
   if (/value too long/i.test(text)) {
+    if ("notes" in data && String(data.notes || "").length > 40) return "notes";
     let longest = null;
     let max = 0;
     for (const [key, value] of Object.entries(data)) {
@@ -91,7 +92,7 @@ export async function persistWithUnknownColumnRetry({
   data,
   fallback,
   onUnknownColumn,
-  maxAttempts = 40,
+      maxAttempts = 12,
 }) {
   let current = { ...data };
   let usedFallback = false;

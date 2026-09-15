@@ -41,10 +41,11 @@ import VehiclePurchaseDocuments from "@/components/vehicles/VehiclePurchaseDocum
 import { postVehiclePurchaseAccounting } from "@/lib/postVehiclePurchase";
 import { applyVehicleDocumentScan } from "@/lib/applyVehicleDocumentScan";
 import { addPurchaseDocument } from "@/lib/vehiclePurchaseDocuments";
-import { persistVehicleRecord, selectValue, VEHICLE_ENUMS, missingVehicleSaveFields, vehicleFormCanSave } from "@/lib/vehicleRecord";
+import { persistVehicleRecord, selectValue, VEHICLE_ENUMS, ensureVehicleSaveDefaults } from "@/lib/vehicleRecord";
 import {
   emptyVehicleVendorFields,
-  resolveVehicleVendor,
+  fillMissingVendorFields,
+  findMatchingVendor,
 } from "@/lib/vendorDirectory";
 import { errorText } from "@/lib/persistErrors";
 import {
@@ -106,16 +107,14 @@ export default function Vehicles() {
         form,
       });
       if (postToGl) {
-        try {
-          await postVehiclePurchaseAccounting({
-            companyId: selectedCompanyId,
-            vehicle,
-            form: { ...form, ...vehicle },
-          });
-        } catch (error) {
+        postVehiclePurchaseAccounting({
+          companyId: selectedCompanyId,
+          vehicle,
+          form: { ...form, ...vehicle },
+        }).catch((error) => {
           console.error("Vehicle GL post failed", error);
           toast.error("Vehicle saved, but GL/purchase posting failed: " + (error.message || "Unknown error"));
-        }
+        });
       }
       return vehicle;
     },
@@ -260,30 +259,16 @@ export default function Vehicles() {
       return;
     }
 
-    if (!vehicleFormCanSave(formData)) {
-      toast.error("Please fill in all required fields (VIN, Make, Model, Year)");
-      return;
-    }
-
-    let source = formData;
-    try {
-      const vendors = queryClient.getQueryData(["vendors", selectedCompanyId])
-        || await supabase.entities.Vendor.filter({ company_id: selectedCompanyId });
-      source = await resolveVehicleVendor({
-        form: formData,
-        vendors,
-        companyId: selectedCompanyId,
-        queryClient,
-      });
-    } catch (error) {
-      toast.error("Vendor could not be saved: " + (errorText(error) || "Unknown error"));
-    }
+    const source = ensureVehicleSaveDefaults(formData);
+    const vendors = queryClient.getQueryData(["vendors", selectedCompanyId]) || [];
+    const match = findMatchingVendor(vendors, source);
+    const next = match ? fillMissingVendorFields(source, match) : source;
 
     try {
       if (editingVehicle) {
-        await updateMutation.mutateAsync({ id: editingVehicle.id, form: source });
+        await updateMutation.mutateAsync({ id: editingVehicle.id, form: next });
       } else {
-        await createMutation.mutateAsync(source);
+        await createMutation.mutateAsync(next);
       }
     } catch {
       // mutation onError already toasted
@@ -918,11 +903,6 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
     event?.preventDefault?.();
     event?.stopPropagation?.();
     if (busy) return;
-    const missing = missingVehicleSaveFields(formData);
-    if (missing.length) {
-      toast.error(`Please fill in ${missing.join(", ")} before saving`);
-      return;
-    }
     setSubmitting(true);
     try {
       await onSave(formData, event);

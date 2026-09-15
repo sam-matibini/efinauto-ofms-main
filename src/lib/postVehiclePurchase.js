@@ -122,6 +122,7 @@ export async function postVehiclePurchaseAccounting({
   const purchase = await persistWithUnknownColumnRetry({
     write: (payload) => supabase.entities.Purchase.create(payload),
     data: purchasePayload,
+    maxAttempts: 8,
     fallback: {
       company_id: companyId,
       purchase_number: purchaseNumber,
@@ -210,6 +211,7 @@ export async function postVehiclePurchaseAccounting({
       total_cost: taxes.total_vehicle_expenditure,
       status: vehicle.status || form.status || "in_stock",
     },
+    maxAttempts: 8,
   });
 
   return { purchase, glEntries, vehicle: posted, taxes };

@@ -152,6 +152,23 @@ export function vehicleFormCanSave(form = {}) {
   }
 }
 
+export function pendingVehicleVin() {
+  return `PEND${Date.now().toString(36).toUpperCase()}`.replace(/[^A-Z0-9]/g, "").slice(0, 17);
+}
+
+export function ensureVehicleSaveDefaults(form = {}) {
+  const vinSource = asString(form.vin, 32).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const vin = vinSource.length >= 5 ? vinSource : pendingVehicleVin();
+  const year = asNumber(form.year, 0);
+  return {
+    ...form,
+    vin,
+    make: asString(form.make, 80) || "Unknown",
+    model: cleanVehicleModel(form.model, vin) || asString(form.model, 80) || asString(form.stock_number, 80) || "Unknown",
+    year: year >= 1980 ? year : new Date().getFullYear(),
+  };
+}
+
 function optionalString(value, max) {
   const next = asString(value, max);
   return next || undefined;
@@ -296,7 +313,7 @@ export function liveVehiclePayload(payload = {}) {
     live[key] = value;
   }
   const extraNote = extraVehicleFieldsNote(payload);
-  const notes = [live.notes, extraNote].filter(Boolean).join(" ").trim().slice(0, 2000);
+  const notes = [live.notes, extraNote].filter(Boolean).join(" ").trim().slice(0, 500);
   if (notes) live.notes = notes;
   return live;
 }
@@ -364,38 +381,24 @@ async function writeVehicleRecord(supabase, payload, existingId) {
   throw new Error("Vehicle was not saved. Please try again.");
 }
 
-async function withCreatedBy(supabase, payload) {
-  if (payload.created_by) return payload;
-  try {
-    const user = await supabase.auth?.me?.();
-    const who = user?.email || user?.id;
-    if (who) return { ...payload, created_by: who };
-  } catch {
-    // created_by is optional on some schemas
-  }
-  return payload;
-}
-
 export async function persistVehicleRecord({
   supabase,
   companyId,
   form,
   existingId,
 }) {
-  let data = buildVehiclePersistPayload(form, companyId);
+  const data = buildVehiclePersistPayload(ensureVehicleSaveDefaults(form), companyId);
   if (!data.company_id) {
     throw new Error("Please select a company first");
   }
-  if (!vehicleFormCanSave(data)) {
-    throw new Error("Please fill in all required fields (VIN, Make, Model, Year)");
-  }
 
-  const live = await withCreatedBy(supabase, liveVehiclePayload(data));
+  const live = liveVehiclePayload(data);
 
   try {
     const saved = await persistWithUnknownColumnRetry({
       write: (payload) => writeVehicleRecord(supabase, payload, existingId),
       data: live,
+      maxAttempts: 12,
       fallback: {
         company_id: live.company_id,
         vin: live.vin,
