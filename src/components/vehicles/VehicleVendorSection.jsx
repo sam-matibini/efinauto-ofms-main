@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { asIsoDate } from "@/lib/vehicleRecord";
 import {
   createVendorFromVehicleForm,
   findMatchingVendor,
@@ -183,7 +184,8 @@ export default function VehicleVendorSection({
         </Field>
         <Field label="Email address">
           <Input
-            type="email"
+            type="text"
+            inputMode="email"
             value={formData.vendor_email || ""}
             onChange={(e) => patch({ vendor_email: e.target.value })}
             placeholder="accounts@vendor.ca"
@@ -209,7 +211,7 @@ export default function VehicleVendorSection({
             <Field label="Date">
               <Input
                 type="date"
-                value={formData.transaction_date || ""}
+                value={asIsoDate(formData.transaction_date) || ""}
                 onChange={(e) => patch({ transaction_date: e.target.value })}
               />
             </Field>

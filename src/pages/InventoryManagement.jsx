@@ -36,7 +36,7 @@ import { postVehiclePurchaseAccounting } from "@/lib/postVehiclePurchase";
 import { applyVehicleDocumentScan } from "@/lib/applyVehicleDocumentScan";
 import { emptyVehicleVendorFields, resolveVehicleVendor } from "@/lib/vendorDirectory";
 import { addPurchaseDocument } from "@/lib/vehiclePurchaseDocuments";
-import { persistVehicleRecord, selectValue, VEHICLE_ENUMS, vehicleFormCanSave } from "@/lib/vehicleRecord";
+import { persistVehicleRecord, selectValue, VEHICLE_ENUMS, missingVehicleSaveFields, vehicleFormCanSave } from "@/lib/vehicleRecord";
 import { errorText } from "@/lib/persistErrors";
 
 export default function InventoryManagement() {
@@ -1030,13 +1030,17 @@ function VehicleDialog({ open, onClose, vehicle, onSave, isSaving }) {
     setFormData(vehicle ? { ...emptyVehicleForm(), ...vehicle, post_to_gl: false } : emptyVehicleForm());
   }, [vehicle, open]);
 
-  const canSave = vehicleFormCanSave(formData);
   const busy = Boolean(isSaving || submitting);
 
   const handleSubmit = async (event) => {
     event?.preventDefault?.();
     event?.stopPropagation?.();
-    if (busy || !canSave) return;
+    if (busy) return;
+    const missing = missingVehicleSaveFields(formData);
+    if (missing.length) {
+      toast.error(`Please fill in ${missing.join(", ")} before saving`);
+      return;
+    }
     setSubmitting(true);
     try {
       await onSave(formData);
@@ -1062,7 +1066,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, isSaving }) {
         <DialogHeader>
           <DialogTitle>{vehicle ? 'Edit Vehicle' : 'Add Vehicle'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+        <form noValidate onSubmit={handleSubmit} className="space-y-4 py-2">
           <DocumentAutoscan
             profile="vehicle"
             resetKey={open}
@@ -1203,8 +1207,8 @@ function VehicleDialog({ open, onClose, vehicle, onSave, isSaving }) {
 
         <div className="flex justify-end gap-3 border-t bg-background pt-4">
           <Button type="button" variant="outline" onClick={onClose} disabled={busy}>Cancel</Button>
-          <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={busy || !canSave}>
-            {vehicle ? 'Update' : 'Add'} Vehicle
+          <Button type="button" className="bg-blue-600 hover:bg-blue-700" disabled={busy} onClick={handleSubmit}>
+            {busy ? "Saving..." : vehicle ? "Update" : "Add"} Vehicle
           </Button>
         </div>
         </form>

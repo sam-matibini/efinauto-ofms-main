@@ -1,6 +1,7 @@
 import { isPdfStructureNoise } from "./documentAutoscan/pdfNoise.js";
 import {
   errorText,
+  isNoRowReturnedError,
   persistWithUnknownColumnRetry,
 } from "./persistErrors.js";
 import {
@@ -134,12 +135,18 @@ export function cleanVehicleModel(model, vin = "") {
   return next.replace(/\s+/g, " ").trim().slice(0, 80);
 }
 
+export function missingVehicleSaveFields(form = {}) {
+  const missing = [];
+  if (asString(form.vin, 32).length < 5) missing.push("VIN");
+  if (!asString(form.make, 80)) missing.push("Make");
+  if (!asString(form.model, 120)) missing.push("Model");
+  if (asNumber(form.year, 0) < 1980) missing.push("Year");
+  return missing;
+}
+
 export function vehicleFormCanSave(form = {}) {
   try {
-    return asString(form.vin, 32).length >= 5
-      && asString(form.make, 80).length > 0
-      && asString(form.model, 120).length > 0
-      && asNumber(form.year, 0) >= 1980;
+    return missingVehicleSaveFields(form).length === 0;
   } catch {
     return false;
   }
@@ -294,27 +301,79 @@ export function liveVehiclePayload(payload = {}) {
   return live;
 }
 
-function isNoRowReturnedError(error) {
-  const text = errorText(error);
-  return /PGRST116|Results contain 0 rows|Cannot coerce the result to a single JSON object/i.test(text);
+function rawSupabase(supabase) {
+  return supabase?.supabase || supabase;
+}
+
+async function findVehicleByVin(supabase, payload) {
+  if (!payload?.vin || !payload?.company_id) return null;
+  const rows = await supabase.entities.Vehicle.filter({
+    company_id: payload.company_id,
+    vin: payload.vin,
+  });
+  return (Array.isArray(rows) ? rows : []).find((row) => (
+    String(row?.vin || "").toUpperCase() === String(payload.vin).toUpperCase()
+  )) || null;
+}
+
+async function insertVehicleRow(supabase, payload) {
+  const client = rawSupabase(supabase);
+  if (typeof client?.from !== "function") {
+    return supabase.entities.Vehicle.create(payload);
+  }
+  const table = typeof client.schema === "function"
+    ? client.schema("public").from("vehicles")
+    : client.from("vehicles");
+  const { data, error } = await table.insert(payload).select("*").maybeSingle();
+  if (!error && data?.id) return data;
+  if (error && !isNoRowReturnedError(error)) throw error;
+  const found = await findVehicleByVin(supabase, payload);
+  if (found) return found;
+  if (error) throw error;
+  return data;
 }
 
 async function writeVehicleRecord(supabase, payload, existingId) {
+  if (existingId) {
+    try {
+      return await supabase.entities.Vehicle.update(existingId, payload);
+    } catch (error) {
+      if (!isNoRowReturnedError(error)) throw error;
+      const found = await supabase.entities.Vehicle.get?.(existingId);
+      if (found) return { ...found, ...payload, id: existingId };
+      throw error;
+    }
+  }
+
   try {
-    if (existingId) return await supabase.entities.Vehicle.update(existingId, payload);
-    return await supabase.entities.Vehicle.create(payload);
+    const created = await supabase.entities.Vehicle.create(payload);
+    if (created?.id) return created;
+    const found = await findVehicleByVin(supabase, payload);
+    if (found) return found;
+    if (created) return created;
   } catch (error) {
-    if (!isNoRowReturnedError(error) || !payload.vin || !payload.company_id) throw error;
-    const rows = await supabase.entities.Vehicle.filter({
-      company_id: payload.company_id,
-      vin: payload.vin,
-    });
-    const found = (Array.isArray(rows) ? rows : []).find((row) => (
-      String(row?.vin || "").toUpperCase() === String(payload.vin).toUpperCase()
-    ));
+    const found = await findVehicleByVin(supabase, payload).catch(() => null);
     if (found) return found;
     throw error;
   }
+
+  const inserted = await insertVehicleRow(supabase, payload);
+  if (inserted?.id) return inserted;
+  const found = await findVehicleByVin(supabase, payload);
+  if (found) return found;
+  throw new Error("Vehicle was not saved. Please try again.");
+}
+
+async function withCreatedBy(supabase, payload) {
+  if (payload.created_by) return payload;
+  try {
+    const user = await supabase.auth?.me?.();
+    const who = user?.email || user?.id;
+    if (who) return { ...payload, created_by: who };
+  } catch {
+    // created_by is optional on some schemas
+  }
+  return payload;
 }
 
 export async function persistVehicleRecord({
@@ -331,7 +390,7 @@ export async function persistVehicleRecord({
     throw new Error("Please fill in all required fields (VIN, Make, Model, Year)");
   }
 
-  const live = liveVehiclePayload(data);
+  const live = await withCreatedBy(supabase, liveVehiclePayload(data));
 
   try {
     const saved = await persistWithUnknownColumnRetry({

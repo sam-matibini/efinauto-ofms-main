@@ -15,6 +15,11 @@ export function errorText(error) {
   ].filter(Boolean).join(" ");
 }
 
+export function isNoRowReturnedError(error) {
+  const text = errorText(error);
+  return /PGRST116|Results contain 0 rows|Cannot coerce the result to a single JSON object/i.test(text);
+}
+
 export function unknownColumnFromError(error) {
   const text = errorText(error);
   const raw = text.match(/Could not find the '([^']+)' column/i)?.[1]
@@ -110,7 +115,7 @@ export async function persistWithUnknownColumnRetry({
         current = rest;
         continue;
       }
-      if (!usedFallback && fallback) {
+      if (!usedFallback && fallback && !isNoRowReturnedError(error)) {
         const next = typeof fallback === "function" ? fallback(current, error) : fallback;
         if (next && typeof next === "object" && Object.keys(next).length) {
           current = { ...next };

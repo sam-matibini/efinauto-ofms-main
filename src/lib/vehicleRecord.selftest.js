@@ -3,6 +3,7 @@ import {
   buildVehiclePersistPayload,
   cleanVehicleModel,
   liveVehiclePayload,
+  missingVehicleSaveFields,
   persistVehicleRecord,
   sanitizeVehicleForm,
   selectValue,
@@ -108,6 +109,7 @@ checks.push(["no recoverable_tax persist", payload.recoverable_tax == null]);
 checks.push(["no post_to_gl persist", payload.post_to_gl == null]);
 checks.push(["tax exemption short", String(payload.tax_exemption_reason || "").length < 200]);
 checks.push(["trim-safe empty form", vehicleFormCanSave({ vin: null, make: 12, model: undefined, year: "x" }) === false]);
+checks.push(["missing fields named", missingVehicleSaveFields({ vin: "", make: "", model: "", year: "" }).join(",") === "VIN,Make,Model,Year"]);
 
 const sanitized = sanitizeVehicleForm({ vin: 11, make: "Chevrolet", model: "CRUZE", year: "2018" });
 checks.push(["non-string vin becomes string", typeof sanitized.vin === "string"]);
