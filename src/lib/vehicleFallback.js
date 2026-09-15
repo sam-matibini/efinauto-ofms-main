@@ -125,7 +125,7 @@ export function wrapVehicleEntity(api, supabase) {
     async filter(where, orderBy, limit, skip) {
       const rows = await api.filter(where, orderBy, limit, skip);
       const extras = await listFallbackVehicles(supabase, where?.company_id);
-      return mergeVehicleLists(Array.isArray(rows) ? rows : [], extras);
+      return mergeVehicleLists(extras, Array.isArray(rows) ? rows : []);
     },
     async list(orderBy, limit, skip) {
       const rows = await api.list(orderBy, limit, skip);

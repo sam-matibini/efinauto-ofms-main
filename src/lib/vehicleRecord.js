@@ -602,7 +602,14 @@ export async function persistVehicleRecord({
       }),
     });
     if (!saved?.id && !existingId) {
-      return optimisticVehicleRecord(live);
+      return saveFallbackVehicle(supabase, live).catch(() => optimisticVehicleRecord(live));
+    }
+    if (!existingId) {
+      try {
+        await saveFallbackVehicle(supabase, compactPayload({ ...live, ...saved }));
+      } catch {
+        /* vehicles-table write still counts as saved */
+      }
     }
     return saved;
   } catch (error) {

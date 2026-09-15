@@ -64,7 +64,7 @@ export default function InventoryManagement() {
   // Fetch all inventory data
   const { data: vehicles = [], isLoading: loadingVehicles } = useQuery({
     queryKey: ['vehicles', selectedCompanyId],
-    queryFn: () => supabase.entities.Vehicle.filter({ company_id: selectedCompanyId }),
+    queryFn: () => supabase.entities.Vehicle.filter({ company_id: selectedCompanyId }, "-created_date", 5000),
     enabled: !!selectedCompanyId,
     initialData: [],
   });
@@ -172,7 +172,7 @@ export default function InventoryManagement() {
         return [vehicle, ...list];
       });
       if (!vehicleSelectIsHidden(vehicle)) {
-        queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+        queryClient.invalidateQueries({ queryKey: ['vehicles', selectedCompanyId] });
         queryClient.invalidateQueries({ queryKey: ['purchases'] });
         queryClient.invalidateQueries({ queryKey: ['transactions'] });
       }
