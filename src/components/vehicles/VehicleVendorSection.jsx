@@ -87,7 +87,7 @@ export default function VehicleVendorSection({
         : "Select an existing vendor or enter details from the tax invoice / bill of sale.";
 
   return (
-    <div className="col-span-2 space-y-4 border-t pt-4 mt-2">
+    <div className="col-span-2 space-y-4 rounded-lg border border-slate-200 bg-white p-4">
       <div>
         <h3 className="font-semibold text-gray-900">Vendor / tax invoice details</h3>
         <p className="text-xs text-gray-500 mt-1">

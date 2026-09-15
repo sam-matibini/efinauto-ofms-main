@@ -892,22 +892,6 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
     }
   }, [vehicle, open]);
 
-  const calculateTaxes = (price, province, taxStatus, pstExempt = false) => {
-        return vehiclePurchaseTaxes({
-          pretax: price,
-          province,
-          tax_status: taxStatus,
-          pst_exempt: pstExempt,
-          companyRates: company?.tax_rates,
-          useRates: true,
-        });
-      };
-
-      const handlePurchasePriceChange = (price) => {
-        const taxes = calculateTaxes(price, formData.province, formData.tax_status, formData.pst_exempt);
-        setFormData({ ...formData, purchase_price: price, ...taxes });
-      };
-
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -945,227 +929,200 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
         </DialogHeader>
         
         <div className="space-y-4 py-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Ownership Type</Label>
-              <Select value={formData.ownership_type} onValueChange={(v) => setFormData({...formData, ownership_type: v})}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="dealership_owned">Dealership Owned</SelectItem>
-                  <SelectItem value="customer_owned_export">Customer Owned (Export)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>VIN *</Label>
-              <Input 
-                value={formData.vin} 
-                onChange={(e) => setFormData({...formData, vin: e.target.value})} 
-                placeholder="Enter VIN" 
-              />
-              <AIVINScanner onVINDetected={(vin) => setFormData({...formData, vin})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Stock #</Label>
-              <Input 
-                value={formData.stock_number} 
-                onChange={(e) => setFormData({...formData, stock_number: e.target.value})} 
-                placeholder="e.g., 20266247" 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Invoice / bill of sale no.</Label>
-              <Input 
-                value={formData.invoice_number} 
-                onChange={(e) => setFormData({...formData, invoice_number: e.target.value})} 
-                placeholder="e.g., 148734" 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Date</Label>
-              <Input 
-                type="date" 
-                value={formData.transaction_date} 
-                onChange={(e) => setFormData({...formData, transaction_date: e.target.value})} 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Make *</Label>
-              <Input 
-                value={formData.make} 
-                onChange={(e) => setFormData({...formData, make: e.target.value})} 
-                placeholder="e.g., Toyota" 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Model *</Label>
-              <Input 
-                value={formData.model} 
-                onChange={(e) => setFormData({...formData, model: e.target.value})} 
-                placeholder="e.g., Camry" 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Year *</Label>
-              <Input 
-                type="number" 
-                value={formData.year} 
-                onChange={(e) => setFormData({...formData, year: parseInt(e.target.value) || new Date().getFullYear()})} 
-                placeholder="e.g., 2023" 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Color</Label>
-              <Input 
-                value={formData.color} 
-                onChange={(e) => setFormData({...formData, color: e.target.value})} 
-                placeholder="e.g., Black"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Location</Label>
-              <Input 
-                value={formData.location} 
-                onChange={(e) => setFormData({...formData, location: e.target.value})} 
-                placeholder="e.g., Lot A, Row 3"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Mileage (km)</Label>
-              <Input 
-                type="number" 
-                value={formData.mileage} 
-                onChange={(e) => setFormData({...formData, mileage: parseInt(e.target.value) || 0})} 
-                placeholder="0" 
-              />
-              <AIMileageScanner onMileageDetected={(mileage) => setFormData({...formData, mileage})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Weight (kg)</Label>
-              <Input 
-                type="number" 
-                value={formData.weight} 
-                onChange={(e) => setFormData({...formData, weight: parseFloat(e.target.value) || 0})} 
-                placeholder="0" 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Condition</Label>
-              <Select value={formData.condition} onValueChange={(v) => setFormData({...formData, condition: v})}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="new">New</SelectItem>
-                  <SelectItem value="used">Used</SelectItem>
-                  <SelectItem value="certified_pre_owned">Certified Pre-Owned</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="in_stock">In Stock</SelectItem>
-                  <SelectItem value="sold">Sold</SelectItem>
-                  <SelectItem value="reserved">Reserved</SelectItem>
-                  <SelectItem value="in_transit">In Transit</SelectItem>
-                  <SelectItem value="exported">Exported</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Pretax amount ($)</Label>
-              <Input 
-                type="number" 
-                value={formData.purchase_price} 
-                onChange={(e) => handlePurchasePriceChange(parseFloat(e.target.value) || 0)} 
-                placeholder="0" 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Selling Price ($)</Label>
-              <Input 
-                type="number" 
-                value={formData.selling_price} 
-                onChange={(e) => setFormData({...formData, selling_price: parseFloat(e.target.value) || 0})} 
-                placeholder="0" 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Fuel Type</Label>
-              <Select value={formData.fuel_type} onValueChange={(v) => setFormData({...formData, fuel_type: v})}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="petrol">Petrol</SelectItem>
-                  <SelectItem value="diesel">Diesel</SelectItem>
-                  <SelectItem value="electric">Electric</SelectItem>
-                  <SelectItem value="hybrid">Hybrid</SelectItem>
-                  <SelectItem value="lpg">LPG</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Transmission</Label>
-              <Select value={formData.transmission} onValueChange={(v) => setFormData({...formData, transmission: v})}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="manual">Manual</SelectItem>
-                  <SelectItem value="automatic">Automatic</SelectItem>
-                  <SelectItem value="semi_automatic">Semi-Automatic</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
           <VehicleVendorSection
             formData={formData}
             onChange={setFormData}
-            showPurchaseDocumentFields={false}
+            showPurchaseDocumentFields
           />
 
-          {/* Tax Section */}
+          <div className="rounded-lg border border-slate-200 p-4 space-y-4">
+            <h3 className="font-semibold text-gray-900">Vehicle</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>VIN *</Label>
+                <Input
+                  value={formData.vin}
+                  onChange={(e) => setFormData({...formData, vin: e.target.value})}
+                  placeholder="Enter VIN"
+                />
+                <AIVINScanner onVINDetected={(vin) => setFormData({...formData, vin})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Year *</Label>
+                <Input
+                  type="number"
+                  value={formData.year}
+                  onChange={(e) => setFormData({...formData, year: parseInt(e.target.value) || new Date().getFullYear()})}
+                  placeholder="e.g., 2023"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Make *</Label>
+                <Input
+                  value={formData.make}
+                  onChange={(e) => setFormData({...formData, make: e.target.value})}
+                  placeholder="e.g., Toyota"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Model *</Label>
+                <Input
+                  value={formData.model}
+                  onChange={(e) => setFormData({...formData, model: e.target.value})}
+                  placeholder="e.g., Camry"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Color</Label>
+                <Input
+                  value={formData.color}
+                  onChange={(e) => setFormData({...formData, color: e.target.value})}
+                  placeholder="e.g., White"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Mileage (km)</Label>
+                <Input
+                  type="number"
+                  value={formData.mileage}
+                  onChange={(e) => setFormData({...formData, mileage: parseInt(e.target.value) || 0})}
+                  placeholder="0"
+                />
+                <AIMileageScanner onMileageDetected={(mileage) => setFormData({...formData, mileage})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Condition</Label>
+                <Select value={formData.condition} onValueChange={(v) => setFormData({...formData, condition: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New</SelectItem>
+                    <SelectItem value="used">Used</SelectItem>
+                    <SelectItem value="certified_pre_owned">Certified Pre-Owned</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="in_stock">In Stock</SelectItem>
+                    <SelectItem value="sold">Sold</SelectItem>
+                    <SelectItem value="reserved">Reserved</SelectItem>
+                    <SelectItem value="in_transit">In Transit</SelectItem>
+                    <SelectItem value="exported">Exported</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Selling Price ($)</Label>
+                <Input
+                  type="number"
+                  value={formData.selling_price}
+                  onChange={(e) => setFormData({...formData, selling_price: parseFloat(e.target.value) || 0})}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+          </div>
+
           <VehiclePurchaseTaxSection
             formData={formData}
             companyRates={company?.tax_rates}
             onChange={setFormData}
           />
 
-          <div className="space-y-2 col-span-2">
-            <Label>Upload Image</Label>
-            <input 
-              type="file" 
-              accept="image/*" 
-              onChange={handleImageUpload} 
-              disabled={uploading} 
-              className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
-            />
-            {formData.images?.length > 0 && (
-              <div className="flex gap-2 mt-2 flex-wrap">
-                {formData.images.map((img, i) => (
-                  <div key={i} className="relative">
-                    <img src={img} className="w-20 h-20 object-cover rounded" alt={`Vehicle ${i + 1}`} />
-                    <button
-                      onClick={() => setFormData({...formData, images: formData.images.filter((_, idx) => idx !== i)})}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+          <div className="rounded-lg border border-slate-200 p-4 space-y-4">
+            <h3 className="font-semibold text-gray-900">Additional details</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Ownership Type</Label>
+                <Select value={formData.ownership_type} onValueChange={(v) => setFormData({...formData, ownership_type: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="dealership_owned">Dealership Owned</SelectItem>
+                    <SelectItem value="customer_owned_export">Customer Owned (Export)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
+              <div className="space-y-2">
+                <Label>Location</Label>
+                <Input
+                  value={formData.location}
+                  onChange={(e) => setFormData({...formData, location: e.target.value})}
+                  placeholder="e.g., Lot A, Row 3"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Weight (kg)</Label>
+                <Input
+                  type="number"
+                  value={formData.weight}
+                  onChange={(e) => setFormData({...formData, weight: parseFloat(e.target.value) || 0})}
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Fuel Type</Label>
+                <Select value={formData.fuel_type} onValueChange={(v) => setFormData({...formData, fuel_type: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="petrol">Petrol</SelectItem>
+                    <SelectItem value="diesel">Diesel</SelectItem>
+                    <SelectItem value="electric">Electric</SelectItem>
+                    <SelectItem value="hybrid">Hybrid</SelectItem>
+                    <SelectItem value="lpg">LPG</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Transmission</Label>
+                <Select value={formData.transmission} onValueChange={(v) => setFormData({...formData, transmission: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">Manual</SelectItem>
+                    <SelectItem value="automatic">Automatic</SelectItem>
+                    <SelectItem value="semi_automatic">Semi-Automatic</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label>Upload Image</Label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploading}
+                  className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+                {formData.images?.length > 0 && (
+                  <div className="flex gap-2 mt-2 flex-wrap">
+                    {formData.images.map((img, i) => (
+                      <div key={i} className="relative">
+                        <img src={img} className="w-20 h-20 object-cover rounded" alt={`Vehicle ${i + 1}`} />
+                        <button
+                          onClick={() => setFormData({...formData, images: formData.images.filter((_, idx) => idx !== i)})}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label>Notes</Label>
+                <Textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  rows={3}
+                  placeholder="Add any additional notes"
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-2 col-span-2">
-            <Label>Notes</Label>
-            <Textarea 
-              value={formData.notes} 
-              onChange={(e) => setFormData({...formData, notes: e.target.value})} 
-              rows={3}
-              placeholder="Add any additional notes"
-            />
-          </div>
-          </div>
           <DocumentAutoscan
             profile="vehicle"
             resetKey={open}
@@ -1176,6 +1133,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
               }));
             }}
           />
+        </div>
 
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
