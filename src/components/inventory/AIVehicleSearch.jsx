@@ -31,6 +31,22 @@ export default function AIVehicleSearch({ onSelectListing }) {
   const [shareListing, setShareListing] = useState(null);
   const [emailAddress, setEmailAddress] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [panelOpen, setPanelOpen] = useState(() => {
+    try {
+      return localStorage.getItem("efinauto.ai-market-search.open") === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  const setSearchPanelOpen = (open) => {
+    setPanelOpen(open);
+    try {
+      localStorage.setItem("efinauto.ai-market-search.open", open ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  };
 
   const queryClient = useQueryClient();
 
@@ -84,6 +100,7 @@ export default function AIVehicleSearch({ onSelectListing }) {
       return;
     }
 
+    setSearchPanelOpen(true);
     setLoading(true);
     try {
       const scopeDescriptions = {
@@ -619,22 +636,46 @@ Make diverse listings with varying quality, prices, and locations.`,
       });
 
   return (
+    <Collapsible open={panelOpen} onOpenChange={setSearchPanelOpen}>
     <Card className="border-purple-200 shadow-lg">
-      <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 border-b">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-purple-600" />
-            AI-Powered Multi-Market Search & Auto-PO System
-          </CardTitle>
-          <Badge className="bg-purple-100 text-purple-800">
-            <Globe className="w-3 h-3 mr-1" />
-            {geoScope.charAt(0).toUpperCase() + geoScope.slice(1)} Scope
-          </Badge>
-        </div>
-        <p className="text-xs text-gray-600 mt-1">
-          Search vehicles & equipment with AI ranking, price prediction, and automated purchase orders
-        </p>
-      </CardHeader>
+      <CollapsibleTrigger asChild>
+        <button
+          type="button"
+          className="w-full text-left rounded-t-lg"
+          aria-expanded={panelOpen}
+        >
+          <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 border-b cursor-pointer hover:from-purple-100/80 hover:to-blue-100/80 transition-colors">
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-600" />
+                AI-Powered Multi-Market Search & Auto-PO System
+              </CardTitle>
+              <div className="flex items-center gap-2 shrink-0">
+                {listings.length > 0 && (
+                  <Badge variant="outline" className="bg-white">
+                    {listings.length} result{listings.length === 1 ? "" : "s"}
+                  </Badge>
+                )}
+                <Badge className="bg-purple-100 text-purple-800">
+                  <Globe className="w-3 h-3 mr-1" />
+                  {geoScope.charAt(0).toUpperCase() + geoScope.slice(1)} Scope
+                </Badge>
+                {panelOpen ? (
+                  <ChevronUp className="w-5 h-5 text-purple-700" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-purple-700" />
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-gray-600 mt-1">
+              {panelOpen
+                ? "Search vehicles & equipment with AI ranking, price prediction, and automated purchase orders"
+                : "Click to search vehicles across markets, rank listings, and generate purchase orders"}
+            </p>
+          </CardHeader>
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
       <CardContent className="pt-6 space-y-6">
         {/* Search Controls */}
         <div className="space-y-4">
@@ -1223,6 +1264,7 @@ Make diverse listings with varying quality, prices, and locations.`,
           </div>
         )}
       </CardContent>
+      </CollapsibleContent>
 
       {/* Share Dialog */}
       <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
@@ -1339,5 +1381,6 @@ Make diverse listings with varying quality, prices, and locations.`,
         </DialogContent>
       </Dialog>
     </Card>
+    </Collapsible>
   );
 }
