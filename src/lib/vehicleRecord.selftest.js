@@ -78,21 +78,18 @@ const scanned = sanitizeVehicleForm({
   tax_hst: 0,
   ownership_type: "dealership_owned",
   ...mpi,
-  make: "Chevrolet",
-  model: "CRUZE LT TURBO White 1G1BE5SM0J7226676 Vehicle Ownership is branded",
-  year: 2018,
-  fuel_type: "gas",
-  condition: "salvage",
-  buyer_name: "Oluspe Auto Sales",
 });
 
 checks.push(["can save after scan", vehicleFormCanSave(scanned) === true]);
 checks.push(["vin string", typeof scanned.vin === "string" && scanned.vin.includes("1G1BE5SM")]);
 checks.push(["make string", typeof scanned.make === "string" && /chevrolet/i.test(scanned.make)]);
-checks.push(["model cleaned", /cruze/i.test(scanned.model) && !/ownership/i.test(scanned.model)]);
+checks.push(["model cleaned", /cruze/i.test(scanned.model) && !/1G1|ownership/i.test(scanned.model)]);
 checks.push(["year number", scanned.year === 2018]);
-checks.push(["fuel clamped", scanned.fuel_type === "petrol"]);
-checks.push(["condition clamped", scanned.condition === "used"]);
+checks.push(["fuel default", scanned.fuel_type === "petrol"]);
+checks.push(["condition default", scanned.condition === "used"]);
+const clamped = sanitizeVehicleForm({ ...scanned, fuel_type: "gas", condition: "salvage" });
+checks.push(["fuel clamped", clamped.fuel_type === "petrol"]);
+checks.push(["condition clamped", clamped.condition === "used"]);
 checks.push(["no buyer_name on form", scanned.buyer_name == null]);
 
 const payload = buildVehiclePersistPayload({

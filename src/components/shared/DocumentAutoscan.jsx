@@ -29,6 +29,11 @@ import {
   uploadVehiclePurchaseDocument,
 } from "@/lib/vehiclePurchaseDocuments";
 
+const CHIP_KEYS = [
+  "vin", "year", "make", "model", "color", "mileage", "purchase_price",
+  "tax_gst", "tax_pst", "invoice_number", "transaction_date", "vendor_name",
+];
+
 function formatFieldValue(value) {
   if (Array.isArray(value)) return `${value.length} line items`;
   if (typeof value === "number") {
@@ -44,6 +49,7 @@ export default function DocumentAutoscan({
   compact = false,
   resetKey,
   attachToRecord = false,
+  autoApply = true,
 }) {
   const inputId = useId();
   const fileRef = useRef(null);
@@ -76,15 +82,16 @@ export default function DocumentAutoscan({
     setFile(nextFile);
     setResult(null);
     setAppliedCount(0);
+    runScan(nextFile, "");
   };
 
-  const attachSource = async (analysis) => {
+  const attachSource = async (analysis, sourceFile = file) => {
     if (!attachToRecord || !onAttached || !keepDocument) return;
-    const sourceFile = file || (pastedText.trim() ? textFileFromPaste(pastedText.trim(), analysis) : null);
-    if (!sourceFile) return;
+    const uploadFile = sourceFile || (pastedText.trim() ? textFileFromPaste(pastedText.trim(), analysis) : null);
+    if (!uploadFile) return;
     setAttaching(true);
     try {
-      const doc = await uploadVehiclePurchaseDocument(sourceFile, { analysis });
+      const doc = await uploadVehiclePurchaseDocument(uploadFile, { analysis });
       onAttached(doc);
       toast.success(`Attached ${doc.name} to this vehicle`);
     } catch (error) {
@@ -101,7 +108,7 @@ export default function DocumentAutoscan({
     }
     onApply?.(fields, analysis);
     setAppliedCount(count);
-    toast.success(`Updated ${count} field${count === 1 ? "" : "s"} on the form`);
+    toast.success(`Filled ${count} form field${count === 1 ? "" : "s"} from the document`);
     return true;
   };
 
@@ -125,7 +132,6 @@ export default function DocumentAutoscan({
       setResult(analysis);
       if (usableDocumentText(analysis.text)) {
         setPastedText(analysis.text);
-        setPasteOpen(true);
       } else if (isPdfStructureNoise(pastedText) || isPdfStructureNoise(analysis.text)) {
         setPastedText("");
         setPasteOpen(false);
@@ -134,6 +140,9 @@ export default function DocumentAutoscan({
       if (count === 0) {
         toast.warning("Document read, but no matching fields were found. Review the text below, then click Update form.");
         return;
+      }
+      if (autoApply && applyFields(analysis.fields, analysis)) {
+        await attachSource(analysis, sourceFile);
       }
     } catch (error) {
       console.error("Document autoscan error:", error);
@@ -161,7 +170,6 @@ export default function DocumentAutoscan({
         setResult(analysis);
         if (usableDocumentText(analysis.text)) {
           setPastedText(analysis.text);
-          setPasteOpen(true);
         } else {
           setPastedText("");
         }
@@ -215,8 +223,8 @@ export default function DocumentAutoscan({
           </p>
           {!compact && (
             <p className="text-xs text-indigo-700 mt-0.5">
-              Upload or paste a {spec.title}. Review extracted values, then click Update form to copy them into the fields above
-              {attachToRecord ? " and keep the original file on this record." : "."}
+              Upload a {spec.title}. The analyzer extracts VIN, vendor, prices, and tax, summarizes them, and auto-fills the form
+              {attachToRecord ? ". The original file is kept on this record." : "."}
             </p>
           )}
         </div>
@@ -340,22 +348,36 @@ export default function DocumentAutoscan({
               Attach this bill of sale / invoice to the vehicle
             </span>
             <span className="block text-xs text-gray-500 mt-0.5">
-              After Update form, the original PDF or photo is stored on this vehicle for audit reference.
+              After a successful scan, the original PDF or photo is stored on this vehicle for audit reference.
             </span>
           </Label>
         </div>
       )}
 
-      {(pasteOpen || pastedText) && (
+      {pasteOpen && (
         <Textarea
           value={pastedText}
           onChange={(event) => {
             setPastedText(event.target.value);
             setAppliedCount(0);
           }}
-          placeholder="Paste invoice or bill of sale text here, then click Update form. Scanning a file also fills this box."
+          placeholder="Paste invoice or bill of sale text here if you prefer not to upload a file, then click Scan document."
+          className="max-h-40"
           rows={6}
         />
+      )}
+
+      {result?.text && !pasteOpen && (
+        <button
+          type="button"
+          className="text-xs text-indigo-700 hover:underline"
+          onClick={() => {
+            setPastedText(result.text);
+            setPasteOpen(true);
+          }}
+        >
+          Review extracted text
+        </button>
       )}
 
       {result?.summary && (
@@ -364,25 +386,33 @@ export default function DocumentAutoscan({
             <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
             <p className="text-sm text-gray-800">{result.summary.one_liner}</p>
           </div>
+          {Array.isArray(result.summary.highlights) && result.summary.highlights.length > 0 && (
+            <ul className="text-xs text-gray-600 list-disc pl-5 space-y-0.5">
+              {result.summary.highlights.slice(0, 6).map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          )}
           {fieldEntries.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
-              {fieldEntries.map(([key, value]) => (
-                <Badge key={key} variant="outline" className="text-[11px] font-normal bg-white">
-                  <span className="text-gray-500 mr-1">{fieldLabel(key)}</span>
-                  {formatFieldValue(value)}
-                </Badge>
-              ))}
+              {fieldEntries
+                .filter(([key]) => CHIP_KEYS.includes(key))
+                .map(([key, value]) => (
+                  <Badge key={key} variant="outline" className="text-[11px] font-normal bg-white">
+                    <span className="text-gray-500 mr-1">{fieldLabel(key)}</span>
+                    {formatFieldValue(value)}
+                  </Badge>
+                ))}
             </div>
           )}
           {appliedCount > 0 && (
             <p className="text-xs font-medium text-emerald-700">
-              Copied {appliedCount} field{appliedCount === 1 ? "" : "s"} into the form above.
-              {attachToRecord && keepDocument ? " The source document will be kept on this vehicle." : " Review values before saving."}
+              Form filled with {appliedCount} field{appliedCount === 1 ? "" : "s"}. Review vendor, vehicle, and tax below, then save.
             </p>
           )}
           {result.source === "local" && appliedCount === 0 && (
             <p className="text-[11px] text-gray-500">
-              Click Update form to copy these values into the {profile} fields above.
+              Review the values below. Use Update form if you edit the extracted text.
             </p>
           )}
         </div>

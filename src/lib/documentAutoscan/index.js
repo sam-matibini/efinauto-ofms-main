@@ -1,6 +1,7 @@
 import { extractDocumentText } from "./extractText";
 import { parseMpiSalvageBillOfSale } from "./parseMpiBillOfSale.js";
 import { usableDocumentText } from "./pdfNoise.js";
+import { cleanVehicleModel } from "../vehicleRecord.js";
 
 const VIN_RE = /\b([A-HJ-NPR-Z0-9]{17})\b/i;
 const MONEY_RE = /\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})|[0-9]+\.[0-9]{1,2})/;
@@ -293,17 +294,18 @@ function findMake(text) {
 }
 
 function findModel(text, make) {
+  const vin = findVin(text);
+  const cleanup = (value) => {
+    let next = String(value || "").replace(new RegExp(`^${make}\\s+`, "i"), "");
+    next = next.split(/\b(?:VIN|YEAR|COLOR|COLOUR|MILEAGE|ODOMETER|Vehicle Ownership)\b/i)[0];
+    return cleanVehicleModel(next, vin);
+  };
   const labeled = labeledValue(text, ["Model", "Modèle", "Series"]);
-  if (labeled) {
-    return labeled
-      .replace(new RegExp(`^${make}\\s+`, "i"), "")
-      .split(/VIN|YEAR|COLOR|COLOUR|MILE|Vehicle Ownership|White|Black/i)[0]
-      .trim();
-  }
+  if (labeled) return cleanup(labeled);
   if (!make) return "";
-  const match = text.match(new RegExp(`${make}\\s+([A-Z0-9][A-Z0-9 \\-]+)`, "i"));
+  const match = text.match(new RegExp(`${make}\\s+([A-Z0-9][A-Z0-9 \\/-]{2,80})`, "i"));
   if (!match) return "";
-  return match[1].split(/\s{2,}|VIN|YEAR|COLOR|COLOUR|Vehicle Ownership/)[0].trim();
+  return cleanup(match[1]);
 }
 
 function findColor(text) {
@@ -350,8 +352,9 @@ function mapFuel(text) {
 }
 
 function mapTransmission(text) {
-  const labeled = labeledValue(text, ["Transmission", "Trans"]);
-  const source = `${labeled} ${text}`.toLowerCase();
+  const labeled = labeledValue(text, ["Transmission", "Trans", "Trans."]);
+  if (!labeled) return "";
+  const source = labeled.toLowerCase();
   if (/\bmanual\b|\bstd\b|\b5.?speed\b|\b6.?speed\b/.test(source) && !/automatic/.test(source)) return "manual";
   if (/\bsemi[-\s]?automatic\b|\bamt\b/.test(source)) return "semi_automatic";
   if (/\bautomatic\b|\bauto\b|\bcvt\b/.test(source)) return "automatic";
@@ -469,19 +472,19 @@ function findVendorPst(text) {
 }
 
 function parseVehicleFields(text) {
-  const vin = findVin(text);
+  const mpi = parseMpiSalvageBillOfSale(text);
+  const vin = mpi.vin || findVin(text);
   const decoded = decodeVin(vin);
-  const make = findMake(text) || decoded.make || "";
+  const make = mpi.make || findMake(text) || decoded.make || "";
   const purchase = findMoneyNear(text, ["Purchase Price", "Purchase Amount", "Cost", "Amount Paid", "Total Price", "Invoice Total", "Total"]);
   const selling = findMoneyNear(text, ["Selling Price", "List Price", "Asking Price", "Sale Price", "Retail"]);
-  const mpi = parseMpiSalvageBillOfSale(text);
   const header = text.split(/Sold To/i)[0] || text;
   return compact({
-    vin: mpi.vin || vin,
-    year: findYear(text, decoded.year),
+    vin,
+    year: mpi.year || findYear(text, decoded.year),
     make,
-    model: findModel(text, make),
-    color: findColor(text),
+    model: cleanVehicleModel(mpi.model || findModel(text, make), vin),
+    color: mpi.color || findColor(text),
     mileage: mpi.mileage ?? findMileage(text),
     purchase_price: mpi.purchase_price ?? purchase,
     selling_price: selling,
@@ -689,29 +692,52 @@ export function parseDocumentFields(text, profile) {
   return parser(text);
 }
 
+function moneyLabel(value) {
+  if (value == null || value === "") return "";
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return String(value);
+  return `$${amount.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 export function summarizeExtraction(text, fields, profile) {
   const type = detectDocumentType(text);
-  const filled = Object.keys(fields);
-  const highlights = filled.slice(0, 6).map((key) => {
+  const filled = Object.keys(fields || {});
+  const vehicle = [fields.year, fields.make || fields.vehicle_make, fields.model || fields.vehicle_model]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  const vin = fields.vin || fields.vehicle_vin;
+  const vendor = fields.vendor_name || fields.supplier_name;
+  const amount = fields.purchase_price ?? fields.sale_price ?? fields.amount ?? fields.cost_price;
+  const invoice = fields.invoice_number || fields.bill_number || fields.purchase_number;
+  const oneLinerParts = [];
+  if (vehicle) oneLinerParts.push(vehicle);
+  else if (fields.vehicle_make_model) oneLinerParts.push(`${fields.vehicle_year || ""} ${fields.vehicle_make_model}`.trim());
+  else if (vendor) oneLinerParts.push(vendor);
+  else if (fields.customer_name || fields.full_name) oneLinerParts.push(fields.customer_name || fields.full_name);
+  if (vin) oneLinerParts.push(`VIN ${vin}`);
+  if (amount != null) oneLinerParts.push(moneyLabel(amount));
+  if (vendor && vehicle) oneLinerParts.push(vendor);
+  if (invoice) oneLinerParts.push(`Invoice ${invoice}`);
+  const highlights = [
+    vin && `VIN ${vin}`,
+    fields.mileage != null && `Odometer ${Number(fields.mileage).toLocaleString()} km`,
+    amount != null && `Pretax ${moneyLabel(amount)}`,
+    fields.tax_gst != null && `GST ${moneyLabel(fields.tax_gst)}`,
+    fields.tax_pst != null && `PST ${moneyLabel(fields.tax_pst)}`,
+    vendor,
+    [fields.vendor_address, fields.vendor_city, fields.vendor_province].filter(Boolean).join(", "),
+    invoice && `Invoice ${invoice}`,
+    fields.transaction_date && `Date ${fields.transaction_date}`,
+  ].filter(Boolean);
+  const fallbackHighlights = filled.slice(0, 6).map((key) => {
     const value = Array.isArray(fields[key]) ? `${fields[key].length} items` : fields[key];
     return `${fieldLabel(key)}: ${value}`;
   });
-  const oneLinerParts = [];
-  if (fields.year && (fields.make || fields.vehicle_make)) {
-    oneLinerParts.push(`${fields.year} ${fields.make || fields.vehicle_make} ${fields.model || fields.vehicle_model || ""}`.trim());
-  } else if (fields.vehicle_make_model) {
-    oneLinerParts.push(`${fields.vehicle_year || ""} ${fields.vehicle_make_model}`.trim());
-  } else if (fields.vendor_name || fields.supplier_name) {
-    oneLinerParts.push(fields.vendor_name || fields.supplier_name);
-  } else if (fields.customer_name || fields.full_name) {
-    oneLinerParts.push(fields.customer_name || fields.full_name);
-  }
-  const amount = fields.purchase_price ?? fields.sale_price ?? fields.amount ?? fields.cost_price;
-  if (amount != null) oneLinerParts.push(`$${Number(amount).toLocaleString("en-CA", { minimumFractionDigits: 2 })}`);
   return {
     document_type: type,
     one_liner: oneLinerParts.filter(Boolean).join(" · ") || `${type} ready to apply to the ${profile} form`,
-    highlights,
+    highlights: highlights.length ? highlights : fallbackHighlights,
     field_count: filled.length,
   };
 }

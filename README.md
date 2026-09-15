@@ -30,11 +30,11 @@ Required env vars:
 
 ## Autoscan documents
 
-Add Vehicle, expenses, bills, purchase orders, invoices, bills of sale, repair orders, parts, and customers include an **Autoscan document** panel at the bottom of the form. Upload a PDF/photo or paste text from an invoice or bill of sale, click **Scan document**, then click **Update form** to copy extracted VIN, prices, dates, and vendor details into the fields above. Review the filled fields before saving. Scanned PDFs use on-device OCR when the file has no text layer.
+Add Vehicle, expenses, bills, purchase orders, invoices, bills of sale, repair orders, parts, and customers include an **Autoscan document** panel. On Add Vehicle it sits at the top of the form: upload a PDF or photo (or paste text) and the analyzer extracts and summarizes VIN, vendor, prices, and tax, then **auto-fills the fields below**. Review the filled vendor, vehicle, and tax sections, then click **Add Vehicle**. Use **Update form** only if you edit the extracted text. Scanned PDFs use on-device OCR when the file has no text layer.
 
-Manitoba Public Insurance salvage bills of sale are parsed for CRA/MPI audit fields: vendor name and address, GST#/PST#, invoice/bill of sale number, date, bidder #, storage yard, stock #, pretax charges, and GST/PST.
+Manitoba Public Insurance salvage bills of sale are parsed for CRA/MPI audit fields: year/make/model/colour/VIN from the stock line, vendor name and address, GST#/PST#, invoice/bill of sale number, date, bidder #, storage yard, stock #, pretax charges, and GST/PST.
 
-After **Update form**, the original PDF or photo is attached to the vehicle (default) so it remains available as an audit reference. You can also attach extra invoices from **Purchase documents**.
+After a successful scan, the original PDF or photo is attached to the vehicle (default) so it remains available as an audit reference. You can also attach extra invoices from **Purchase documents**.
 
 ## Vendor details on vehicle purchases
 

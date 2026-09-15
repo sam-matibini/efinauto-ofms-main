@@ -930,25 +930,38 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next && !busy) onClose(); }}>
       <DialogContent
-        className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-6"
-        onPointerDownOutside={(event) => { if (busy) event.preventDefault(); }}
-        onInteractOutside={(event) => {
+        className="max-w-3xl max-h-[90vh] overflow-y-auto"
+        onPointerDownOutside={(event) => {
           const target = event.target;
-          if (busy) {
-            event.preventDefault();
+          if (target instanceof Element && target.closest("[data-radix-select-content],[data-radix-popper-content-wrapper],[data-radix-popover-content]")) {
             return;
           }
-          if (target instanceof Element && target.closest("[data-radix-select-content],[data-radix-popper-content-wrapper],[data-radix-popover-content]")) {
-            event.preventDefault();
-          }
+          event.preventDefault();
         }}
+        onInteractOutside={(event) => event.preventDefault()}
         onEscapeKeyDown={(event) => { if (busy) event.preventDefault(); }}
       >
         <DialogHeader>
           <DialogTitle>{vehicle ? 'Edit Vehicle' : 'Add Vehicle'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-4 pr-1">
+        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+          <DocumentAutoscan
+            profile="vehicle"
+            resetKey={open}
+            attachToRecord
+            autoApply
+            onAttached={(doc) => setFormData((prev) => ({
+              ...prev,
+              purchase_documents: addPurchaseDocument(prev.purchase_documents, doc),
+            }))}
+            onApply={(fields) => {
+              setFormData((prev) => applyVehicleDocumentScan(prev, fields, {
+                vendors,
+                companyRates: company?.tax_rates,
+              }));
+            }}
+          />
+
           <VehicleVendorSection
             formData={formData}
             onChange={setFormData}
@@ -1124,6 +1137,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
                       <div key={i} className="relative">
                         <img src={img} className="w-20 h-20 object-cover rounded" alt={`Vehicle ${i + 1}`} />
                         <button
+                          type="button"
                           onClick={() => setFormData({...formData, images: formData.images.filter((_, idx) => idx !== i)})}
                           className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
                         >
@@ -1151,24 +1165,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
             onChange={(purchase_documents) => setFormData((prev) => ({ ...prev, purchase_documents }))}
           />
 
-          <DocumentAutoscan
-            profile="vehicle"
-            resetKey={open}
-            attachToRecord
-            onAttached={(doc) => setFormData((prev) => ({
-              ...prev,
-              purchase_documents: addPurchaseDocument(prev.purchase_documents, doc),
-            }))}
-            onApply={(fields) => {
-              setFormData((prev) => applyVehicleDocumentScan(prev, fields, {
-                vendors,
-                companyRates: company?.tax_rates,
-              }));
-            }}
-          />
-        </div>
-
-        <div className="flex justify-end gap-3 border-t bg-background pt-3" data-vehicle-dialog-footer="true">
+        <div className="flex justify-end gap-3 border-t bg-background pt-4">
           <Button type="button" variant="outline" onClick={onClose} disabled={busy}>Cancel</Button>
           <Button 
             type="submit"

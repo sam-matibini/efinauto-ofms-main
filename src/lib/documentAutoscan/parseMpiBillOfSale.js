@@ -72,6 +72,49 @@ function firstEmail(text) {
   return match ? match[0] : "";
 }
 
+const STOCK_COLORS = [
+  "pearl white", "midnight blue", "dark grey", "dark gray", "dark green",
+  "light blue", "off white", "gun metal", "gunmetal", "white", "black",
+  "silver", "grey", "gray", "blue", "red", "green", "yellow", "orange",
+  "brown", "beige", "gold", "purple", "maroon", "burgundy", "tan", "cream",
+  "ivory", "charcoal", "navy", "teal", "bronze", "copper", "pink",
+];
+
+function titleCaseToken(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\b([a-z])/g, (letter) => letter.toUpperCase());
+}
+
+export function parseSalvageVehicleLine(source) {
+  const colorAlt = STOCK_COLORS.slice().sort((a, b) => b.length - a.length).join("|");
+  const withColor = String(source || "").match(
+    new RegExp(
+      `\\b((?:19|20)\\d{2})\\s+([A-Z][A-Z0-9-]{1,24})\\s+([A-Z0-9][A-Z0-9 \\/-]{1,60}?)\\s+(${colorAlt})\\s+([A-HJ-NPR-Z0-9]{17})\\b`,
+      "i"
+    )
+  );
+  if (withColor) {
+    return compact({
+      year: parseInt(withColor[1], 10),
+      make: titleCaseToken(withColor[2]),
+      model: withColor[3].replace(/\s+/g, " ").trim(),
+      color: titleCaseToken(withColor[4]),
+      vin: withColor[5].toUpperCase(),
+    });
+  }
+  const withoutColor = String(source || "").match(
+    /\b((?:19|20)\d{2})\s+([A-Z][A-Z0-9-]{1,24})\s+([A-Z0-9][A-Z0-9 \/-]{1,60}?)\s+([A-HJ-NPR-Z0-9]{17})\b/i
+  );
+  if (!withoutColor) return {};
+  return compact({
+    year: parseInt(withoutColor[1], 10),
+    make: titleCaseToken(withoutColor[2]),
+    model: withoutColor[3].replace(/\s+/g, " ").trim(),
+    vin: withoutColor[4].toUpperCase(),
+  });
+}
+
 export function isMpiOrSalvageBillOfSale(text) {
   const source = String(text || "");
   return /manitoba public insurance|soci[eé]t[eé] d['’]assurance publique|mpisalvage@mpi|regular auction|storage yard|mpi doc\s*#|mb-salvageable/i.test(source);
@@ -127,8 +170,13 @@ export function parseMpiSalvageBillOfSale(text) {
   ].filter(Boolean).join(" ");
 
   const vinMatch = source.match(VIN_RE);
+  const vehicle = parseSalvageVehicleLine(source);
 
   return compact({
+    year: vehicle.year,
+    make: vehicle.make,
+    model: vehicle.model,
+    color: vehicle.color,
     vendor_name: "Manitoba Public Insurance",
     vendor_address: street,
     vendor_city: cityProvince ? cityProvince[1].replace(/,+$/g, "").trim() : "Winnipeg",
@@ -158,7 +206,7 @@ export function parseMpiSalvageBillOfSale(text) {
     tax_exemption_reason: exemption,
     odometer_as_of: odometerAsOf,
     mileage: odometer ? parseInt(odometer.replace(/,/g, ""), 10) : undefined,
-    vin: vinMatch ? vinMatch[1].toUpperCase() : "",
+    vin: vehicle.vin || (vinMatch ? vinMatch[1].toUpperCase() : ""),
     province: "MB",
     pst_exempt: Boolean(exemption) || taxPst === 0,
     purchase_price: totals ? money(totals[1]) : pretaxFromFees,
