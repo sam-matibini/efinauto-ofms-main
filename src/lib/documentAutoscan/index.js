@@ -294,12 +294,15 @@ function findMake(text) {
 function findModel(text, make) {
   const labeled = labeledValue(text, ["Model", "Modèle", "Series"]);
   if (labeled) {
-    return labeled.replace(new RegExp(`^${make}\\s+`, "i"), "").split(/VIN|YEAR|COLOR|MILE/i)[0].trim();
+    return labeled
+      .replace(new RegExp(`^${make}\\s+`, "i"), "")
+      .split(/VIN|YEAR|COLOR|COLOUR|MILE|Vehicle Ownership|White|Black/i)[0]
+      .trim();
   }
   if (!make) return "";
   const match = text.match(new RegExp(`${make}\\s+([A-Z0-9][A-Z0-9 \\-]+)`, "i"));
   if (!match) return "";
-  return match[1].split(/\s{2,}|VIN|YEAR|COLOR/)[0].trim();
+  return match[1].split(/\s{2,}|VIN|YEAR|COLOR|COLOUR|Vehicle Ownership/)[0].trim();
 }
 
 function findColor(text) {

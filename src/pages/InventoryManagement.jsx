@@ -33,10 +33,10 @@ import VehiclePurchaseTaxSection from "@/components/vehicles/VehiclePurchaseTaxS
 import VehicleVendorSection from "@/components/vehicles/VehicleVendorSection";
 import VehiclePurchaseDocuments from "@/components/vehicles/VehiclePurchaseDocuments";
 import { postVehiclePurchaseAccounting } from "@/lib/postVehiclePurchase";
-import { vehiclePurchaseTaxes } from "@/lib/vehiclePurchaseTaxes";
 import { applyVehicleDocumentScan } from "@/lib/applyVehicleDocumentScan";
 import { emptyVehicleVendorFields, resolveVehicleVendor } from "@/lib/vendorDirectory";
 import { addPurchaseDocument } from "@/lib/vehiclePurchaseDocuments";
+import { persistVehicleRecord, selectValue, VEHICLE_ENUMS, vehicleFormCanSave } from "@/lib/vehicleRecord";
 
 export default function InventoryManagement() {
   const { selectedCompanyId } = useCompany();
@@ -138,16 +138,19 @@ export default function InventoryManagement() {
 
   // Vehicle mutations
   const createVehicleMutation = useMutation({
-    mutationFn: async (payload) => {
-      const postToGl = payload.post_to_gl !== false;
-      const { post_to_gl: _post, ...data } = payload;
-      const vehicle = await supabase.entities.Vehicle.create({ ...data, company_id: selectedCompanyId });
+    mutationFn: async (form) => {
+      const postToGl = form.post_to_gl !== false && !form.gl_posted && !form.purchase_id;
+      const vehicle = await persistVehicleRecord({
+        supabase,
+        companyId: selectedCompanyId,
+        form,
+      });
       if (postToGl) {
         try {
           await postVehiclePurchaseAccounting({
             companyId: selectedCompanyId,
             vehicle,
-            form: { ...data, company_id: selectedCompanyId },
+            form: { ...form, company_id: selectedCompanyId, ...vehicle },
           });
         } catch (error) {
           console.error("Vehicle GL post failed", error);
@@ -164,18 +167,28 @@ export default function InventoryManagement() {
       setEditingVehicle(null);
       toast.success("Vehicle added to inventory");
     },
+    onError: (error) => {
+      console.error("Create error:", error);
+      toast.error("Failed to add vehicle: " + (error.message || "Unknown error"));
+    },
   });
 
   const updateVehicleMutation = useMutation({
-    mutationFn: ({ id, data }) => {
-      const { post_to_gl: _post, ...vehicleData } = data;
-      return supabase.entities.Vehicle.update(id, vehicleData);
-    },
+    mutationFn: ({ id, form }) => persistVehicleRecord({
+      supabase,
+      companyId: selectedCompanyId,
+      form: { ...form, post_to_gl: false },
+      existingId: id,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       setVehicleDialogOpen(false);
       setEditingVehicle(null);
       toast.success("Vehicle updated successfully");
+    },
+    onError: (error) => {
+      console.error("Update error:", error);
+      toast.error("Failed to update vehicle: " + (error.message || "Unknown error"));
     },
   });
 
@@ -905,6 +918,10 @@ export default function InventoryManagement() {
         onClose={() => { setVehicleDialogOpen(false); setEditingVehicle(null); }}
         vehicle={editingVehicle}
         onSave={async (data) => {
+          if (!vehicleFormCanSave(data)) {
+            toast.error("Please fill in all required fields (VIN, Make, Model, Year)");
+            return;
+          }
           let source = data;
           try {
             const vendors = queryClient.getQueryData(["vendors", selectedCompanyId])
@@ -918,25 +935,10 @@ export default function InventoryManagement() {
           } catch (error) {
             toast.error("Vendor could not be saved: " + (error.message || "Unknown error"));
           }
-          const taxes = vehiclePurchaseTaxes({
-            pretax: source.purchase_price,
-            tax_gst: source.tax_gst,
-            tax_pst: source.tax_pst,
-            tax_hst: source.tax_hst,
-            province: source.province,
-            tax_status: source.tax_status,
-            pst_exempt: source.pst_exempt,
-          });
-          const payload = {
-            ...source,
-            ...taxes,
-            purchase_price: taxes.purchase_price,
-            total_cost: taxes.total_vehicle_expenditure,
-          };
           if (editingVehicle) {
-            updateVehicleMutation.mutate({ id: editingVehicle.id, data: payload });
+            updateVehicleMutation.mutate({ id: editingVehicle.id, form: source });
           } else {
-            createVehicleMutation.mutate(payload);
+            createVehicleMutation.mutate(source);
           }
         }}
       />
@@ -1013,8 +1015,10 @@ function VehicleDialog({ open, onClose, vehicle, onSave }) {
     setFormData(vehicle ? { ...emptyVehicleForm(), ...vehicle, post_to_gl: false } : emptyVehicleForm());
   }, [vehicle, open]);
 
+  const canSave = vehicleFormCanSave(formData);
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{vehicle ? 'Edit Vehicle' : 'Add Vehicle'}</DialogTitle>
@@ -1031,43 +1035,58 @@ function VehicleDialog({ open, onClose, vehicle, onSave }) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>VIN *</Label>
-                <Input value={formData.vin} onChange={(e) => setFormData({...formData, vin: e.target.value})} />
+                <Input value={formData.vin || ""} onChange={(e) => setFormData({...formData, vin: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label>Year *</Label>
-                <Input type="number" value={formData.year} onChange={(e) => setFormData({...formData, year: parseInt(e.target.value)})} />
+                <Input
+                  type="number"
+                  value={formData.year ?? ""}
+                  onChange={(e) => {
+                    const year = parseInt(e.target.value, 10);
+                    setFormData({ ...formData, year: Number.isFinite(year) ? year : "" });
+                  }}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Make *</Label>
-                <Input value={formData.make} onChange={(e) => setFormData({...formData, make: e.target.value})} />
+                <Input value={formData.make || ""} onChange={(e) => setFormData({...formData, make: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label>Model *</Label>
-                <Input value={formData.model} onChange={(e) => setFormData({...formData, model: e.target.value})} />
+                <Input value={formData.model || ""} onChange={(e) => setFormData({...formData, model: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label>Color</Label>
-                <Input value={formData.color} onChange={(e) => setFormData({...formData, color: e.target.value})} />
+                <Input value={formData.color || ""} onChange={(e) => setFormData({...formData, color: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label>Mileage (km)</Label>
-                <Input type="number" value={formData.mileage} onChange={(e) => setFormData({...formData, mileage: parseInt(e.target.value)})} />
+                <Input
+                  type="number"
+                  value={formData.mileage ?? ""}
+                  onChange={(e) => {
+                    const mileage = parseInt(e.target.value, 10);
+                    setFormData({ ...formData, mileage: Number.isFinite(mileage) ? mileage : 0 });
+                  }}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
+                <Select value={selectValue(formData.status, VEHICLE_ENUMS.status) || "in_stock"} onValueChange={(v) => setFormData({...formData, status: v})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="in_stock">In Stock</SelectItem>
                     <SelectItem value="sold">Sold</SelectItem>
                     <SelectItem value="reserved">Reserved</SelectItem>
                     <SelectItem value="in_transit">In Transit</SelectItem>
+                    <SelectItem value="exported">Exported</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label>Condition</Label>
-                <Select value={formData.condition} onValueChange={(v) => setFormData({...formData, condition: v})}>
+                <Select value={selectValue(formData.condition, VEHICLE_ENUMS.condition) || "used"} onValueChange={(v) => setFormData({...formData, condition: v})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="new">New</SelectItem>
@@ -1078,7 +1097,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave }) {
               </div>
               <div className="space-y-2">
                 <Label>Selling Price ($)</Label>
-                <Input type="number" value={formData.selling_price} onChange={(e) => setFormData({...formData, selling_price: parseFloat(e.target.value)})} />
+                <Input type="number" value={formData.selling_price ?? ""} onChange={(e) => setFormData({...formData, selling_price: parseFloat(e.target.value) || 0})} />
               </div>
             </div>
           </div>
@@ -1093,19 +1112,20 @@ function VehicleDialog({ open, onClose, vehicle, onSave }) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Fuel Type</Label>
-                <Select value={formData.fuel_type} onValueChange={(v) => setFormData({...formData, fuel_type: v})}>
+                <Select value={selectValue(formData.fuel_type, VEHICLE_ENUMS.fuel_type) || "petrol"} onValueChange={(v) => setFormData({...formData, fuel_type: v})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="petrol">Petrol</SelectItem>
                     <SelectItem value="diesel">Diesel</SelectItem>
                     <SelectItem value="electric">Electric</SelectItem>
                     <SelectItem value="hybrid">Hybrid</SelectItem>
+                    <SelectItem value="lpg">LPG</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label>Transmission</Label>
-                <Select value={formData.transmission} onValueChange={(v) => setFormData({...formData, transmission: v})}>
+                <Select value={selectValue(formData.transmission, VEHICLE_ENUMS.transmission) || "automatic"} onValueChange={(v) => setFormData({...formData, transmission: v})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="automatic">Automatic</SelectItem>
@@ -1116,11 +1136,11 @@ function VehicleDialog({ open, onClose, vehicle, onSave }) {
               </div>
               <div className="space-y-2 col-span-2">
                 <Label>Location</Label>
-                <Input value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} placeholder="Lot A, Bay 5" />
+                <Input value={formData.location || ""} onChange={(e) => setFormData({...formData, location: e.target.value})} placeholder="Lot A, Bay 5" />
               </div>
               <div className="space-y-2 col-span-2">
                 <Label>Notes</Label>
-                <Textarea value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={2} />
+                <Textarea value={formData.notes || ""} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={2} />
               </div>
             </div>
           </div>
@@ -1141,9 +1161,9 @@ function VehicleDialog({ open, onClose, vehicle, onSave }) {
             onApply={(fields) => setFormData((prev) => applyVehicleDocumentScan(prev, fields, { vendors }))}
           />
         </div>
-        <div className="flex justify-end gap-3 pt-3">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700" disabled={!formData.vin || !formData.make || !formData.model}>
+        <div className="sticky bottom-0 flex justify-end gap-3 bg-background pt-3">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="button" onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700" disabled={!canSave}>
             {vehicle ? 'Update' : 'Add'} Vehicle
           </Button>
         </div>

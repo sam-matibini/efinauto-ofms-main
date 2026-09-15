@@ -17,6 +17,15 @@ function compact(fields) {
   return result;
 }
 
+function cleanExemption(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .split(/\b(?:Stock\s*#|Sale Date|Odometer|MPI DOC|Printed on|Thank You|Repair Estimate|As of|Declaration)\b/i)[0]
+    .replace(/[*:;,.]+$/g, "")
+    .trim()
+    .slice(0, 240);
+}
+
 function toIsoDate(value) {
   if (!value) return "";
   const raw = String(value).trim();
@@ -89,7 +98,7 @@ export function parseMpiSalvageBillOfSale(text) {
     /(\d+\s+[A-Za-z0-9][A-Za-z0-9 .'-]+(?:Rd|Road|St|Street|Ave|Avenue|Blvd|Dr|Drive|Way|Cres|Crescent|Hwy|Highway)\.?)/i
   );
 
-  const exemption = capture(source, /Tax Exemption Reason:\s*([^\n]+)/i);
+  const exemption = cleanExemption(capture(source, /Tax Exemption Reason:\s*([^\n]+)/i));
   const salvageBrand = capture(source, /(?:Vehicle Ownership is branded|branded):\s*([^\n]+)/i);
   const mpiDoc = capture(source, /MPI DOC\s*#\s*([0-9]+)/i);
   const repairEstimate = capture(source, /Repair Estimate:\s*([0-9,]+\.?\d*)/i);

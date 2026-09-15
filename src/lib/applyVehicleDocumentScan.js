@@ -1,6 +1,7 @@
 import { mergeDocumentFields } from "@/lib/documentAutoscan";
 import { fillMissingVendorFields, findMatchingVendor } from "@/lib/vendorDirectory";
 import { vehiclePurchaseTaxes } from "@/lib/vehiclePurchaseTaxes";
+import { sanitizeVehicleForm } from "@/lib/vehicleRecord";
 
 export function applyVehicleDocumentScan(prev, fields, { vendors = [], companyRates } = {}) {
   const merged = mergeDocumentFields(prev, fields);
@@ -18,5 +19,11 @@ export function applyVehicleDocumentScan(prev, fields, { vendors = [], companyRa
     companyRates,
     useRates: !hasScannedTax,
   });
-  return { ...withVendor, ...taxes };
+  return sanitizeVehicleForm({
+    ...withVendor,
+    ...taxes,
+    post_to_gl: prev?.post_to_gl,
+    gl_posted: prev?.gl_posted,
+    purchase_id: prev?.purchase_id,
+  });
 }

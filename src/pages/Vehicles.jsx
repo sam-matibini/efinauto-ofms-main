@@ -39,12 +39,11 @@ import VehiclePurchaseTaxSection from "@/components/vehicles/VehiclePurchaseTaxS
 import VehicleVendorSection from "@/components/vehicles/VehicleVendorSection";
 import VehiclePurchaseDocuments from "@/components/vehicles/VehiclePurchaseDocuments";
 import { postVehiclePurchaseAccounting } from "@/lib/postVehiclePurchase";
-import { vehiclePurchaseTaxes } from "@/lib/vehiclePurchaseTaxes";
 import { applyVehicleDocumentScan } from "@/lib/applyVehicleDocumentScan";
 import { addPurchaseDocument } from "@/lib/vehiclePurchaseDocuments";
+import { persistVehicleRecord, selectValue, VEHICLE_ENUMS, vehicleFormCanSave } from "@/lib/vehicleRecord";
 import {
   emptyVehicleVendorFields,
-  pickVehicleVendorPersistFields,
   resolveVehicleVendor,
 } from "@/lib/vendorDirectory";
 import {
@@ -98,16 +97,19 @@ export default function Vehicles() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (payload) => {
-      const postToGl = payload.post_to_gl !== false;
-      const { post_to_gl: _post, ...data } = payload;
-      const vehicle = await supabase.entities.Vehicle.create(data);
+    mutationFn: async (form) => {
+      const postToGl = form.post_to_gl !== false && !form.gl_posted && !form.purchase_id;
+      const vehicle = await persistVehicleRecord({
+        supabase,
+        companyId: selectedCompanyId,
+        form,
+      });
       if (postToGl) {
         try {
           await postVehiclePurchaseAccounting({
             companyId: selectedCompanyId,
             vehicle,
-            form: data,
+            form: { ...form, ...vehicle },
           });
         } catch (error) {
           console.error("Vehicle GL post failed", error);
@@ -131,9 +133,13 @@ export default function Vehicles() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }) => {
-      const { post_to_gl: _post, ...vehicleData } = data;
-      return await supabase.entities.Vehicle.update(id, vehicleData);
+    mutationFn: async ({ id, form }) => {
+      return persistVehicleRecord({
+        supabase,
+        companyId: selectedCompanyId,
+        form: { ...form, post_to_gl: false },
+        existingId: id,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles', selectedCompanyId] });
@@ -238,14 +244,12 @@ export default function Vehicles() {
   };
 
   const handleSave = async (formData) => {
-    console.log("handleSave called with:", formData);
-    
     if (!selectedCompanyId) {
       toast.error("Please select a company first");
       return;
     }
 
-    if (!formData.vin?.trim() || !formData.make?.trim() || !formData.model?.trim() || !formData.year) {
+    if (!vehicleFormCanSave(formData)) {
       toast.error("Please fill in all required fields (VIN, Make, Model, Year)");
       return;
     }
@@ -264,61 +268,14 @@ export default function Vehicles() {
       toast.error("Vendor could not be saved: " + (error.message || "Unknown error"));
     }
 
-    const taxes = vehiclePurchaseTaxes({
-      pretax: Number(source.purchase_price) || 0,
-      tax_gst: source.tax_gst,
-      tax_pst: source.tax_pst,
-      tax_hst: source.tax_hst,
-      province: source.province,
-      tax_status: source.tax_status,
-      pst_exempt: source.pst_exempt,
-    });
-
-    const cleanData = {
-      company_id: selectedCompanyId,
-      ownership_type: source.ownership_type || "dealership_owned",
-      vin: source.vin.trim(),
-      make: source.make.trim(),
-      model: source.model.trim(),
-      year: Number(source.year),
-      condition: source.condition || "used",
-      status: source.status || "in_stock",
-      fuel_type: source.fuel_type || "petrol",
-      transmission: source.transmission || "manual",
-      mileage: Number(source.mileage) || 0,
-      weight: Number(source.weight) || 0,
-      purchase_price: taxes.purchase_price,
-      selling_price: Number(source.selling_price) || 0,
-      province: source.province || "",
-      tax_status: source.tax_status || "taxable",
-      pst_exempt: Boolean(source.pst_exempt),
-      tax_gst: taxes.tax_gst,
-      tax_pst: taxes.tax_pst,
-      tax_hst: taxes.tax_hst,
-      tax_rst: taxes.tax_rst,
-      tax_total: taxes.tax_total,
-      total_cost: taxes.total_vehicle_expenditure,
-      total_vehicle_expenditure: taxes.total_vehicle_expenditure,
-      post_to_gl: source.post_to_gl !== false && !source.gl_posted && !source.purchase_id,
-      gl_posted: Boolean(source.gl_posted),
-      purchase_id: source.purchase_id || undefined,
-      ...pickVehicleVendorPersistFields(source),
-    };
-
-    if (source.color?.trim()) cleanData.color = source.color.trim();
-    if (source.location?.trim()) cleanData.location = source.location.trim();
-    if (source.engine_capacity?.trim()) cleanData.engine_capacity = source.engine_capacity.trim();
-    if (source.features?.trim()) cleanData.features = source.features.trim();
-    if (source.notes?.trim()) cleanData.notes = source.notes.trim();
-    if (source.images && source.images.length > 0) cleanData.images = source.images;
-    if (Array.isArray(source.purchase_documents)) cleanData.purchase_documents = source.purchase_documents;
-
-    console.log("Saving vehicle data:", cleanData);
-
-    if (editingVehicle) {
-      updateMutation.mutate({ id: editingVehicle.id, data: cleanData });
-    } else {
-      createMutation.mutate(cleanData);
+    try {
+      if (editingVehicle) {
+        updateMutation.mutate({ id: editingVehicle.id, form: source });
+      } else {
+        createMutation.mutate(source);
+      }
+    } catch (error) {
+      toast.error("Failed to save vehicle: " + (error.message || "Unknown error"));
     }
   };
 
@@ -943,16 +900,10 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
     setUploading(false);
   };
 
-  const hasRequiredFields = formData.vin.trim().length > 0 && 
-                           formData.make.trim().length > 0 && 
-                           formData.model.trim().length > 0 && 
-                           formData.year;
-  const canSave = hasRequiredFields;
-
-  console.log("Vehicle form validation:", { hasRequiredFields, canSave, formData });
+  const canSave = vehicleFormCanSave(formData);
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{vehicle ? 'Edit Vehicle' : 'Add Vehicle'}</DialogTitle>
@@ -971,7 +922,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
               <div className="space-y-2">
                 <Label>VIN *</Label>
                 <Input
-                  value={formData.vin}
+                  value={formData.vin || ""}
                   onChange={(e) => setFormData({...formData, vin: e.target.value})}
                   placeholder="Enter VIN"
                 />
@@ -981,15 +932,18 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
                 <Label>Year *</Label>
                 <Input
                   type="number"
-                  value={formData.year}
-                  onChange={(e) => setFormData({...formData, year: parseInt(e.target.value) || new Date().getFullYear()})}
+                  value={formData.year ?? ""}
+                  onChange={(e) => {
+                    const year = parseInt(e.target.value, 10);
+                    setFormData({ ...formData, year: Number.isFinite(year) ? year : "" });
+                  }}
                   placeholder="e.g., 2023"
                 />
               </div>
               <div className="space-y-2">
                 <Label>Make *</Label>
                 <Input
-                  value={formData.make}
+                  value={formData.make || ""}
                   onChange={(e) => setFormData({...formData, make: e.target.value})}
                   placeholder="e.g., Toyota"
                 />
@@ -997,7 +951,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
               <div className="space-y-2">
                 <Label>Model *</Label>
                 <Input
-                  value={formData.model}
+                  value={formData.model || ""}
                   onChange={(e) => setFormData({...formData, model: e.target.value})}
                   placeholder="e.g., Camry"
                 />
@@ -1022,7 +976,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
               </div>
               <div className="space-y-2">
                 <Label>Condition</Label>
-                <Select value={formData.condition} onValueChange={(v) => setFormData({...formData, condition: v})}>
+                <Select value={selectValue(formData.condition, VEHICLE_ENUMS.condition) || "used"} onValueChange={(v) => setFormData({...formData, condition: v})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="new">New</SelectItem>
@@ -1033,7 +987,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
+                <Select value={selectValue(formData.status, VEHICLE_ENUMS.status) || "in_stock"} onValueChange={(v) => setFormData({...formData, status: v})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="in_stock">In Stock</SelectItem>
@@ -1067,7 +1021,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Ownership Type</Label>
-                <Select value={formData.ownership_type} onValueChange={(v) => setFormData({...formData, ownership_type: v})}>
+                <Select value={selectValue(formData.ownership_type, VEHICLE_ENUMS.ownership_type) || "dealership_owned"} onValueChange={(v) => setFormData({...formData, ownership_type: v})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="dealership_owned">Dealership Owned</SelectItem>
@@ -1094,7 +1048,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
               </div>
               <div className="space-y-2">
                 <Label>Fuel Type</Label>
-                <Select value={formData.fuel_type} onValueChange={(v) => setFormData({...formData, fuel_type: v})}>
+                <Select value={selectValue(formData.fuel_type, VEHICLE_ENUMS.fuel_type) || "petrol"} onValueChange={(v) => setFormData({...formData, fuel_type: v})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="petrol">Petrol</SelectItem>
@@ -1107,7 +1061,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
               </div>
               <div className="space-y-2">
                 <Label>Transmission</Label>
-                <Select value={formData.transmission} onValueChange={(v) => setFormData({...formData, transmission: v})}>
+                <Select value={selectValue(formData.transmission, VEHICLE_ENUMS.transmission) || "automatic"} onValueChange={(v) => setFormData({...formData, transmission: v})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="manual">Manual</SelectItem>
@@ -1175,9 +1129,10 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
           />
         </div>
 
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
+        <div className="sticky bottom-0 flex justify-end gap-3 bg-background pt-3">
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
           <Button 
+            type="button"
             onClick={() => onSave(formData)} 
             className="bg-blue-600 hover:bg-blue-700"
             disabled={isSaving || !canSave}

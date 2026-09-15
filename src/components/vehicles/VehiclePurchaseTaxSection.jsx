@@ -64,7 +64,7 @@ export default function VehiclePurchaseTaxSection({
         <div className="space-y-2">
           <Label>Province</Label>
           <Select
-            value={formData.province || ""}
+            value={formData.province || undefined}
             onValueChange={(province) => applyComputed({ province }, true)}
           >
             <SelectTrigger>

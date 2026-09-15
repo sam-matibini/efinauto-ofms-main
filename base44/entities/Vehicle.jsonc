@@ -210,6 +210,11 @@
       "type": "string",
       "description": "Province for tax calculation"
     },
+    "pst_exempt": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when PST/RST was not charged on the purchase"
+    },
     "tax_status": {
       "type": "string",
       "enum": [
@@ -235,6 +240,11 @@
       "default": 0,
       "description": "HST amount paid on purchase"
     },
+    "tax_rst": {
+      "type": "number",
+      "default": 0,
+      "description": "GST + PST + HST paid on the vehicle purchase"
+    },
     "tax_total": {
       "type": "number",
       "default": 0,
@@ -244,6 +254,20 @@
       "type": "number",
       "default": 0,
       "description": "Purchase price + taxes"
+    },
+    "total_vehicle_expenditure": {
+      "type": "number",
+      "default": 0,
+      "description": "Pretax purchase price plus RST"
+    },
+    "gl_posted": {
+      "type": "boolean",
+      "default": false,
+      "description": "True after the vehicle purchase was posted to the general ledger"
+    },
+    "purchase_id": {
+      "type": "string",
+      "description": "Linked purchase record created when posting the vehicle bill"
     }
   },
   "required": [
