@@ -141,6 +141,55 @@
       "type": "string",
       "description": "Vendor email address"
     },
+    "vendor_address": {
+      "type": "string",
+      "description": "Vendor street address (CRA tax invoice)"
+    },
+    "vendor_city": {
+      "type": "string"
+    },
+    "vendor_province": {
+      "type": "string"
+    },
+    "vendor_country": {
+      "type": "string"
+    },
+    "vendor_postal_code": {
+      "type": "string"
+    },
+    "vendor_gst_number": {
+      "type": "string",
+      "description": "Supplier GST/HST number shown on the tax invoice"
+    },
+    "vendor_pst_number": {
+      "type": "string",
+      "description": "Supplier PST/QST number shown on the tax invoice"
+    },
+    "bidder_number": {
+      "type": "string",
+      "description": "Auction bidder number (MPI salvage bill of sale)"
+    },
+    "storage_yard": {
+      "type": "string",
+      "description": "Storage yard location on the salvage bill of sale"
+    },
+    "auction_number": {
+      "type": "string",
+      "description": "Regular auction number"
+    },
+    "mpi_doc_number": {
+      "type": "string",
+      "description": "Manitoba Public Insurance document number"
+    },
+    "tax_exemption_reason": {
+      "type": "string",
+      "description": "PST/RST exemption reason from the tax invoice"
+    },
+    "odometer_as_of": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the odometer reading was taken"
+    },
     "province": {
       "type": "string",
       "description": "Province for tax calculation"

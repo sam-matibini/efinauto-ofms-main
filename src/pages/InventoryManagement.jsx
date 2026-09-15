@@ -30,8 +30,11 @@ import AIPurchaseOrderGenerator from "@/components/inventory/AIPurchaseOrderGene
 import DocumentAutoscan from "@/components/shared/DocumentAutoscan";
 import { mergeDocumentFields } from "@/lib/documentAutoscan";
 import VehiclePurchaseTaxSection from "@/components/vehicles/VehiclePurchaseTaxSection";
+import VehicleVendorSection from "@/components/vehicles/VehicleVendorSection";
 import { postVehiclePurchaseAccounting } from "@/lib/postVehiclePurchase";
 import { vehiclePurchaseTaxes } from "@/lib/vehiclePurchaseTaxes";
+import { applyVehicleDocumentScan } from "@/lib/applyVehicleDocumentScan";
+import { emptyVehicleVendorFields, resolveVehicleVendor } from "@/lib/vendorDirectory";
 
 export default function InventoryManagement() {
   const { selectedCompanyId } = useCompany();
@@ -899,18 +902,31 @@ export default function InventoryManagement() {
         open={vehicleDialogOpen}
         onClose={() => { setVehicleDialogOpen(false); setEditingVehicle(null); }}
         vehicle={editingVehicle}
-        onSave={(data) => {
+        onSave={async (data) => {
+          let source = data;
+          try {
+            const vendors = queryClient.getQueryData(["vendors", selectedCompanyId])
+              || await supabase.entities.Vendor.filter({ company_id: selectedCompanyId });
+            source = await resolveVehicleVendor({
+              form: data,
+              vendors,
+              companyId: selectedCompanyId,
+              queryClient,
+            });
+          } catch (error) {
+            toast.error("Vendor could not be saved: " + (error.message || "Unknown error"));
+          }
           const taxes = vehiclePurchaseTaxes({
-            pretax: data.purchase_price,
-            tax_gst: data.tax_gst,
-            tax_pst: data.tax_pst,
-            tax_hst: data.tax_hst,
-            province: data.province,
-            tax_status: data.tax_status,
-            pst_exempt: data.pst_exempt,
+            pretax: source.purchase_price,
+            tax_gst: source.tax_gst,
+            tax_pst: source.tax_pst,
+            tax_hst: source.tax_hst,
+            province: source.province,
+            tax_status: source.tax_status,
+            pst_exempt: source.pst_exempt,
           });
           const payload = {
-            ...data,
+            ...source,
             ...taxes,
             purchase_price: taxes.purchase_price,
             total_cost: taxes.total_vehicle_expenditure,
@@ -976,11 +992,18 @@ function emptyVehicleForm() {
     province: "", tax_status: "taxable", pst_exempt: false,
     tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_rst: 0, tax_total: 0,
     total_cost: 0, total_vehicle_expenditure: 0, post_to_gl: true,
-    vendor_name: "",
+    ...emptyVehicleVendorFields(),
   };
 }
 
 function VehicleDialog({ open, onClose, vehicle, onSave }) {
+  const { selectedCompanyId } = useCompany();
+  const { data: vendors = [] } = useQuery({
+    queryKey: ["vendors", selectedCompanyId],
+    queryFn: () => supabase.entities.Vendor.filter({ company_id: selectedCompanyId }),
+    enabled: !!selectedCompanyId && open,
+    initialData: [],
+  });
   const [formData, setFormData] = React.useState(vehicle ? { ...emptyVehicleForm(), ...vehicle, post_to_gl: false } : emptyVehicleForm());
 
   React.useEffect(() => {
@@ -989,7 +1012,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{vehicle ? 'Edit Vehicle' : 'Add Vehicle'}</DialogTitle>
         </DialogHeader>
@@ -1098,6 +1121,11 @@ function VehicleDialog({ open, onClose, vehicle, onSave }) {
             <Label>Notes</Label>
             <Textarea value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={2} />
           </div>
+          <VehicleVendorSection
+            formData={formData}
+            onChange={setFormData}
+            showPurchaseDocumentFields
+          />
           <VehiclePurchaseTaxSection
             formData={formData}
             onChange={setFormData}
@@ -1106,19 +1134,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave }) {
         <DocumentAutoscan
           profile="vehicle"
           resetKey={open}
-          onApply={(fields) => setFormData((prev) => {
-            const merged = mergeDocumentFields(prev, fields);
-            return {
-              ...merged,
-              ...vehiclePurchaseTaxes({
-                pretax: merged.purchase_price,
-                province: merged.province,
-                tax_status: merged.tax_status,
-                pst_exempt: merged.pst_exempt,
-                useRates: true,
-              }),
-            };
-          })}
+          onApply={(fields) => setFormData((prev) => applyVehicleDocumentScan(prev, fields, { vendors }))}
         />
         <div className="flex justify-end gap-3 pt-3">
           <Button variant="outline" onClick={onClose}>Cancel</Button>

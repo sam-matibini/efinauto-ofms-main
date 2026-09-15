@@ -55,6 +55,8 @@ export default function VendorsTab({ vendors, selectedCompanyId }) {
   const filteredVendors = vendors.filter(v =>
     v.vendor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     v.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    v.gst_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    v.pst_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     v.phone?.includes(searchTerm)
   ).sort((a, b) => {
     let aVal = a[sortBy];
@@ -78,6 +80,8 @@ export default function VendorsTab({ vendors, selectedCompanyId }) {
     { label: "Postal Code", accessor: (v) => v.postal_code },
     { label: "Country", accessor: (v) => v.country },
     { label: "Payment Terms", accessor: (v) => v.payment_terms },
+    { label: "GST #", accessor: (v) => v.gst_number || v.tax_id },
+    { label: "PST #", accessor: (v) => v.pst_number },
     { label: "Tax ID", accessor: (v) => v.tax_id },
     { label: "Status", accessor: (v) => v.status },
   ];
@@ -260,8 +264,8 @@ export default function VendorsTab({ vendors, selectedCompanyId }) {
   );
 }
 
-function VendorDialog({ open, onClose, vendor, onSave }) {
-  const [formData, setFormData] = useState(vendor || {
+function emptyVendor() {
+  return {
     vendor_name: "",
     contact_person: "",
     email: "",
@@ -270,31 +274,22 @@ function VendorDialog({ open, onClose, vendor, onSave }) {
     city: "",
     province: "",
     postal_code: "",
-    country: "",
+    country: "Canada",
     vendor_type: "supplier",
     payment_terms: "Net 30",
     tax_id: "",
+    gst_number: "",
+    pst_number: "",
     notes: "",
-    status: "active"
-  });
+    status: "active",
+  };
+}
+
+function VendorDialog({ open, onClose, vendor, onSave }) {
+  const [formData, setFormData] = useState(vendor ? { ...emptyVendor(), ...vendor } : emptyVendor());
 
   React.useEffect(() => {
-    setFormData(vendor || {
-      vendor_name: "",
-      contact_person: "",
-      email: "",
-      phone: "",
-      address: "",
-      city: "",
-      province: "",
-      postal_code: "",
-      country: "",
-      vendor_type: "supplier",
-      payment_terms: "Net 30",
-      tax_id: "",
-      notes: "",
-      status: "active"
-    });
+    setFormData(vendor ? { ...emptyVendor(), ...vendor } : emptyVendor());
   }, [vendor, open]);
 
   return (
@@ -371,11 +366,27 @@ function VendorDialog({ open, onClose, vendor, onSave }) {
               <Input value={formData.country} onChange={(e) => setFormData({...formData, country: e.target.value})} />
             </div>
             <div className="space-y-2">
+              <Label>GST #</Label>
+              <Input
+                value={formData.gst_number}
+                onChange={(e) => setFormData({...formData, gst_number: e.target.value, tax_id: e.target.value || formData.tax_id})}
+                placeholder="R122001191"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>PST #</Label>
+              <Input
+                value={formData.pst_number}
+                onChange={(e) => setFormData({...formData, pst_number: e.target.value})}
+                placeholder="556568-5"
+              />
+            </div>
+            <div className="space-y-2">
               <Label>Payment Terms</Label>
               <Input value={formData.payment_terms} onChange={(e) => setFormData({...formData, payment_terms: e.target.value})} />
             </div>
             <div className="space-y-2">
-              <Label>Tax ID</Label>
+              <Label>Tax ID (legacy)</Label>
               <Input value={formData.tax_id} onChange={(e) => setFormData({...formData, tax_id: e.target.value})} />
             </div>
             <div className="space-y-2 col-span-2">

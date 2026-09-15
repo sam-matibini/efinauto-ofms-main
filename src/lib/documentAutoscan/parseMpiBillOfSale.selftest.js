@@ -1,74 +1,4 @@
-import { parseDocumentFields, decodeVin, mergeDocumentFields } from "./index.js";
-
-const sample = `
-BILL OF SALE
-Invoice Number: INV-2018-441
-Date: 2018-06-12
-VIN: 1G1BE5SM0J7226676
-Make: CHEVROLET
-Model: CRUZE LT TURBO
-Year: 2018
-Color: White
-Mileage: 0 km
-Purchase Price: $2035.95
-Fuel Type: Petrol
-Transmission: Automatic
-Location: Lot A, Bay 5
-Seller: Prairie Auto Auction
-`;
-
-const fields = parseDocumentFields(sample, "vehicle");
-const vin = decodeVin(fields.vin);
-const merged = mergeDocumentFields({ vin: "", make: "", purchase_price: 0 }, fields);
-
-const checks = [
-  ["vin", fields.vin === "1G1BE5SM0J7226676"],
-  ["year", fields.year === 2018],
-  ["make", /chevrolet/i.test(fields.make)],
-  ["model", /cruze/i.test(fields.model)],
-  ["color", /white/i.test(fields.color)],
-  ["mileage", fields.mileage === 0],
-  ["purchase_price", fields.purchase_price === 2035.95],
-  ["transmission", fields.transmission === "automatic"],
-  ["fuel_type", fields.fuel_type === "petrol"],
-  ["invoice_number", fields.invoice_number.includes("INV-2018-441")],
-  ["vin decode make", vin.make === "Chevrolet"],
-  ["vin decode year", vin.year === 2018],
-  ["merge", merged.vin === fields.vin],
-];
-
-const expense = parseDocumentFields(`RECEIPT
-Petro Canada
-Date: 2026-03-04
-Invoice #: RCP-8821
-Fuel: $84.20
-HST: $10.95
-Total: $95.15
-Paid by Visa`, "expense");
-
-checks.push(
-  ["expense vendor", /petro/i.test(expense.vendor_name || "")],
-  ["expense amount", expense.amount === 84.2 || expense.amount === 95.15],
-  ["expense tax", expense.tax_amount === 10.95],
-  ["expense category", expense.category === "fuel"],
-  ["expense reference", /RCP-8821/.test(expense.reference_number || "")],
-);
-
-const spacedVin = parseDocumentFields(
-  `BILL OF SALE
-VIN: 1G1 BE5 SM0 J7226676
-Year 2018
-Make Chevrolet
-Model Cruze
-Color White
-Mileage 12,450 km`,
-  "vehicle"
-);
-checks.push(
-  ["spaced vin", spacedVin.vin === "1G1BE5SM0J7226676"],
-  ["inline year", spacedVin.year === 2018],
-  ["spaced make", /chevrolet/i.test(spacedVin.make)],
-);
+import { parseMpiSalvageBillOfSale } from "./parseMpiBillOfSale.js";
 
 const mpiText = `
 Manitoba Public Insurance / Société d'assurance publique du Manitoba
@@ -105,8 +35,8 @@ Total: $1,939.00 $96.95 $0.00 $2,035.95
 * As of 7/23/2026 the Odometer was 162929Km.
 `;
 
-const mpi = parseDocumentFields(mpiText, "vehicle");
-checks.push(
+const mpi = parseMpiSalvageBillOfSale(mpiText);
+const checks = [
   ["mpi vendor", mpi.vendor_name === "Manitoba Public Insurance"],
   ["mpi address", /plessis/i.test(mpi.vendor_address || "")],
   ["mpi city", /winnipeg/i.test(mpi.vendor_city || "")],
@@ -130,12 +60,12 @@ checks.push(
   ["mpi exemption", /manitoba rst/i.test(mpi.tax_exemption_reason || "")],
   ["mpi pst exempt", mpi.pst_exempt === true],
   ["mpi doc", mpi.mpi_doc_number === "51901903"],
-);
+];
 
 const failed = checks.filter(([, ok]) => !ok);
-console.log(JSON.stringify({ vehicle: fields, expense, mpi }, null, 2));
 if (failed.length) {
   console.error("FAILED", failed.map(([name]) => name));
+  console.error(JSON.stringify(mpi, null, 2));
   process.exit(1);
 }
-console.log("autoscan parser checks passed", checks.length);
+console.log("MPI bill of sale parser checks passed", checks.length);

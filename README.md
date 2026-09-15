@@ -32,6 +32,12 @@ Required env vars:
 
 Add Vehicle, expenses, bills, purchase orders, invoices, bills of sale, repair orders, parts, and customers include an **Autoscan document** panel at the bottom of the form. Upload a PDF/photo or paste text from an invoice or bill of sale, click **Scan document**, then click **Update form** to copy extracted VIN, prices, dates, and vendor details into the fields above. Review the filled fields before saving. Scanned PDFs use on-device OCR when the file has no text layer.
 
+Manitoba Public Insurance salvage bills of sale are parsed for CRA/MPI audit fields: vendor name and address, GST#/PST#, invoice/bill of sale number, date, bidder #, storage yard, stock #, pretax charges, and GST/PST.
+
+## Vendor details on vehicle purchases
+
+Add Vehicle includes a **Vendor / tax invoice** block. Select an existing vendor to retrieve name, address, GST#, PST#, email, and phone. If the supplier is new, use **Quick add vendor** (or save the vehicle) to create the vendor from the invoice details.
+
 ## Vehicle purchase taxes and GL
 
 Add Vehicle includes **Sales taxes (RST) paid**: pretax amount, GST, PST, HST, RST (GST+PST+HST), and total vehicle expenditure. With **Post amounts to the general ledger** checked (default for new vehicles), saving:

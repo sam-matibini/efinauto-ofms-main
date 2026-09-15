@@ -60,7 +60,7 @@ export default function VendorSelector({ value, onSelect, onCreateNew }) {
               {vendors.map((vendor) => (
                 <CommandItem
                   key={vendor.id}
-                  value={`${vendor.vendor_name} ${vendor.contact_email || ''}`}
+                  value={`${vendor.vendor_name} ${vendor.email || vendor.contact_email || ''} ${vendor.gst_number || vendor.tax_id || ''}`}
                   onSelect={() => {
                     onSelect(vendor);
                     setOpen(false);
@@ -74,8 +74,11 @@ export default function VendorSelector({ value, onSelect, onCreateNew }) {
                   />
                   <div className="flex-1">
                     <p className="font-medium">{vendor.vendor_name}</p>
-                    {vendor.contact_email && (
-                      <p className="text-xs text-gray-500">{vendor.contact_email}</p>
+                    {(vendor.email || vendor.contact_email) && (
+                      <p className="text-xs text-gray-500">{vendor.email || vendor.contact_email}</p>
+                    )}
+                    {(vendor.gst_number || vendor.tax_id) && (
+                      <p className="text-xs text-gray-500">GST# {vendor.gst_number || vendor.tax_id}</p>
                     )}
                   </div>
                 </CommandItem>

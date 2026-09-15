@@ -52,6 +52,13 @@ export async function postVehiclePurchaseAccounting({
     supplier_name: form.vendor_name || vehicle.vendor_name || "Vehicle vendor",
     supplier_email: form.vendor_email || vehicle.vendor_email || "",
     supplier_phone: form.vendor_phone || vehicle.vendor_phone || "",
+    supplier_address: [
+      form.vendor_address || vehicle.vendor_address,
+      form.vendor_city || vehicle.vendor_city,
+      form.vendor_province || vehicle.vendor_province,
+      form.vendor_postal_code || vehicle.vendor_postal_code,
+      form.vendor_country || vehicle.vendor_country,
+    ].filter(Boolean).join(", "),
     purchase_type: "vehicle",
     items: [
       {
@@ -81,7 +88,31 @@ export async function postVehiclePurchaseAccounting({
       `Vehicle inventory ${vin || details}.`,
       `Pretax ${pretax.toFixed(2)}. RST (sales tax paid) ${taxes.tax_rst.toFixed(2)}.`,
       `GST ${taxes.tax_gst.toFixed(2)}, PST ${taxes.tax_pst.toFixed(2)}, HST ${taxes.tax_hst.toFixed(2)}.`,
-      invoice ? `Invoice ${invoice}.` : "",
+      invoice ? `Invoice/BOS ${invoice}.` : "",
+      form.vendor_gst_number || vehicle.vendor_gst_number
+        ? `Vendor GST# ${form.vendor_gst_number || vehicle.vendor_gst_number}.`
+        : "",
+      form.vendor_pst_number || vehicle.vendor_pst_number
+        ? `Vendor PST# ${form.vendor_pst_number || vehicle.vendor_pst_number}.`
+        : "",
+      form.stock_number || vehicle.stock_number
+        ? `Stock# ${form.stock_number || vehicle.stock_number}.`
+        : "",
+      form.bidder_number || vehicle.bidder_number
+        ? `Bidder# ${form.bidder_number || vehicle.bidder_number}.`
+        : "",
+      form.storage_yard || vehicle.storage_yard
+        ? `Storage yard ${form.storage_yard || vehicle.storage_yard}.`
+        : "",
+      form.auction_number || vehicle.auction_number
+        ? `Auction# ${form.auction_number || vehicle.auction_number}.`
+        : "",
+      form.mpi_doc_number || vehicle.mpi_doc_number
+        ? `MPI DOC# ${form.mpi_doc_number || vehicle.mpi_doc_number}.`
+        : "",
+      form.tax_exemption_reason || vehicle.tax_exemption_reason
+        ? `Tax exemption: ${form.tax_exemption_reason || vehicle.tax_exemption_reason}.`
+        : "",
     ].filter(Boolean).join(" "),
     vehicle_id: vehicle.id,
     vehicle_vin: vin,

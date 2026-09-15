@@ -50,7 +50,16 @@
       "default": "Net 30"
     },
     "tax_id": {
-      "type": "string"
+      "type": "string",
+      "description": "Legacy tax identifier; GST/HST number is preferred"
+    },
+    "gst_number": {
+      "type": "string",
+      "description": "Vendor GST/HST account number (CRA input tax credit)"
+    },
+    "pst_number": {
+      "type": "string",
+      "description": "Vendor provincial sales tax number"
     },
     "notes": {
       "type": "string"

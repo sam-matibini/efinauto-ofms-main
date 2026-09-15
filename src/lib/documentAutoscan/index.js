@@ -1,5 +1,5 @@
-import { supabase } from "@/api/supabaseClient";
 import { extractDocumentText } from "./extractText";
+import { parseMpiSalvageBillOfSale } from "./parseMpiBillOfSale.js";
 
 const VIN_RE = /\b([A-HJ-NPR-Z0-9]{17})\b/i;
 const MONEY_RE = /\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})|[0-9]+\.[0-9]{1,2})/;
@@ -59,7 +59,12 @@ export const AUTOSCAN_PROFILES = {
       "vin", "year", "make", "model", "color", "mileage", "purchase_price", "selling_price",
       "fuel_type", "transmission", "condition", "status", "location", "notes",
       "invoice_number", "stock_number", "transaction_date", "vendor_name",
-      "vendor_phone", "vendor_email", "engine_capacity", "features", "weight",
+      "vendor_phone", "vendor_email", "vendor_address", "vendor_city",
+      "vendor_province", "vendor_country", "vendor_postal_code",
+      "vendor_gst_number", "vendor_pst_number", "bidder_number", "storage_yard",
+      "auction_number", "mpi_doc_number", "tax_exemption_reason", "odometer_as_of",
+      "tax_gst", "tax_pst", "tax_hst", "province", "pst_exempt",
+      "engine_capacity", "features", "weight",
     ],
   },
   expense: {
@@ -132,7 +137,15 @@ const FIELD_LABELS = {
   fuel_type: "Fuel type", transmission: "Transmission", condition: "Condition",
   status: "Status", location: "Location", notes: "Notes", invoice_number: "Invoice #",
   stock_number: "Stock #", transaction_date: "Transaction date", vendor_name: "Vendor",
-  vendor_phone: "Vendor phone", vendor_email: "Vendor email", engine_capacity: "Engine",
+  vendor_phone: "Vendor phone", vendor_email: "Vendor email",
+  vendor_address: "Vendor address", vendor_city: "Vendor city",
+  vendor_province: "Vendor province", vendor_country: "Vendor country",
+  vendor_postal_code: "Vendor postal code", vendor_gst_number: "Vendor GST #",
+  vendor_pst_number: "Vendor PST #", bidder_number: "Bidder #",
+  storage_yard: "Storage yard", auction_number: "Auction #",
+  mpi_doc_number: "MPI DOC #", tax_exemption_reason: "Tax exemption",
+  odometer_as_of: "Odometer as of", tax_gst: "GST", tax_pst: "PST", tax_hst: "HST",
+  engine_capacity: "Engine",
   features: "Features", weight: "Weight", category: "Category", description: "Description",
   amount: "Amount", tax_amount: "Tax", expense_date: "Expense date",
   payment_method: "Payment method", reference_number: "Reference #",
@@ -168,7 +181,7 @@ function normalizeWhitespace(text) {
 function labeledValue(text, labels) {
   for (const label of labels) {
     const pattern = new RegExp(
-      `(?:^|\\n)\\s*${label}\\s*[:#\\-]\\s*([^\\n]{1,80})`,
+      `(?:^|\\n)\\s*${label}\\s*[:#\\-]?\\s*([^\\n]{1,80})`,
       "i"
     );
     const match = text.match(pattern);
@@ -176,6 +189,15 @@ function labeledValue(text, labels) {
       const value = normalizeWhitespace(match[1]).replace(/\s{2,}.*/, "").trim();
       if (value && !/^[:#-]+$/.test(value)) return value;
     }
+  }
+  return "";
+}
+
+function tokenFromLabel(text, labels, tokenRe = /[A-Z0-9][A-Z0-9-]{1,24}/i) {
+  const labeled = labeledValue(text, labels);
+  if (labeled) {
+    const token = labeled.match(tokenRe);
+    if (token) return token[0];
   }
   return "";
 }
@@ -412,33 +434,82 @@ function compact(fields) {
   return result;
 }
 
+function findInvoiceNumber(text) {
+  const token = tokenFromLabel(
+    text,
+    ["Invoice Number", "Invoice No\\.", "Invoice No", "Invoice #", "Inv #", "Bill of Sale No", "Bill of Sale #"],
+    /[A-Z0-9][A-Z0-9-]{2,24}/i
+  );
+  if (token) return token;
+  const anywhere = text.match(/\bInvoice\s*#\s*[:#]?\s*([A-Z0-9-]{3,24})\b/i);
+  return anywhere ? anywhere[1] : "";
+}
+
+function findStockNumber(text) {
+  const digits = text.match(/\bStock\s*#\s*[:#]?\s*(\d{5,12})\b/i);
+  if (digits) return digits[1];
+  const token = tokenFromLabel(text, ["Stock Number", "Stock #", "Stock No"], /[A-Z0-9][A-Z0-9-]{1,24}/i);
+  if (token && !/^(sale|date|item|year|make)$/i.test(token)) return token;
+  return "";
+}
+
+function findVendorGst(text) {
+  const match = text.match(/\bGST\s*#?\s*[:#]?\s*(R?\d[\dA-Z]{5,}|[\d]{9}(?:RT[\d]{4})?)/i);
+  return match ? match[1].toUpperCase() : "";
+}
+
+function findVendorPst(text) {
+  const match = text.match(/\bPST\s*#?\s*[:#]?\s*([\d][\d-]{2,})/i);
+  return match ? match[1] : "";
+}
+
 function parseVehicleFields(text) {
   const vin = findVin(text);
   const decoded = decodeVin(vin);
   const make = findMake(text) || decoded.make || "";
   const purchase = findMoneyNear(text, ["Purchase Price", "Purchase Amount", "Cost", "Amount Paid", "Total Price", "Invoice Total", "Total"]);
   const selling = findMoneyNear(text, ["Selling Price", "List Price", "Asking Price", "Sale Price", "Retail"]);
+  const mpi = parseMpiSalvageBillOfSale(text);
+  const header = text.split(/Sold To/i)[0] || text;
   return compact({
-    vin,
+    vin: mpi.vin || vin,
     year: findYear(text, decoded.year),
     make,
     model: findModel(text, make),
     color: findColor(text),
-    mileage: findMileage(text),
-    purchase_price: purchase,
+    mileage: mpi.mileage ?? findMileage(text),
+    purchase_price: mpi.purchase_price ?? purchase,
     selling_price: selling,
     fuel_type: mapFuel(text),
     transmission: mapTransmission(text),
     condition: mapCondition(text),
-    invoice_number: labeledValue(text, ["Invoice Number", "Invoice No\\.", "Invoice No", "Invoice #", "Inv #"]),
-    stock_number: labeledValue(text, ["Stock Number", "Stock #", "Stock No", "Stock"]),
-    transaction_date: toIsoDate(labeledValue(text, ["Date", "Invoice Date", "Purchase Date", "Transaction Date", "Sale Date"])),
-    vendor_name: labeledValue(text, ["Vendor", "Seller", "Sold By", "Dealer", "Supplier", "From"]),
-    vendor_phone: findPhone(text),
-    vendor_email: findEmail(text),
-    location: labeledValue(text, ["Location", "Lot", "Yard"]),
+    invoice_number: mpi.invoice_number || findInvoiceNumber(text),
+    stock_number: mpi.stock_number || findStockNumber(text),
+    transaction_date: mpi.transaction_date || toIsoDate(labeledValue(text, ["Invoice Date", "Purchase Date", "Transaction Date", "Sale Date", "Date"])),
+    vendor_name: mpi.vendor_name || labeledValue(text, ["Vendor", "Seller", "Sold By", "Dealer", "Supplier", "From"]),
+    vendor_phone: mpi.vendor_phone || findPhone(header) || findPhone(text),
+    vendor_email: mpi.vendor_email || findEmail(header) || findEmail(text),
+    vendor_address: mpi.vendor_address || "",
+    vendor_city: mpi.vendor_city || "",
+    vendor_province: mpi.vendor_province || "",
+    vendor_country: mpi.vendor_country || "",
+    vendor_postal_code: mpi.vendor_postal_code || "",
+    vendor_gst_number: mpi.vendor_gst_number || findVendorGst(text),
+    vendor_pst_number: mpi.vendor_pst_number || findVendorPst(text),
+    bidder_number: mpi.bidder_number || tokenFromLabel(text, ["Bidder #", "Bidder No", "Bidder"]),
+    storage_yard: mpi.storage_yard || labeledValue(text, ["Storage Yard", "Yard"]),
+    auction_number: mpi.auction_number || tokenFromLabel(text, ["Regular Auction #", "Auction #", "Auction No"]),
+    mpi_doc_number: mpi.mpi_doc_number || "",
+    tax_exemption_reason: mpi.tax_exemption_reason || labeledValue(text, ["Tax Exemption Reason", "Exemption Reason"]),
+    odometer_as_of: mpi.odometer_as_of || "",
+    province: mpi.province || "",
+    pst_exempt: mpi.pst_exempt,
+    tax_gst: mpi.tax_gst,
+    tax_pst: mpi.tax_pst,
+    tax_hst: mpi.tax_hst,
+    location: mpi.location || labeledValue(text, ["Location", "Lot", "Yard"]),
     engine_capacity: labeledValue(text, ["Engine", "Displacement", "Engine Size"]),
-    notes: "",
+    notes: mpi.notes || "",
   });
 }
 
@@ -670,7 +741,7 @@ function llmSchema(profile) {
           },
         },
       };
-    } else if (/price|amount|mileage|year|quantity|weight|rate|cost/.test(field)) {
+    } else if (/price|amount|mileage|year|quantity|weight|rate|cost|tax_gst|tax_pst|tax_hst/.test(field) && field !== "odometer_as_of") {
       properties[field] = { type: "number" };
     } else {
       properties[field] = { type: "string" };
@@ -688,6 +759,7 @@ function llmSchema(profile) {
 }
 
 async function analyzeWithLlm(file, profile) {
+  const { supabase } = await import("@/api/supabaseClient");
   const uploaded = await supabase.integrations.Core.UploadFile({ file });
   const fileUrl = uploaded?.file_url || uploaded?.url;
   if (!fileUrl) throw new Error("Upload did not return a file URL");

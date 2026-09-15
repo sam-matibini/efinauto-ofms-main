@@ -35,10 +35,16 @@ import AIVINScanner from "../components/vehicles/AIVINScanner";
 import AIMileageScanner from "../components/vehicles/AIMileageScanner";
 import AIInventoryInsights from "@/components/shared/AIInventoryInsights";
 import DocumentAutoscan from "@/components/shared/DocumentAutoscan";
-import { mergeDocumentFields } from "@/lib/documentAutoscan";
 import VehiclePurchaseTaxSection from "@/components/vehicles/VehiclePurchaseTaxSection";
+import VehicleVendorSection from "@/components/vehicles/VehicleVendorSection";
 import { postVehiclePurchaseAccounting } from "@/lib/postVehiclePurchase";
 import { vehiclePurchaseTaxes } from "@/lib/vehiclePurchaseTaxes";
+import { applyVehicleDocumentScan } from "@/lib/applyVehicleDocumentScan";
+import {
+  emptyVehicleVendorFields,
+  pickVehicleVendorPersistFields,
+  resolveVehicleVendor,
+} from "@/lib/vendorDirectory";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -212,7 +218,12 @@ export default function Vehicles() {
     { label: "RST Paid", accessor: (v) => v.tax_rst ?? v.tax_total },
     { label: "Total Expenditure", accessor: (v) => v.total_vehicle_expenditure || v.total_cost },
     { label: "Selling Price", accessor: (v) => v.selling_price },
-    { label: "Location", accessor: (v) => v.location },
+    { label: "Vendor", accessor: (v) => v.vendor_name },
+    { label: "Vendor GST #", accessor: (v) => v.vendor_gst_number },
+    { label: "Vendor PST #", accessor: (v) => v.vendor_pst_number },
+    { label: "Invoice #", accessor: (v) => v.invoice_number },
+    { label: "Bidder #", accessor: (v) => v.bidder_number },
+    { label: "Storage Yard", accessor: (v) => v.storage_yard },
     { label: "Fuel Type", accessor: (v) => v.fuel_type },
     { label: "Transmission", accessor: (v) => v.transmission },
   ];
@@ -224,7 +235,7 @@ export default function Vehicles() {
     totalValue: filteredVehicles.reduce((sum, v) => sum + (v.total_cost || v.purchase_price || v.selling_price || 0), 0),
   };
 
-  const handleSave = (formData) => {
+  const handleSave = async (formData) => {
     console.log("handleSave called with:", formData);
     
     if (!selectedCompanyId) {
@@ -237,34 +248,48 @@ export default function Vehicles() {
       return;
     }
 
+    let source = formData;
+    try {
+      const vendors = queryClient.getQueryData(["vendors", selectedCompanyId])
+        || await supabase.entities.Vendor.filter({ company_id: selectedCompanyId });
+      source = await resolveVehicleVendor({
+        form: formData,
+        vendors,
+        companyId: selectedCompanyId,
+        queryClient,
+      });
+    } catch (error) {
+      toast.error("Vendor could not be saved: " + (error.message || "Unknown error"));
+    }
+
     const taxes = vehiclePurchaseTaxes({
-      pretax: Number(formData.purchase_price) || 0,
-      tax_gst: formData.tax_gst,
-      tax_pst: formData.tax_pst,
-      tax_hst: formData.tax_hst,
-      province: formData.province,
-      tax_status: formData.tax_status,
-      pst_exempt: formData.pst_exempt,
+      pretax: Number(source.purchase_price) || 0,
+      tax_gst: source.tax_gst,
+      tax_pst: source.tax_pst,
+      tax_hst: source.tax_hst,
+      province: source.province,
+      tax_status: source.tax_status,
+      pst_exempt: source.pst_exempt,
     });
 
     const cleanData = {
       company_id: selectedCompanyId,
-      ownership_type: formData.ownership_type || "dealership_owned",
-      vin: formData.vin.trim(),
-      make: formData.make.trim(),
-      model: formData.model.trim(),
-      year: Number(formData.year),
-      condition: formData.condition || "used",
-      status: formData.status || "in_stock",
-      fuel_type: formData.fuel_type || "petrol",
-      transmission: formData.transmission || "manual",
-      mileage: Number(formData.mileage) || 0,
-      weight: Number(formData.weight) || 0,
+      ownership_type: source.ownership_type || "dealership_owned",
+      vin: source.vin.trim(),
+      make: source.make.trim(),
+      model: source.model.trim(),
+      year: Number(source.year),
+      condition: source.condition || "used",
+      status: source.status || "in_stock",
+      fuel_type: source.fuel_type || "petrol",
+      transmission: source.transmission || "manual",
+      mileage: Number(source.mileage) || 0,
+      weight: Number(source.weight) || 0,
       purchase_price: taxes.purchase_price,
-      selling_price: Number(formData.selling_price) || 0,
-      province: formData.province || "",
-      tax_status: formData.tax_status || "taxable",
-      pst_exempt: Boolean(formData.pst_exempt),
+      selling_price: Number(source.selling_price) || 0,
+      province: source.province || "",
+      tax_status: source.tax_status || "taxable",
+      pst_exempt: Boolean(source.pst_exempt),
       tax_gst: taxes.tax_gst,
       tax_pst: taxes.tax_pst,
       tax_hst: taxes.tax_hst,
@@ -272,24 +297,18 @@ export default function Vehicles() {
       tax_total: taxes.tax_total,
       total_cost: taxes.total_vehicle_expenditure,
       total_vehicle_expenditure: taxes.total_vehicle_expenditure,
-      post_to_gl: formData.post_to_gl !== false && !formData.gl_posted && !formData.purchase_id,
-      gl_posted: Boolean(formData.gl_posted),
-      purchase_id: formData.purchase_id || undefined,
+      post_to_gl: source.post_to_gl !== false && !source.gl_posted && !source.purchase_id,
+      gl_posted: Boolean(source.gl_posted),
+      purchase_id: source.purchase_id || undefined,
+      ...pickVehicleVendorPersistFields(source),
     };
 
-    if (formData.color?.trim()) cleanData.color = formData.color.trim();
-    if (formData.location?.trim()) cleanData.location = formData.location.trim();
-    if (formData.stock_number?.trim()) cleanData.stock_number = formData.stock_number.trim();
-    if (formData.invoice_number?.trim()) cleanData.invoice_number = formData.invoice_number.trim();
-    if (formData.transaction_date) cleanData.transaction_date = formData.transaction_date;
-    if (formData.engine_capacity?.trim()) cleanData.engine_capacity = formData.engine_capacity.trim();
-    if (formData.features?.trim()) cleanData.features = formData.features.trim();
-    if (formData.notes?.trim()) cleanData.notes = formData.notes.trim();
-    if (formData.images && formData.images.length > 0) cleanData.images = formData.images;
-    if (formData.vendor_id) cleanData.vendor_id = formData.vendor_id;
-    if (formData.vendor_name?.trim()) cleanData.vendor_name = formData.vendor_name.trim();
-    if (formData.vendor_phone?.trim()) cleanData.vendor_phone = formData.vendor_phone.trim();
-    if (formData.vendor_email?.trim()) cleanData.vendor_email = formData.vendor_email.trim();
+    if (source.color?.trim()) cleanData.color = source.color.trim();
+    if (source.location?.trim()) cleanData.location = source.location.trim();
+    if (source.engine_capacity?.trim()) cleanData.engine_capacity = source.engine_capacity.trim();
+    if (source.features?.trim()) cleanData.features = source.features.trim();
+    if (source.notes?.trim()) cleanData.notes = source.notes.trim();
+    if (source.images && source.images.length > 0) cleanData.images = source.images;
 
     console.log("Saving vehicle data:", cleanData);
 
@@ -793,24 +812,27 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
     enabled: !!selectedCompanyId && open,
   });
 
-  const [formData, setFormData] = useState({
+  const emptyForm = () => ({
     ownership_type: "dealership_owned",
-    vin: "", stock_number: "", invoice_number: "", transaction_date: "",
-    make: "", model: "", year: new Date().getFullYear(),
+    vin: "", make: "", model: "", year: new Date().getFullYear(),
     color: "", mileage: 0, weight: 0, condition: "used", status: "in_stock",
     purchase_price: 0, selling_price: 0, fuel_type: "petrol",
     transmission: "manual", engine_capacity: "", features: "",
     location: "", images: [], notes: "",
-    vendor_id: "", vendor_name: "", vendor_phone: "", vendor_email: "",
+    ...emptyVehicleVendorFields(),
     province: "", tax_status: "taxable", pst_exempt: false,
     tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_rst: 0, tax_total: 0,
-    total_cost: 0, total_vehicle_expenditure: 0, post_to_gl: true
-          });
+    total_cost: 0, total_vehicle_expenditure: 0, post_to_gl: true,
+  });
+
+  const [formData, setFormData] = useState(emptyForm);
 
   React.useEffect(() => {
     if (open) {
       if (vehicle) {
         setFormData({
+          ...emptyForm(),
+          ...vehicle,
           ownership_type: vehicle.ownership_type || "dealership_owned",
           vin: vehicle.vin || "",
           stock_number: vehicle.stock_number || "",
@@ -837,10 +859,23 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
           vendor_name: vehicle.vendor_name || "",
           vendor_phone: vehicle.vendor_phone || "",
           vendor_email: vehicle.vendor_email || "",
+          vendor_address: vehicle.vendor_address || "",
+          vendor_city: vehicle.vendor_city || "",
+          vendor_province: vehicle.vendor_province || "",
+          vendor_country: vehicle.vendor_country || "",
+          vendor_postal_code: vehicle.vendor_postal_code || "",
+          vendor_gst_number: vehicle.vendor_gst_number || "",
+          vendor_pst_number: vehicle.vendor_pst_number || "",
+          bidder_number: vehicle.bidder_number || "",
+          storage_yard: vehicle.storage_yard || "",
+          auction_number: vehicle.auction_number || "",
+          mpi_doc_number: vehicle.mpi_doc_number || "",
+          tax_exemption_reason: vehicle.tax_exemption_reason || "",
+          odometer_as_of: vehicle.odometer_as_of || "",
           province: vehicle.province || "",
-                          tax_status: vehicle.tax_status || "taxable",
-                          pst_exempt: vehicle.pst_exempt || false,
-                          tax_gst: vehicle.tax_gst || 0,
+          tax_status: vehicle.tax_status || "taxable",
+          pst_exempt: vehicle.pst_exempt || false,
+          tax_gst: vehicle.tax_gst || 0,
           tax_pst: vehicle.tax_pst || 0,
           tax_hst: vehicle.tax_hst || 0,
           tax_rst: vehicle.tax_rst || vehicle.tax_total || 0,
@@ -849,22 +884,10 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
           total_vehicle_expenditure: vehicle.total_vehicle_expenditure || vehicle.total_cost || 0,
           post_to_gl: false,
           gl_posted: Boolean(vehicle.gl_posted),
-          purchase_id: vehicle.purchase_id || ""
+          purchase_id: vehicle.purchase_id || "",
         });
       } else {
-        setFormData({
-          ownership_type: "dealership_owned",
-          vin: "", stock_number: "", invoice_number: "", transaction_date: "",
-          make: "", model: "", year: new Date().getFullYear(),
-          color: "", mileage: 0, weight: 0, condition: "used", status: "in_stock",
-          purchase_price: 0, selling_price: 0, fuel_type: "petrol",
-          transmission: "manual", engine_capacity: "", features: "",
-          location: "", images: [], notes: "",
-          vendor_id: "", vendor_name: "", vendor_phone: "", vendor_email: "",
-          province: "", tax_status: "taxable", pst_exempt: false,
-          tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_rst: 0, tax_total: 0,
-          total_cost: 0, total_vehicle_expenditure: 0, post_to_gl: true
-                      });
+        setFormData(emptyForm());
       }
     }
   }, [vehicle, open]);
@@ -884,19 +907,6 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
         const taxes = calculateTaxes(price, formData.province, formData.tax_status, formData.pst_exempt);
         setFormData({ ...formData, purchase_price: price, ...taxes });
       };
-
-  const handleVendorSelect = (vendorId) => {
-    const vendor = vendors.find(v => v.id === vendorId);
-    if (vendor) {
-      setFormData({
-        ...formData,
-        vendor_id: vendor.id,
-        vendor_name: vendor.vendor_name,
-        vendor_phone: vendor.phone || "",
-        vendor_email: vendor.email || ""
-      });
-    }
-  };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -956,23 +966,23 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
               <AIVINScanner onVINDetected={(vin) => setFormData({...formData, vin})} />
             </div>
             <div className="space-y-2">
-              <Label>Stock Number</Label>
+              <Label>Stock #</Label>
               <Input 
                 value={formData.stock_number} 
                 onChange={(e) => setFormData({...formData, stock_number: e.target.value})} 
-                placeholder="e.g., STK-001" 
+                placeholder="e.g., 20266247" 
               />
             </div>
             <div className="space-y-2">
-              <Label>Invoice Number</Label>
+              <Label>Invoice / bill of sale no.</Label>
               <Input 
                 value={formData.invoice_number} 
                 onChange={(e) => setFormData({...formData, invoice_number: e.target.value})} 
-                placeholder="e.g., INV-2024-001" 
+                placeholder="e.g., 148734" 
               />
             </div>
             <div className="space-y-2">
-              <Label>Transaction Date</Label>
+              <Label>Date</Label>
               <Input 
                 type="date" 
                 value={formData.transaction_date} 
@@ -1107,45 +1117,11 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
             </div>
           </div>
 
-          {/* Vendor Section */}
-          <div className="col-span-2 border-t pt-4 mt-4">
-            <h3 className="font-semibold text-gray-900 mb-4">Vendor / Supplier Information</h3>
-          </div>
-          <div className="space-y-2">
-            <Label>Select Vendor</Label>
-            <Select value={formData.vendor_id} onValueChange={handleVendorSelect}>
-              <SelectTrigger><SelectValue placeholder="Select a vendor" /></SelectTrigger>
-              <SelectContent>
-                {vendors.map(v => (
-                  <SelectItem key={v.id} value={v.id}>{v.vendor_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Vendor Name</Label>
-            <Input 
-              value={formData.vendor_name} 
-              onChange={(e) => setFormData({...formData, vendor_name: e.target.value})} 
-              placeholder="Vendor name"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Vendor Phone</Label>
-            <Input 
-              value={formData.vendor_phone} 
-              onChange={(e) => setFormData({...formData, vendor_phone: e.target.value})} 
-              placeholder="Phone number"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Vendor Email</Label>
-            <Input 
-              value={formData.vendor_email} 
-              onChange={(e) => setFormData({...formData, vendor_email: e.target.value})} 
-              placeholder="Email address"
-            />
-          </div>
+          <VehicleVendorSection
+            formData={formData}
+            onChange={setFormData}
+            showPurchaseDocumentFields={false}
+          />
 
           {/* Tax Section */}
           <VehiclePurchaseTaxSection
@@ -1194,21 +1170,10 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
             profile="vehicle"
             resetKey={open}
             onApply={(fields) => {
-              setFormData((prev) => {
-                const merged = mergeDocumentFields(prev, fields);
-                const withPrice = fields.purchase_price != null
-                  ? { ...merged, purchase_price: fields.purchase_price }
-                  : merged;
-                const taxes = vehiclePurchaseTaxes({
-                  pretax: withPrice.purchase_price,
-                  province: withPrice.province,
-                  tax_status: withPrice.tax_status,
-                  pst_exempt: withPrice.pst_exempt,
-                  companyRates: company?.tax_rates,
-                  useRates: true,
-                });
-                return { ...withPrice, ...taxes };
-              });
+              setFormData((prev) => applyVehicleDocumentScan(prev, fields, {
+                vendors,
+                companyRates: company?.tax_rates,
+              }));
             }}
           />
 
