@@ -45,7 +45,10 @@ export default function Notifications() {
 
   const { data: logs = [] } = useQuery({
     queryKey: ['notification-logs', selectedCompanyId],
-    queryFn: () => supabase.entities.NotificationLog.filter({ company_id: selectedCompanyId }, '-created_date', 50),
+    queryFn: async () => {
+      const rows = await supabase.entities.NotificationLog.filter({ company_id: selectedCompanyId }, '-created_date', 50);
+      return (Array.isArray(rows) ? rows : []).filter((row) => row?.notification_type !== "efinauto_vehicle");
+    },
     enabled: !!selectedCompanyId,
     initialData: [],
   });
