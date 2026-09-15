@@ -2,6 +2,8 @@ import React, { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   ScanLine,
   Loader2,
@@ -11,6 +13,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   X,
+  Paperclip,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -20,6 +23,10 @@ import {
   parseDocumentFields,
   summarizeExtraction,
 } from "@/lib/documentAutoscan";
+import {
+  textFileFromPaste,
+  uploadVehiclePurchaseDocument,
+} from "@/lib/vehiclePurchaseDocuments";
 
 function formatFieldValue(value) {
   if (Array.isArray(value)) return `${value.length} line items`;
@@ -32,8 +39,10 @@ function formatFieldValue(value) {
 export default function DocumentAutoscan({
   profile = "vehicle",
   onApply,
+  onAttached,
   compact = false,
   resetKey,
+  attachToRecord = false,
 }) {
   const inputId = useId();
   const fileRef = useRef(null);
@@ -45,6 +54,8 @@ export default function DocumentAutoscan({
   const [result, setResult] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [appliedCount, setAppliedCount] = useState(0);
+  const [keepDocument, setKeepDocument] = useState(true);
+  const [attaching, setAttaching] = useState(false);
   const spec = AUTOSCAN_PROFILES[profile] || AUTOSCAN_PROFILES.vehicle;
 
   useEffect(() => {
@@ -55,6 +66,8 @@ export default function DocumentAutoscan({
     setScanning(false);
     setProgress(0);
     setAppliedCount(0);
+    setKeepDocument(true);
+    setAttaching(false);
   }, [profile, resetKey]);
 
   const handleFiles = (nextFile) => {
@@ -62,6 +75,21 @@ export default function DocumentAutoscan({
     setFile(nextFile);
     setResult(null);
     setAppliedCount(0);
+  };
+
+  const attachSource = async (analysis) => {
+    if (!attachToRecord || !onAttached || !keepDocument) return;
+    const sourceFile = file || (pastedText.trim() ? textFileFromPaste(pastedText.trim(), analysis) : null);
+    if (!sourceFile) return;
+    setAttaching(true);
+    try {
+      const doc = await uploadVehiclePurchaseDocument(sourceFile, { analysis });
+      onAttached(doc);
+      toast.success(`Attached ${doc.name} to this vehicle`);
+    } catch (error) {
+      toast.error(error.message || "Fields were updated, but the document could not be attached");
+    }
+    setAttaching(false);
   };
 
   const applyFields = (fields, analysis) => {
@@ -112,7 +140,7 @@ export default function DocumentAutoscan({
     }
   };
 
-  const handleUpdateForm = () => {
+  const handleUpdateForm = async () => {
     const text = pastedText.trim() || result?.text || "";
     if (text) {
       const fields = parseDocumentFields(text, profile);
@@ -125,11 +153,15 @@ export default function DocumentAutoscan({
         source: result?.source || "local",
       };
       setResult(analysis);
-      applyFields(fields, analysis);
+      if (applyFields(fields, analysis)) {
+        await attachSource(analysis);
+      }
       return;
     }
     if (result?.fields && Object.keys(result.fields).length) {
-      applyFields(result.fields, result);
+      if (applyFields(result.fields, result)) {
+        await attachSource(result);
+      }
       return;
     }
     toast.error("Scan a document or paste its text first, then click Update form.");
@@ -148,7 +180,8 @@ export default function DocumentAutoscan({
           </p>
           {!compact && (
             <p className="text-xs text-indigo-700 mt-0.5">
-              Upload or paste a {spec.title}. Review extracted values, then click Update form to copy them into the fields above.
+              Upload or paste a {spec.title}. Review extracted values, then click Update form to copy them into the fields above
+              {attachToRecord ? " and keep the original file on this record." : "."}
             </p>
           )}
         </div>
@@ -223,13 +256,22 @@ export default function DocumentAutoscan({
         <Button
           type="button"
           onClick={handleUpdateForm}
-          disabled={scanning || !canUpdate}
+          disabled={scanning || attaching || !canUpdate}
           className="bg-emerald-600 hover:bg-emerald-700"
           size="sm"
           data-testid="autoscan-update-form"
         >
-          <ClipboardCheck className="w-4 h-4 mr-2" />
-          Update form
+          {attaching ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Attaching...
+            </>
+          ) : (
+            <>
+              <ClipboardCheck className="w-4 h-4 mr-2" />
+              Update form
+            </>
+          )}
         </Button>
         {(file || pastedText || result) && (
           <Button
@@ -249,6 +291,25 @@ export default function DocumentAutoscan({
           </Button>
         )}
       </div>
+
+      {attachToRecord && (
+        <div className="flex items-start gap-2 rounded-md border border-indigo-100 bg-white/80 p-3">
+          <Checkbox
+            id={`${inputId}-attach`}
+            checked={keepDocument}
+            onCheckedChange={(checked) => setKeepDocument(Boolean(checked))}
+          />
+          <Label htmlFor={`${inputId}-attach`} className="cursor-pointer text-sm font-normal text-gray-700">
+            <span className="font-medium text-gray-900 flex items-center gap-1">
+              <Paperclip className="w-3.5 h-3.5" />
+              Attach this bill of sale / invoice to the vehicle
+            </span>
+            <span className="block text-xs text-gray-500 mt-0.5">
+              After Update form, the original PDF or photo is stored on this vehicle for audit reference.
+            </span>
+          </Label>
+        </div>
+      )}
 
       {(pasteOpen || pastedText) && (
         <Textarea
@@ -280,7 +341,8 @@ export default function DocumentAutoscan({
           )}
           {appliedCount > 0 && (
             <p className="text-xs font-medium text-emerald-700">
-              Copied {appliedCount} field{appliedCount === 1 ? "" : "s"} into the form above. Review values before saving.
+              Copied {appliedCount} field{appliedCount === 1 ? "" : "s"} into the form above.
+              {attachToRecord && keepDocument ? " The source document will be kept on this vehicle." : " Review values before saving."}
             </p>
           )}
           {result.source === "local" && appliedCount === 0 && (

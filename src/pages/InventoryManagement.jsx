@@ -31,10 +31,12 @@ import DocumentAutoscan from "@/components/shared/DocumentAutoscan";
 import { mergeDocumentFields } from "@/lib/documentAutoscan";
 import VehiclePurchaseTaxSection from "@/components/vehicles/VehiclePurchaseTaxSection";
 import VehicleVendorSection from "@/components/vehicles/VehicleVendorSection";
+import VehiclePurchaseDocuments from "@/components/vehicles/VehiclePurchaseDocuments";
 import { postVehiclePurchaseAccounting } from "@/lib/postVehiclePurchase";
 import { vehiclePurchaseTaxes } from "@/lib/vehiclePurchaseTaxes";
 import { applyVehicleDocumentScan } from "@/lib/applyVehicleDocumentScan";
 import { emptyVehicleVendorFields, resolveVehicleVendor } from "@/lib/vendorDirectory";
+import { addPurchaseDocument } from "@/lib/vehiclePurchaseDocuments";
 
 export default function InventoryManagement() {
   const { selectedCompanyId } = useCompany();
@@ -993,6 +995,7 @@ function emptyVehicleForm() {
     tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_rst: 0, tax_total: 0,
     total_cost: 0, total_vehicle_expenditure: 0, post_to_gl: true,
     ...emptyVehicleVendorFields(),
+    purchase_documents: [],
   };
 }
 
@@ -1122,11 +1125,22 @@ function VehicleDialog({ open, onClose, vehicle, onSave }) {
             </div>
           </div>
         </div>
-        <DocumentAutoscan
-          profile="vehicle"
-          resetKey={open}
-          onApply={(fields) => setFormData((prev) => applyVehicleDocumentScan(prev, fields, { vendors }))}
-        />
+        <div className="space-y-4 pb-2">
+          <VehiclePurchaseDocuments
+            documents={formData.purchase_documents}
+            onChange={(purchase_documents) => setFormData((prev) => ({ ...prev, purchase_documents }))}
+          />
+          <DocumentAutoscan
+            profile="vehicle"
+            resetKey={open}
+            attachToRecord
+            onAttached={(doc) => setFormData((prev) => ({
+              ...prev,
+              purchase_documents: addPurchaseDocument(prev.purchase_documents, doc),
+            }))}
+            onApply={(fields) => setFormData((prev) => applyVehicleDocumentScan(prev, fields, { vendors }))}
+          />
+        </div>
         <div className="flex justify-end gap-3 pt-3">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700" disabled={!formData.vin || !formData.make || !formData.model}>

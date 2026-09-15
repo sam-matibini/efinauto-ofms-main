@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, Car, Edit, Loader2, TrendingUp, AlertTriangle, DollarSign, Upload, LayoutGrid, List, ArrowUpDown, Trash2 } from "lucide-react";
+import { Plus, Search, Car, Edit, Loader2, TrendingUp, AlertTriangle, DollarSign, Upload, LayoutGrid, List, ArrowUpDown, Trash2, Paperclip } from "lucide-react";
 import ExportButton from "../components/shared/ExportButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { motion } from "framer-motion";
@@ -37,9 +37,11 @@ import AIInventoryInsights from "@/components/shared/AIInventoryInsights";
 import DocumentAutoscan from "@/components/shared/DocumentAutoscan";
 import VehiclePurchaseTaxSection from "@/components/vehicles/VehiclePurchaseTaxSection";
 import VehicleVendorSection from "@/components/vehicles/VehicleVendorSection";
+import VehiclePurchaseDocuments from "@/components/vehicles/VehiclePurchaseDocuments";
 import { postVehiclePurchaseAccounting } from "@/lib/postVehiclePurchase";
 import { vehiclePurchaseTaxes } from "@/lib/vehiclePurchaseTaxes";
 import { applyVehicleDocumentScan } from "@/lib/applyVehicleDocumentScan";
+import { addPurchaseDocument } from "@/lib/vehiclePurchaseDocuments";
 import {
   emptyVehicleVendorFields,
   pickVehicleVendorPersistFields,
@@ -222,7 +224,7 @@ export default function Vehicles() {
     { label: "Vendor GST #", accessor: (v) => v.vendor_gst_number },
     { label: "Vendor PST #", accessor: (v) => v.vendor_pst_number },
     { label: "Invoice #", accessor: (v) => v.invoice_number },
-    { label: "Bidder #", accessor: (v) => v.bidder_number },
+    { label: "Purchase documents", accessor: (v) => (v.purchase_documents || []).map((doc) => doc.name).join("; ") },
     { label: "Storage Yard", accessor: (v) => v.storage_yard },
     { label: "Fuel Type", accessor: (v) => v.fuel_type },
     { label: "Transmission", accessor: (v) => v.transmission },
@@ -309,6 +311,7 @@ export default function Vehicles() {
     if (source.features?.trim()) cleanData.features = source.features.trim();
     if (source.notes?.trim()) cleanData.notes = source.notes.trim();
     if (source.images && source.images.length > 0) cleanData.images = source.images;
+    if (Array.isArray(source.purchase_documents)) cleanData.purchase_documents = source.purchase_documents;
 
     console.log("Saving vehicle data:", cleanData);
 
@@ -615,7 +618,22 @@ export default function Vehicles() {
                       </div>
                       <div>
                         <p className="font-semibold">{vehicle.year} {vehicle.make} {vehicle.model}</p>
-                        <p className="text-xs text-gray-500">{vehicle.color}</p>
+                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                          {vehicle.color}
+                          {(vehicle.purchase_documents || []).length > 0 && (
+                            <a
+                              href={vehicle.purchase_documents[0].url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center text-indigo-600"
+                              onClick={(event) => event.stopPropagation()}
+                              title="Open purchase document"
+                            >
+                              <Paperclip className="w-3 h-3 ml-1" />
+                              {vehicle.purchase_documents.length}
+                            </a>
+                          )}
+                        </p>
                       </div>
                     </div>
                   </TableCell>
@@ -698,6 +716,17 @@ export default function Vehicles() {
                         {vehicle.year} {vehicle.make} {vehicle.model}
                       </h3>
                       <p className="text-sm text-gray-500">VIN: {vehicle.vin}</p>
+                      {(vehicle.purchase_documents || []).length > 0 && (
+                        <a
+                          href={vehicle.purchase_documents[0].url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-indigo-700 mt-1"
+                        >
+                          <Paperclip className="w-3 h-3" />
+                          {vehicle.purchase_documents.length} purchase document{vehicle.purchase_documents.length === 1 ? "" : "s"}
+                        </a>
+                      )}
                     </div>
 
                     <div className="flex gap-2 flex-wrap text-xs">
@@ -818,7 +847,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
     color: "", mileage: 0, weight: 0, condition: "used", status: "in_stock",
     purchase_price: 0, selling_price: 0, fuel_type: "petrol",
     transmission: "manual", engine_capacity: "", features: "",
-    location: "", images: [], notes: "",
+    location: "", images: [], notes: "", purchase_documents: [],
     ...emptyVehicleVendorFields(),
     province: "", tax_status: "taxable", pst_exempt: false,
     tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_rst: 0, tax_total: 0,
@@ -855,6 +884,7 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
           location: vehicle.location || "",
           images: vehicle.images || [],
           notes: vehicle.notes || "",
+          purchase_documents: vehicle.purchase_documents || [],
           vendor_id: vehicle.vendor_id || "",
           vendor_name: vehicle.vendor_name || "",
           vendor_phone: vehicle.vendor_phone || "",
@@ -1123,9 +1153,19 @@ function VehicleDialog({ open, onClose, vehicle, onSave, uploading, setUploading
             </div>
           </div>
 
+          <VehiclePurchaseDocuments
+            documents={formData.purchase_documents}
+            onChange={(purchase_documents) => setFormData((prev) => ({ ...prev, purchase_documents }))}
+          />
+
           <DocumentAutoscan
             profile="vehicle"
             resetKey={open}
+            attachToRecord
+            onAttached={(doc) => setFormData((prev) => ({
+              ...prev,
+              purchase_documents: addPurchaseDocument(prev.purchase_documents, doc),
+            }))}
             onApply={(fields) => {
               setFormData((prev) => applyVehicleDocumentScan(prev, fields, {
                 vendors,

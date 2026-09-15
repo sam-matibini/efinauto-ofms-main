@@ -34,6 +34,8 @@ Add Vehicle, expenses, bills, purchase orders, invoices, bills of sale, repair o
 
 Manitoba Public Insurance salvage bills of sale are parsed for CRA/MPI audit fields: vendor name and address, GST#/PST#, invoice/bill of sale number, date, bidder #, storage yard, stock #, pretax charges, and GST/PST.
 
+After **Update form**, the original PDF or photo is attached to the vehicle (default) so it remains available as an audit reference. You can also attach extra invoices from **Purchase documents**.
+
 ## Vendor details on vehicle purchases
 
 Add Vehicle includes a **Vendor / tax invoice** block. Select an existing vendor to retrieve name, address, GST#, PST#, email, and phone. If the supplier is new, use **Quick add vendor** (or save the vehicle) to create the vendor from the invoice details.

@@ -125,6 +125,22 @@
     "notes": {
       "type": "string"
     },
+    "purchase_documents": {
+      "type": "array",
+      "description": "Original bills of sale, invoices, and other purchase documents kept for audit reference",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "url": { "type": "string" },
+          "mime_type": { "type": "string" },
+          "size": { "type": "number" },
+          "document_type": { "type": "string" },
+          "attached_at": { "type": "string" }
+        }
+      }
+    },
     "vendor_id": {
       "type": "string",
       "description": "Reference to Vendor entity"
