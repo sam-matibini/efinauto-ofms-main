@@ -1,5 +1,6 @@
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { isPdfStructureNoise, usableDocumentText } from "./pdfNoise.js";
 
 GlobalWorkerOptions.workerSrc = pdfWorker;
 
@@ -158,19 +159,16 @@ async function extractPdfWithOcr(pdf, onProgress) {
 
 async function extractPdfText(file, onProgress) {
   onProgress?.(15);
-  const legacy = await extractPdfTextLegacy(file);
-  let pdfJsText = "";
-  let pdf = null;
-  try {
-    const layered = await extractPdfTextLayer(file);
-    pdfJsText = layered.text;
-    pdf = layered.pdf;
-  } catch (error) {
+  const layered = await extractPdfTextLayer(file).catch((error) => {
     console.warn("PDF.js text extraction failed, using fallback parser", error);
-  }
+    return { pdf: null, text: "" };
+  });
+  const pdfJsText = usableDocumentText(layered.text);
+  const pdf = layered.pdf;
+  const legacy = usableDocumentText(await extractPdfTextLegacy(file));
+  const combined = cleanupText([pdfJsText, legacy].filter(Boolean).join("\n"));
 
-  const combined = cleanupText([legacy, pdfJsText].filter(Boolean).join("\n"));
-  if (meaningfulLength(combined) >= THIN_TEXT_CHARS) {
+  if (meaningfulLength(combined) >= THIN_TEXT_CHARS && !isPdfStructureNoise(combined)) {
     onProgress?.(100);
     return combined;
   }
@@ -178,17 +176,17 @@ async function extractPdfText(file, onProgress) {
   if (pdf) {
     try {
       onProgress?.(40);
-      const ocrText = await extractPdfWithOcr(pdf, onProgress);
+      const ocrText = usableDocumentText(await extractPdfWithOcr(pdf, onProgress));
       const withOcr = cleanupText([combined, ocrText].filter(Boolean).join("\n"));
       onProgress?.(100);
-      return withOcr || combined;
+      if (usableDocumentText(withOcr)) return withOcr;
     } catch (error) {
       console.warn("PDF OCR fallback failed", error);
     }
   }
 
   onProgress?.(100);
-  return combined;
+  return usableDocumentText(combined);
 }
 
 async function extractImageText(file, onProgress) {

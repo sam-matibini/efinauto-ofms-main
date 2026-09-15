@@ -37,6 +37,7 @@ import { applyVehicleDocumentScan } from "@/lib/applyVehicleDocumentScan";
 import { emptyVehicleVendorFields, resolveVehicleVendor } from "@/lib/vendorDirectory";
 import { addPurchaseDocument } from "@/lib/vehiclePurchaseDocuments";
 import { persistVehicleRecord, selectValue, VEHICLE_ENUMS, vehicleFormCanSave } from "@/lib/vehicleRecord";
+import { errorText } from "@/lib/persistErrors";
 
 export default function InventoryManagement() {
   const { selectedCompanyId } = useCompany();
@@ -169,7 +170,7 @@ export default function InventoryManagement() {
     },
     onError: (error) => {
       console.error("Create error:", error);
-      toast.error("Failed to add vehicle: " + (error.message || "Unknown error"));
+      toast.error("Failed to add vehicle: " + (errorText(error) || "Unknown error"));
     },
   });
 
@@ -188,7 +189,7 @@ export default function InventoryManagement() {
     },
     onError: (error) => {
       console.error("Update error:", error);
-      toast.error("Failed to update vehicle: " + (error.message || "Unknown error"));
+      toast.error("Failed to update vehicle: " + (errorText(error) || "Unknown error"));
     },
   });
 
@@ -933,12 +934,16 @@ export default function InventoryManagement() {
               queryClient,
             });
           } catch (error) {
-            toast.error("Vendor could not be saved: " + (error.message || "Unknown error"));
+            toast.error("Vendor could not be saved: " + (errorText(error) || "Unknown error"));
           }
-          if (editingVehicle) {
-            updateVehicleMutation.mutate({ id: editingVehicle.id, form: source });
-          } else {
-            createVehicleMutation.mutate(source);
+          try {
+            if (editingVehicle) {
+              await updateVehicleMutation.mutateAsync({ id: editingVehicle.id, form: source });
+            } else {
+              await createVehicleMutation.mutateAsync(source);
+            }
+          } catch {
+            // mutation onError already toasted
           }
         }}
       />

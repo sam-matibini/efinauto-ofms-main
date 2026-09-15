@@ -46,6 +46,7 @@ import {
   emptyVehicleVendorFields,
   resolveVehicleVendor,
 } from "@/lib/vendorDirectory";
+import { errorText } from "@/lib/persistErrors";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -128,7 +129,7 @@ export default function Vehicles() {
     },
     onError: (error) => {
       console.error("Create error:", error);
-      toast.error("Failed to add vehicle: " + (error.message || "Unknown error"));
+      toast.error("Failed to add vehicle: " + (errorText(error) || "Unknown error"));
     },
   });
 
@@ -149,7 +150,7 @@ export default function Vehicles() {
     },
     onError: (error) => {
       console.error("Update error:", error);
-      toast.error("Failed to update vehicle: " + (error.message || "Unknown error"));
+      toast.error("Failed to update vehicle: " + (errorText(error) || "Unknown error"));
     },
   });
 
@@ -265,17 +266,17 @@ export default function Vehicles() {
         queryClient,
       });
     } catch (error) {
-      toast.error("Vendor could not be saved: " + (error.message || "Unknown error"));
+      toast.error("Vendor could not be saved: " + (errorText(error) || "Unknown error"));
     }
 
     try {
       if (editingVehicle) {
-        updateMutation.mutate({ id: editingVehicle.id, form: source });
+        await updateMutation.mutateAsync({ id: editingVehicle.id, form: source });
       } else {
-        createMutation.mutate(source);
+        await createMutation.mutateAsync(source);
       }
-    } catch (error) {
-      toast.error("Failed to save vehicle: " + (error.message || "Unknown error"));
+    } catch {
+      // mutation onError already toasted
     }
   };
 

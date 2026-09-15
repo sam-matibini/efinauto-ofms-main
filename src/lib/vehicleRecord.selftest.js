@@ -115,6 +115,10 @@ const sanitized = sanitizeVehicleForm({ vin: 11, make: "Chevrolet", model: "CRUZ
 checks.push(["non-string vin becomes string", typeof sanitized.vin === "string"]);
 checks.push(["mpi exemption not a table dump", (mpi.tax_exemption_reason || "").length < 80]);
 checks.push(["mpi exemption has RST", /manitoba rst/i.test(mpi.tax_exemption_reason || "")]);
+checks.push(["pdf notes stripped", sanitizeVehicleForm({
+  ...scanned,
+  notes: "%PDF-1.7\n[/PDF/Text/ImageB/ImageC/ImageI]\nendobj /Length 12",
+}).notes === ""]);
 
 let created;
 const fakeSupabase = {
@@ -122,7 +126,10 @@ const fakeSupabase = {
     Vehicle: {
       create: async (data) => {
         if ("pst_exempt" in data) {
-          throw new Error("Could not find the 'pst_exempt' column of 'vehicles' in the schema cache");
+          throw { message: "Could not find the 'pst_exempt' column of 'vehicles' in the schema cache" };
+        }
+        if ("tax_rst" in data) {
+          throw { details: 'column "tax_rst" of relation "vehicles" does not exist', code: "42703" };
         }
         created = data;
         return { id: "veh-1", ...data };
@@ -135,7 +142,7 @@ const saved = await persistVehicleRecord({
   companyId: "co-1",
   form: { ...scanned, company_id: "co-1" },
 });
-checks.push(["persist retry omitted unknown", created && created.pst_exempt == null && saved.id === "veh-1"]);
+checks.push(["persist retry omitted unknown", created && created.pst_exempt == null && created.tax_rst == null && saved.id === "veh-1"]);
 
 const failed = checks.filter(([, ok]) => !ok);
 if (failed.length) {

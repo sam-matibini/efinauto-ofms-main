@@ -14,6 +14,9 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { persistVendorRecord, VENDOR_TYPES } from "@/lib/vendorDirectory";
+import { selectValue } from "@/lib/vehicleRecord";
+import { errorText } from "@/lib/persistErrors";
 
 export default function VendorsTab({ vendors, selectedCompanyId }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -25,22 +28,37 @@ export default function VendorsTab({ vendors, selectedCompanyId }) {
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
-    mutationFn: (data) => supabase.entities.Vendor.create({ ...data, company_id: selectedCompanyId }),
+    mutationFn: (form) => persistVendorRecord({
+      supabase,
+      companyId: selectedCompanyId,
+      form,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendors'] });
       setDialogOpen(false);
       setEditingVendor(null);
       toast.success("Vendor saved!");
     },
+    onError: (error) => {
+      toast.error("Failed to save vendor: " + (errorText(error) || "Unknown error"));
+    },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => supabase.entities.Vendor.update(id, data),
+    mutationFn: ({ id, form }) => persistVendorRecord({
+      supabase,
+      companyId: selectedCompanyId,
+      form,
+      existingId: id,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendors'] });
       setDialogOpen(false);
       setEditingVendor(null);
       toast.success("Vendor updated!");
+    },
+    onError: (error) => {
+      toast.error("Failed to update vendor: " + (errorText(error) || "Unknown error"));
     },
   });
 
@@ -86,11 +104,19 @@ export default function VendorsTab({ vendors, selectedCompanyId }) {
     { label: "Status", accessor: (v) => v.status },
   ];
 
-  const handleSave = (data) => {
-    if (editingVendor) {
-      updateMutation.mutate({ id: editingVendor.id, data });
-    } else {
-      createMutation.mutate(data);
+  const handleSave = async (form) => {
+    if (!String(form?.vendor_name || "").trim()) {
+      toast.error("Enter a vendor name");
+      return;
+    }
+    try {
+      if (editingVendor) {
+        await updateMutation.mutateAsync({ id: editingVendor.id, form });
+      } else {
+        await createMutation.mutateAsync(form);
+      }
+    } catch {
+      // mutation onError already toasted
     }
   };
 
@@ -259,6 +285,7 @@ export default function VendorsTab({ vendors, selectedCompanyId }) {
         onClose={() => { setDialogOpen(false); setEditingVendor(null); }}
         vendor={editingVendor}
         onSave={handleSave}
+        isSaving={createMutation.isPending || updateMutation.isPending}
       />
     </>
   );
@@ -285,7 +312,7 @@ function emptyVendor() {
   };
 }
 
-function VendorDialog({ open, onClose, vendor, onSave }) {
+function VendorDialog({ open, onClose, vendor, onSave, isSaving }) {
   const [formData, setFormData] = useState(vendor ? { ...emptyVendor(), ...vendor } : emptyVendor());
 
   React.useEffect(() => {
@@ -293,7 +320,7 @@ function VendorDialog({ open, onClose, vendor, onSave }) {
   }, [vendor, open]);
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{vendor ? 'Edit Vendor' : 'Add Vendor'}</DialogTitle>
@@ -310,7 +337,7 @@ function VendorDialog({ open, onClose, vendor, onSave }) {
             </div>
             <div className="space-y-2">
               <Label>Vendor Type</Label>
-              <Select value={formData.vendor_type} onValueChange={(v) => setFormData({...formData, vendor_type: v})}>
+              <Select value={selectValue(formData.vendor_type, VENDOR_TYPES) || "supplier"} onValueChange={(v) => setFormData({...formData, vendor_type: v})}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="supplier">Supplier</SelectItem>
@@ -396,8 +423,13 @@ function VendorDialog({ open, onClose, vendor, onSave }) {
           </div>
         </div>
         <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(formData)} className="bg-blue-600 hover:bg-blue-700">
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
+          <Button
+            type="button"
+            onClick={() => onSave(formData)}
+            className="bg-blue-600 hover:bg-blue-700"
+            disabled={isSaving || !String(formData.vendor_name || "").trim()}
+          >
             {vendor ? 'Update' : 'Add'} Vendor
           </Button>
         </div>

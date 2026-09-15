@@ -1,5 +1,6 @@
 import { extractDocumentText } from "./extractText";
 import { parseMpiSalvageBillOfSale } from "./parseMpiBillOfSale.js";
+import { usableDocumentText } from "./pdfNoise.js";
 
 const VIN_RE = /\b([A-HJ-NPR-Z0-9]{17})\b/i;
 const MONEY_RE = /\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})|[0-9]+\.[0-9]{1,2})/;
@@ -338,7 +339,8 @@ function findMoneyNear(text, labels) {
 
 function mapFuel(text) {
   const labeled = labeledValue(text, ["Fuel", "Fuel Type", "Fuel type"]);
-  const source = `${labeled} ${text}`.toLowerCase();
+  if (!labeled) return "";
+  const source = labeled.toLowerCase();
   if (/\belectric\b|\bev\b/.test(source)) return "electric";
   if (/\bhybrid\b/.test(source)) return "hybrid";
   if (/\bdiesel\b/.test(source)) return "diesel";
@@ -795,15 +797,23 @@ export async function analyzeDocument({ file, pastedText, profile = "vehicle", o
     try {
       onProgress?.(8);
       const llm = await analyzeWithLlm(file, profile);
-      if (llm.fields && Object.keys(llm.fields).length) return { ...llm, text: "" };
+      if (llm.fields && Object.keys(llm.fields).length) {
+        let text = "";
+        try {
+          text = usableDocumentText(await extractDocumentText(file, { onProgress })) || "";
+        } catch {
+          text = "";
+        }
+        return { ...llm, text };
+      }
     } catch (error) {
       llmError = error;
     }
   }
 
   onProgress?.(20);
-  const extracted = file ? await extractDocumentText(file, { onProgress }) : "";
-  const pasted = (pastedText || "").trim();
+  const extracted = usableDocumentText(file ? await extractDocumentText(file, { onProgress }) : "");
+  const pasted = usableDocumentText(pastedText);
   let text = extracted;
   if (pasted) {
     if (!extracted) text = pasted;
@@ -813,7 +823,7 @@ export async function analyzeDocument({ file, pastedText, profile = "vehicle", o
       text = `${extracted}\n\n${pasted}`;
     }
   }
-  text = text.trim();
+  text = usableDocumentText(text);
   if (!text) {
     const reason = llmError?.message ? `AI scan unavailable (${llmError.message}).` : "No readable text found.";
     throw new Error(`${reason} Upload a clearer photo/PDF or paste the document text.`);

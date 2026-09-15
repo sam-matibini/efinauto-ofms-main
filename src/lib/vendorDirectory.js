@@ -1,3 +1,33 @@
+import {
+  errorText,
+  omitSystemEntityKeys,
+  persistWithUnknownColumnRetry,
+} from "./persistErrors.js";
+
+export const VENDOR_TYPES = ["supplier", "service_provider", "contractor", "other"];
+export const VENDOR_STATUSES = ["active", "inactive"];
+
+export function asVendorString(value, max = 500) {
+  if (value == null) return "";
+  return String(value).replace(/\u0000/g, " ").replace(/[ \t]+/g, " ").trim().slice(0, max);
+}
+
+export function cleanCityName(value) {
+  return asVendorString(value, 80).replace(/,+$/g, "").trim();
+}
+
+export function cleanCanadianPostal(value) {
+  const source = String(value || "").toUpperCase();
+  const match = source.match(/\b([A-CEGHJ-NPR-TVXY]\d[A-CEGHJ-NPR-TV-Z]\s?\d[A-CEGHJ-NPR-TV-Z]\d)\b/);
+  if (!match) return "";
+  const compact = match[1].replace(/\s/g, "");
+  return `${compact.slice(0, 3)} ${compact.slice(3)}`;
+}
+
+export function looksLikeJunkAddress(value) {
+  return /hewlett|packard|endobj|\/type\s*\/|%pdf-|flatedecode|\[\/pdf\/text/i.test(String(value || ""));
+}
+
 export const VEHICLE_VENDOR_FIELD_KEYS = [
   "vendor_id",
   "vendor_name",
@@ -152,24 +182,27 @@ export function findMatchingVendor(vendors = [], fields = {}) {
 }
 
 export function vehicleFieldsToVendorPayload(form = {}, companyId) {
-  const gst = String(form.vendor_gst_number || "").trim();
-  const pst = String(form.vendor_pst_number || "").trim();
+  const gst = asVendorString(form.vendor_gst_number || form.gst_number, 40);
+  const pst = asVendorString(form.vendor_pst_number || form.pst_number, 40);
   return {
     company_id: companyId,
-    vendor_name: String(form.vendor_name || "").trim(),
-    email: String(form.vendor_email || "").trim(),
-    phone: String(form.vendor_phone || "").trim(),
-    address: String(form.vendor_address || "").trim(),
-    city: String(form.vendor_city || "").trim(),
-    province: String(form.vendor_province || form.province || "").trim(),
-    postal_code: String(form.vendor_postal_code || "").trim(),
-    country: String(form.vendor_country || "").trim() || "Canada",
+    vendor_name: asVendorString(form.vendor_name, 160),
+    contact_person: asVendorString(form.contact_person, 120),
+    email: asVendorString(form.vendor_email || form.email, 160),
+    phone: asVendorString(form.vendor_phone || form.phone, 40),
+    address: looksLikeJunkAddress(form.vendor_address || form.address)
+      ? ""
+      : asVendorString(form.vendor_address || form.address, 200),
+    city: cleanCityName(form.vendor_city || form.city),
+    province: asVendorString(form.vendor_province || form.province, 8).toUpperCase(),
+    postal_code: cleanCanadianPostal(form.vendor_postal_code || form.postal_code),
+    country: asVendorString(form.vendor_country || form.country, 80) || "Canada",
     gst_number: gst,
     pst_number: pst,
-    tax_id: gst,
-    vendor_type: "supplier",
-    payment_terms: "Due on receipt",
-    status: "active",
+    tax_id: gst || asVendorString(form.tax_id, 40),
+    vendor_type: VENDOR_TYPES.includes(form.vendor_type) ? form.vendor_type : "supplier",
+    payment_terms: asVendorString(form.payment_terms, 80) || "Due on receipt",
+    status: VENDOR_STATUSES.includes(form.status) ? form.status : "active",
     notes: [
       pst ? `PST#: ${pst}` : "",
       "Created from a vehicle bill of sale / tax invoice.",
@@ -177,20 +210,105 @@ export function vehicleFieldsToVendorPayload(form = {}, companyId) {
   };
 }
 
+function leftoverPostalNotes(notes) {
+  const next = asVendorString(notes, 2000);
+  if (!next) return "";
+  const postal = cleanCanadianPostal(next);
+  if (postal && next.replace(/[^A-Z0-9]/gi, "").length <= 12) return "";
+  return next;
+}
+
+export function buildVendorPersistPayload(form = {}, companyId) {
+  const source = omitSystemEntityKeys(form);
+  const gst = asVendorString(source.gst_number || source.tax_id, 40);
+  const pst = asVendorString(source.pst_number, 40);
+  const postal = cleanCanadianPostal(source.postal_code)
+    || cleanCanadianPostal(source.notes);
+  const notes = leftoverPostalNotes(source.notes);
+  const payload = {
+    company_id: companyId || source.company_id,
+    vendor_name: asVendorString(source.vendor_name, 160),
+    contact_person: asVendorString(source.contact_person, 120) || undefined,
+    email: asVendorString(source.email, 160) || undefined,
+    phone: asVendorString(source.phone, 40) || undefined,
+    address: looksLikeJunkAddress(source.address) ? undefined : asVendorString(source.address, 200) || undefined,
+    city: cleanCityName(source.city) || undefined,
+    province: asVendorString(source.province, 8).toUpperCase() || undefined,
+    postal_code: postal || undefined,
+    country: asVendorString(source.country, 80) || "Canada",
+    vendor_type: VENDOR_TYPES.includes(source.vendor_type) ? source.vendor_type : "supplier",
+    payment_terms: asVendorString(source.payment_terms, 80) || "Net 30",
+    tax_id: gst || undefined,
+    gst_number: gst || undefined,
+    pst_number: pst || undefined,
+    notes: notes || undefined,
+    status: VENDOR_STATUSES.includes(source.status) ? source.status : "active",
+  };
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === undefined || payload[key] === "") delete payload[key];
+  });
+  return payload;
+}
+
+const VENDOR_CORE_KEYS = [
+  "company_id",
+  "vendor_name",
+  "email",
+  "phone",
+  "address",
+  "city",
+  "province",
+  "postal_code",
+  "country",
+  "vendor_type",
+  "payment_terms",
+  "tax_id",
+  "notes",
+  "status",
+];
+
+export async function persistVendorRecord({
+  supabase,
+  companyId,
+  form,
+  existingId,
+}) {
+  const data = buildVendorPersistPayload(form, companyId);
+  if (!data.company_id) {
+    throw new Error("Please select a company first");
+  }
+  if (!data.vendor_name) {
+    throw new Error("Enter a vendor name");
+  }
+  const core = {};
+  for (const key of VENDOR_CORE_KEYS) {
+    if (data[key] != null && data[key] !== "") core[key] = data[key];
+  }
+  try {
+    return await persistWithUnknownColumnRetry({
+      write: (payload) => (
+        existingId
+          ? supabase.entities.Vendor.update(existingId, payload)
+          : supabase.entities.Vendor.create(payload)
+      ),
+      data,
+      fallback: core,
+    });
+  } catch (error) {
+    const detail = errorText(error) || "Unknown error";
+    const wrapped = new Error(`Vendor could not be saved: ${detail}`);
+    wrapped.cause = error;
+    throw wrapped;
+  }
+}
+
 async function createVendorRecord(payload) {
   const { supabase } = await import("@/api/supabaseClient");
-  try {
-    return await supabase.entities.Vendor.create(payload);
-  } catch (error) {
-    const { gst_number, pst_number, ...legacy } = payload;
-    legacy.tax_id = gst_number || legacy.tax_id;
-    legacy.notes = [legacy.notes, pst_number ? `PST#: ${pst_number}` : ""].filter(Boolean).join(" ");
-    try {
-      return await supabase.entities.Vendor.create(legacy);
-    } catch {
-      throw error;
-    }
-  }
+  return persistVendorRecord({
+    supabase,
+    companyId: payload.company_id,
+    form: payload,
+  });
 }
 
 export async function createVendorFromVehicleForm({ form, companyId, queryClient }) {

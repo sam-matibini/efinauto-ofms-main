@@ -1,4 +1,14 @@
-import { VEHICLE_VENDOR_FIELD_KEYS } from "./vendorDirectory.js";
+import { isPdfStructureNoise } from "./documentAutoscan/pdfNoise.js";
+import {
+  errorText,
+  persistWithUnknownColumnRetry,
+} from "./persistErrors.js";
+import {
+  VEHICLE_VENDOR_FIELD_KEYS,
+  cleanCanadianPostal,
+  cleanCityName,
+  looksLikeJunkAddress,
+} from "./vendorDirectory.js";
 import { vehiclePurchaseTaxes } from "./vehiclePurchaseTaxes.js";
 
 export const VEHICLE_ENUMS = {
@@ -25,7 +35,32 @@ const TRANSIENT_FORM_KEYS = new Set([
   "post_to_gl",
 ]);
 
-const UNKNOWN_COLUMN_RE = /Could not find the '([^']+)' column/i;
+const VEHICLE_CORE_KEYS = [
+  "company_id",
+  "ownership_type",
+  "vin",
+  "make",
+  "model",
+  "year",
+  "condition",
+  "status",
+  "fuel_type",
+  "transmission",
+  "mileage",
+  "weight",
+  "purchase_price",
+  "selling_price",
+  "color",
+  "location",
+  "notes",
+  "province",
+  "tax_status",
+  "tax_gst",
+  "tax_pst",
+  "tax_hst",
+  "tax_total",
+  "total_cost",
+];
 
 export function asString(value, max = 8000) {
   if (value == null) return "";
@@ -109,7 +144,7 @@ export function sanitizeVehicleForm(form = {}) {
     location: asString(form.location, 120),
     engine_capacity: asString(form.engine_capacity, 40),
     features: asString(form.features, 500),
-    notes: asString(form.notes, 8000),
+    notes: isPdfStructureNoise(form.notes) ? "" : asString(form.notes, 2000),
     ownership_type: asEnum(form.ownership_type, VEHICLE_ENUMS.ownership_type, "dealership_owned"),
     condition: asEnum(form.condition, VEHICLE_ENUMS.condition, "used"),
     status: asEnum(form.status, VEHICLE_ENUMS.status, "in_stock"),
@@ -163,7 +198,7 @@ export function buildVehiclePersistPayload(form = {}, companyId) {
     location: optionalString(source.location, 120),
     engine_capacity: optionalString(source.engine_capacity, 40),
     features: optionalString(source.features, 500),
-    notes: optionalString(source.notes, 8000),
+    notes: optionalString(source.notes, 2000),
   };
 
   if (source.images?.length) payload.images = source.images;
@@ -182,6 +217,17 @@ export function buildVehiclePersistPayload(form = {}, companyId) {
       if (reason) payload[key] = reason;
       continue;
     }
+    if (key === "vendor_postal_code") {
+      const postal = cleanCanadianPostal(value);
+      if (postal) payload[key] = postal;
+      continue;
+    }
+    if (key === "vendor_city") {
+      const city = cleanCityName(value);
+      if (city) payload[key] = city.slice(0, 80);
+      continue;
+    }
+    if (key === "vendor_address" && looksLikeJunkAddress(value)) continue;
     payload[key] = typeof value === "string" ? asString(value, key === "tax_exemption_reason" ? 500 : 240) : value;
   }
 
@@ -205,16 +251,25 @@ export async function persistVehicleRecord({
     throw new Error("Please fill in all required fields (VIN, Make, Model, Year)");
   }
 
-  for (let attempt = 0; attempt < 10; attempt += 1) {
-    try {
-      if (existingId) return await supabase.entities.Vehicle.update(existingId, data);
-      return await supabase.entities.Vehicle.create(data);
-    } catch (error) {
-      const match = String(error?.message || error).match(UNKNOWN_COLUMN_RE);
-      if (!match || !(match[1] in data)) throw error;
-      const { [match[1]]: _dropped, ...rest } = data;
-      data = rest;
-    }
+  const core = {};
+  for (const key of VEHICLE_CORE_KEYS) {
+    if (data[key] != null && data[key] !== "") core[key] = data[key];
   }
-  throw new Error("Vehicle could not be saved");
+
+  try {
+    return await persistWithUnknownColumnRetry({
+      write: (payload) => (
+        existingId
+          ? supabase.entities.Vehicle.update(existingId, payload)
+          : supabase.entities.Vehicle.create(payload)
+      ),
+      data,
+      fallback: core,
+    });
+  } catch (error) {
+    const detail = errorText(error) || "Unknown error";
+    const wrapped = new Error(`Vehicle could not be saved: ${detail}`);
+    wrapped.cause = error;
+    throw wrapped;
+  }
 }

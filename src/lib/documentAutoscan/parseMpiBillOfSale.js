@@ -1,6 +1,5 @@
 const VIN_RE = /\b([A-HJ-NPR-Z0-9]{17})\b/i;
 const MONEY = /\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})|[0-9]+\.[0-9]{2})/;
-const POSTAL_RE = /\b([A-Z]\d[A-Z]\s?\d[A-Z]\d)\b/i;
 
 function money(value) {
   if (value == null) return undefined;
@@ -51,6 +50,18 @@ function capture(text, pattern) {
   return match ? String(match[1]).trim() : "";
 }
 
+function cleanPostal(value) {
+  const source = String(value || "").toUpperCase();
+  const match = source.match(/\b([A-CEGHJ-NPR-TVXY]\d[A-CEGHJ-NPR-TV-Z]\s?\d[A-CEGHJ-NPR-TV-Z]\d)\b/);
+  if (!match) return "";
+  const compact = match[1].replace(/\s/g, "");
+  return `${compact.slice(0, 3)} ${compact.slice(3)}`;
+}
+
+function looksLikeJunkAddress(value) {
+  return /hewlett|packard|endobj|\/type\s*\/|%pdf-|flatedecode|\[\/pdf\/text/i.test(String(value || ""));
+}
+
 function firstPhone(text) {
   const match = String(text || "").match(/(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
   return match ? match[0] : "";
@@ -90,13 +101,12 @@ export function parseMpiSalvageBillOfSale(text) {
     ? money(totals[3])
     : money(capture(source, /\b(?:PST\/QST|PST)\s+\$?\s*([0-9,]+\.\d{2})/i));
 
-  const postalMatch = header.match(POSTAL_RE) || source.match(POSTAL_RE);
-  const postal = postalMatch ? postalMatch[1].toUpperCase().replace(/\s+/, " ") : "";
+  const postal = cleanPostal(header) || cleanPostal(source);
   const cityProvince = header.match(/([A-Za-z][A-Za-z .]+),\s*(MB|Manitoba)\b/i);
-  const street = capture(
-    header,
+  const streetMatch = header.match(
     /(\d+\s+[A-Za-z0-9][A-Za-z0-9 .'-]+(?:Rd|Road|St|Street|Ave|Avenue|Blvd|Dr|Drive|Way|Cres|Crescent|Hwy|Highway)\.?)/i
   );
+  const street = streetMatch && !looksLikeJunkAddress(streetMatch[1]) ? streetMatch[1].trim() : "";
 
   const exemption = cleanExemption(capture(source, /Tax Exemption Reason:\s*([^\n]+)/i));
   const salvageBrand = capture(source, /(?:Vehicle Ownership is branded|branded):\s*([^\n]+)/i);
@@ -121,13 +131,15 @@ export function parseMpiSalvageBillOfSale(text) {
   return compact({
     vendor_name: "Manitoba Public Insurance",
     vendor_address: street,
-    vendor_city: cityProvince ? cityProvince[1].trim() : "Winnipeg",
+    vendor_city: cityProvince ? cityProvince[1].replace(/,+$/g, "").trim() : "Winnipeg",
     vendor_province: "MB",
     vendor_country: "Canada",
     vendor_postal_code: postal,
     vendor_gst_number: capture(source, /\bGST\s*#\s*[:#]?\s*(R?\d[\dA-Z]{5,})/i),
     vendor_pst_number: capture(source, /\bPST\s*#\s*[:#]?\s*([\d][\d-]{2,})/i),
-    vendor_phone: firstPhone(header) || firstPhone(source),
+    vendor_phone: capture(header, /Phone:\s*((?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})/i)
+      || firstPhone(header)
+      || firstPhone(source),
     vendor_email: firstEmail(header) || firstEmail(source),
     invoice_number: capture(source, /\bInvoice\s*#\s*[:#]?\s*([A-Z0-9-]{3,20})\b/i),
     transaction_date: toIsoDate(

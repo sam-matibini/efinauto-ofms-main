@@ -39,6 +39,9 @@ const mpi = parseMpiSalvageBillOfSale(mpiText);
 const checks = [
   ["mpi vendor", mpi.vendor_name === "Manitoba Public Insurance"],
   ["mpi address", /plessis/i.test(mpi.vendor_address || "")],
+  ["mpi city", mpi.vendor_city === "Winnipeg"],
+  ["mpi postal", mpi.vendor_postal_code === "R2C 5C7"],
+  ["mpi phone", /204/.test(mpi.vendor_phone || "")],
   ["mpi city", /winnipeg/i.test(mpi.vendor_city || "")],
   ["mpi country", mpi.vendor_country === "Canada"],
   ["mpi postal", /R2C\s?5C7/i.test(mpi.vendor_postal_code || "")],

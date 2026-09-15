@@ -23,6 +23,7 @@ import {
   parseDocumentFields,
   summarizeExtraction,
 } from "@/lib/documentAutoscan";
+import { isPdfStructureNoise, usableDocumentText } from "@/lib/documentAutoscan/pdfNoise";
 import {
   textFileFromPaste,
   uploadVehiclePurchaseDocument,
@@ -122,9 +123,12 @@ export default function DocumentAutoscan({
         onProgress: setProgress,
       });
       setResult(analysis);
-      if (analysis.text) {
+      if (usableDocumentText(analysis.text)) {
         setPastedText(analysis.text);
         setPasteOpen(true);
+      } else if (isPdfStructureNoise(pastedText) || isPdfStructureNoise(analysis.text)) {
+        setPastedText("");
+        setPasteOpen(false);
       }
       const count = Object.keys(analysis.fields || {}).length;
       if (count === 0) {
@@ -141,15 +145,46 @@ export default function DocumentAutoscan({
   };
 
   const handleUpdateForm = async () => {
-    const text = pastedText.trim() || result?.text || "";
-    if (text) {
-      const fields = parseDocumentFields(text, profile);
-      const summary = summarizeExtraction(text, fields, profile);
+    const raw = pastedText.trim() || result?.text || "";
+    const usable = usableDocumentText(raw);
+    if (!usable && file) {
+      toast.info("Scanning the original file instead of the PDF catalog text…");
+      setScanning(true);
+      setProgress(5);
+      try {
+        const analysis = await analyzeDocument({
+          file,
+          pastedText: "",
+          profile,
+          onProgress: setProgress,
+        });
+        setResult(analysis);
+        if (usableDocumentText(analysis.text)) {
+          setPastedText(analysis.text);
+          setPasteOpen(true);
+        } else {
+          setPastedText("");
+        }
+        if (applyFields(analysis.fields, analysis)) {
+          await attachSource(analysis);
+        }
+      } catch (error) {
+        console.error("Document autoscan error:", error);
+        toast.error(error.message || "Failed to scan document");
+      } finally {
+        setScanning(false);
+        setProgress(0);
+      }
+      return;
+    }
+    if (usable) {
+      const fields = parseDocumentFields(usable, profile);
+      const summary = summarizeExtraction(usable, fields, profile);
       const analysis = {
         ...(result || {}),
         fields,
         summary,
-        text,
+        text: usable,
         source: result?.source || "local",
       };
       setResult(analysis);
