@@ -46,6 +46,12 @@ export function fieldToDropFromPersistError(error, data = {}) {
   if (column && Object.prototype.hasOwnProperty.call(data, column)) return column;
 
   const text = errorText(error);
+  if (/invalid input syntax for type (?:timestamp(?: with time zone)?|date)/i.test(text)) {
+    const emptyDate = Object.keys(data).find((key) => (
+      data[key] === "" && /(_at|_date|timestamp)$/i.test(key)
+    ));
+    if (emptyDate) return emptyDate;
+  }
   if (/invalid input syntax for type uuid|foreign key constraint|23503/i.test(text)) {
     const named = text.match(/column "([^"]+)"/i)?.[1]
       || text.match(/\b(?:column|key)\s+([a-z_][a-z0-9_]*)/i)?.[1];

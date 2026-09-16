@@ -55,6 +55,8 @@ import CompareWithFilter from "../components/shared/CompareWithFilter";
 import BillOfSaleExport from "../components/sales/BillOfSaleExport";
 import { sendBOSCreatedNotification, sendBOSFinalizedNotification } from "../components/sales/SalesNotificationService";
 import CreateExportOrderDialog from "../components/export/CreateExportOrderDialog";
+import { errorText } from "@/lib/persistErrors";
+import { hydrateSaleRecord, persistSaleRecord } from "@/lib/saleRecord";
 
 export default function Sales() {
   const [activeMainTab, setActiveMainTab] = useState("sales");
@@ -111,7 +113,10 @@ export default function Sales() {
 
   const { data: sales = [] } = useQuery({
     queryKey: ['sales', selectedCompanyId],
-    queryFn: () => supabase.entities.Sale.filter({ company_id: selectedCompanyId }, '-created_date'),
+    queryFn: async () => {
+      const rows = await supabase.entities.Sale.filter({ company_id: selectedCompanyId }, '-created_date');
+      return (Array.isArray(rows) ? rows : []).map(hydrateSaleRecord);
+    },
     enabled: !!selectedCompanyId,
     initialData: [],
   });
@@ -187,27 +192,36 @@ export default function Sales() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
       const oldSale = sales.find(s => s.id === id);
-      const updatedSale = await supabase.entities.Sale.update(id, data);
+      const updatedSale = await persistSaleRecord({
+        supabase,
+        companyId: selectedCompanyId,
+        form: data,
+        existingId: id,
+      });
       
       // If payment status changed to paid and wasn't before, create payment transaction
       if (data.payment_status === 'paid' && oldSale?.payment_status !== 'paid') {
-        await supabase.entities.Transaction.create({
-          company_id: selectedCompanyId,
-          transaction_number: `PMT-${id.slice(0, 8)}`,
-          transaction_type: 'payment_received',
-          category: 'asset',
-          amount: data.grand_total || data.sale_price || 0,
-          account_code: '1000',
-          account_name: 'Cash',
-          account_type: 'asset',
-          reference_type: 'Sale',
-          reference_id: id,
-          reference_number: data.sale_number,
-          customer_name: data.customer_name,
-          description: `Payment received for sale: ${data.vehicle_details}`,
-          transaction_date: new Date().toISOString().split('T')[0],
-          status: 'completed'
-        });
+        try {
+          await supabase.entities.Transaction.create({
+            company_id: selectedCompanyId,
+            transaction_number: `PMT-${id.slice(0, 8)}`,
+            transaction_type: 'payment_received',
+            category: 'asset',
+            amount: data.grand_total || data.sale_price || 0,
+            account_code: '1000',
+            account_name: 'Cash',
+            account_type: 'asset',
+            reference_type: 'Sale',
+            reference_id: id,
+            reference_number: data.sale_number,
+            customer_name: data.customer_name,
+            description: `Payment received for sale: ${data.vehicle_details}`,
+            transaction_date: new Date().toISOString().split('T')[0],
+            status: 'completed'
+          });
+        } catch (error) {
+          console.warn("Sale updated but payment ledger entry was skipped.", error);
+        }
       }
       
       return updatedSale;
@@ -218,6 +232,9 @@ export default function Sales() {
       setDialogOpen(false);
       setEditingSale(null);
       toast.success("Sale updated successfully!");
+    },
+    onError: (error) => {
+      toast.error(errorText(error) || "Could not update sale");
     },
   });
 
@@ -293,65 +310,85 @@ export default function Sales() {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const sale = await supabase.entities.Sale.create({
-        ...data, 
-        company_id: selectedCompanyId,
-        bos_status: 'draft'
+      const sale = await persistSaleRecord({
+        supabase,
+        companyId: selectedCompanyId,
+        form: { ...data, bos_status: "draft" },
       });
 
-      // Send BOS created notification
-      await sendBOSCreatedNotification(sale, company);
+      try {
+        await sendBOSCreatedNotification(sale, company);
+      } catch (error) {
+        console.warn("Sale recorded but BOS created notification was skipped.", error);
+      }
       
       if (data.vehicle_id) {
-        const vehicleStatus = data.sale_type === 'export' ? 'exported' : 'sold';
-        await supabase.entities.Vehicle.update(data.vehicle_id, { status: vehicleStatus });
+        try {
+          const vehicleStatus = data.sale_type === 'export' ? 'exported' : 'sold';
+          await supabase.entities.Vehicle.update(data.vehicle_id, { status: vehicleStatus });
+        } catch (error) {
+          console.warn("Sale recorded but vehicle status was not updated.", error);
+        }
       }
       
       // If export sale, create an Export record
       let exportRecord = null;
       if (data.sale_type === 'export') {
-        exportRecord = await supabase.entities.Export.create({
-          company_id: selectedCompanyId,
-          export_number: `EXP-${Date.now()}`,
-          export_type: 'vehicle',
-          customer_name: data.customer_name,
-          customer_email: data.customer_email || '',
-          customer_phone: data.customer_phone || '',
-          destination_country: 'TBD',
-          items: [{
-            description: data.vehicle_details,
-            quantity: 1,
-            value: data.sale_price,
-            vin: data.vehicle_vin
-          }],
-          total_value: data.sale_price,
-          status: 'pending',
-          payment_status: data.payment_status,
-          notes: `Auto-created from export sale: ${sale.sale_number}`
-        });
+        try {
+          exportRecord = await supabase.entities.Export.create({
+            company_id: selectedCompanyId,
+            export_number: `EXP-${Date.now()}`,
+            export_type: 'vehicle',
+            customer_name: data.customer_name,
+            customer_email: data.customer_email || '',
+            customer_phone: data.customer_phone || '',
+            destination_country: 'TBD',
+            items: [{
+              description: data.vehicle_details,
+              quantity: 1,
+              value: data.sale_price,
+              vin: data.vehicle_vin
+            }],
+            total_value: data.sale_price,
+            status: 'pending',
+            payment_status: data.payment_status,
+            notes: `Auto-created from export sale: ${sale.sale_number}`
+          });
 
-        // Update sale with export_id
-        await supabase.entities.Sale.update(sale.id, { export_id: exportRecord.id });
+          if (exportRecord?.id && sale?.id) {
+            await persistSaleRecord({
+              supabase,
+              companyId: selectedCompanyId,
+              form: { ...sale, export_id: exportRecord.id },
+              existingId: sale.id,
+            });
+          }
+        } catch (error) {
+          console.warn("Sale recorded but export order was not created.", error);
+        }
       }
       
-      // Create accounting transaction for revenue
-      await supabase.entities.Transaction.create({
-        company_id: selectedCompanyId,
-        transaction_number: sale.sale_number,
-        transaction_type: 'sale_revenue',
-        category: 'revenue',
-        amount: sale.grand_total || sale.sale_price,
-        reference_type: 'Sale',
-        reference_id: sale.id,
-        reference_number: sale.sale_number,
-        customer_name: sale.customer_name,
-        description: `${data.sale_type === 'export' ? 'Export ' : ''}Vehicle sale: ${sale.vehicle_details}`,
-        transaction_date: sale.sale_date || new Date().toISOString().split('T')[0],
-        payment_method: 'other',
-        status: sale.payment_status === 'paid' ? 'completed' : 'pending',
-        tax_amount: sale.tax_total || 0,
-        tax_status: data.tax_status
-      });
+      try {
+        await supabase.entities.Transaction.create({
+          company_id: selectedCompanyId,
+          transaction_number: sale.sale_number,
+          transaction_type: 'sale_revenue',
+          category: 'revenue',
+          amount: sale.grand_total || sale.sale_price,
+          reference_type: 'Sale',
+          reference_id: sale.id,
+          reference_number: sale.sale_number,
+          customer_name: sale.customer_name,
+          description: `${data.sale_type === 'export' ? 'Export ' : ''}Vehicle sale: ${sale.vehicle_details}`,
+          transaction_date: sale.sale_date || new Date().toISOString().split('T')[0],
+          payment_method: 'other',
+          status: sale.payment_status === 'paid' ? 'completed' : 'pending',
+          tax_amount: sale.tax_total || 0,
+          tax_status: data.tax_status
+        });
+      } catch (error) {
+        console.warn("Sale recorded but revenue ledger entry was skipped.", error);
+      }
       
       return { sale, exportRecord };
     },
@@ -366,6 +403,9 @@ export default function Sales() {
       } else {
         toast.success("Sale recorded successfully!");
       }
+    },
+    onError: (error) => {
+      toast.error(errorText(error) || "Could not record sale");
     },
   });
 
@@ -962,6 +1002,7 @@ export default function Sales() {
       <SaleDialog
         open={dialogOpen}
         onClose={() => { setDialogOpen(false); setEditingSale(null); }}
+        saving={createMutation.isPending || updateMutation.isPending}
         onSave={(data) => {
           if (editingSale) {
             updateMutation.mutate({ id: editingSale.id, data });
@@ -1132,7 +1173,7 @@ export default function Sales() {
               );
               }
 
-function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
+function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale, saving }) {
   const [activeTab, setActiveTab] = useState("basic");
   const { user: currentUser } = useAuth();
   const [formData, setFormData] = useState({
@@ -1383,8 +1424,17 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
     }
     dataToSave.seller_name = dataToSave.salesman || dataToSave.seller_name;
     if (formData.pst_exempt && !editingSale?.pst_exempt) {
-      const user = await supabase.auth.me();
-      dataToSave.pst_exempt_by = user.email;
+      let actorEmail = currentUser?.email || "";
+      try {
+        const session = await Promise.race([
+          supabase.auth.getSession?.(),
+          new Promise((resolve) => setTimeout(() => resolve(null), 2500)),
+        ]);
+        actorEmail = session?.user?.email || session?.data?.session?.user?.email || actorEmail;
+      } catch {
+        /* Recording a sale must not wait on a hanging auth lookup. */
+      }
+      dataToSave.pst_exempt_by = actorEmail;
       dataToSave.pst_exempt_timestamp = new Date().toISOString();
     }
     
@@ -1581,8 +1631,9 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale }) {
         </Tabs>
 
         <div className="flex justify-end gap-3 pt-4 border-t">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700">
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button onClick={handleSubmit} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
             {editingSale ? 'Update Sale' : 'Record Sale'}
           </Button>
         </div>
