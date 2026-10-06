@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import DocumentAutoscan from "@/components/shared/DocumentAutoscan";
 import { mergeDocumentFields } from "@/lib/documentAutoscan";
 
-export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, customers, services }) {
+export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, customers, services, saving = false }) {
   const [formData, setFormData] = useState({
     invoice_number: "",
     customer_id: null,
@@ -65,7 +65,7 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
           balance_due: editingInvoice.balance_due || 0,
           status: editingInvoice.status || "draft",
           notes: editingInvoice.notes || "",
-          terms: editingInvoice.terms || "Payment due upon receipt"
+          terms: editingInvoice.payment_terms || editingInvoice.terms || "Payment due upon receipt"
         });
       } else {
         setFormData({
@@ -498,9 +498,9 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700">
-              {editingInvoice ? "Update Invoice" : "Create Invoice"}
+            <Button type="button" variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button type="button" onClick={handleSubmit} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+              {saving ? "Saving..." : editingInvoice ? "Update Invoice" : "Create Invoice"}
             </Button>
           </div>
         </div>
