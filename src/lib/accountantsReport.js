@@ -5,6 +5,7 @@ import {
   profitAndLoss,
   retainedEarningsStatement,
 } from "./financialStatements.js";
+import { formatSignedAt } from "./accountantSignature.js";
 import { formatExportAmount } from "./reportFormat.js";
 import { isFinancialYear, rangeLabel } from "./reportPeriods.js";
 
@@ -27,7 +28,8 @@ function row(label, columns, pick, options = {}) {
 
 function money(value) {
   const formatted = formatExportAmount(value);
-  return formatted.startsWith("(") ? formatted : formatted === "0.00" ? "nil" : `$${formatted}`;
+  if (formatted === "-") return "nil";
+  return formatted.startsWith("(") ? formatted : `$${formatted}`;
 }
 
 export function suggestedPackageKind(from, to) {
@@ -170,7 +172,7 @@ function buildNotes(companyName, kind, basis, current) {
         "Property and equipment are carried at cost less accumulated depreciation recorded in the books.",
         "Sales taxes are recorded separately as recoverable input tax credits and as taxes payable. They are not included in revenue.",
         "The company follows the taxes payable method. No income tax expense or future income tax balance is recorded in these books, so net income is presented before income tax.",
-        "No allowance for doubtful accounts, related-party balances, commitments, or contingencies are identified in these books. A nil amount means the books contain no balance for that item.",
+        "No allowance for doubtful accounts, related-party balances, commitments, or contingencies are identified in these books. A dash in the statements means the books contain no balance for that item.",
       ],
     },
     {
@@ -269,6 +271,27 @@ export function buildAccountantsPackage({
   };
 }
 
+export function chunkNotes(notes, budget = 10) {
+  const pages = [];
+  let current = [];
+  let weight = 0;
+  (notes || []).forEach((note) => {
+    const noteWeight = 2 + (note.paragraphs || []).reduce(
+      (sum, paragraph) => sum + Math.max(1, Math.ceil(String(paragraph).length / 380)),
+      0,
+    );
+    if (current.length > 0 && weight + noteWeight > budget) {
+      pages.push(current);
+      current = [];
+      weight = 0;
+    }
+    current.push(note);
+    weight += noteWeight;
+  });
+  if (current.length) pages.push(current);
+  return pages;
+}
+
 export function packageRows(pack) {
   const header = ["", ...pack.columns.map((column) => column.label)];
   const rows = [
@@ -279,6 +302,13 @@ export function packageRows(pack) {
     [],
     ["Accountant's Report"],
     ...pack.preface.map((paragraph) => [paragraph]),
+    [],
+    [
+      "Accountant's signature",
+      pack.signature?.name || "Accountant",
+      pack.signature?.designation || "Accountant",
+      formatSignedAt(pack.signature?.signedAt),
+    ],
     [],
   ];
   pack.sections.forEach((section) => {

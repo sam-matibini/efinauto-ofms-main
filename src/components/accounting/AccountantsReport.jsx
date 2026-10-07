@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { FileText, Loader2, Mail, Plus, Printer, Send, X } from "lucide-react";
+import { Eraser, FileText, Loader2, Mail, Plus, Printer, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
@@ -11,46 +11,106 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { buildAccountantsPackage, packageRows } from "@/lib/accountantsReport";
+import { buildAccountantsPackage, chunkNotes, packageRows } from "@/lib/accountantsReport";
+import {
+  formatSignedAt,
+  resolveAccountantSignature,
+  saveAccountantSignature,
+} from "@/lib/accountantSignature";
+import { useAuth } from "@/lib/AuthContext";
 import { downloadCsv } from "@/lib/reportFormat";
-import { downloadReportPdf } from "@/lib/reportPdf";
+import { downloadAccountantsPdf } from "@/lib/reportPdf";
 
-function StatementTable({ title, columns, rows }) {
+function StatementTable({ columns, rows }) {
   return (
-    <section className="mb-8">
-      <h3 className="mb-2 text-base font-semibold text-[#0A1F44]">{title}</h3>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] border-collapse text-sm">
-          <thead>
-            <tr className="border-b-2 border-slate-300 text-left">
-              <th className="py-2 pr-3 font-semibold">Account</th>
-              {columns.map((column) => (
-                <th key={column.label} className="py-2 pl-3 text-right font-semibold">{column.label}</th>
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-[12px] leading-5">
+        <thead>
+          <tr className="border-b border-slate-300 text-left">
+            <th className="py-1 pr-3 font-semibold">Account</th>
+            {columns.map((column) => (
+              <th key={column.label} className="py-1 pl-3 text-right font-semibold">{column.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((line) => (
+            <tr key={line.label} className={line.total ? "border-t border-slate-300 font-semibold" : ""}>
+              <td className="py-0.5 pr-3" style={{ paddingLeft: `${line.indent * 12}px` }}>{line.label}</td>
+              {line.amounts.map((value, index) => (
+                <td key={`${line.label}-${index}`} className="py-0.5 pl-3 text-right tabular-nums">{value}</td>
               ))}
             </tr>
-          </thead>
-          <tbody>
-            {rows.map((line) => (
-              <tr key={line.label} className={line.total ? "border-t border-slate-300 font-semibold" : ""}>
-                <td className="py-1.5 pr-3" style={{ paddingLeft: `${line.indent * 16}px` }}>{line.label}</td>
-                {line.amounts.map((value, index) => (
-                  <td key={`${line.label}-${index}`} className="py-1.5 pl-3 text-right tabular-nums">{value}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ReportPage({ company, title, period, page, total, footer, children }) {
+  return (
+    <section className="accountants-page mx-auto mb-6 flex min-h-[11in] w-full max-w-[8.5in] flex-col bg-white px-8 py-7 text-[#0A1F44] shadow-md print:mb-0 print:max-w-none print:shadow-none">
+      <header className="mb-4 border-b border-slate-300 pb-2">
+        <div className="flex items-start justify-between gap-4 text-[11px] uppercase tracking-wide text-slate-500">
+          <span>{company}</span>
+          <span className="text-right">{period}</span>
+        </div>
+        <h3 className="mt-1 text-center text-lg font-semibold">{title}</h3>
+      </header>
+      <div className="flex-1">{children}</div>
+      <footer className="mt-6 flex items-center justify-between border-t border-slate-200 pt-2 text-[11px] text-slate-500">
+        <span>{footer}</span>
+        <span>Page {page} of {total}</span>
+      </footer>
     </section>
   );
 }
 
+function SignatureBlock({ signature }) {
+  const signed = formatSignedAt(signature.signedAt);
+  return (
+    <div className="mt-8">
+      {signature.image ? (
+        <img src={signature.image} alt="Accountant signature" className="h-16 w-auto" />
+      ) : (
+        <p className="text-3xl text-[#0A1F44]" style={{ fontFamily: '"Segoe Script", "Brush Script MT", cursive' }}>
+          {signature.name || "Accountant"}
+        </p>
+      )}
+      <div className="mt-1 w-64 border-t border-slate-800" />
+      <p className="mt-1 text-sm font-semibold">{signature.name || "Accountant"}</p>
+      <p className="text-sm text-slate-600">{signature.designation || "Accountant"}</p>
+      {signed ? <p className="text-xs text-slate-500">Signed {signed}</p> : null}
+    </div>
+  );
+}
+
+function canvasHasInk(canvas) {
+  const { data } = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
+  for (let index = 3; index < data.length; index += 4) {
+    if (data[index] !== 0) return true;
+  }
+  return false;
+}
+
 export default function AccountantsReport({ dateRange, periods = [], reportBasis = "accrual", kind = "interim", onKindChange }) {
+  const { user } = useAuth();
   const { selectedCompanyId } = useCompany();
   const { ledger } = useFinancialBooks(reportBasis);
+  const canvasRef = useRef(null);
+  const drawing = useRef(false);
   const [recipients, setRecipients] = useState([]);
   const [newRecipient, setNewRecipient] = useState("");
   const [sending, setSending] = useState(false);
+  const [signature, setSignature] = useState(() => resolveAccountantSignature(user));
+  const userRef = useRef(user);
+  userRef.current = user;
+  const userId = user?.id;
+
+  useEffect(() => {
+    setSignature(resolveAccountantSignature(userRef.current));
+  }, [userId]);
 
   const { data: company } = useQuery({
     queryKey: ["company", selectedCompanyId],
@@ -74,33 +134,94 @@ export default function AccountantsReport({ dateRange, periods = [], reportBasis
     });
   }, [ledger, company?.name, dateRange?.from, dateRange?.to, kind, reportBasis, periods]);
 
+  const signedPackage = useMemo(() => (pack ? { ...pack, signature } : null), [pack, signature]);
+  const notePages = useMemo(() => (pack ? chunkNotes(pack.notes) : []), [pack]);
+  const pageCount = pack ? 1 + pack.sections.length + notePages.length : 0;
+  const pageFooter = pack?.basis === "cash" ? "Cash basis — special purpose report" : "Prepared under ASPE — unaudited";
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+    const context = canvas.getContext("2d");
+    context.lineWidth = 2;
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.strokeStyle = "#0A1F44";
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    if (!signature.image) return undefined;
+    const image = new Image();
+    image.onload = () => {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      context.strokeStyle = "#0A1F44";
+      context.lineWidth = 2;
+    };
+    image.src = signature.image;
+    return undefined;
+  }, [signature.image]);
+
+  const updateSignature = (patch) => {
+    setSignature((current) => {
+      const next = saveAccountantSignature(user?.id, {
+        ...current,
+        ...patch,
+        signedAt: new Date().toISOString(),
+      });
+      return next;
+    });
+  };
+
+  const pointerPoint = (event) => {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: ((event.clientX - rect.left) * canvas.width) / rect.width,
+      y: ((event.clientY - rect.top) * canvas.height) / rect.height,
+    };
+  };
+
+  const startDraw = (event) => {
+    const canvas = canvasRef.current;
+    drawing.current = true;
+    canvas.setPointerCapture(event.pointerId);
+    const context = canvas.getContext("2d");
+    const point = pointerPoint(event);
+    context.beginPath();
+    context.moveTo(point.x, point.y);
+  };
+
+  const draw = (event) => {
+    if (!drawing.current) return;
+    const context = canvasRef.current.getContext("2d");
+    const point = pointerPoint(event);
+    context.lineTo(point.x, point.y);
+    context.stroke();
+  };
+
+  const endDraw = (event) => {
+    if (!drawing.current) return;
+    drawing.current = false;
+    const canvas = canvasRef.current;
+    if (canvas.hasPointerCapture?.(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    updateSignature({ image: canvasHasInk(canvas) ? canvas.toDataURL("image/png") : "" });
+  };
+
+  const clearSignature = () => {
+    const canvas = canvasRef.current;
+    canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+    updateSignature({ image: "" });
+  };
+
   const chooseKind = (next) => onKindChange?.(next);
 
   const exportCsv = () => {
-    if (!pack) return;
-    downloadCsv(`accountants-report-${format(new Date(), "yyyy-MM-dd")}.csv`, packageRows(pack));
+    if (!signedPackage) return;
+    downloadCsv(`accountants-report-${format(new Date(), "yyyy-MM-dd")}.csv`, packageRows(signedPackage));
   };
 
   const exportPdf = () => {
     if (!pack) return;
-    downloadReportPdf({
-      filename: `accountants-report-${format(new Date(), "yyyy-MM-dd")}.pdf`,
-      title: "Accountant's Report",
-      company: pack.companyName,
-      subtitle: pack.periodText,
-      paragraphs: pack.preface,
-      sections: [
-        ...pack.sections.map((section) => ({ ...section, columns: pack.columns.map((column) => column.label) })),
-        {
-          title: "Notes to the Financial Statements",
-          columns: [],
-          rows: pack.notes.flatMap((note) => [
-            { label: `${note.number}. ${note.title}`, amounts: [], total: true },
-            ...note.paragraphs.map((paragraph) => ({ label: paragraph, amounts: [] })),
-          ]),
-        },
-      ],
-    });
+    downloadAccountantsPdf(pack, signature);
   };
 
   const addRecipient = () => {
@@ -113,19 +234,23 @@ export default function AccountantsReport({ dateRange, periods = [], reportBasis
   };
 
   const emailPackage = async () => {
-    if (!pack || recipients.length === 0) {
+    if (!signedPackage || recipients.length === 0) {
       toast.error("Add at least one recipient");
       return;
     }
     setSending(true);
-    const rows = packageRows(pack).map((row) => `<p>${row.map((cell) => cell || "").join(" ")}</p>`).join("");
-    const body = `<div style="font-family:Arial,sans-serif;color:#0A1F44">${rows}</div>`;
+    const escape = (value) => String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const rows = packageRows(signedPackage).map((row) => `<p>${row.map((cell) => escape(cell)).join(" ")}</p>`).join("");
+    const signatureHtml = signature.image
+      ? `<p><img src="${signature.image}" alt="Signature" style="height:64px" /></p>`
+      : `<p style="font-family:cursive;font-size:28px">${escape(signature.name)}</p>`;
+    const body = `<div style="font-family:Arial,sans-serif;color:#0A1F44">${signatureHtml}${rows}</div>`;
     let failed = 0;
     for (const recipient of recipients) {
       try {
         await supabase.integrations.Core.SendEmail({
           to: recipient,
-          subject: `${pack.companyName} - Accountant's Report - ${pack.reportingDate}`,
+          subject: `${signedPackage.companyName} - Accountant's Report - ${signedPackage.reportingDate}`,
           body,
         });
       } catch (error) {
@@ -142,9 +267,11 @@ export default function AccountantsReport({ dateRange, periods = [], reportBasis
     return <Card><CardContent className="py-8 text-center text-slate-500">Select a company to prepare the accountant's report.</CardContent></Card>;
   }
 
+  let pageNumber = 0;
+
   return (
-    <Card>
-      <CardContent className="space-y-6 p-6">
+    <Card className="print:border-0 print:bg-white print:shadow-none">
+      <CardContent className="space-y-6 p-6 print:p-0">
         <div className="flex flex-col gap-4 print:hidden lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h2 className="flex items-center gap-2 text-xl font-semibold text-[#0A1F44]">
@@ -173,45 +300,105 @@ export default function AccountantsReport({ dateRange, periods = [], reportBasis
           </p>
         )}
 
-        {pack && (
-          <article id="accountants-report" className="rounded-lg border border-slate-200 bg-white p-4 md:p-6">
-            <header className="mb-6 text-center">
-              <p className="text-sm uppercase tracking-wide text-slate-500">Accountant's Report</p>
-              <h2 className="mt-1 text-2xl font-bold text-[#0A1F44]">{pack.companyName}</h2>
-              <p className="text-lg">{pack.title}</p>
-              <p className="text-sm text-slate-600">{pack.periodText}</p>
-              <p className="text-xs text-slate-500">
-                {pack.basis === "cash" ? "Cash basis" : "Accounting Standards for Private Enterprises"} · Generated {format(new Date(), "MMMM d, yyyy")}
-              </p>
-              {pack.inBalance ? (
-                <Badge className="mt-3 bg-emerald-100 text-emerald-800">In balance</Badge>
-              ) : (
-                <Badge className="mt-3 bg-red-100 text-red-800">Out of balance</Badge>
-              )}
-            </header>
+        <div className="signature-pad grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 print:hidden md:grid-cols-[1fr_auto]">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="accountant-name">Accountant name</Label>
+              <Input
+                id="accountant-name"
+                value={signature.name}
+                onChange={(event) => updateSignature({ name: event.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="accountant-designation">Designation</Label>
+              <Input
+                id="accountant-designation"
+                value={signature.designation}
+                onChange={(event) => updateSignature({ designation: event.target.value })}
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Draw signature</Label>
+            <canvas
+              ref={canvasRef}
+              width={560}
+              height={120}
+              className="mt-1 h-[60px] w-[280px] cursor-crosshair touch-none rounded border border-slate-300 bg-white"
+              onPointerDown={startDraw}
+              onPointerMove={draw}
+              onPointerUp={endDraw}
+              onPointerLeave={endDraw}
+            />
+            <Button type="button" variant="ghost" size="sm" className="mt-1" onClick={clearSignature}>
+              <Eraser className="mr-1 h-4 w-4" />
+              Clear drawing
+            </Button>
+          </div>
+        </div>
 
-            <section className="mb-8 space-y-3 text-sm leading-6 text-slate-800">
-              {pack.preface.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
-            </section>
+        {pack && (
+          <div id="accountants-report" className="bg-slate-200/80 p-4 print:bg-white print:p-0">
+            <ReportPage
+              company={pack.companyName}
+              title="Accountant's Report"
+              period={pack.periodText}
+              page={pageNumber += 1}
+              total={pageCount}
+              footer={pageFooter}
+            >
+              <p className="text-center text-base font-semibold">{pack.title}</p>
+              <div className="mt-4 space-y-3 text-sm leading-6 text-slate-800">
+                {pack.preface.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+              </div>
+              <div className="mt-3">
+                {pack.inBalance ? (
+                  <Badge className="bg-emerald-100 text-emerald-800 print:border print:border-emerald-700 print:bg-white">In balance</Badge>
+                ) : (
+                  <Badge className="bg-red-100 text-red-800 print:border print:border-red-700 print:bg-white">Out of balance</Badge>
+                )}
+              </div>
+              <SignatureBlock signature={signature} />
+            </ReportPage>
 
             {pack.sections.map((section) => (
-              <StatementTable key={section.title} title={section.title} columns={pack.columns} rows={section.rows} />
+              <ReportPage
+                key={section.title}
+                company={pack.companyName}
+                title={section.title}
+                period={pack.periodText}
+                page={pageNumber += 1}
+                total={pageCount}
+                footer={pageFooter}
+              >
+                <StatementTable columns={pack.columns} rows={section.rows} />
+              </ReportPage>
             ))}
 
-            <section>
-              <h3 className="mb-3 text-base font-semibold text-[#0A1F44]">Notes to the Financial Statements</h3>
-              <ol className="space-y-4">
-                {pack.notes.map((note) => (
-                  <li key={note.number}>
-                    <p className="font-semibold">{note.number}. {note.title}</p>
-                    {note.paragraphs.map((paragraph) => (
-                      <p key={paragraph} className="mt-1 text-sm leading-6 text-slate-700">{paragraph}</p>
-                    ))}
-                  </li>
-                ))}
-              </ol>
-            </section>
-          </article>
+            {notePages.map((notes, index) => (
+              <ReportPage
+                key={notes[0]?.number || index}
+                company={pack.companyName}
+                title={index === 0 ? "Notes to the Financial Statements" : "Notes to the Financial Statements (continued)"}
+                period={pack.periodText}
+                page={pageNumber += 1}
+                total={pageCount}
+                footer={pageFooter}
+              >
+                <ol className="space-y-4">
+                  {notes.map((note) => (
+                    <li key={note.number}>
+                      <p className="text-sm font-semibold">{note.number}. {note.title}</p>
+                      {note.paragraphs.map((paragraph) => (
+                        <p key={paragraph} className="mt-1 text-sm leading-6 text-slate-700">{paragraph}</p>
+                      ))}
+                    </li>
+                  ))}
+                </ol>
+              </ReportPage>
+            ))}
+          </div>
         )}
 
         <div className="border-t pt-4 print:hidden">
@@ -248,6 +435,19 @@ export default function AccountantsReport({ dateRange, periods = [], reportBasis
           </Button>
         </div>
       </CardContent>
+      <style>{`
+        @media print {
+          .accountants-page {
+            min-height: 10in;
+            break-after: page;
+            page-break-after: always;
+          }
+          .accountants-page:last-child {
+            break-after: auto;
+            page-break-after: auto;
+          }
+        }
+      `}</style>
     </Card>
   );
 }

@@ -26,8 +26,10 @@ import FinancialDashboard from "@/components/accounting/FinancialDashboard";
 import CustomReportBuilder from "@/components/accounting/CustomReportBuilder";
 import useFinancialBooks from "@/components/accounting/useFinancialBooks";
 import { buildAccountantsPackage, financialReportSections, packageRows, sectionsToRows, suggestedPackageKind } from "@/lib/accountantsReport";
+import { resolveAccountantSignature } from "@/lib/accountantSignature";
+import { useAuth } from "@/lib/AuthContext";
 import { downloadCsv } from "@/lib/reportFormat";
-import { downloadReportPdf } from "@/lib/reportPdf";
+import { downloadAccountantsPdf, downloadReportPdf } from "@/lib/reportPdf";
 import { COMPARE_OPTIONS, DATE_PRESETS, compareCountLabel, compareRanges, presetRange, rangeLabel } from "@/lib/reportPeriods";
 
 const ACCOUNT_TYPES = [
@@ -40,6 +42,7 @@ const ACCOUNT_TYPES = [
 ];
 
 export default function FinancialReports() {
+  const { user } = useAuth();
   const { selectedCompanyId } = useCompany();
   const reportRef = useRef(null);
   
@@ -112,15 +115,18 @@ export default function FinancialReports() {
   const exportRows = () => {
     const currentPeriods = buildPeriods();
     if (activeReport === "accountant") {
-      return packageRows(buildAccountantsPackage({
-        ledger,
-        companyName: company?.name || "Company",
-        from: dateRange.from,
-        to: dateRange.to,
-        kind: packageKind,
-        basis: reportBasis,
-        extraPeriods: currentPeriods.slice(1),
-      }));
+      return packageRows({
+        ...buildAccountantsPackage({
+          ledger,
+          companyName: company?.name || "Company",
+          from: dateRange.from,
+          to: dateRange.to,
+          kind: packageKind,
+          basis: reportBasis,
+          extraPeriods: currentPeriods.slice(1),
+        }),
+        signature: resolveAccountantSignature(user),
+      });
     }
     return sectionsToRows(financialReportSections(ledger, currentPeriods, activeReport), currentPeriods);
   };
@@ -142,28 +148,20 @@ export default function FinancialReports() {
         extraPeriods: currentPeriods.slice(1),
       })
       : null;
-    const sections = pack
-      ? [
-        ...pack.sections.map((section) => ({ ...section, columns: pack.columns.map((column) => column.label) })),
-        {
-          title: "Notes to the Financial Statements",
-          columns: [],
-          rows: pack.notes.flatMap((note) => [
-            { label: `${note.number}. ${note.title}`, amounts: [], total: true },
-            ...note.paragraphs.map((paragraph) => ({ label: paragraph, amounts: [] })),
-          ]),
-        },
-      ]
-      : financialReportSections(ledger, currentPeriods, activeReport).map((section) => ({
-        ...section,
-        columns: currentPeriods.map((period) => period.label),
-      }));
+    if (pack) {
+      downloadAccountantsPdf(pack, resolveAccountantSignature(user));
+      return;
+    }
+    const sections = financialReportSections(ledger, currentPeriods, activeReport).map((section) => ({
+      ...section,
+      columns: currentPeriods.map((period) => period.label),
+    }));
     downloadReportPdf({
       filename: `${reportTitle(activeReport).replace(/\s+/g, "-").toLowerCase()}-${format(new Date(), "yyyy-MM-dd")}.pdf`,
       title: reportTitle(activeReport),
       company: company?.name || "Company",
-      subtitle: pack?.periodText || `${rangeLabel(dateRange.from, dateRange.to)} · ${reportBasis === "cash" ? "Cash basis" : "Accrual basis"}`,
-      paragraphs: pack?.preface || [],
+      subtitle: `${rangeLabel(dateRange.from, dateRange.to)} · ${reportBasis === "cash" ? "Cash basis" : "Accrual basis"}`,
+      paragraphs: [],
       sections,
     });
   };
@@ -406,6 +404,7 @@ export default function FinancialReports() {
           {/* Report Content */}
           <div ref={reportRef}>
             {/* Print Header */}
+            {activeReport !== "accountant" && (
             <div className="hidden print:block mb-6">
               <h1 className="text-2xl font-bold text-center">{reportTitle(activeReport)}</h1>
               <p className="text-center text-gray-600">{company?.name}</p>
@@ -416,6 +415,7 @@ export default function FinancialReports() {
                 Generated on {format(new Date(), 'MMMM d, yyyy h:mm a')}
               </p>
             </div>
+            )}
 
             <TabsContent value="dashboard">
               <FinancialDashboard 
@@ -526,11 +526,11 @@ export default function FinancialReports() {
       {/* Print Styles */}
       <style>{`
         @media print {
-          .print\\:hidden, button, [role="tablist"] {
+          .print\\:hidden, button, [role="tablist"], [data-side="left"], header.sticky {
             display: none !important;
           }
-          body {
-            background: white;
+          body, main {
+            background: white !important;
           }
           @page {
             margin: 1cm;

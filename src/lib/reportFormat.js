@@ -2,7 +2,7 @@ const AMOUNT = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
 
 export function formatExportAmount(value) {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "0.00";
+  if (!Number.isFinite(n) || Math.abs(n) < 0.005) return "-";
   const abs = Math.abs(n).toLocaleString("en-CA", AMOUNT);
   return n < 0 ? `(${abs})` : abs;
 }
