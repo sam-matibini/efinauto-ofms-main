@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,15 +10,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
-  Mail, FileText, Calendar, Clock, Send, Plus, X, 
-  CheckCircle, AlertCircle, Loader2, Settings, Play
+  Mail, FileText, Send, Plus, X, 
+  CheckCircle, AlertCircle, Loader2, Settings
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import useFinancialBooks from "@/components/accounting/useFinancialBooks";
+import { balanceSheet, cashFlowStatement, profitAndLoss } from "@/lib/financialStatements";
 
 export default function AutomatedReportingEngine() {
   const { selectedCompanyId } = useCompany();
-  const queryClient = useQueryClient();
+  const { ledger } = useFinancialBooks("accrual");
   
   const [recipients, setRecipients] = useState([]);
   const [newRecipient, setNewRecipient] = useState("");
@@ -37,36 +39,6 @@ export default function AutomatedReportingEngine() {
       const companies = await supabase.entities.Company.filter({ id: selectedCompanyId });
       return companies[0];
     },
-    enabled: !!selectedCompanyId,
-  });
-
-  const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions', selectedCompanyId],
-    queryFn: () => supabase.entities.Transaction.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-  });
-
-  const { data: sales = [] } = useQuery({
-    queryKey: ['sales', selectedCompanyId],
-    queryFn: () => supabase.entities.Sale.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-  });
-
-  const { data: purchases = [] } = useQuery({
-    queryKey: ['purchases', selectedCompanyId],
-    queryFn: () => supabase.entities.Purchase.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-  });
-
-  const { data: vehicles = [] } = useQuery({
-    queryKey: ['vehicles', selectedCompanyId],
-    queryFn: () => supabase.entities.Vehicle.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-  });
-
-  const { data: accounts = [] } = useQuery({
-    queryKey: ['accounts', selectedCompanyId],
-    queryFn: () => supabase.entities.Account.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
   });
 
@@ -90,72 +62,26 @@ export default function AutomatedReportingEngine() {
 
   const calculateFinancialData = () => {
     const { from, to } = getPeriodDates();
-    
-    const periodTransactions = transactions.filter(t => {
-      const transDate = new Date(t.transaction_date);
-      return transDate >= from && transDate <= to;
-    });
-
-    const periodSales = sales.filter(s => {
-      const saleDate = new Date(s.sale_date || s.created_date);
-      return saleDate >= from && saleDate <= to;
-    });
-
-    const periodPurchases = purchases.filter(p => {
-      const purchaseDate = new Date(p.order_date || p.created_date);
-      return purchaseDate >= from && purchaseDate <= to;
-    });
-
-    // P&L Calculations
-    const revenue = periodSales.reduce((sum, s) => sum + (s.grand_total || s.sale_price || 0), 0);
-    
-    const vehicleCogs = periodSales.reduce((sum, s) => {
-      if (s.vehicle_id) {
-        const vehicle = vehicles.find(v => v.id === s.vehicle_id);
-        return sum + (vehicle?.total_cost || vehicle?.purchase_price || 0);
-      }
-      return sum;
-    }, 0);
-
-    const operatingExpenses = periodTransactions
-      .filter(t => {
-        const account = accounts.find(a => a.id === t.account_id);
-        return account?.account_type === 'expense' && !account?.account_code?.startsWith('50');
-      })
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-    const grossProfit = revenue - vehicleCogs;
-    const netProfit = grossProfit - operatingExpenses;
-
-    // Balance Sheet Calculations
-    const vehicleInventory = vehicles
-      .filter(v => v.status === 'in_stock')
-      .reduce((sum, v) => sum + (v.total_cost || v.purchase_price || 0), 0);
-
-    const accountsReceivable = periodSales
-      .filter(s => s.payment_status !== 'paid')
-      .reduce((sum, s) => sum + ((s.grand_total || s.sale_price || 0) - (s.total_paid || 0)), 0);
-
-    const accountsPayable = periodPurchases
-      .filter(p => p.payment_status !== 'paid')
-      .reduce((sum, p) => sum + ((p.total_amount || 0) - (p.amount_paid || 0)), 0);
-
-    // Cash Flow Calculations
-    const cashFromSales = periodSales
-      .filter(s => s.payment_status === 'paid')
-      .reduce((sum, s) => sum + (s.total_paid || 0), 0);
-
-    const cashToSuppliers = periodPurchases
-      .filter(p => p.payment_status === 'paid')
-      .reduce((sum, p) => sum + (p.amount_paid || 0), 0);
-
-    const netCashFromOperating = cashFromSales - cashToSuppliers - operatingExpenses;
-
+    const earnings = profitAndLoss(ledger, from, to);
+    const position = balanceSheet(ledger, to);
+    const flow = cashFlowStatement(ledger, from, to);
     return {
       period: { from, to },
-      profitLoss: { revenue, vehicleCogs, grossProfit, operatingExpenses, netProfit },
-      balanceSheet: { vehicleInventory, accountsReceivable, accountsPayable, totalAssets: vehicleInventory + accountsReceivable },
-      cashFlow: { cashFromSales, cashToSuppliers, operatingExpenses, netCashFromOperating }
+      profitLoss: {
+        revenue: earnings.revenue,
+        vehicleCogs: earnings.cogs,
+        grossProfit: earnings.grossProfit,
+        operatingExpenses: earnings.operatingExpenses + earnings.payrollExpenses,
+        netProfit: earnings.netProfit,
+      },
+      balanceSheet: position,
+      cashFlow: {
+        cashFromSales: flow.cashFromSales,
+        cashToSuppliers: flow.cashPaidToSuppliers + flow.vehicleInventoryPurchases,
+        operatingExpenses: flow.operatingExpenses,
+        netCashFromOperating: flow.netCashFromOperating,
+        endingCash: flow.endingCash,
+      },
     };
   };
 
@@ -213,11 +139,19 @@ export default function AutomatedReportingEngine() {
           <h2>Balance Sheet Summary</h2>
           <table>
             <tr><th colspan="2">Assets</th></tr>
-            <tr><td>Vehicle Inventory</td><td class="amount">$${balanceSheet.vehicleInventory.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>
+            <tr><td>Cash and Bank</td><td class="amount">$${balanceSheet.cashAndBank.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>
             <tr><td>Accounts Receivable</td><td class="amount">$${balanceSheet.accountsReceivable.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>
+            <tr><td>Vehicle Inventory</td><td class="amount">$${balanceSheet.vehicleInventory.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>
+            <tr><td>Parts and Other Inventory</td><td class="amount">$${balanceSheet.otherInventory.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>
             <tr class="total"><td>Total Assets</td><td class="amount">$${balanceSheet.totalAssets.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>
             <tr><th colspan="2">Liabilities</th></tr>
             <tr><td>Accounts Payable</td><td class="amount">$${balanceSheet.accountsPayable.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>
+            <tr><td>Sales Tax Payable</td><td class="amount">$${balanceSheet.taxPayable.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>
+            <tr class="total"><td>Total Liabilities</td><td class="amount">$${balanceSheet.totalLiabilities.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>
+            <tr><th colspan="2">Equity</th></tr>
+            <tr><td>Owner Equity</td><td class="amount">$${balanceSheet.ownerEquity.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>
+            <tr><td>Retained Earnings</td><td class="amount">$${balanceSheet.retainedEarnings.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>
+            <tr class="total"><td>Total Liabilities and Equity</td><td class="amount">$${balanceSheet.totalLiabilitiesAndEquity.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>
           </table>
         </div>
       `;
@@ -233,6 +167,7 @@ export default function AutomatedReportingEngine() {
             <tr><td>Cash to Suppliers</td><td class="amount negative">($${cashFlow.cashToSuppliers.toLocaleString(undefined, {minimumFractionDigits: 2})})</td></tr>
             <tr><td>Operating Expenses</td><td class="amount negative">($${cashFlow.operatingExpenses.toLocaleString(undefined, {minimumFractionDigits: 2})})</td></tr>
             <tr class="total"><td><strong>Net Cash from Operations</strong></td><td class="amount ${cashFlow.netCashFromOperating >= 0 ? 'positive' : 'negative'}"><strong>$${cashFlow.netCashFromOperating.toLocaleString(undefined, {minimumFractionDigits: 2})}</strong></td></tr>
+            <tr><td>Ending Cash (matches the balance sheet)</td><td class="amount">$${cashFlow.endingCash.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>
           </table>
         </div>
       `;
@@ -284,7 +219,7 @@ export default function AutomatedReportingEngine() {
     setGenerationStatus({ step: 'generating', message: 'Generating report...' });
     const reportHTML = generateReportHTML(financialData);
 
-    const { from, to } = financialData.period;
+    const { from } = financialData.period;
     const periodLabel = `${format(from, 'MMM yyyy')}`;
     const subject = `${company?.name || 'Company'} - Monthly Financial Report - ${periodLabel}`;
 

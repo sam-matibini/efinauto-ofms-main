@@ -1,7 +1,4 @@
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/api/supabaseClient";
-import { useCompany } from "@/components/shared/CompanyContext";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Printer, FileText } from "lucide-react";
@@ -12,10 +9,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import useFinancialBooks from "@/components/accounting/useFinancialBooks";
+import { accountActivity, formatAccounting, formatStatementDate, profitAndLoss } from "@/lib/financialStatements";
 
-export default function ProfitLossStatement({ comparativePeriods = [] }) {
-  const { selectedCompanyId } = useCompany();
+const DRILLDOWNS = {
+  vehicleSalesRevenue: { title: "Vehicle Sales Revenue", codes: ["4000"], normal: "credit" },
+  serviceRevenue: { title: "Service Revenue", codes: ["4100"], normal: "credit" },
+  partsRevenue: { title: "Parts Revenue", codes: ["4300"], normal: "credit" },
+  otherRevenue: { title: "Other Revenue", codes: ["4200", "4400", "4500", "4600", "4700", "4900"], normal: "credit" },
+  vehicleCogs: { title: "Vehicle Inventory Cost", codes: ["5000"], normal: "debit" },
+  otherCogs: { title: "Parts and Other COGS", codes: ["5100"], normal: "debit" },
+  operatingExpenses: { title: "Operating Expenses", codes: ["6000", "5400", "5500", "5510", "6200", "6300"], normal: "debit" },
+  payrollExpenses: { title: "Payroll Expenses", codes: ["5200", "6100"], normal: "debit" },
+};
+
+export default function ProfitLossStatement({ comparativePeriods = [], reportBasis = "accrual" }) {
+  const { ledger } = useFinancialBooks(reportBasis);
   const [drilldown, setDrilldown] = useState(null);
+  const basisLabel = reportBasis === "cash" ? "Cash basis" : "Accrual basis";
   
   const periods = comparativePeriods.length > 0 ? comparativePeriods : [{ 
     from: new Date(new Date().getFullYear(), 0, 1), 
@@ -23,211 +34,16 @@ export default function ProfitLossStatement({ comparativePeriods = [] }) {
     label: 'Current Period'
   }];
 
-  const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions', selectedCompanyId],
-    queryFn: () => supabase.entities.Transaction.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
+  const periodData = periods.map((period) => ({ period, ...profitAndLoss(ledger, period.from, period.to) }));
 
-  const { data: accounts = [] } = useQuery({
-    queryKey: ['accounts', selectedCompanyId],
-    queryFn: () => supabase.entities.Account.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  // Get sales to calculate COGS from vehicle inventory
-  const { data: sales = [] } = useQuery({
-    queryKey: ['sales', selectedCompanyId],
-    queryFn: () => supabase.entities.Sale.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  const { data: vehicles = [] } = useQuery({
-    queryKey: ['vehicles', selectedCompanyId],
-    queryFn: () => supabase.entities.Vehicle.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  // Calculate metrics for each period
-  const periodData = periods.map(period => {
-    const periodTransactions = transactions.filter(t => {
-      const transDate = new Date(t.transaction_date);
-      return transDate >= period.from && transDate <= period.to;
-    });
-
-    // Revenue - from revenue category or revenue accounts
-    const revenue = periodTransactions
-      .filter(t => {
-        const account = accounts.find(a => a.id === t.account_id);
-        return t.category === 'revenue' || account?.account_type === 'revenue';
-      })
-      .reduce((sum, t) => {
-        if (t.debit_amount > 0 || t.credit_amount > 0) {
-          return sum + (t.credit_amount || 0) - (t.debit_amount || 0);
-        }
-        return sum + (t.amount || 0);
-      }, 0);
-
-    // Sales Revenue breakdown
-    const vehicleSalesRevenue = periodTransactions
-      .filter(t => t.transaction_type === 'sale_revenue' || t.reference_type === 'Sale' || t.reference_type === 'Export')
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-    const serviceRevenue = periodTransactions
-      .filter(t => t.transaction_type === 'service_revenue' || t.reference_type === 'RepairOrder')
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-    const partsRevenue = periodTransactions
-      .filter(t => t.transaction_type === 'parts_revenue')
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-    // COGS - Cost of Goods Sold from Vehicle Inventory
-    // For each sale in the period, get the vehicle's cost (purchase_price or total_cost)
-    const periodSales = sales.filter(s => {
-      const saleDate = new Date(s.sale_date || s.created_date);
-      return saleDate >= period.from && saleDate <= period.to;
-    });
-
-    // Vehicle COGS - cost of vehicles sold (from inventory)
-    const vehicleCogs = periodSales.reduce((sum, sale) => {
-      if (sale.vehicle_id) {
-        const vehicle = vehicles.find(v => v.id === sale.vehicle_id);
-        if (vehicle) {
-          return sum + (vehicle.total_cost || vehicle.purchase_price || 0);
-        }
-      }
-      return sum;
-    }, 0);
-
-    // Other COGS from transactions (parts, etc.)
-    const otherCogs = periodTransactions
-      .filter(t => {
-        const account = accounts.find(a => a.id === t.account_id);
-        return t.transaction_type === 'parts_purchase' ||
-               (account?.account_type === 'expense' && 
-                (account?.account_code?.startsWith('50') || account?.account_code?.startsWith('51')));
-      })
-      .reduce((sum, t) => {
-        if (t.debit_amount > 0 || t.credit_amount > 0) {
-          return sum + (t.debit_amount || 0) - (t.credit_amount || 0);
-        }
-        return sum + (t.amount || 0);
-      }, 0);
-
-    const cogs = vehicleCogs + otherCogs;
-
-    const grossProfit = revenue - cogs;
-
-    // Operating expenses (freight, overhead, etc.)
-    const operatingExpenses = periodTransactions
-      .filter(t => {
-        const account = accounts.find(a => a.id === t.account_id);
-        return t.transaction_type === 'overhead_expense' ||
-               t.transaction_type === 'labor_expense' ||
-               (t.category === 'expense' && 
-                t.transaction_type !== 'vehicle_purchase' && 
-                t.transaction_type !== 'parts_purchase' &&
-                t.transaction_type !== 'payroll_expense') ||
-               (account?.account_type === 'expense' && 
-                account?.account_code && 
-                parseInt(account.account_code) >= 5400);
-      })
-      .reduce((sum, t) => {
-        if (t.debit_amount > 0 || t.credit_amount > 0) {
-          return sum + (t.debit_amount || 0) - (t.credit_amount || 0);
-        }
-        return sum + (t.amount || 0);
-      }, 0);
-    
-    // Payroll expenses
-    const payrollExpenses = periodTransactions
-      .filter(t => {
-        const account = accounts.find(a => a.id === t.account_id);
-        return t.transaction_type === 'payroll_expense' ||
-               account?.account_code?.startsWith('52') || 
-               account?.account_code?.startsWith('53');
-      })
-      .reduce((sum, t) => {
-        if (t.debit_amount > 0 || t.credit_amount > 0) {
-          return sum + (t.debit_amount || 0) - (t.credit_amount || 0);
-        }
-        return sum + (t.amount || 0);
-      }, 0);
-
-    const netProfit = grossProfit - operatingExpenses - payrollExpenses;
-
-    return { 
-      period, 
-      revenue, 
-      vehicleSalesRevenue,
-      serviceRevenue,
-      partsRevenue,
-      cogs,
-      vehicleCogs,
-      otherCogs,
-      grossProfit, 
-      operatingExpenses, 
-      payrollExpenses, 
-      netProfit 
-    };
-  });
-
-  // Get drilldown transactions for a specific category
   const getDrilldownData = (category, periodIdx) => {
     const period = periods[periodIdx];
-    const periodTransactions = transactions.filter(t => {
-      const transDate = new Date(t.transaction_date);
-      return transDate >= period.from && transDate <= period.to;
-    });
-
-    let items = [];
-    let title = category;
-
-    switch (category) {
-      case 'vehicleSalesRevenue':
-        title = 'Vehicle Sales Revenue';
-        items = periodTransactions
-          .filter(t => t.transaction_type === 'sale_revenue' || t.reference_type === 'Sale' || t.reference_type === 'Export')
-          .map(t => ({ date: t.transaction_date, description: t.description || 'Vehicle Sale', reference: t.reference_number, amount: t.amount || 0 }));
-        break;
-      case 'serviceRevenue':
-        title = 'Service Revenue';
-        items = periodTransactions
-          .filter(t => t.transaction_type === 'service_revenue' || t.reference_type === 'RepairOrder')
-          .map(t => ({ date: t.transaction_date, description: t.description || 'Service', reference: t.reference_number, amount: t.amount || 0 }));
-        break;
-      case 'vehicleCogs':
-        title = 'Vehicle Inventory Cost (COGS)';
-        const periodSales = sales.filter(s => {
-          const saleDate = new Date(s.sale_date || s.created_date);
-          return saleDate >= period.from && saleDate <= period.to && s.vehicle_id;
-        });
-        items = periodSales.map(s => {
-          const vehicle = vehicles.find(v => v.id === s.vehicle_id);
-          return { date: s.sale_date || s.created_date, description: vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : 'Vehicle', reference: s.sale_number, amount: vehicle?.total_cost || vehicle?.purchase_price || 0 };
-        });
-        break;
-      case 'operatingExpenses':
-        title = 'Operating Expenses';
-        items = periodTransactions
-          .filter(t => t.transaction_type === 'overhead_expense' || t.transaction_type === 'labor_expense' || (t.category === 'expense' && t.transaction_type !== 'vehicle_purchase' && t.transaction_type !== 'parts_purchase' && t.transaction_type !== 'payroll_expense'))
-          .map(t => ({ date: t.transaction_date, description: t.description || 'Expense', reference: t.reference_number, amount: t.amount || 0 }));
-        break;
-      case 'payrollExpenses':
-        title = 'Payroll Expenses';
-        items = periodTransactions
-          .filter(t => t.transaction_type === 'payroll_expense')
-          .map(t => ({ date: t.transaction_date, description: t.description || 'Payroll', reference: t.reference_number, amount: t.amount || 0 }));
-        break;
-      default:
-        items = [];
-    }
-
-    return { title, items, period };
+    const spec = DRILLDOWNS[category] || { title: category, codes: [], normal: "debit" };
+    return {
+      title: spec.title,
+      period,
+      items: accountActivity(ledger, spec.codes, { from: period.from, to: period.to, normal: spec.normal }),
+    };
   };
 
   const handleDrilldown = (category, periodIdx) => {
@@ -246,7 +62,7 @@ export default function ProfitLossStatement({ comparativePeriods = [] }) {
           onDoubleClick={() => drilldownKey && handleDrilldown(drilldownKey, idx)}
           title={drilldownKey ? 'Double-click to view details' : ''}
         >
-          ${Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {formatAccounting(value)}
         </span>
       ))}
     </div>
@@ -297,7 +113,7 @@ export default function ProfitLossStatement({ comparativePeriods = [] }) {
         <div className="flex justify-between items-center">
           <div>
             <CardTitle>Profit & Loss Statement</CardTitle>
-            <p className="text-sm text-gray-500 mt-1">Comparative Period Analysis</p>
+            <p className="text-sm text-gray-500 mt-1">{basisLabel} · same books as the balance sheet</p>
           </div>
           <div className="flex gap-2">
             <Button onClick={exportToCSV} variant="outline" size="sm">
@@ -333,7 +149,8 @@ export default function ProfitLossStatement({ comparativePeriods = [] }) {
           <h3 className="font-bold text-base mb-2 text-gray-900 px-4">Operating Income</h3>
           {renderLine('Vehicle Sales', periodData.map(d => d.vehicleSalesRevenue), false, false, 1, 'vehicleSalesRevenue')}
           {renderLine('Service Revenue', periodData.map(d => d.serviceRevenue), false, false, 1, 'serviceRevenue')}
-          {renderLine('Parts Revenue', periodData.map(d => d.partsRevenue), false, false, 1)}
+          {renderLine('Parts Revenue', periodData.map(d => d.partsRevenue), false, false, 1, 'partsRevenue')}
+          {renderLine('Other Revenue', periodData.map(d => d.otherRevenue), false, false, 1, 'otherRevenue')}
           {renderLine('Total Revenue', periodData.map(d => d.revenue), true)}
         </div>
 
@@ -341,7 +158,7 @@ export default function ProfitLossStatement({ comparativePeriods = [] }) {
         <div>
           <h3 className="font-bold text-base mb-2 text-gray-900 px-4">Cost of Goods Sold</h3>
           {renderLine('Vehicle Inventory Cost', periodData.map(d => d.vehicleCogs), false, false, 1, 'vehicleCogs')}
-          {renderLine('Parts & Other COGS', periodData.map(d => d.otherCogs), false, false, 1)}
+          {renderLine('Parts & Other COGS', periodData.map(d => d.otherCogs), false, false, 1, 'otherCogs')}
           {renderLine('Total COGS', periodData.map(d => d.cogs), true)}
         </div>
 
@@ -374,7 +191,7 @@ export default function ProfitLossStatement({ comparativePeriods = [] }) {
                 <div className="bg-blue-50 p-3 rounded-lg">
                   <p className="text-sm text-gray-600">Total</p>
                   <p className="text-xl font-bold text-blue-600">
-                    ${drilldown.items.reduce((sum, i) => sum + i.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {formatAccounting(drilldown.items.reduce((sum, i) => sum + i.amount, 0))}
                   </p>
                 </div>
                 <table className="w-full text-sm">
@@ -392,10 +209,10 @@ export default function ProfitLossStatement({ comparativePeriods = [] }) {
                     ) : (
                       drilldown.items.map((item, idx) => (
                         <tr key={idx} className="border-b hover:bg-gray-50">
-                          <td className="py-2 px-3">{format(new Date(item.date), 'MMM d, yyyy')}</td>
+                          <td className="py-2 px-3">{formatStatementDate(item.date)}</td>
                           <td className="py-2 px-3">{item.description}</td>
                           <td className="py-2 px-3 text-gray-600">{item.reference || '-'}</td>
-                          <td className="py-2 px-3 text-right font-medium">${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                          <td className="py-2 px-3 text-right font-medium">{formatAccounting(item.amount)}</td>
                         </tr>
                       ))
                     )}

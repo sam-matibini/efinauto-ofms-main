@@ -1,7 +1,4 @@
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/api/supabaseClient";
-import { useCompany } from "@/components/shared/CompanyContext";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wallet, Download } from "lucide-react";
@@ -12,10 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import useFinancialBooks from "@/components/accounting/useFinancialBooks";
+import { accountActivity, cashFlowStatement, formatAccounting, formatStatementDate } from "@/lib/financialStatements";
 
-export default function CashFlowStatement({ comparativePeriods = [] }) {
-  const { selectedCompanyId } = useCompany();
+export default function CashFlowStatement({ comparativePeriods = [], reportBasis = "accrual" }) {
+  const { ledger } = useFinancialBooks(reportBasis);
   const [drilldown, setDrilldown] = useState(null);
+  const basisLabel = reportBasis === "cash" ? "Cash basis" : "Accrual basis";
   
   const periods = comparativePeriods.length > 0 ? comparativePeriods : [{ 
     from: new Date(new Date().getFullYear(), 0, 1), 
@@ -23,146 +23,22 @@ export default function CashFlowStatement({ comparativePeriods = [] }) {
     label: 'Current Period'
   }];
 
-  const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions', selectedCompanyId],
-    queryFn: () => supabase.entities.Transaction.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
+  const periodData = periods.map((period) => ({ period, ...cashFlowStatement(ledger, period.from, period.to) }));
 
-  const { data: sales = [] } = useQuery({
-    queryKey: ['sales', selectedCompanyId],
-    queryFn: () => supabase.entities.Sale.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  const { data: purchases = [] } = useQuery({
-    queryKey: ['purchases', selectedCompanyId],
-    queryFn: () => supabase.entities.Purchase.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  const { data: accounts = [] } = useQuery({
-    queryKey: ['accounts', selectedCompanyId],
-    queryFn: () => supabase.entities.Account.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  // Calculate for each period
-  const periodData = periods.map(period => {
-    const periodTransactions = transactions.filter(t => {
-      const transDate = new Date(t.transaction_date);
-      return transDate >= period.from && transDate <= period.to && t.status === 'completed';
-    });
-
-    const cashFromSales = sales
-      .filter(s => {
-        const saleDate = new Date(s.sale_date);
-        return saleDate >= period.from && saleDate <= period.to && s.payment_status === 'paid';
-      })
-      .reduce((sum, s) => sum + (s.total_paid || 0), 0);
-
-    const cashPaidToSuppliers = purchases
-      .filter(p => {
-        const purchaseDate = new Date(p.order_date);
-        return purchaseDate >= period.from && purchaseDate <= period.to && p.payment_status === 'paid';
-      })
-      .reduce((sum, p) => sum + (p.amount_paid || 0), 0);
-
-    const operatingExpenses = periodTransactions
-      .filter(t => {
-        const account = accounts.find(a => a.id === t.account_id);
-        return account?.account_type === 'expense' && t.status === 'completed';
-      })
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-    // Vehicle inventory purchases are part of OPERATING activities (not investing)
-    // because inventory is purchased for resale in the normal course of business
-    const vehicleInventoryPurchases = purchases
-      .filter(p => {
-        const purchaseDate = new Date(p.order_date);
-        return purchaseDate >= period.from && purchaseDate <= period.to && 
-               (p.purchase_type === 'vehicle' || p.purchase_type === 'parts') && 
-               p.payment_status === 'paid';
-      })
-      .reduce((sum, p) => sum + (p.amount_paid || 0), 0);
-
-    // Equipment/Fixed Asset purchases are INVESTING activities
-    const equipmentPurchases = purchases
-      .filter(p => {
-        const purchaseDate = new Date(p.order_date);
-        return purchaseDate >= period.from && purchaseDate <= period.to && 
-               p.purchase_type === 'equipment' && p.payment_status === 'paid';
-      })
-      .reduce((sum, p) => sum + (p.amount_paid || 0), 0);
-
-    // Recalculate operating cash flow including inventory purchases
-    const netCashFromOperating = cashFromSales - cashPaidToSuppliers - vehicleInventoryPurchases - operatingExpenses;
-    const netCashFromInvesting = -equipmentPurchases;
-    const netCashFromFinancing = 0;
-    const netChangeInCash = netCashFromOperating + netCashFromInvesting + netCashFromFinancing;
-    const beginningCash = 0;
-    const endingCash = beginningCash + netChangeInCash;
-
-    return {
-      period,
-      cashFromSales,
-      cashPaidToSuppliers,
-      vehicleInventoryPurchases,
-      operatingExpenses,
-      netCashFromOperating,
-      equipmentPurchases,
-      netCashFromInvesting,
-      netCashFromFinancing,
-      netChangeInCash,
-      beginningCash,
-      endingCash
-    };
-  });
-
-  // Get drilldown data for cash flow items
   const getDrilldownData = (category, periodIdx) => {
     const period = periods[periodIdx];
-    let items = [];
-    let title = category;
-
-    switch (category) {
-      case 'cashFromSales':
-        title = 'Cash from Customers';
-        items = sales.filter(s => {
-          const saleDate = new Date(s.sale_date);
-          return saleDate >= period.from && saleDate <= period.to && s.payment_status === 'paid';
-        }).map(s => ({ date: s.sale_date, description: `Sale: ${s.customer_name}`, reference: s.sale_number, amount: s.total_paid || 0 }));
-        break;
-      case 'cashPaidToSuppliers':
-        title = 'Cash to Suppliers';
-        items = purchases.filter(p => {
-          const purchaseDate = new Date(p.order_date);
-          return purchaseDate >= period.from && purchaseDate <= period.to && p.payment_status === 'paid';
-        }).map(p => ({ date: p.order_date, description: `Purchase: ${p.supplier_name}`, reference: p.purchase_number, amount: p.amount_paid || 0 }));
-        break;
-      case 'vehiclePurchases':
-        title = 'Vehicle Purchases';
-        items = transactions.filter(t => {
-          const transDate = new Date(t.transaction_date);
-          return transDate >= period.from && transDate <= period.to && t.transaction_type === 'vehicle_purchase';
-        }).map(t => ({ date: t.transaction_date, description: t.description || 'Vehicle Purchase', reference: t.reference_number, amount: t.amount || 0 }));
-        break;
-      case 'equipmentPurchases':
-        title = 'Equipment Purchases';
-        items = purchases.filter(p => {
-          const purchaseDate = new Date(p.order_date);
-          return purchaseDate >= period.from && purchaseDate <= period.to && p.purchase_type === 'equipment' && p.payment_status === 'paid';
-        }).map(p => ({ date: p.order_date, description: `Equipment: ${p.supplier_name}`, reference: p.purchase_number, amount: p.amount_paid || 0 }));
-        break;
-      default:
-        items = [];
-    }
-
-    return { title, items, period };
+    const specs = {
+      cashFromSales: { title: "Cash from Customers", codes: ["1000", "1050"], normal: "debit" },
+      cashPaidToSuppliers: { title: "Cash to Suppliers", codes: ["1210", "1220", "2000"], normal: "debit" },
+      vehiclePurchases: { title: "Vehicle Inventory Purchases", codes: ["1200"], normal: "debit" },
+      equipmentPurchases: { title: "Equipment Purchases", codes: ["1500"], normal: "debit" },
+    };
+    const spec = specs[category] || { title: category, codes: [], normal: "debit" };
+    return {
+      title: spec.title,
+      period,
+      items: accountActivity(ledger, spec.codes, { from: period.from, to: period.to, normal: spec.normal }),
+    };
   };
 
   const handleDrilldown = (category, periodIdx) => {
@@ -181,7 +57,7 @@ export default function CashFlowStatement({ comparativePeriods = [] }) {
           onDoubleClick={() => drilldownKey && handleDrilldown(drilldownKey, idx)}
           title={drilldownKey ? 'Double-click to view details' : ''}
         >
-          ${Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {formatAccounting(value)}
         </span>
       ))}
     </div>
@@ -219,7 +95,7 @@ export default function CashFlowStatement({ comparativePeriods = [] }) {
               <Wallet className="w-5 h-5" />
               Statement of Cash Flows
             </CardTitle>
-            <p className="text-sm text-gray-500 mt-1">Comparative Period Analysis</p>
+            <p className="text-sm text-gray-500 mt-1">{basisLabel} · ending cash equals the balance sheet</p>
           </div>
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="w-4 h-4 mr-2" />
@@ -246,7 +122,7 @@ export default function CashFlowStatement({ comparativePeriods = [] }) {
             <h3 className="font-bold text-base mb-2 text-gray-900 px-4">Cash Flows from Operating Activities</h3>
             {renderLine('Cash from customers', periodData.map(d => d.cashFromSales), 1, 'text-green-600', 'cashFromSales')}
             {renderLine('Cash to suppliers (general)', periodData.map(d => -d.cashPaidToSuppliers), 1, 'text-red-600', 'cashPaidToSuppliers')}
-            {renderLine('Vehicle/Parts inventory purchases', periodData.map(d => -d.vehicleInventoryPurchases), 1, 'text-red-600')}
+            {renderLine('Vehicle inventory purchases', periodData.map(d => -d.vehicleInventoryPurchases), 1, 'text-red-600', 'vehiclePurchases')}
             {renderLine('Operating expenses', periodData.map(d => -d.operatingExpenses), 1, 'text-red-600')}
             {renderLine('Net cash from operating', periodData.map(d => d.netCashFromOperating), 1, 'border-t font-semibold')}
           </div>
@@ -283,7 +159,7 @@ export default function CashFlowStatement({ comparativePeriods = [] }) {
                 <div className="bg-blue-50 p-3 rounded-lg">
                   <p className="text-sm text-gray-600">Total</p>
                   <p className="text-xl font-bold text-blue-600">
-                    ${drilldown.items.reduce((sum, i) => sum + i.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {formatAccounting(drilldown.items.reduce((sum, i) => sum + i.amount, 0))}
                   </p>
                 </div>
                 <table className="w-full text-sm">
@@ -301,10 +177,10 @@ export default function CashFlowStatement({ comparativePeriods = [] }) {
                     ) : (
                       drilldown.items.map((item, idx) => (
                         <tr key={idx} className="border-b hover:bg-gray-50">
-                          <td className="py-2 px-3">{format(new Date(item.date), 'MMM d, yyyy')}</td>
+                          <td className="py-2 px-3">{formatStatementDate(item.date)}</td>
                           <td className="py-2 px-3">{item.description}</td>
                           <td className="py-2 px-3 text-gray-600">{item.reference || '-'}</td>
-                          <td className="py-2 px-3 text-right font-medium">${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                          <td className="py-2 px-3 text-right font-medium">{formatAccounting(item.amount)}</td>
                         </tr>
                       ))
                     )}

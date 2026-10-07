@@ -1,10 +1,7 @@
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/api/supabaseClient";
-import { useCompany } from "@/components/shared/CompanyContext";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, X } from "lucide-react";
+import { Download } from "lucide-react";
 import { format } from "date-fns";
 import {
   Dialog,
@@ -12,10 +9,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import useFinancialBooks from "@/components/accounting/useFinancialBooks";
+import { accountActivity, balanceSheet, formatAccounting, formatStatementDate } from "@/lib/financialStatements";
 
-export default function BalanceSheet({ comparativePeriods = [] }) {
-  const { selectedCompanyId } = useCompany();
+const DRILLDOWNS = {
+  cashAndBank: { title: "Cash and Bank", codes: ["1000", "1050"], normal: "debit" },
+  accountsReceivable: { title: "Accounts Receivable", codes: ["1100"], normal: "debit" },
+  vehicleInventory: { title: "Vehicle Inventory", codes: ["1200"], normal: "debit" },
+  otherInventory: { title: "Parts and Other Inventory", codes: ["1210", "1220"], normal: "debit" },
+  taxReceivable: { title: "Sales Tax Receivable", codes: ["1150"], normal: "debit" },
+  accountsPayable: { title: "Accounts Payable", codes: ["2000"], normal: "credit" },
+  taxPayable: { title: "Sales Tax Payable", codes: ["2100", "2110", "2120"], normal: "credit" },
+  payrollLiabilities: { title: "Payroll Liabilities", codes: ["2300", "2400"], normal: "credit" },
+};
+
+export default function BalanceSheet({ comparativePeriods = [], reportBasis = "accrual" }) {
+  const { ledger } = useFinancialBooks(reportBasis);
   const [drilldown, setDrilldown] = useState(null);
+  const basisLabel = reportBasis === "cash" ? "Cash basis" : "Accrual basis";
   
   const periods = comparativePeriods.length > 0 ? comparativePeriods : [{ 
     from: new Date(new Date().getFullYear(), 0, 1), 
@@ -23,349 +34,18 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
     label: 'Current Period'
   }];
 
-  const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions', selectedCompanyId],
-    queryFn: () => supabase.entities.Transaction.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
+  const periodData = periods.map((period) => balanceSheet(ledger, period.to));
+  const showOtherAssets = periodData.some((row) => Math.abs(row.otherAssets) >= 0.01);
+  const showOtherLiabilities = periodData.some((row) => Math.abs(row.otherLiabilities) >= 0.01);
 
-  const { data: accounts = [] } = useQuery({
-    queryKey: ['accounts', selectedCompanyId],
-    queryFn: () => supabase.entities.Account.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  // Get vehicles inventory (in_stock vehicles are inventory assets)
-  const { data: vehicles = [] } = useQuery({
-    queryKey: ['vehicles', selectedCompanyId],
-    queryFn: () => supabase.entities.Vehicle.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  // Get sales for accounts receivable calculation
-  const { data: sales = [] } = useQuery({
-    queryKey: ['sales', selectedCompanyId],
-    queryFn: () => supabase.entities.Sale.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  // Get purchases for accounts payable calculation
-  const { data: purchases = [] } = useQuery({
-    queryKey: ['purchases', selectedCompanyId],
-    queryFn: () => supabase.entities.Purchase.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  // Get repairs for service receivables
-  const { data: repairs = [] } = useQuery({
-    queryKey: ['repairs', selectedCompanyId],
-    queryFn: () => supabase.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  // Calculate for each period
-  const periodData = periods.map(period => {
-    const periodTransactions = transactions.filter(t => {
-      const transDate = new Date(t.transaction_date);
-      return transDate <= period.to;
-    });
-
-    // Get account balances by type using proper double-entry
-    const getAccountBalance = (accountType, accountCategory = null) => {
-      return periodTransactions
-        .filter(t => {
-          const account = accounts.find(a => a.id === t.account_id);
-          if (!account) return false;
-          if (accountCategory) {
-            return account.account_type === accountType && account.account_category === accountCategory;
-          }
-          return account.account_type === accountType;
-        })
-        .reduce((sum, t) => {
-          // Use debit/credit amounts if available (new format)
-          if (t.debit_amount > 0 || t.credit_amount > 0) {
-            // Assets: debit increases, credit decreases
-            if (accountType === 'asset') return sum + (t.debit_amount || 0) - (t.credit_amount || 0);
-            // Liabilities & Equity: credit increases, debit decreases
-            if (accountType === 'liability' || accountType === 'equity') return sum + (t.credit_amount || 0) - (t.debit_amount || 0);
-          } else {
-            // Fallback to old format
-            if (accountType === 'asset') return sum + t.amount;
-            if (accountType === 'liability' || accountType === 'equity') return sum + t.amount;
-          }
-          return sum;
-        }, 0);
-    };
-
-    // ASSETS
-    const cashAndBankFromAccounts = getAccountBalance('asset', 'cash');
-    const accountsReceivableFromAccounts = getAccountBalance('asset', 'accounts_receivable');
-    const otherInventory = getAccountBalance('asset', 'inventory');
-    
-    // Accounts Receivable from unpaid sales (within period)
-    const salesReceivable = sales
-      .filter(s => {
-        const saleDate = new Date(s.sale_date || s.created_date);
-        return saleDate <= period.to && 
-               (s.payment_status === 'pending' || s.payment_status === 'partial');
-      })
-      .reduce((sum, s) => sum + ((s.grand_total || s.sale_price || 0) - (s.total_paid || 0)), 0);
-
-    // Service receivables from unpaid repairs
-    const serviceReceivable = repairs
-      .filter(r => {
-        const repairDate = new Date(r.completion_date || r.created_date);
-        return repairDate <= period.to && 
-               r.status === 'completed' &&
-               (r.payment_status === 'pending' || r.payment_status === 'partial');
-      })
-      .reduce((sum, r) => sum + ((r.total_cost || 0) - (r.amount_paid || 0)), 0);
-
-    const cashAndBank = cashAndBankFromAccounts;
-    const accountsReceivable = accountsReceivableFromAccounts + salesReceivable + serviceReceivable;
-    
-    // Vehicle Inventory - calculate based on purchases and sales within the period
-    // Start with vehicles purchased by period end, then subtract vehicles sold by period end
-    const vehiclesPurchasedByPeriodEnd = vehicles
-      .filter(v => {
-        const acquisitionDate = new Date(v.transaction_date || v.created_date);
-        return acquisitionDate <= period.to;
-      });
-    
-    // Get vehicle IDs that were sold by period end
-    const vehiclesSoldByPeriodEnd = new Set(
-      sales
-        .filter(s => {
-          const saleDate = new Date(s.sale_date || s.created_date);
-          return saleDate <= period.to && s.vehicle_id;
-        })
-        .map(s => s.vehicle_id)
-    );
-    
-    // Inventory = vehicles purchased by period end minus vehicles sold by period end
-    const vehicleInventory = vehiclesPurchasedByPeriodEnd
-      .filter(v => !vehiclesSoldByPeriodEnd.has(v.id))
-      .reduce((sum, v) => sum + (v.total_cost || v.purchase_price || 0), 0);
-    
-    const inventory = otherInventory + vehicleInventory;
-    const totalCurrentAssets = cashAndBank + accountsReceivable + inventory;
-
-    const fixedAssets = getAccountBalance('asset', 'fixed_assets');
-    const accumulatedDepreciation = periodTransactions
-      .filter(t => {
-        const account = accounts.find(a => a.id === t.account_id);
-        return account?.account_name?.toLowerCase().includes('depreciation') || 
-               account?.account_name?.toLowerCase().includes('accumulated');
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
-    const netFixedAssets = fixedAssets - accumulatedDepreciation;
-
-    const totalAssets = totalCurrentAssets + netFixedAssets;
-
-    // LIABILITIES
-    const accountsPayableFromAccounts = periodTransactions
-      .filter(t => {
-        const account = accounts.find(a => a.id === t.account_id);
-        return account?.account_type === 'liability' && 
-               account?.account_code?.startsWith('2') && 
-               !account?.account_code?.startsWith('24') && // Exclude payroll liabilities
-               t.status === 'pending';
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    // Accounts Payable from unpaid purchases
-    const purchasesPayable = purchases
-      .filter(p => {
-        const purchaseDate = new Date(p.order_date || p.created_date);
-        return purchaseDate <= period.to && 
-               (p.payment_status === 'pending' || p.payment_status === 'partial');
-      })
-      .reduce((sum, p) => sum + ((p.total_amount || 0) - (p.amount_paid || 0)), 0);
-
-    const accountsPayable = accountsPayableFromAccounts + purchasesPayable;
-    
-    const payrollLiabilities = periodTransactions
-      .filter(t => {
-        const account = accounts.find(a => a.id === t.account_id);
-        return account?.account_code?.startsWith('24') && t.status === 'pending';
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const shortTermDebt = periodTransactions
-      .filter(t => {
-        const account = accounts.find(a => a.id === t.account_id);
-        return account?.account_type === 'liability' && 
-               (account?.account_code?.startsWith('21') || account?.account_code?.startsWith('22'));
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
-    const totalCurrentLiabilities = accountsPayable + payrollLiabilities + shortTermDebt;
-
-    const longTermDebt = periodTransactions
-      .filter(t => {
-        const account = accounts.find(a => a.id === t.account_id);
-        return account?.account_type === 'liability' && 
-               (account?.account_code?.startsWith('25') || account?.account_code?.startsWith('26'));
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
-    const totalLiabilities = totalCurrentLiabilities + longTermDebt;
-
-    // EQUITY - Calculate retained earnings from all revenue sources
-    const revenueFromAccounts = periodTransactions
-      .filter(t => {
-        const account = accounts.find(a => a.id === t.account_id);
-        return account?.account_type === 'revenue';
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    // Revenue from sales (paid)
-    const salesRevenue = sales
-      .filter(s => {
-        const saleDate = new Date(s.sale_date || s.created_date);
-        return saleDate <= period.to && s.payment_status === 'paid';
-      })
-      .reduce((sum, s) => sum + (s.grand_total || s.sale_price || 0), 0);
-
-    // Revenue from repairs (paid)
-    const repairRevenue = repairs
-      .filter(r => {
-        const repairDate = new Date(r.completion_date || r.created_date);
-        return repairDate <= period.to && r.status === 'completed' && r.payment_status === 'paid';
-      })
-      .reduce((sum, r) => sum + (r.total_cost || 0), 0);
-
-    const expenseFromAccounts = periodTransactions
-      .filter(t => {
-        const account = accounts.find(a => a.id === t.account_id);
-        return account?.account_type === 'expense';
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    // Note: Vehicle/Parts purchases are NOT expenses - they become inventory (asset)
-    // Only operating expenses reduce retained earnings
-    // COGS = cost of vehicles/parts that were SOLD (not purchased)
-    
-    // Calculate COGS - cost of vehicles sold during period
-    const vehicleCogs = sales
-      .filter(s => {
-        const saleDate = new Date(s.sale_date || s.created_date);
-        return saleDate <= period.to && s.vehicle_id;
-      })
-      .reduce((sum, s) => {
-        const vehicle = vehicles.find(v => v.id === s.vehicle_id);
-        return sum + (vehicle?.total_cost || vehicle?.purchase_price || 0);
-      }, 0);
-
-    const revenueTotal = revenueFromAccounts + salesRevenue + repairRevenue;
-    const expenseTotal = expenseFromAccounts + vehicleCogs; // COGS, not purchase amounts
-
-    const retainedEarnings = revenueTotal - expenseTotal;
-    const ownerEquity = periodTransactions
-      .filter(t => {
-        const account = accounts.find(a => a.id === t.account_id);
-        return account?.account_type === 'equity' && 
-               !account?.account_name?.toLowerCase().includes('retained');
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
-    const totalEquity = ownerEquity + retainedEarnings;
-
-    const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
-
-    return {
-      period,
-      cashAndBank,
-      accountsReceivable,
-      inventory,
-      vehicleInventory,
-      otherInventory,
-      totalCurrentAssets,
-      fixedAssets,
-      accumulatedDepreciation,
-      netFixedAssets,
-      totalAssets,
-      accountsPayable,
-      payrollLiabilities,
-      shortTermDebt,
-      totalCurrentLiabilities,
-      longTermDebt,
-      totalLiabilities,
-      retainedEarnings,
-      ownerEquity,
-      totalEquity,
-      totalLiabilitiesAndEquity
-    };
-  });
-
-  // Helper to get drilldown data for a specific account type
   const getDrilldownData = (accountKey, periodIdx) => {
     const period = periods[periodIdx];
-    const data = periodData[periodIdx];
-    
-    switch (accountKey) {
-      case 'vehicleInventory':
-        const vehiclesPurchased = vehicles.filter(v => {
-          const acquisitionDate = new Date(v.transaction_date || v.created_date);
-          return acquisitionDate <= period.to;
-        });
-        const soldIds = new Set(sales.filter(s => {
-          const saleDate = new Date(s.sale_date || s.created_date);
-          return saleDate <= period.to && s.vehicle_id;
-        }).map(s => s.vehicle_id));
-        return {
-          title: 'Vehicle Inventory',
-          items: vehiclesPurchased.filter(v => !soldIds.has(v.id)).map(v => ({
-            date: v.transaction_date || v.created_date,
-            description: `${v.year} ${v.make} ${v.model}`,
-            reference: v.stock_number || v.vin,
-            amount: v.total_cost || v.purchase_price || 0
-          }))
-        };
-      case 'accountsReceivable':
-        const arItems = [];
-        sales.filter(s => {
-          const saleDate = new Date(s.sale_date || s.created_date);
-          return saleDate <= period.to && (s.payment_status === 'pending' || s.payment_status === 'partial');
-        }).forEach(s => {
-          arItems.push({
-            date: s.sale_date || s.created_date,
-            description: `Sale: ${s.customer_name}`,
-            reference: s.sale_number,
-            amount: (s.grand_total || s.sale_price || 0) - (s.total_paid || 0)
-          });
-        });
-        repairs.filter(r => {
-          const repairDate = new Date(r.completion_date || r.created_date);
-          return repairDate <= period.to && r.status === 'completed' && (r.payment_status === 'pending' || r.payment_status === 'partial');
-        }).forEach(r => {
-          arItems.push({
-            date: r.completion_date || r.created_date,
-            description: `Service: ${r.customer_name}`,
-            reference: r.order_number,
-            amount: (r.total_cost || 0) - (r.amount_paid || 0)
-          });
-        });
-        return { title: 'Accounts Receivable', items: arItems };
-      case 'accountsPayable':
-        return {
-          title: 'Accounts Payable',
-          items: purchases.filter(p => {
-            const purchaseDate = new Date(p.order_date || p.created_date);
-            return purchaseDate <= period.to && (p.payment_status === 'pending' || p.payment_status === 'partial');
-          }).map(p => ({
-            date: p.order_date || p.created_date,
-            description: `Purchase: ${p.supplier_name}`,
-            reference: p.purchase_number,
-            amount: (p.total_amount || 0) - (p.amount_paid || 0)
-          }))
-        };
-      default:
-        return { title: accountKey, items: [] };
-    }
+    const spec = DRILLDOWNS[accountKey] || { title: accountKey, codes: [], normal: "debit" };
+    return {
+      title: spec.title,
+      period,
+      items: accountActivity(ledger, spec.codes, { to: period.to, normal: spec.normal }),
+    };
   };
 
   const handleDrilldown = (accountKey, periodIdx) => {
@@ -384,7 +64,7 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
           onDoubleClick={() => accountKey && handleDrilldown(accountKey, idx)}
           title={accountKey ? 'Double-click to view details' : ''}
         >
-          ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {formatAccounting(value)}
         </span>
       ))}
     </div>
@@ -399,11 +79,16 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
       headers,
       ['Cash and Bank', ...periodData.map(d => d.cashAndBank.toFixed(2))],
       ['Accounts Receivable', ...periodData.map(d => d.accountsReceivable.toFixed(2))],
-      ['Inventory', ...periodData.map(d => d.inventory.toFixed(2))],
-      ['Total Current Assets', ...periodData.map(d => d.totalCurrentAssets.toFixed(2))],
+      ['Vehicle Inventory', ...periodData.map(d => d.vehicleInventory.toFixed(2))],
+      ['Parts and Other Inventory', ...periodData.map(d => d.otherInventory.toFixed(2))],
+      ['Sales Tax Receivable', ...periodData.map(d => d.taxReceivable.toFixed(2))],
       ['Total Assets', ...periodData.map(d => d.totalAssets.toFixed(2))],
+      ['Accounts Payable', ...periodData.map(d => d.accountsPayable.toFixed(2))],
+      ['Sales Tax Payable', ...periodData.map(d => d.taxPayable.toFixed(2))],
       ['Total Liabilities', ...periodData.map(d => d.totalLiabilities.toFixed(2))],
-      ['Total Equity', ...periodData.map(d => d.totalEquity.toFixed(2))],
+      ['Owner Equity', ...periodData.map(d => d.ownerEquity.toFixed(2))],
+      ['Retained Earnings', ...periodData.map(d => d.retainedEarnings.toFixed(2))],
+      ['Total Liabilities and Equity', ...periodData.map(d => d.totalLiabilitiesAndEquity.toFixed(2))],
     ].map(row => row.join(',')).join('\n');
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -420,7 +105,7 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
         <div className="flex justify-between items-center">
           <div>
             <CardTitle>Balance Sheet</CardTitle>
-            <p className="text-sm text-gray-500 mt-1">Comparative Period Analysis</p>
+            <p className="text-sm text-gray-500 mt-1">{basisLabel} · assets equal liabilities and equity</p>
           </div>
           <Button onClick={exportToCSV} variant="outline" size="sm">
             <Download className="w-4 h-4 mr-2" />
@@ -450,7 +135,9 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
             {renderLine('Cash and Bank', periodData.map(d => d.cashAndBank), false, false, 1, 'cashAndBank')}
             {renderLine('Accounts Receivable', periodData.map(d => d.accountsReceivable), false, false, 1, 'accountsReceivable')}
             {renderLine('Vehicle Inventory', periodData.map(d => d.vehicleInventory), false, false, 1, 'vehicleInventory')}
-            {renderLine('Other Inventory', periodData.map(d => d.otherInventory), false, false, 1)}
+            {renderLine('Parts and Other Inventory', periodData.map(d => d.otherInventory), false, false, 1, 'otherInventory')}
+            {renderLine('Sales Tax Receivable', periodData.map(d => d.taxReceivable), false, false, 1, 'taxReceivable')}
+            {showOtherAssets && renderLine('Other Assets', periodData.map(d => d.otherAssets), false, false, 1)}
             {renderLine('Total Current Assets', periodData.map(d => d.totalCurrentAssets), true, false, 1)}
           </div>
 
@@ -471,8 +158,10 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
           <div className="mb-4">
             <h4 className="font-semibold text-sm mb-2 px-4 text-gray-700">Current Liabilities</h4>
             {renderLine('Accounts Payable', periodData.map(d => d.accountsPayable), false, false, 1, 'accountsPayable')}
-            {renderLine('Payroll Liabilities', periodData.map(d => d.payrollLiabilities), false, false, 1)}
+            {renderLine('Sales Tax Payable', periodData.map(d => d.taxPayable), false, false, 1, 'taxPayable')}
+            {renderLine('Payroll Liabilities', periodData.map(d => d.payrollLiabilities), false, false, 1, 'payrollLiabilities')}
             {renderLine('Short-term Debt', periodData.map(d => d.shortTermDebt), false, false, 1)}
+            {showOtherLiabilities && renderLine('Other Liabilities', periodData.map(d => d.otherLiabilities), false, false, 1)}
             {renderLine('Total Current Liabilities', periodData.map(d => d.totalCurrentLiabilities), true, false, 1)}
           </div>
 
@@ -495,6 +184,11 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
         {/* TOTAL LIABILITIES & EQUITY */}
         <div className="mt-6">
           {renderLine('TOTAL LIABILITIES & EQUITY', periodData.map(d => d.totalLiabilitiesAndEquity), false, true)}
+          <p className={`px-4 pt-3 text-sm ${periodData.every((row) => row.inBalance) ? "text-green-700" : "text-red-700"}`}>
+            {periodData.every((row) => row.inBalance)
+              ? "In balance. Every amount comes from a journal entry with equal debits and credits."
+              : `Out of balance by ${formatAccounting(periodData.find((row) => !row.inBalance)?.imbalance || 0)}.`}
+          </p>
         </div>
 
         {/* Drilldown Dialog */}
@@ -508,7 +202,7 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
                 <div className="bg-blue-50 p-3 rounded-lg">
                   <p className="text-sm text-gray-600">Total</p>
                   <p className="text-xl font-bold text-blue-600">
-                    ${drilldown.items.reduce((sum, i) => sum + i.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {formatAccounting(drilldown.items.reduce((sum, i) => sum + i.amount, 0))}
                   </p>
                 </div>
                 <table className="w-full text-sm">
@@ -526,10 +220,10 @@ export default function BalanceSheet({ comparativePeriods = [] }) {
                     ) : (
                       drilldown.items.map((item, idx) => (
                         <tr key={idx} className="border-b hover:bg-gray-50">
-                          <td className="py-2 px-3">{format(new Date(item.date), 'MMM d, yyyy')}</td>
+                          <td className="py-2 px-3">{formatStatementDate(item.date)}</td>
                           <td className="py-2 px-3">{item.description}</td>
                           <td className="py-2 px-3 text-gray-600">{item.reference || '-'}</td>
-                          <td className="py-2 px-3 text-right font-medium">${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                          <td className="py-2 px-3 text-right font-medium">{formatAccounting(item.amount)}</td>
                         </tr>
                       ))
                     )}

@@ -449,13 +449,13 @@ export default function FinancialReports() {
               <FinancialDashboard 
                 dateRange={dateRange}
                 accountTypeFilter={accountTypeFilter}
+                reportBasis={reportBasis}
               />
             </TabsContent>
 
             <TabsContent value="income">
               <ProfitLossStatement 
                 comparativePeriods={periods}
-                accountTypeFilter={accountTypeFilter}
                 reportBasis={reportBasis}
               />
             </TabsContent>
@@ -463,13 +463,14 @@ export default function FinancialReports() {
             <TabsContent value="balance">
               <BalanceSheet 
                 comparativePeriods={periods}
-                accountTypeFilter={accountTypeFilter}
+                reportBasis={reportBasis}
               />
             </TabsContent>
 
             <TabsContent value="cashflow">
               <CashFlowStatement 
                 comparativePeriods={periods}
+                reportBasis={reportBasis}
               />
             </TabsContent>
 
