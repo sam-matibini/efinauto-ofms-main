@@ -29,6 +29,7 @@ import { buildAccountantsPackage, financialReportSections, packageRows, sections
 import { resolveAccountantSignature } from "@/lib/accountantSignature";
 import { useAuth } from "@/lib/AuthContext";
 import { downloadCsv } from "@/lib/reportFormat";
+import { prepareLogoForPdf, resolveReportLogo } from "@/lib/reportLogo";
 import { downloadAccountantsPdf, downloadReportPdf } from "@/lib/reportPdf";
 import { COMPARE_OPTIONS, DATE_PRESETS, compareCountLabel, compareRanges, presetRange, rangeLabel } from "@/lib/reportPeriods";
 
@@ -135,8 +136,9 @@ export default function FinancialReports() {
     downloadCsv(`${reportTitle(activeReport).replace(/\s+/g, "-").toLowerCase()}-${format(new Date(), "yyyy-MM-dd")}.csv`, exportRows());
   };
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     const currentPeriods = buildPeriods();
+    const basisFooter = reportBasis === "cash" ? "Cash basis" : "Accrual basis";
     const pack = activeReport === "accountant"
       ? buildAccountantsPackage({
         ledger,
@@ -149,7 +151,13 @@ export default function FinancialReports() {
       })
       : null;
     if (pack) {
-      downloadAccountantsPdf(pack, resolveAccountantSignature(user));
+      let logo = "";
+      try {
+        logo = await prepareLogoForPdf(resolveReportLogo(selectedCompanyId, company?.logo_url));
+      } catch {
+        logo = "";
+      }
+      downloadAccountantsPdf(pack, resolveAccountantSignature(user), { logo });
       return;
     }
     const sections = financialReportSections(ledger, currentPeriods, activeReport).map((section) => ({
@@ -160,7 +168,8 @@ export default function FinancialReports() {
       filename: `${reportTitle(activeReport).replace(/\s+/g, "-").toLowerCase()}-${format(new Date(), "yyyy-MM-dd")}.pdf`,
       title: reportTitle(activeReport),
       company: company?.name || "Company",
-      subtitle: `${rangeLabel(dateRange.from, dateRange.to)} · ${reportBasis === "cash" ? "Cash basis" : "Accrual basis"}`,
+      subtitle: rangeLabel(dateRange.from, dateRange.to),
+      footer: basisFooter,
       paragraphs: [],
       sections,
     });

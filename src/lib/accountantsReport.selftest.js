@@ -1,7 +1,8 @@
 import { compileLedger } from "./financialStatements.js";
 import { csvDocument, formatExportAmount } from "./reportFormat.js";
 import { buildAccountantsPackage, chunkNotes, packageRows, suggestedPackageKind } from "./accountantsReport.js";
-import { buildAccountantsPdf } from "./reportPdf.js";
+import { resolveReportLogo, saveReportLogo } from "./reportLogo.js";
+import { amountColumnPositions, buildAccountantsPdf, buildStatementPdf } from "./reportPdf.js";
 
 let passed = 0;
 let failed = 0;
@@ -49,8 +50,62 @@ const signatureRow = packageRows({ ...annual, signature: { name: "Sam Matibini",
   .find((row) => row[0] === "Accountant's signature");
 assert(signatureRow?.[1] === "Sam Matibini" && signatureRow?.[2] === "Accountant", "package lists the accountant signature");
 assert(chunkNotes(annual.notes).length >= 2, "notes are split across letter pages");
-const pdf = buildAccountantsPdf(annual, { name: "Sam Matibini", designation: "Accountant" });
-assert(pdf.getNumberOfPages() >= 1 + annual.sections.length + 1, "each statement starts on its own PDF page");
+const positions = amountColumnPositions(612, 2);
+assert(positions[0] < positions[1], "current year column sits left of the comparative column");
+const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+const store = new Map();
+globalThis.localStorage = {
+  getItem: (key) => (store.has(key) ? store.get(key) : null),
+  setItem: (key, value) => store.set(key, value),
+  removeItem: (key) => store.delete(key),
+};
+assert(resolveReportLogo("co", "https://cdn.example/logo.png") === "https://cdn.example/logo.png", "cover uses the company logo until one is inserted");
+saveReportLogo("co", { image: png, hidden: false });
+assert(resolveReportLogo("co", "https://cdn.example/logo.png") === png, "an inserted logo replaces the company logo");
+saveReportLogo("co", { image: "", hidden: true });
+assert(resolveReportLogo("co", "https://cdn.example/logo.png") === "", "removing the logo leaves the cover without one");
+
+function textPlacements(pdf) {
+  const raw = pdf.output();
+  const placements = [];
+  const pattern = /([0-9.]+) ([0-9.]+) Td\s*\(([^)]*)\) Tj/g;
+  let match = pattern.exec(raw);
+  while (match) {
+    placements.push({ x: Number(match[1]), y: Number(match[2]), text: match[3] });
+    match = pattern.exec(raw);
+  }
+  return placements;
+}
+
+const pdf = buildAccountantsPdf(annual, { name: "Sam Matibini", designation: "Accountant" }, { logo: png });
+const notePages = chunkNotes(annual.notes).length;
+assert(pdf.getNumberOfPages() >= 2 + annual.sections.length + notePages, "cover, letter, each statement, and the notes each start a page");
+const placed = textPlacements(pdf);
+const currentYear = placed.filter((item) => item.text === "2025");
+const priorYear = placed.filter((item) => item.text === "2024");
+assert(currentYear.length > 0 && priorYear.length > 0, "statement headers print both years");
+const paired = currentYear.find((item) => priorYear.some((prior) => prior.y === item.y));
+const priorOnSameLine = priorYear.find((item) => item.y === paired?.y);
+assert(paired && priorOnSameLine && paired.x < priorOnSameLine.x, "PDF prints the current year before the comparative year");
+assert(placed.some((item) => item.text === "Account"), "PDF statement has an account column");
+assert(placed.some((item) => item.text === "Financial Statements"), "the cover names the package");
+assert(pdf.output().includes("/Subtype /Image") || pdf.output().includes("/Image"), "the cover can carry an inserted logo");
+
+const statement = buildStatementPdf({
+  company: "Oluspe Auto Sales and Parts Inc.",
+  title: "Statement of Financial Position",
+  subtitle: "the year ended Dec 31, 2025",
+  columns: ["2025", "2024"],
+  rows: [
+    { label: "Cash and bank", amounts: ["26,512.89", "-"], indent: 1 },
+    { label: "Total assets", amounts: ["1,962,087.15", "552,859.83"], total: true },
+  ],
+  footer: "Accrual basis",
+});
+const statementText = textPlacements(statement);
+const statementCurrent = statementText.find((item) => item.text === "2025");
+const statementPrior = statementText.find((item) => item.text === "2024");
+assert(statementCurrent && statementPrior && statementCurrent.x < statementPrior.x, "a single statement PDF keeps the current year first");
 
 const interim = buildAccountantsPackage({
   ledger,

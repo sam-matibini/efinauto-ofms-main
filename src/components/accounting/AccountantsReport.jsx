@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Eraser, FileText, Loader2, Mail, Plus, Printer, Send, X } from "lucide-react";
+import { Eraser, FileText, ImagePlus, Loader2, Mail, Plus, Printer, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
@@ -19,6 +19,7 @@ import {
 } from "@/lib/accountantSignature";
 import { useAuth } from "@/lib/AuthContext";
 import { downloadCsv } from "@/lib/reportFormat";
+import { loadReportLogo, prepareLogoForPdf, readLogoFile, saveReportLogo } from "@/lib/reportLogo";
 import { downloadAccountantsPdf } from "@/lib/reportPdf";
 
 function StatementTable({ columns, rows }) {
@@ -48,22 +49,60 @@ function StatementTable({ columns, rows }) {
   );
 }
 
-function ReportPage({ company, title, period, page, total, footer, children }) {
+function ReportPage({ company, title, period, page, total, footer, cover = false, children }) {
   return (
     <section className="accountants-page mx-auto mb-6 flex min-h-[11in] w-full max-w-[8.5in] flex-col bg-white px-8 py-7 text-[#0A1F44] shadow-md print:mb-0 print:max-w-none print:shadow-none">
-      <header className="mb-4 border-b border-slate-300 pb-2">
-        <div className="flex items-start justify-between gap-4 text-[11px] uppercase tracking-wide text-slate-500">
-          <span>{company}</span>
-          <span className="text-right">{period}</span>
-        </div>
-        <h3 className="mt-1 text-center text-lg font-semibold">{title}</h3>
-      </header>
-      <div className="flex-1">{children}</div>
+      {cover ? (
+        <div className="flex flex-1 flex-col items-center justify-center text-center">{children}</div>
+      ) : (
+        <>
+          <header className="mb-4 border-b border-slate-300 pb-2">
+            <div className="flex items-start justify-between gap-4 text-[11px] uppercase tracking-wide text-slate-500">
+              <span>{company}</span>
+              <span className="text-right">{period}</span>
+            </div>
+            <h3 className="mt-1 text-center text-lg font-semibold">{title}</h3>
+          </header>
+          <div className="flex-1">{children}</div>
+        </>
+      )}
       <footer className="mt-6 flex items-center justify-between border-t border-slate-200 pt-2 text-[11px] text-slate-500">
         <span>{footer}</span>
         <span>Page {page} of {total}</span>
       </footer>
     </section>
+  );
+}
+
+function CoverLogo({ logo, companyLogo, onInsert, onRemove, onUseCompany }) {
+  return (
+    <div className="mb-8 flex flex-col items-center">
+      {logo ? <img src={logo} alt="Company logo" className="mb-3 max-h-20 max-w-[240px] object-contain" /> : null}
+      <div className="flex flex-col items-center gap-2 print:hidden">
+        {!logo ? (
+          <div className="flex h-20 w-48 items-center justify-center rounded-md border border-dashed border-slate-300 text-sm text-slate-400">
+            Insert a logo
+          </div>
+        ) : null}
+        <div className="flex flex-wrap justify-center gap-2">
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-[#0A1F44]">
+            <ImagePlus className="h-4 w-4" />
+            {logo ? "Replace logo" : "Insert logo"}
+            <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={onInsert} />
+          </label>
+          {logo ? (
+            <button type="button" className="rounded-md px-3 py-1.5 text-sm text-slate-500 underline" onClick={onRemove}>
+              Remove
+            </button>
+          ) : null}
+          {!logo && companyLogo ? (
+            <button type="button" className="rounded-md px-3 py-1.5 text-sm text-[#0A1F44] underline" onClick={onUseCompany}>
+              Use company logo
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -104,6 +143,7 @@ export default function AccountantsReport({ dateRange, periods = [], reportBasis
   const [newRecipient, setNewRecipient] = useState("");
   const [sending, setSending] = useState(false);
   const [signature, setSignature] = useState(() => resolveAccountantSignature(user));
+  const [logoRecord, setLogoRecord] = useState(() => loadReportLogo(selectedCompanyId));
   const userRef = useRef(user);
   userRef.current = user;
   const userId = user?.id;
@@ -111,6 +151,10 @@ export default function AccountantsReport({ dateRange, periods = [], reportBasis
   useEffect(() => {
     setSignature(resolveAccountantSignature(userRef.current));
   }, [userId]);
+
+  useEffect(() => {
+    setLogoRecord(loadReportLogo(selectedCompanyId));
+  }, [selectedCompanyId]);
 
   const { data: company } = useQuery({
     queryKey: ["company", selectedCompanyId],
@@ -136,7 +180,8 @@ export default function AccountantsReport({ dateRange, periods = [], reportBasis
 
   const signedPackage = useMemo(() => (pack ? { ...pack, signature } : null), [pack, signature]);
   const notePages = useMemo(() => (pack ? chunkNotes(pack.notes) : []), [pack]);
-  const pageCount = pack ? 1 + pack.sections.length + notePages.length : 0;
+  const pageCount = pack ? 2 + pack.sections.length + notePages.length : 0;
+  const logoSrc = logoRecord?.hidden ? "" : (logoRecord?.image || company?.logo_url || "");
   const pageFooter = pack?.basis === "cash" ? "Cash basis — special purpose report" : "Prepared under ASPE — unaudited";
 
   useEffect(() => {
@@ -219,9 +264,44 @@ export default function AccountantsReport({ dateRange, periods = [], reportBasis
     downloadCsv(`accountants-report-${format(new Date(), "yyyy-MM-dd")}.csv`, packageRows(signedPackage));
   };
 
-  const exportPdf = () => {
+  const insertLogo = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Choose a PNG or JPEG logo");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Logo must be 2 MB or smaller");
+      return;
+    }
+    try {
+      const image = await readLogoFile(file);
+      setLogoRecord(saveReportLogo(selectedCompanyId, { image, hidden: false }));
+    } catch {
+      toast.error("That image could not be read");
+    }
+  };
+
+  const removeLogo = () => {
+    setLogoRecord(saveReportLogo(selectedCompanyId, { image: "", hidden: true }));
+  };
+
+  const useCompanyLogo = () => {
+    setLogoRecord(saveReportLogo(selectedCompanyId, { image: "", hidden: false }));
+  };
+
+  const exportPdf = async () => {
     if (!pack) return;
-    downloadAccountantsPdf(pack, signature);
+    let logo = "";
+    try {
+      logo = await prepareLogoForPdf(logoSrc);
+    } catch {
+      logo = "";
+    }
+    if (logoSrc && !logo) toast.error("The logo could not be embedded, so the cover was saved without it");
+    downloadAccountantsPdf(pack, signature, { logo });
   };
 
   const addRecipient = () => {
@@ -244,7 +324,9 @@ export default function AccountantsReport({ dateRange, periods = [], reportBasis
     const signatureHtml = signature.image
       ? `<p><img src="${signature.image}" alt="Signature" style="height:64px" /></p>`
       : `<p style="font-family:cursive;font-size:28px">${escape(signature.name)}</p>`;
-    const body = `<div style="font-family:Arial,sans-serif;color:#0A1F44">${signatureHtml}${rows}</div>`;
+    const logoHtml = logoSrc ? `<p style="text-align:center"><img src="${logoSrc}" alt="Logo" style="max-height:72px" /></p>` : "";
+    const coverHtml = `<div style="text-align:center;margin-bottom:24px">${logoHtml}<h1>${escape(signedPackage.companyName)}</h1><p>${escape(signedPackage.title)}</p><p>${escape(signedPackage.periodText)}</p></div>`;
+    const body = `<div style="font-family:Arial,sans-serif;color:#0A1F44">${coverHtml}${signatureHtml}${rows}</div>`;
     let failed = 0;
     for (const recipient of recipients) {
       try {
@@ -340,6 +422,28 @@ export default function AccountantsReport({ dateRange, periods = [], reportBasis
 
         {pack && (
           <div id="accountants-report" className="bg-slate-200/80 p-4 print:bg-white print:p-0">
+            <ReportPage
+              cover
+              company={pack.companyName}
+              title={pack.title}
+              period={pack.periodText}
+              page={pageNumber += 1}
+              total={pageCount}
+              footer={pageFooter}
+            >
+              <CoverLogo
+                logo={logoSrc}
+                companyLogo={company?.logo_url}
+                onInsert={insertLogo}
+                onRemove={removeLogo}
+                onUseCompany={useCompanyLogo}
+              />
+              <h2 className="text-2xl font-semibold uppercase tracking-tight">{pack.companyName}</h2>
+              <div className="my-4 h-px w-24 bg-[#0A1F44]" />
+              <p className="text-lg font-semibold">{pack.title}</p>
+              <p className="mt-2 text-[11px] uppercase tracking-wide text-slate-500">{pack.periodText}</p>
+            </ReportPage>
+
             <ReportPage
               company={pack.companyName}
               title="Accountant's Report"
