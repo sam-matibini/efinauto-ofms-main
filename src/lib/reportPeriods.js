@@ -184,6 +184,14 @@ export function compareRanges({ from, to, mode = "none", count = 1, preset = "cu
   return ranges;
 }
 
+export function buildComparisonColumns({ from, to, mode = "none", count = 1, preset = "custom", currentLabel, latestFirst = true } = {}) {
+  if (!from || !to) return [];
+  const current = { from, to, label: currentLabel || rangeLabel(from, to) };
+  const prior = compareRanges({ from, to, mode, count, preset });
+  if (prior.length === 0) return [current];
+  return latestFirst ? [current, ...prior] : [...prior].reverse().concat(current);
+}
+
 export function compareCountLabel(mode) {
   if (mode === "previous_year") return "Number of year(s)";
   if (mode === "previous_month") return "Number of month(s)";

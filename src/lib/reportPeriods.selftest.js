@@ -1,4 +1,4 @@
-import { compareCountLabel, compareRanges, dayStamp, presetRange, rangeLabel } from "./reportPeriods.js";
+import { buildComparisonColumns, compareCountLabel, compareRanges, dayStamp, presetRange, rangeLabel } from "./reportPeriods.js";
 
 let passed = 0;
 let failed = 0;
@@ -32,6 +32,13 @@ const priorMonths = compareRanges({ ...fullMonth, mode: "previous_month", count:
 assert(dayStamp(priorMonths[0].from) === "2026-08-01" && dayStamp(priorMonths[0].to) === "2026-08-31", "previous month steps a whole month");
 
 assert(compareRanges({ ...year, mode: "none", count: 3 }).length === 0, "none adds no comparison columns");
+
+const fullYear = { from: new Date(2026, 0, 1), to: new Date(2026, 11, 31) };
+const columns = buildComparisonColumns({ ...fullYear, mode: "previous_year", count: 1, preset: "this_year", currentLabel: "This Year" });
+assert(columns[0].label === "This Year" && dayStamp(columns[1].from) === "2025-01-01" && dayStamp(columns[1].to) === "2025-12-31", "financials compare keeps this year and adds the prior year");
+const oldestFirst = buildComparisonColumns({ ...fullYear, mode: "previous_period", count: 2, preset: "this_year", currentLabel: "This Year", latestFirst: false });
+assert(oldestFirst.map((column) => column.label).join("|") === "2024|2025|This Year", "oldest-first still includes the selected period");
+assert(buildComparisonColumns({ ...fullYear, mode: "previous_period", count: 1, preset: "this_year" }).length === 2, "one previous period adds a column instead of replacing the selection");
 assert(compareCountLabel("previous_year") === "Number of year(s)", "year count label");
 
 console.log(`${passed} checks passed, ${failed} failed`);
