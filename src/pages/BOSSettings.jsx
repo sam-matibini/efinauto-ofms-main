@@ -1,22 +1,25 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCompany } from "@/components/shared/CompanyContext";
+import { useAuth } from "@/lib/AuthContext";
+import AdminDenied from "@/components/admin/AdminDenied";
+import { isAdminUser } from "@/lib/access";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { 
-  FileText, Plus, Edit, Trash2, RefreshCw, 
+  FileText, Plus, Trash2, 
   BarChart3, AlertCircle, CheckCircle2, Settings 
 } from "lucide-react";
 import { toast } from "sonner";
 import { getBOSStatistics, previewNextBOSNumber } from "@/components/sales/BOSNumberingService";
 
-export default function BOSSettings() {
+export default function BOSSettings({ embedded = false }) {
   const { selectedCompanyId } = useCompany();
+  const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
   const [newLocation, setNewLocation] = useState({ code: '', name: '' });
   const [editingLocation, setEditingLocation] = useState(null);
@@ -116,6 +119,8 @@ export default function BOSSettings() {
     toast.info(`Next BOS number will be: ${preview}`);
   };
 
+  if (!isAdminUser(currentUser)) return <AdminDenied />;
+
   if (!selectedCompanyId) {
     return (
       <div className="p-6">
@@ -130,19 +135,20 @@ export default function BOSSettings() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <FileText className="w-6 h-6" />
-          Bill of Sale Settings
-        </h1>
-        <p className="text-sm text-gray-300 mt-1">
-          {company?.name} • Configure BOS numbering and locations
-        </p>
-      </div>
+    <div className={embedded ? "" : "min-h-screen bg-gray-50"}>
+      {!embedded && (
+        <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <FileText className="w-6 h-6" />
+            Bill of Sale Settings
+          </h1>
+          <p className="text-sm text-gray-300 mt-1">
+            {company?.name} • Configure BOS numbering and locations
+          </p>
+        </div>
+      )}
 
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className={embedded ? "max-w-7xl space-y-6" : "p-6 max-w-7xl mx-auto space-y-6"}>
         {/* Statistics Overview */}
         {statistics && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

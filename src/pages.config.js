@@ -1,5 +1,6 @@
 import Accounting from './pages/Accounting';
 import AddProduct from './pages/AddProduct';
+import AdminPortal from './pages/AdminPortal';
 import Analytics from './pages/Analytics';
 import AuditLogs from './pages/AuditLogs';
 import BOSSettings from './pages/BOSSettings';
@@ -39,6 +40,7 @@ import Settings from './pages/Settings';
 import ShipmentMonitoring from './pages/ShipmentMonitoring';
 import SignDocument from './pages/SignDocument';
 import TD1Form from './pages/TD1Form';
+import TaxSettings from './pages/TaxSettings';
 import TechnicianMobile from './pages/TechnicianMobile';
 import Technicians from './pages/Technicians';
 import TrackShipment from './pages/TrackShipment';
@@ -51,6 +53,7 @@ import __Layout from './Layout.jsx';
 export const PAGES = {
     "Accounting": Accounting,
     "AddProduct": AddProduct,
+    "AdminPortal": AdminPortal,
     "Analytics": Analytics,
     "AuditLogs": AuditLogs,
     "BOSSettings": BOSSettings,
@@ -90,6 +93,7 @@ export const PAGES = {
     "ShipmentMonitoring": ShipmentMonitoring,
     "SignDocument": SignDocument,
     "TD1Form": TD1Form,
+    "TaxSettings": TaxSettings,
     "TechnicianMobile": TechnicianMobile,
     "Technicians": Technicians,
     "TrackShipment": TrackShipment,

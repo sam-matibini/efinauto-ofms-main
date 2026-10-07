@@ -1,4 +1,3 @@
-import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Shield, AlertCircle, CheckCircle, Clock } from "lucide-react";
@@ -97,6 +96,10 @@ export default function ComplianceStatusSummary({ companyId }) {
                 +{criticalIssues.length - 3} more orders with issues
               </p>
             )}
+          </div>
+        ) : exportOrders.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-sm text-slate-500">
+            No export orders to review.
           </div>
         ) : (
           <div className="text-center py-6 bg-green-50 rounded-lg border border-green-200">

@@ -1,4 +1,3 @@
-import React from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,45 +5,29 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertCircle, ShieldCheck } from "lucide-react";
+import { salesRate, salesRatesAsOf } from "@/lib/canadianTaxSchedule";
 
-// Canadian Sales Tax Rates - 2026 (CRA Guidelines)
-const CANADIAN_TAX_RATES = {
-  AB: { name: "Alberta", gst: 5, pst: 0, hst: 0, total: 5, type: "GST" },
-  BC: { name: "British Columbia", gst: 5, pst: 7, hst: 0, total: 12, type: "GST+PST" },
-  MB: { name: "Manitoba", gst: 5, pst: 7, hst: 0, total: 12, type: "GST+PST" },
-  NB: { name: "New Brunswick", gst: 0, pst: 0, hst: 15, total: 15, type: "HST" },
-  NL: { name: "Newfoundland and Labrador", gst: 0, pst: 0, hst: 15, total: 15, type: "HST" },
-  NT: { name: "Northwest Territories", gst: 5, pst: 0, hst: 0, total: 5, type: "GST" },
-  NS: { name: "Nova Scotia", gst: 0, pst: 0, hst: 15, total: 15, type: "HST" },
-  NU: { name: "Nunavut", gst: 5, pst: 0, hst: 0, total: 5, type: "GST" },
-  ON: { name: "Ontario", gst: 0, pst: 0, hst: 13, total: 13, type: "HST" },
-  PE: { name: "Prince Edward Island", gst: 0, pst: 0, hst: 15, total: 15, type: "HST" },
-  QC: { name: "Quebec", gst: 5, pst: 9.975, hst: 0, total: 14.975, type: "GST+QST" },
-  SK: { name: "Saskatchewan", gst: 5, pst: 6, hst: 0, total: 11, type: "GST+PST" },
-  YT: { name: "Yukon", gst: 5, pst: 0, hst: 0, total: 5, type: "GST" },
-};
-
-export function calculateCanadianTax(subtotal, province, taxStatus = "taxable", pstExempt = false) {
-  if (!province || !CANADIAN_TAX_RATES[province]) {
+export function calculateCanadianTax(subtotal, province, taxStatus = "taxable", pstExempt = false, asOf = new Date()) {
+  const rates = salesRate(province, asOf);
+  if (!province || !rates) {
     return { gst: 0, pst: 0, hst: 0, total: 0, breakdown: "", pstRate: 0 };
   }
 
-  // Zero-rated and exempt sales have no tax
-  if (taxStatus === "zero_rated" || taxStatus === "exempt") {
+  if (taxStatus === "exempt" || taxStatus === "zero_rated") {
     return { 
       gst: 0, 
       pst: 0, 
       hst: 0, 
       total: 0, 
-      pstRate: CANADIAN_TAX_RATES[province].pst,
-      breakdown: taxStatus === "zero_rated" ? "Zero-Rated (0%)" : "Tax Exempt" 
+      breakdown: taxStatus === "exempt" ? "Tax Exempt" : "Zero Rated",
+      pstRate: rates.pst,
     };
   }
 
-  const rates = CANADIAN_TAX_RATES[province];
-  const gst = rates.gst > 0 ? (subtotal * rates.gst) / 100 : 0;
-  const pst = (rates.pst > 0 && !pstExempt) ? (subtotal * rates.pst) / 100 : 0;
-  const hst = rates.hst > 0 ? (subtotal * rates.hst) / 100 : 0;
+  const amount = subtotal || 0;
+  const gst = rates.gst > 0 ? (amount * rates.gst) / 100 : 0;
+  const pst = (rates.pst > 0 && !pstExempt) ? (amount * rates.pst) / 100 : 0;
+  const hst = rates.hst > 0 ? (amount * rates.hst) / 100 : 0;
   const total = gst + pst + hst;
 
   let breakdown = "";
@@ -80,6 +63,7 @@ export default function CanadianTaxCalculator({
   const selectedTaxStatus = taxStatus || "taxable";
   const isPstExempt = pstExempt || false;
   const taxDetails = calculateCanadianTax(subtotal || 0, selectedProvince, selectedTaxStatus, isPstExempt);
+  const CANADIAN_TAX_RATES = salesRatesAsOf();
   
   const canApplyPstExempt = true; // All users can apply PST exemption
   const provinceData = CANADIAN_TAX_RATES[selectedProvince];
@@ -249,5 +233,3 @@ export default function CanadianTaxCalculator({
     </Card>
   );
 }
-
-export { CANADIAN_TAX_RATES };

@@ -5,11 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Play, Download, Eye, Check, Loader2, X, StopCircle, Trash2, Edit, FileText, Printer } from "lucide-react";
+import { Play, Download, Eye, Check, Loader2, StopCircle, Trash2, Edit, FileText, Printer } from "lucide-react";
 import PaystubViewer from "./PaystubViewer";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
+import { calculatePayrollDeductions } from "@/lib/canadianPayroll";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -463,7 +464,6 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
   const calculatePayroll = async (employee, periodStart, periodEnd, payrollRunId) => {
     // Get YTD totals for this employee
     const currentYear = new Date(periodEnd).getFullYear();
-    const yearStart = `${currentYear}-01-01`;
     const previousEntries = payrollEntries.filter(e => 
       e.employee_id === employee.id && 
       e.company_id === company.id &&
@@ -473,6 +473,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
     const ytdGross = previousEntries.reduce((sum, e) => sum + (e.gross_pay || 0), 0);
     const ytdCPP = previousEntries.reduce((sum, e) => sum + (e.cpp_employee || 0), 0);
     const ytdEI = previousEntries.reduce((sum, e) => sum + (e.ei_employee || 0), 0);
+    const ytdQpip = previousEntries.reduce((sum, e) => sum + (e.other_deductions || 0), 0);
     const ytdFederalTax = previousEntries.reduce((sum, e) => sum + (e.federal_tax || 0), 0);
     const ytdProvincialTax = previousEntries.reduce((sum, e) => sum + (e.provincial_tax || 0), 0);
     let regularHours = 0;
@@ -518,93 +519,28 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       grossPay = regularPay + overtimePay;
     }
 
-    // Calculate CPP (simplified) - check for CPP exemption
-    const cppRate = 0.0595;
-    const cppExemption = 3500;
-    const cppEmployee = employee.cpp_exempt ? 0 : Math.max(0, (grossPay * cppRate));
-    const cppEmployer = employee.cpp_exempt ? 0 : cppEmployee;
-
-    // Calculate EI (simplified) - check for EI exemption
-    const eiRate = 0.0163;
-    const eiEmployee = employee.ei_exempt ? 0 : grossPay * eiRate;
-    const eiEmployer = employee.ei_exempt ? 0 : eiEmployee * 1.4;
-
-    // Calculate federal tax using progressive brackets (2024)
-    const annualizedGross = grossPay * (employee.pay_frequency === 'weekly' ? 52 : 
-                                        employee.pay_frequency === 'bi_weekly' ? 26 : 
-                                        employee.pay_frequency === 'semi_monthly' ? 24 : 12);
-
-    let federalTax = 0;
-    const federalBrackets = [
-      { limit: 55867, rate: 0.15 },
-      { limit: 111733, rate: 0.205 },
-      { limit: 173205, rate: 0.26 },
-      { limit: 246752, rate: 0.29 },
-      { limit: Infinity, rate: 0.33 }
-    ];
-
-    let previousLimit = 0;
-    for (const bracket of federalBrackets) {
-      if (annualizedGross > previousLimit) {
-        const taxableInBracket = Math.min(annualizedGross, bracket.limit) - previousLimit;
-        federalTax += taxableInBracket * bracket.rate;
-        previousLimit = bracket.limit;
-      }
-    }
-
-    // Apply federal tax credit
-    const federalCredit = (employee.td1_federal?.total_claim_amount || 15705) * 0.15;
-    federalTax = Math.max(0, (federalTax - federalCredit)) / (employee.pay_frequency === 'weekly' ? 52 : 
-                                                               employee.pay_frequency === 'bi_weekly' ? 26 : 
-                                                               employee.pay_frequency === 'semi_monthly' ? 24 : 12);
-
-    // Provincial tax using progressive brackets (Ontario 2024 as default)
-    const province = employee.province || company?.province || 'ON';
-    let provincialTax = 0;
-
-    const provincialBrackets = {
-      'ON': [
-        { limit: 51446, rate: 0.0505 },
-        { limit: 102894, rate: 0.0915 },
-        { limit: 150000, rate: 0.1116 },
-        { limit: 220000, rate: 0.1216 },
-        { limit: Infinity, rate: 0.1316 }
-      ],
-      'BC': [
-        { limit: 47937, rate: 0.0506 },
-        { limit: 95875, rate: 0.077 },
-        { limit: 110076, rate: 0.105 },
-        { limit: 133664, rate: 0.1229 },
-        { limit: 181232, rate: 0.147 },
-        { limit: Infinity, rate: 0.168 }
-      ],
-      'AB': [
-        { limit: 148269, rate: 0.10 },
-        { limit: 177922, rate: 0.12 },
-        { limit: 237230, rate: 0.13 },
-        { limit: 355845, rate: 0.14 },
-        { limit: Infinity, rate: 0.15 }
-      ]
-    };
-
-    const brackets = provincialBrackets[province] || provincialBrackets['ON'];
-    previousLimit = 0;
-    for (const bracket of brackets) {
-      if (annualizedGross > previousLimit) {
-        const taxableInBracket = Math.min(annualizedGross, bracket.limit) - previousLimit;
-        provincialTax += taxableInBracket * bracket.rate;
-        previousLimit = bracket.limit;
-      }
-    }
-
-    // Apply provincial tax credit
-    const provincialCredit = (employee.td1_provincial?.total_claim_amount || 12399) * (province === 'ON' ? 0.0505 : 0.0506);
-    provincialTax = Math.max(0, (provincialTax - provincialCredit)) / (employee.pay_frequency === 'weekly' ? 52 : 
-                                                                        employee.pay_frequency === 'bi_weekly' ? 26 : 
-                                                                        employee.pay_frequency === 'semi_monthly' ? 24 : 12);
-
-    const totalDeductions = cppEmployee + eiEmployee + federalTax + provincialTax;
-    const netPay = grossPay - totalDeductions;
+    const deductions = calculatePayrollDeductions({
+      grossPay,
+      payFrequency: employee.pay_frequency,
+      province: employee.province || company?.province || "ON",
+      ytdGross,
+      ytdCpp,
+      ytdEi,
+      ytdQpip,
+      cppExempt: employee.cpp_exempt,
+      eiExempt: employee.ei_exempt,
+      federalClaim: employee.td1_federal?.total_claim_amount,
+      provincialClaim: employee.td1_provincial?.total_claim_amount,
+      asOf: periodEnd || new Date(),
+    });
+    const cppEmployee = deductions.cppEmployee;
+    const cppEmployer = deductions.cppEmployer;
+    const eiEmployee = deductions.eiEmployee;
+    const eiEmployer = deductions.eiEmployer;
+    const federalTax = deductions.federalTax;
+    const provincialTax = deductions.provincialTax;
+    const totalDeductions = deductions.totalDeductions;
+    const netPay = deductions.netPay;
 
     // Calculate vacation accrual
     const vacationAccrued = grossPay * (employee.vacation_accrual_rate / 100);
@@ -624,6 +560,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       ei_employee: eiEmployee,
       federal_tax: federalTax,
       provincial_tax: provincialTax,
+      other_deductions: deductions.qpipEmployee,
       total_deductions: totalDeductions,
       net_pay: netPay,
       cpp_employer: cppEmployer,
@@ -635,7 +572,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       ytd_federal_tax: ytdFederalTax + federalTax,
       ytd_provincial_tax: ytdProvincialTax + provincialTax
     };
-    };
+  };
 
   const handleRunPayroll = async () => {
     if (!periodStart || !periodEnd || !payDate) {
@@ -711,7 +648,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
     const headers = [
       'Employee Number', 'Employee Name', 'Regular Hours', 'Overtime Hours', 
       'Regular Pay', 'Overtime Pay', 'Gross Pay', 'CPP Employee', 'EI Employee',
-      'Federal Tax', 'Provincial Tax', 'Total Deductions', 'Net Pay',
+      'Federal Tax', 'Provincial Tax', 'QPIP', 'Total Deductions', 'Net Pay',
       'CPP Employer', 'EI Employer', 'Vacation Accrued'
     ];
 
@@ -727,6 +664,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
       entry.ei_employee?.toFixed(2),
       entry.federal_tax?.toFixed(2),
       entry.provincial_tax?.toFixed(2),
+      entry.other_deductions?.toFixed(2),
       entry.total_deductions?.toFixed(2),
       entry.net_pay?.toFixed(2),
       entry.cpp_employer?.toFixed(2),
@@ -1353,7 +1291,7 @@ export default function PayrollProcessing({ company, employees, payrollRuns, pay
                               </div>
                               {entry.other_deductions > 0 && (
                                 <div className="flex justify-between">
-                                  <span>Other Deductions</span>
+                                  <span>QPIP</span>
                                   <span>(${entry.other_deductions?.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
                                 </div>
                               )}

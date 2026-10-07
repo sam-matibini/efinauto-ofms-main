@@ -1,14 +1,14 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  Car, Wrench, Package, Ship, DollarSign, Users, Trash2, 
-  ArrowRight, ArrowDown, Database, CheckCircle, AlertCircle,
-  FileText, CreditCard, Receipt, Building2, Briefcase, BarChart3, Landmark,
-  FolderKanban, Truck, Navigation
+  Wrench, Package, Ship, DollarSign, Users, Trash2, 
+  ArrowRight, ArrowDown, Database, CheckCircle,
+  CreditCard, BarChart3, Landmark,
+  FolderKanban, Truck
 } from "lucide-react";
+import { salesRatesAsOf } from "@/lib/canadianTaxSchedule";
 
 const modules = [
   {
@@ -227,25 +227,9 @@ const glAccounts = [
   { code: '6600', name: 'Utilities Expense', type: 'Expense' }
 ];
 
-// Canadian Sales Tax Rates Reference
-const CANADIAN_TAX_RATES = {
-  AB: { name: "Alberta", gst: 5, pst: 0, hst: 0, total: 5, type: "GST" },
-  BC: { name: "British Columbia", gst: 5, pst: 7, hst: 0, total: 12, type: "GST+PST" },
-  MB: { name: "Manitoba", gst: 5, pst: 7, hst: 0, total: 12, type: "GST+PST" },
-  NB: { name: "New Brunswick", gst: 0, pst: 0, hst: 15, total: 15, type: "HST" },
-  NL: { name: "Newfoundland", gst: 0, pst: 0, hst: 15, total: 15, type: "HST" },
-  NT: { name: "NWT", gst: 5, pst: 0, hst: 0, total: 5, type: "GST" },
-  NS: { name: "Nova Scotia", gst: 0, pst: 0, hst: 15, total: 15, type: "HST" },
-  NU: { name: "Nunavut", gst: 5, pst: 0, hst: 0, total: 5, type: "GST" },
-  ON: { name: "Ontario", gst: 0, pst: 0, hst: 13, total: 13, type: "HST" },
-  PE: { name: "PEI", gst: 0, pst: 0, hst: 15, total: 15, type: "HST" },
-  QC: { name: "Quebec", gst: 5, pst: 9.975, hst: 0, total: 14.975, type: "GST+QST" },
-  SK: { name: "Saskatchewan", gst: 5, pst: 6, hst: 0, total: 11, type: "GST+PST" },
-  YT: { name: "Yukon", gst: 5, pst: 0, hst: 0, total: 5, type: "GST" },
-};
-
 export default function IntegrationDiagram() {
   const [selectedModule, setSelectedModule] = useState(null);
+  const CANADIAN_TAX_RATES = salesRatesAsOf();
 
   return (
     <div className="min-h-screen bg-gray-50">

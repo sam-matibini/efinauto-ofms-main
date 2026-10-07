@@ -1,87 +1,48 @@
-import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { DollarSign, Download, Printer } from "lucide-react";
+import { Download, Printer } from "lucide-react";
 import { format } from "date-fns";
+import useFinancialBooks from "@/components/accounting/useFinancialBooks";
+import { profitAndLoss } from "@/lib/financialStatements";
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
-export default function RevenueOverview({ transactions, sales, repairs, purchases, comparativePeriods = [] }) {
+export default function RevenueOverview({ comparativePeriods = [] }) {
+  const { ledger } = useFinancialBooks("accrual");
   const currentPeriod = comparativePeriods[0];
-  
-  // Filter transactions by current period if available
-  const filteredTransactions = currentPeriod 
-    ? transactions.filter(t => {
-        const transDate = new Date(t.transaction_date);
-        return transDate >= currentPeriod.from && transDate <= currentPeriod.to;
-      })
-    : transactions;
+  const currentEarnings = profitAndLoss(ledger, currentPeriod?.from, currentPeriod?.to);
 
-  // Revenue by type
   const revenueByType = [
-    {
-      name: 'Vehicle Sales',
-      value: filteredTransactions.filter(t => t.transaction_type === 'sale_revenue').reduce((sum, t) => sum + t.amount, 0)
-    },
-    {
-      name: 'Service Revenue',
-      value: filteredTransactions.filter(t => t.transaction_type === 'service_revenue').reduce((sum, t) => sum + t.amount, 0)
-    },
-    {
-      name: 'Parts Revenue',
-      value: filteredTransactions.filter(t => t.transaction_type === 'parts_revenue').reduce((sum, t) => sum + t.amount, 0)
-    },
-    {
-      name: 'Other Income',
-      value: filteredTransactions.filter(t => t.transaction_type === 'other_income').reduce((sum, t) => sum + t.amount, 0)
-    }
-  ].filter(item => item.value > 0);
+    { name: "Vehicle Sales", value: currentEarnings.vehicleSalesRevenue },
+    { name: "Service Revenue", value: currentEarnings.serviceRevenue },
+    { name: "Parts Revenue", value: currentEarnings.partsRevenue },
+    { name: "Other Income", value: currentEarnings.otherRevenue },
+  ].filter((item) => item.value > 0);
 
-  // Comparative periods trend
-  const periodRevenue = comparativePeriods.length > 0 
-    ? comparativePeriods.map(period => {
-        const periodTransactions = transactions.filter(t => {
-          const tDate = new Date(t.transaction_date);
-          return tDate >= period.from && tDate <= period.to;
-        });
-        
-        const revenue = periodTransactions.filter(t => t.category === 'revenue').reduce((sum, t) => sum + t.amount, 0);
-        const expenses = periodTransactions.filter(t => t.category === 'expense').reduce((sum, t) => sum + t.amount, 0);
-        
+  const periodRevenue = comparativePeriods.length > 0
+    ? comparativePeriods.map((period) => {
+        const earnings = profitAndLoss(ledger, period.from, period.to);
         return {
           month: period.label,
-          revenue: revenue,
-          expenses: expenses,
-          profit: revenue - expenses
+          revenue: earnings.revenue,
+          expenses: earnings.cogs + earnings.operatingExpenses + earnings.payrollExpenses,
+          profit: earnings.netProfit,
         };
       })
     : (() => {
-        // Fallback to last 6 months if no comparative periods
         const monthlyData = [];
         for (let i = 5; i >= 0; i--) {
           const date = new Date();
           date.setMonth(date.getMonth() - i);
           const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
           const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-          
-          const revenue = transactions.filter(t => {
-            if (t.category !== 'revenue') return false;
-            const tDate = new Date(t.transaction_date);
-            return tDate >= monthStart && tDate <= monthEnd;
-          }).reduce((sum, t) => sum + t.amount, 0);
-          
-          const expenses = transactions.filter(t => {
-            if (t.category !== 'expense') return false;
-            const tDate = new Date(t.transaction_date);
-            return tDate >= monthStart && tDate <= monthEnd;
-          }).reduce((sum, t) => sum + t.amount, 0);
-
+          const earnings = profitAndLoss(ledger, monthStart, monthEnd);
           monthlyData.push({
-            month: date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-            revenue: revenue,
-            expenses: expenses,
-            profit: revenue - expenses
+            month: date.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
+            revenue: earnings.revenue,
+            expenses: earnings.cogs + earnings.operatingExpenses + earnings.payrollExpenses,
+            profit: earnings.netProfit,
           });
         }
         return monthlyData;

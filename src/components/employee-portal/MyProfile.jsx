@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Edit, Save, X } from "lucide-react";
+import ProfileTabs from "@/components/profile/ProfileTabs";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
@@ -11,6 +12,12 @@ import { toast } from "sonner";
 export default function MyProfile({ employee }) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
+  const [section, setSection] = useState("personal");
+  const profileTabs = [
+    { id: "personal", label: "Personal Info" },
+    { id: "emergency", label: "Emergency Contact" },
+    { id: "deposit", label: "Direct Deposit" },
+  ];
   const [formData, setFormData] = useState({
     email: employee?.email || "",
     phone: employee?.phone || "",
@@ -52,32 +59,35 @@ export default function MyProfile({ employee }) {
   }, [employee]);
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Personal Information</CardTitle>
-            {!editing ? (
-              <Button variant="outline" onClick={() => setEditing(true)}>
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
-            ) : (
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setEditing(false)}>
-                  <X className="w-4 h-4 mr-2" />
-                  Cancel
-                </Button>
-                <Button onClick={handleSave} disabled={updateMutation.isPending}>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save
-                </Button>
-              </div>
-            )}
+    <div className="space-y-6 p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <ProfileTabs tabs={profileTabs} value={section} onChange={setSection} />
+        {!editing ? (
+          <Button variant="outline" onClick={() => setEditing(true)}>
+            <Edit className="w-4 h-4 mr-2" />
+            Edit
+          </Button>
+        ) : (
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setEditing(false)}>
+              <X className="w-4 h-4 mr-2" />
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={updateMutation.isPending} className="bg-[#0A1F44] text-white hover:bg-[#0A1F44]/90">
+              <Save className="w-4 h-4 mr-2" />
+              Save
+            </Button>
           </div>
+        )}
+      </div>
+
+      {section === "personal" && (
+      <Card id="profile-panel-personal" role="tabpanel" aria-labelledby="profile-tab-personal">
+        <CardHeader className="p-6">
+          <CardTitle>Personal Information</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <CardContent className="space-y-4 p-6 pt-0">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <Label>First Name</Label>
               <Input value={employee?.first_name} disabled />
@@ -88,7 +98,7 @@ export default function MyProfile({ employee }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <Label>Email</Label>
               <Input
@@ -116,7 +126,7 @@ export default function MyProfile({ employee }) {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
               <Label>City</Label>
               <Input
@@ -144,13 +154,15 @@ export default function MyProfile({ employee }) {
           </div>
         </CardContent>
       </Card>
+      )}
 
-      <Card>
-        <CardHeader>
+      {section === "emergency" && (
+      <Card id="profile-panel-emergency" role="tabpanel" aria-labelledby="profile-tab-emergency">
+        <CardHeader className="p-6">
           <CardTitle>Emergency Contact</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
+        <CardContent className="space-y-4 p-6 pt-0">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
               <Label>Name</Label>
               <Input
@@ -178,13 +190,15 @@ export default function MyProfile({ employee }) {
           </div>
         </CardContent>
       </Card>
+      )}
 
-      <Card>
-        <CardHeader>
+      {section === "deposit" && (
+      <Card id="profile-panel-deposit" role="tabpanel" aria-labelledby="profile-tab-deposit">
+        <CardHeader className="p-6">
           <CardTitle>Direct Deposit Information</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
+        <CardContent className="space-y-4 p-6 pt-0">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
               <Label>Institution Number</Label>
               <Input
@@ -213,6 +227,7 @@ export default function MyProfile({ employee }) {
           </div>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

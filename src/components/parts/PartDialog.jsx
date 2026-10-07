@@ -23,6 +23,7 @@ import { mergeDocumentFields } from "@/lib/documentAutoscan";
 import { supabase } from "@/api/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { useCompany } from "../shared/CompanyContext";
+import { salesRate } from "@/lib/canadianTaxSchedule";
 
 export default function PartDialog({ open, onClose, part, onSave, isSaving }) {
   const { selectedCompanyId } = useCompany();
@@ -32,15 +33,6 @@ export default function PartDialog({ open, onClose, part, onSave, isSaving }) {
     queryFn: () => supabase.entities.Vendor.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId && open,
     initialData: [],
-  });
-
-  const { data: company } = useQuery({
-    queryKey: ['company', selectedCompanyId],
-    queryFn: async () => {
-      const companies = await supabase.entities.Company.filter({ id: selectedCompanyId });
-      return companies[0];
-    },
-    enabled: !!selectedCompanyId && open,
   });
 
   const [formData, setFormData] = useState({
@@ -109,7 +101,7 @@ export default function PartDialog({ open, onClose, part, onSave, isSaving }) {
     if (taxStatus !== "taxable" || !province || !price) {
       return { tax_gst: 0, tax_pst: 0, tax_hst: 0, tax_total: 0, total_cost: price || 0 };
     }
-    const rates = company?.tax_rates?.[province] || { gst: 5, pst: 0, hst: 0 };
+    const rates = salesRate(province) || { gst: 0, pst: 0, hst: 0 };
     const tax_gst = (price * (rates.gst || 0)) / 100;
     const tax_pst = pstExempt ? 0 : (price * (rates.pst || 0)) / 100;
     const tax_hst = (price * (rates.hst || 0)) / 100;

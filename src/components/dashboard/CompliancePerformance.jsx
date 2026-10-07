@@ -1,8 +1,7 @@
-import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/api/supabaseClient";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Shield, Clock, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { format, differenceInHours, subDays } from "date-fns";
 import { validateExportOrder } from "../export/ExportValidationService";
@@ -98,6 +97,11 @@ export default function CompliancePerformance({ companyId }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {totalOrders === 0 && (
+          <p className="rounded-lg border border-dashed border-slate-200 py-6 text-center text-sm text-slate-500">
+            No export orders in the current books, so compliance rates stay at zero.
+          </p>
+        )}
         {/* Key Metrics */}
         <div className="grid grid-cols-4 gap-3">
           <div className="p-3 bg-red-50 rounded-lg">

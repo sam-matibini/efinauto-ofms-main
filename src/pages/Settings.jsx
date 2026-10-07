@@ -15,8 +15,10 @@ import { MessageSquare, Mail, Shield, Save, Info, CheckCircle, Image as ImageIco
 import { toast } from "sonner";
 import LogoUpload from "@/components/settings/LogoUpload";
 import AssignedUsersTab from "@/components/settings/AssignedUsersTab";
+import AdminDenied from "@/components/admin/AdminDenied";
+import { isAdminUser } from "@/lib/access";
 
-export default function Settings() {
+export default function Settings({ embedded = false }) {
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
 
@@ -103,6 +105,8 @@ export default function Settings() {
     });
   };
 
+  if (!isAdminUser(currentUser)) return <AdminDenied />;
+
   if (!selectedCompanyId) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -127,13 +131,15 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
-        <h1 className="text-2xl font-bold text-white">Settings</h1>
-        <p className="text-sm text-gray-300 mt-1">Configure integrations and preferences</p>
-      </div>
+    <div className={embedded ? "" : "min-h-screen bg-gray-50"}>
+      {!embedded && (
+        <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
+          <h1 className="text-2xl font-bold text-white">Settings</h1>
+          <p className="text-sm text-gray-300 mt-1">Configure integrations and preferences</p>
+        </div>
+      )}
 
-      <div className="p-6 md:p-8 max-w-5xl mx-auto">
+      <div className={embedded ? "max-w-5xl" : "p-6 md:p-8 max-w-5xl mx-auto"}>
         <Tabs defaultValue="company" className="w-full">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="company">
@@ -172,7 +178,7 @@ export default function Settings() {
                     </CardDescription>
                   </div>
                   {isAdmin && (
-                    <Link to="/Companies">
+                    <Link to="/adminportal?tab=companies">
                       <Button variant="outline" size="sm" className="flex items-center gap-2 text-blue-600 border-blue-300 hover:bg-blue-50">
                         <ExternalLink className="w-4 h-4" />
                         Full Company Edit
