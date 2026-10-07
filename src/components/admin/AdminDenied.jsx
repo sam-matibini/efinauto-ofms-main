@@ -12,7 +12,7 @@ export default function AdminDenied() {
             <div>
               <h2 className="font-semibold text-red-900">Admin access only</h2>
               <p className="text-sm text-red-700">
-                Companies and settings are limited to administrators. User and client accounts cannot open this area.
+                Companies, pricing, taxes, and settings are limited to administrators. User and client accounts cannot open this area.
               </p>
             </div>
           </div>

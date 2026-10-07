@@ -1,5 +1,5 @@
 import { useSearchParams } from "react-router-dom";
-import { Building2, FileText, Settings as SettingsIcon } from "lucide-react";
+import { Building2, DollarSign, FileText, Landmark, Settings as SettingsIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/AuthContext";
 import { isAdminUser } from "@/lib/access";
@@ -7,11 +7,15 @@ import AdminDenied from "@/components/admin/AdminDenied";
 import Companies from "./Companies";
 import Settings from "./Settings";
 import BOSSettings from "./BOSSettings";
+import Pricing from "./Pricing";
+import TaxSettings from "./TaxSettings";
 
 const TABS = [
   { id: "companies", label: "Companies", icon: Building2 },
   { id: "settings", label: "Settings", icon: SettingsIcon },
   { id: "bos", label: "BOS Settings", icon: FileText },
+  { id: "pricing", label: "Pricing", icon: DollarSign },
+  { id: "taxes", label: "Taxes", icon: Landmark },
 ];
 
 export default function AdminPortal() {
@@ -27,7 +31,7 @@ export default function AdminPortal() {
       <div className="bg-gradient-to-r from-[#0A1F44] to-slate-700 px-4 py-4 md:px-6">
         <h1 className="text-xl font-bold text-white md:text-2xl">Admin Portal</h1>
         <p className="mt-1 text-xs text-white/70 md:text-sm">
-          Companies and settings. User and client accounts cannot open this area.
+          Companies, pricing, taxes, and settings. User and client accounts cannot open this area.
         </p>
       </div>
       <div className="mx-auto max-w-7xl p-4 md:p-6">
@@ -51,6 +55,12 @@ export default function AdminPortal() {
           </TabsContent>
           <TabsContent value="bos">
             <BOSSettings embedded />
+          </TabsContent>
+          <TabsContent value="pricing">
+            <Pricing embedded />
+          </TabsContent>
+          <TabsContent value="taxes">
+            <TaxSettings embedded />
           </TabsContent>
         </Tabs>
       </div>

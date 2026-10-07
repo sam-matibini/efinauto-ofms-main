@@ -40,6 +40,7 @@ import Settings from './pages/Settings';
 import ShipmentMonitoring from './pages/ShipmentMonitoring';
 import SignDocument from './pages/SignDocument';
 import TD1Form from './pages/TD1Form';
+import TaxSettings from './pages/TaxSettings';
 import TechnicianMobile from './pages/TechnicianMobile';
 import Technicians from './pages/Technicians';
 import TrackShipment from './pages/TrackShipment';
@@ -92,6 +93,7 @@ export const PAGES = {
     "ShipmentMonitoring": ShipmentMonitoring,
     "SignDocument": SignDocument,
     "TD1Form": TD1Form,
+    "TaxSettings": TaxSettings,
     "TechnicianMobile": TechnicianMobile,
     "Technicians": Technicians,
     "TrackShipment": TrackShipment,

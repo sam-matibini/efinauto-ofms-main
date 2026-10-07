@@ -10,8 +10,12 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { loadSavedPricing, savePricing as savePricingToStorage } from "@/components/shared/PricingConfig";
 import StripeSettingsDialog from "@/components/pricing/StripeSettingsDialog";
+import { useAuth } from "@/lib/AuthContext";
+import { isAdminUser } from "@/lib/access";
+import AdminDenied from "@/components/admin/AdminDenied";
 
-export default function Pricing() {
+export default function Pricing({ embedded = false }) {
+  const { user: authUser } = useAuth();
   const [selectedModules, setSelectedModules] = useState([]);
   const [billingInterval, setBillingInterval] = useState("month");
   const [editMode, setEditMode] = useState(false);
@@ -127,7 +131,8 @@ export default function Pricing() {
     return colors[color] || colors.blue;
   };
 
-  // Don't render until pricing is loaded
+  if (!isAdminUser(authUser)) return <AdminDenied />;
+
   if (subscriptionPlans.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
@@ -137,12 +142,11 @@ export default function Pricing() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Subscription Plans</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+    <div className={embedded ? "" : "min-h-screen bg-gray-50 p-6"}>
+      <div className={embedded ? "" : "max-w-7xl mx-auto"}>
+        <div className={embedded ? "mb-8" : "text-center mb-12"}>
+          <h1 className={embedded ? "mb-2 text-2xl font-bold text-gray-900" : "text-4xl font-bold text-gray-900 mb-4"}>Subscription Plans</h1>
+          <p className={embedded ? "text-slate-600" : "text-xl text-gray-600 max-w-2xl mx-auto"}>
             Choose the perfect plan for your dealership or build a custom package
           </p>
           
@@ -153,7 +157,7 @@ export default function Pricing() {
           )}
 
           {isAdmin && (
-            <div className="mt-4 flex gap-2 justify-center flex-wrap">
+            <div className={`mt-4 flex gap-2 flex-wrap ${embedded ? "" : "justify-center"}`}>
               {editMode ? (
                 <>
                   <Button onClick={savePricing} className="bg-green-600 hover:bg-green-700">

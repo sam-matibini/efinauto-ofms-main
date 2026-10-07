@@ -6,6 +6,8 @@ export const ADMIN_PAGE_IDS = new Set([
   "UserManagement",
   "AuditLogs",
   "IntegrationDiagram",
+  "Pricing",
+  "TaxSettings",
 ]);
 
 export function isAdminUser(user) {

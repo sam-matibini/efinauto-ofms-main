@@ -63,7 +63,6 @@ export const NAV_SECTIONS = [
       navItem("Reports", "Reports", BarChart3),
       navItem("Analytics", "Analytics", LineChart),
       navItem("Vehicle Analytics", "VehicleAnalytics", BarChart3),
-      navItem("Pricing", "Pricing", DollarSign),
     ],
   },
   {
