@@ -9,6 +9,7 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { ADMIN_PAGE_IDS, isAdminUser } from '@/lib/access';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import LoginPage from '@/components/auth/LoginPage';
 import ForgotPasswordPage from '@/components/auth/ForgotPasswordPage';
@@ -30,6 +31,12 @@ const ProtectedRoute = ({ children }) => {
   if (isAuthenticated) return children;
   if (PUBLIC_PATHS.includes(pathname)) return children;
   return <Navigate to="/" replace />;
+};
+
+const RoleGate = ({ pageName, children }) => {
+  const { user } = useAuth();
+  if (!ADMIN_PAGE_IDS.has(pageName) || isAdminUser(user)) return children;
+  return <Navigate to="/dashboard" replace />;
 };
 
 const AuthenticatedApp = () => {
@@ -74,9 +81,11 @@ const AuthenticatedApp = () => {
           path={`/${path}`}
           element={
             <ProtectedRoute>
-              <LayoutWrapper currentPageName={path}>
-                <Page />
-              </LayoutWrapper>
+              <RoleGate pageName={path}>
+                <LayoutWrapper currentPageName={path}>
+                  <Page />
+                </LayoutWrapper>
+              </RoleGate>
             </ProtectedRoute>
           }
         />

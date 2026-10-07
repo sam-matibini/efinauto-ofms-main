@@ -1,5 +1,6 @@
 import Accounting from './pages/Accounting';
 import AddProduct from './pages/AddProduct';
+import AdminPortal from './pages/AdminPortal';
 import Analytics from './pages/Analytics';
 import AuditLogs from './pages/AuditLogs';
 import BOSSettings from './pages/BOSSettings';
@@ -51,6 +52,7 @@ import __Layout from './Layout.jsx';
 export const PAGES = {
     "Accounting": Accounting,
     "AddProduct": AddProduct,
+    "AdminPortal": AdminPortal,
     "Analytics": Analytics,
     "AuditLogs": AuditLogs,
     "BOSSettings": BOSSettings,

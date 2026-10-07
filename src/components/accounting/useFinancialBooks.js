@@ -24,6 +24,7 @@ export default function useFinancialBooks(basis = "accrual") {
   const expenses = useEntity("expenses", "Expense", selectedCompanyId);
   const normalizedBasis = basis === "cash" ? "cash" : "accrual";
 
+  const sources = [transactions, accounts, vehicles, sales, purchases, repairs, expenses];
   const ledger = useMemo(() => compileLedger({
     transactions: transactions.data,
     accounts: accounts.data,
@@ -42,6 +43,7 @@ export default function useFinancialBooks(basis = "accrual") {
     expenses.data,
     normalizedBasis,
   ]);
+  const isReady = !selectedCompanyId || sources.every((query) => query.isFetched || query.isError);
 
-  return { ledger, accounts: accounts.data || [] };
+  return { ledger, accounts: accounts.data || [], isReady, companyId: selectedCompanyId };
 }

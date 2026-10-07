@@ -1,7 +1,6 @@
-import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Ship, TrendingUp } from "lucide-react";
+import { Ship } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/api/supabaseClient";
@@ -67,19 +66,25 @@ export default function ExportOrderPipeline({ companyId }) {
           </div>
         </div>
 
-        <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} fontSize={11} />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        {chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} fontSize={11} />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="rounded-lg border border-dashed border-slate-200 py-10 text-center text-sm text-slate-500">
+            No export orders yet. Counts update when an export order is created.
+          </div>
+        )}
 
         <div className="mt-4 flex flex-wrap gap-2">
           {Object.entries(statusCounts).map(([status, count]) => (

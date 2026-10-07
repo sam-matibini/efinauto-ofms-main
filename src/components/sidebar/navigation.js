@@ -5,7 +5,6 @@ import {
   Plane,
   Package,
   Users,
-  Building2,
   Trash2,
   Bell,
   BarChart3,
@@ -16,7 +15,6 @@ import {
   DollarSign,
   MessageCircle,
   Send,
-  Settings as SettingsIcon,
   Shield,
   FolderKanban,
   Ship,
@@ -26,6 +24,7 @@ import {
   Plus,
 } from "lucide-react";
 import { createPageUrl } from "@/utils";
+import { canSeeNavItem } from "@/lib/access";
 
 export const EFIN_LOGO_URL =
   "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69156af15abcfb916d821138/8e61b7743_1c.png";
@@ -46,7 +45,6 @@ export const NAV_SECTIONS = [
     items: [
       navItem("Home", "Landing", LayoutDashboard),
       navItem("Dashboard", "Dashboard", LayoutDashboard),
-      navItem("Companies", "Companies", Building2),
       navItem("Customers", "Customers", Users),
     ],
   },
@@ -101,9 +99,8 @@ export const NAV_SECTIONS = [
     id: "administration",
     label: "Administration",
     items: [
+      navItem("Admin Portal", "AdminPortal", Shield),
       navItem("User Management", "UserManagement", UserCog),
-      navItem("Settings", "Settings", SettingsIcon),
-      navItem("BOS Settings", "BOSSettings", FileText),
       navItem("Audit Logs", "AuditLogs", Shield),
       navItem("Integration Diagram", "IntegrationDiagram", BarChart3),
     ],
@@ -125,12 +122,11 @@ export const NEW_ENTRY_ACTIONS = [
   navItem("Purchase", "Purchases", ShoppingCart),
 ];
 
-export function visibleSections(sections, allowedPageIds) {
-  const allowed = allowedPageIds?.length ? new Set(allowedPageIds) : null;
+export function visibleSections(sections, allowedPageIds, user) {
   return sections
     .map((section) => ({
       ...section,
-      items: allowed ? section.items.filter((item) => allowed.has(item.pageId)) : section.items,
+      items: section.items.filter((item) => canSeeNavItem(item, user, allowedPageIds)),
     }))
     .filter((section) => section.items.length > 0);
 }

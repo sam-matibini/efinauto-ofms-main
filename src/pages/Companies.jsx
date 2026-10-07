@@ -12,8 +12,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import CompanyDialog from "@/components/shared/CompanyDialog";
+import AdminDenied from "@/components/admin/AdminDenied";
+import { isAdminUser } from "@/lib/access";
 
-export default function Companies() {
+export default function Companies({ embedded = false }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState(null);
@@ -153,30 +155,41 @@ export default function Companies() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Company Management</h1>
-            <p className="text-sm text-gray-300 mt-1">{filteredCompanies.length} companies</p>
-          </div>
-        {currentUser?.role === 'admin' && (
-          <Button 
-            onClick={() => {
-              setEditingCompany(null);
-              setDialogOpen(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Company
-          </Button>
-        )}
-        </div>
-        </div>
+  if (!isAdminUser(currentUser)) return <AdminDenied />;
 
-        <div className="p-6 md:p-8 max-w-7xl mx-auto">
+  const addCompanyButton = (
+    <Button
+      onClick={() => {
+        setEditingCompany(null);
+        setDialogOpen(true);
+      }}
+      className="bg-[#0A1F44] hover:bg-[#132c5c]"
+    >
+      <Plus className="w-4 h-4 mr-2" />
+      Add Company
+    </Button>
+  );
+
+  return (
+    <div className={embedded ? "" : "min-h-screen bg-gray-50"}>
+      {embedded ? (
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <p className="text-sm text-slate-600">{filteredCompanies.length} companies</p>
+          {addCompanyButton}
+        </div>
+      ) : (
+        <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-white">Company Management</h1>
+              <p className="text-sm text-gray-300 mt-1">{filteredCompanies.length} companies</p>
+            </div>
+            {addCompanyButton}
+          </div>
+        </div>
+      )}
+
+        <div className={embedded ? "" : "p-6 md:p-8 max-w-7xl mx-auto"}>
 
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

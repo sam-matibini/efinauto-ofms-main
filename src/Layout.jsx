@@ -21,10 +21,11 @@ export default function Layout({ children, currentPageName }) {
   const { user: currentUser, isAuthenticated, logout } = useAuth();
 
   const userModules = currentUser?.accessible_modules;
-  const sections = visibleSections(NAV_SECTIONS, userModules);
+  const sections = visibleSections(NAV_SECTIONS, userModules, currentUser);
   const newEntryActions = visibleSections(
     [{ id: "new", label: "New Entry", items: NEW_ENTRY_ACTIONS }],
     userModules,
+    currentUser,
   ).flatMap((section) => section.items);
 
   const updateProfileMutation = useMutation({
