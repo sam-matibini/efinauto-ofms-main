@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/api/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { useCompany } from "@/components/shared/CompanyContext";
@@ -6,48 +6,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   FileText, Download, Printer, Calendar as CalendarIcon, 
   Filter, BarChart3, DollarSign, Wallet, Building2,
-  ChevronDown, RefreshCw, Settings2, Mail, PenTool
+  Settings2, PenTool
 } from "lucide-react";
-import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from "date-fns";
+import { format } from "date-fns";
 import { motion } from "framer-motion";
-import jsPDF from "jspdf";
 
 import ProfitLossStatement from "@/components/accounting/ProfitLossStatement";
 import BalanceSheet from "@/components/accounting/BalanceSheet";
 import CashFlowStatement from "@/components/accounting/CashFlowStatement";
-import AutomatedReportingEngine from "@/components/accounting/AutomatedReportingEngine";
+import AccountantsReport from "@/components/accounting/AccountantsReport";
 import FinancialDashboard from "@/components/accounting/FinancialDashboard";
 import CustomReportBuilder from "@/components/accounting/CustomReportBuilder";
-
-const DATE_PRESETS = [
-  { label: "This Month", getValue: () => ({ from: startOfMonth(new Date()), to: new Date() }) },
-  { label: "Last Month", getValue: () => ({ from: startOfMonth(subMonths(new Date(), 1)), to: endOfMonth(subMonths(new Date(), 1)) }) },
-  { label: "This Quarter", getValue: () => {
-    const now = new Date();
-    const quarter = Math.floor(now.getMonth() / 3);
-    return { from: new Date(now.getFullYear(), quarter * 3, 1), to: now };
-  }},
-  { label: "Last Quarter", getValue: () => {
-    const now = new Date();
-    const quarter = Math.floor(now.getMonth() / 3) - 1;
-    const year = quarter < 0 ? now.getFullYear() - 1 : now.getFullYear();
-    const q = quarter < 0 ? 3 : quarter;
-    return { from: new Date(year, q * 3, 1), to: new Date(year, q * 3 + 3, 0) };
-  }},
-  { label: "This Year", getValue: () => ({ from: startOfYear(new Date()), to: new Date() }) },
-  { label: "Last Year", getValue: () => ({ from: startOfYear(subYears(new Date(), 1)), to: endOfYear(subYears(new Date(), 1)) }) },
-  { label: "Last 12 Months", getValue: () => ({ from: subMonths(new Date(), 12), to: new Date() }) },
-  { label: "Custom", getValue: () => null },
-];
+import useFinancialBooks from "@/components/accounting/useFinancialBooks";
+import { buildAccountantsPackage, financialReportSections, packageRows, sectionsToRows, suggestedPackageKind } from "@/lib/accountantsReport";
+import { downloadCsv } from "@/lib/reportFormat";
+import { downloadReportPdf } from "@/lib/reportPdf";
+import { COMPARE_OPTIONS, DATE_PRESETS, compareCountLabel, compareRanges, presetRange, rangeLabel } from "@/lib/reportPeriods";
 
 const ACCOUNT_TYPES = [
   { id: "all", label: "All Accounts" },
@@ -64,18 +45,25 @@ export default function FinancialReports() {
   
   // Filter States
   const [activeReport, setActiveReport] = useState("dashboard");
-  const [datePreset, setDatePreset] = useState("This Year");
-  const [dateRange, setDateRange] = useState({ 
-    from: startOfYear(new Date()), 
-    to: new Date() 
-  });
-  const [comparePeriod, setComparePeriod] = useState(false);
-  const [comparisonType, setComparisonType] = useState("previous_period");
+  const [datePreset, setDatePreset] = useState("this_year");
+  const [dateRange, setDateRange] = useState(() => presetRange("this_year"));
+  const [compareWith, setCompareWith] = useState("none");
+  const [compareCount, setCompareCount] = useState(1);
+  const [packageKind, setPackageKind] = useState("interim");
+  const [packageKindTouched, setPackageKindTouched] = useState(false);
   const [accountTypeFilter, setAccountTypeFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(true);
   const [reportBasis, setReportBasis] = useState("accrual");
 
   // Fetch company data
+  const { ledger } = useFinancialBooks(reportBasis);
+
+  useEffect(() => {
+    if (!packageKindTouched && dateRange?.from && dateRange?.to) {
+      setPackageKind(suggestedPackageKind(dateRange.from, dateRange.to));
+    }
+  }, [dateRange, packageKindTouched]);
+
   const { data: company } = useQuery({
     queryKey: ['company', selectedCompanyId],
     queryFn: () => supabase.entities.Company.filter({ id: selectedCompanyId }),
@@ -83,87 +71,101 @@ export default function FinancialReports() {
     select: (data) => data[0],
   });
 
-  // Build comparative periods
-  const buildPeriods = () => {
-    const periods = [{ 
-      from: dateRange.from, 
-      to: dateRange.to, 
-      label: `${format(dateRange.from, 'MMM d, yyyy')} - ${format(dateRange.to, 'MMM d, yyyy')}` 
-    }];
+  const comparisons = compareRanges({
+    from: dateRange.from,
+    to: dateRange.to,
+    mode: compareWith,
+    count: compareCount,
+    preset: datePreset,
+  });
 
-    if (comparePeriod) {
-      const duration = dateRange.to - dateRange.from;
-      let compareFrom, compareTo;
+  const buildPeriods = () => [
+    { from: dateRange.from, to: dateRange.to, label: rangeLabel(dateRange.from, dateRange.to) },
+    ...comparisons,
+  ];
 
-      if (comparisonType === "previous_period") {
-        compareTo = new Date(dateRange.from.getTime() - 1);
-        compareFrom = new Date(compareTo.getTime() - duration);
-      } else if (comparisonType === "previous_year") {
-        compareFrom = subYears(dateRange.from, 1);
-        compareTo = subYears(dateRange.to, 1);
-      }
-
-      periods.push({
-        from: compareFrom,
-        to: compareTo,
-        label: `${format(compareFrom, 'MMM d, yyyy')} - ${format(compareTo, 'MMM d, yyyy')}`
-      });
-    }
-
-    return periods;
+  const reportTitle = (report) => {
+    if (report === "income") return "Statement of Income";
+    if (report === "balance") return "Statement of Financial Position";
+    if (report === "cashflow") return "Statement of Cash Flows";
+    if (report === "accountant") return "Accountant's Report";
+    if (report === "custom") return "Custom Report";
+    return "Financial Dashboard";
   };
 
   const handleDatePresetChange = (preset) => {
     setDatePreset(preset);
-    const presetConfig = DATE_PRESETS.find(p => p.label === preset);
-    if (presetConfig && preset !== "Custom") {
-      const range = presetConfig.getValue();
-      if (range) setDateRange(range);
+    const range = presetRange(preset);
+    if (range) setDateRange(range);
+  };
+
+  const handleCustomDate = (edge, date) => {
+    if (!date) return;
+    setDatePreset("custom");
+    setDateRange((current) => {
+      const next = { ...current, [edge]: date };
+      if (next.to < next.from) return edge === "from" ? { from: date, to: date } : { from: date, to: date };
+      return next;
+    });
+  };
+
+  const exportRows = () => {
+    const currentPeriods = buildPeriods();
+    if (activeReport === "accountant") {
+      return packageRows(buildAccountantsPackage({
+        ledger,
+        companyName: company?.name || "Company",
+        from: dateRange.from,
+        to: dateRange.to,
+        kind: packageKind,
+        basis: reportBasis,
+        extraPeriods: currentPeriods.slice(1),
+      }));
     }
+    return sectionsToRows(financialReportSections(ledger, currentPeriods, activeReport), currentPeriods);
   };
 
-  // Export to CSV
-  const exportToCSV = (reportName, data) => {
-    const csvContent = data.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${reportName}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+  const exportToCSV = () => {
+    downloadCsv(`${reportTitle(activeReport).replace(/\s+/g, "-").toLowerCase()}-${format(new Date(), "yyyy-MM-dd")}.csv`, exportRows());
   };
 
-  // Export to PDF
-  const exportToPDF = (reportName) => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    
-    // Header
-    doc.setFontSize(20);
-    doc.setFont("helvetica", "bold");
-    doc.text(reportName, pageWidth / 2, 20, { align: "center" });
-    
-    // Company name
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text(company?.name || "Company", pageWidth / 2, 30, { align: "center" });
-    
-    // Date range
-    doc.setFontSize(10);
-    doc.text(`Period: ${format(dateRange.from, 'MMM d, yyyy')} - ${format(dateRange.to, 'MMM d, yyyy')}`, pageWidth / 2, 38, { align: "center" });
-    doc.text(`Generated: ${format(new Date(), 'MMMM d, yyyy h:mm a')}`, pageWidth / 2, 44, { align: "center" });
-    
-    // Line separator
-    doc.setLineWidth(0.5);
-    doc.line(20, 50, pageWidth - 20, 50);
-    
-    // Note about full report
-    doc.setFontSize(10);
-    doc.text("Full report data available in the application.", 20, 60);
-    doc.text("Use Print function for detailed output.", 20, 68);
-    
-    doc.save(`${reportName.replace(/\s+/g, '-').toLowerCase()}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+  const exportToPDF = () => {
+    const currentPeriods = buildPeriods();
+    const pack = activeReport === "accountant"
+      ? buildAccountantsPackage({
+        ledger,
+        companyName: company?.name || "Company",
+        from: dateRange.from,
+        to: dateRange.to,
+        kind: packageKind,
+        basis: reportBasis,
+        extraPeriods: currentPeriods.slice(1),
+      })
+      : null;
+    const sections = pack
+      ? [
+        ...pack.sections.map((section) => ({ ...section, columns: pack.columns.map((column) => column.label) })),
+        {
+          title: "Notes to the Financial Statements",
+          columns: [],
+          rows: pack.notes.flatMap((note) => [
+            { label: `${note.number}. ${note.title}`, amounts: [], total: true },
+            ...note.paragraphs.map((paragraph) => ({ label: paragraph, amounts: [] })),
+          ]),
+        },
+      ]
+      : financialReportSections(ledger, currentPeriods, activeReport).map((section) => ({
+        ...section,
+        columns: currentPeriods.map((period) => period.label),
+      }));
+    downloadReportPdf({
+      filename: `${reportTitle(activeReport).replace(/\s+/g, "-").toLowerCase()}-${format(new Date(), "yyyy-MM-dd")}.pdf`,
+      title: reportTitle(activeReport),
+      company: company?.name || "Company",
+      subtitle: pack?.periodText || `${rangeLabel(dateRange.from, dateRange.to)} · ${reportBasis === "cash" ? "Cash basis" : "Accrual basis"}`,
+      paragraphs: pack?.preface || [],
+      sections,
+    });
   };
 
   // Print report
@@ -228,8 +230,7 @@ export default function FinancialReports() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Date Preset */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
                   <div className="space-y-2">
                     <Label>Date Range</Label>
                     <Select value={datePreset} onValueChange={handleDatePresetChange}>
@@ -238,7 +239,7 @@ export default function FinancialReports() {
                       </SelectTrigger>
                       <SelectContent>
                         {DATE_PRESETS.map(preset => (
-                          <SelectItem key={preset.label} value={preset.label}>
+                          <SelectItem key={preset.id} value={preset.id}>
                             {preset.label}
                           </SelectItem>
                         ))}
@@ -246,47 +247,34 @@ export default function FinancialReports() {
                     </Select>
                   </div>
 
-                  {/* Custom Date Range */}
-                  {datePreset === "Custom" && (
-                    <>
-                      <div className="space-y-2">
-                        <Label>From</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-full justify-start">
-                              <CalendarIcon className="w-4 h-4 mr-2" />
-                              {format(dateRange.from, 'MMM d, yyyy')}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={dateRange.from}
-                              onSelect={(date) => setDateRange({ ...dateRange, from: date })}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>To</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-full justify-start">
-                              <CalendarIcon className="w-4 h-4 mr-2" />
-                              {format(dateRange.to, 'MMM d, yyyy')}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={dateRange.to}
-                              onSelect={(date) => setDateRange({ ...dateRange, to: date })}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </>
-                  )}
+                  <div className="space-y-2">
+                    <Label>From</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start">
+                          <CalendarIcon className="w-4 h-4 mr-2" />
+                          {format(dateRange.from, "MMM d, yyyy")}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar mode="single" selected={dateRange.from} onSelect={(date) => handleCustomDate("from", date)} />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>To</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start">
+                          <CalendarIcon className="w-4 h-4 mr-2" />
+                          {format(dateRange.to, "MMM d, yyyy")}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar mode="single" selected={dateRange.to} onSelect={(date) => handleCustomDate("to", date)} />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
 
                   {/* Account Type Filter */}
                   <div className="space-y-2">
@@ -321,44 +309,48 @@ export default function FinancialReports() {
                 </div>
 
                 {/* Comparison Options */}
-                <div className="mt-4 pt-4 border-t flex items-center gap-6">
-                  <div className="flex items-center gap-2">
-                    <Checkbox 
-                      id="compare" 
-                      checked={comparePeriod} 
-                      onCheckedChange={setComparePeriod} 
-                    />
-                    <Label htmlFor="compare" className="cursor-pointer">Compare with</Label>
-                  </div>
-                  {comparePeriod && (
-                    <Select value={comparisonType} onValueChange={setComparisonType}>
-                      <SelectTrigger className="w-48">
+                <div className="mt-4 pt-4 border-t grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+                  <div className="space-y-2">
+                    <Label>Compare With</Label>
+                    <Select value={compareWith} onValueChange={setCompareWith}>
+                      <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="previous_period">Previous Period</SelectItem>
-                        <SelectItem value="previous_year">Previous Year</SelectItem>
+                        {COMPARE_OPTIONS.map((option) => (
+                          <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  {compareWith !== "none" && (
+                    <div className="space-y-2">
+                      <Label>{compareCountLabel(compareWith)}</Label>
+                      <Select value={String(compareCount)} onValueChange={(value) => setCompareCount(Number(value))}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 12 }, (_, index) => String(index + 1)).map((value) => (
+                            <SelectItem key={value} value={value}>{value}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   )}
                 </div>
 
-                {/* Active Filters Summary */}
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Badge variant="secondary">
-                    {format(dateRange.from, 'MMM d')} - {format(dateRange.to, 'MMM d, yyyy')}
-                  </Badge>
+                  <Badge variant="secondary">{rangeLabel(dateRange.from, dateRange.to)}</Badge>
+                  {comparisons.map((period) => (
+                    <Badge key={period.label} variant="outline">vs {period.label}</Badge>
+                  ))}
                   {accountTypeFilter !== "all" && (
                     <Badge variant="secondary">
                       {ACCOUNT_TYPES.find(t => t.id === accountTypeFilter)?.label}
                     </Badge>
                   )}
                   <Badge variant="secondary">{reportBasis === "accrual" ? "Accrual Basis" : "Cash Basis"}</Badge>
-                  {comparePeriod && (
-                    <Badge variant="secondary">
-                      vs {comparisonType === "previous_period" ? "Previous Period" : "Previous Year"}
-                    </Badge>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -368,7 +360,7 @@ export default function FinancialReports() {
         {/* Report Tabs */}
         <Tabs value={activeReport} onValueChange={setActiveReport}>
           <div className="flex justify-between items-center mb-4 print:hidden">
-            <TabsList className="grid grid-cols-6 w-auto">
+            <TabsList className="flex h-auto w-auto flex-wrap justify-start">
               <TabsTrigger value="dashboard" className="flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />
                 Dashboard
@@ -389,34 +381,18 @@ export default function FinancialReports() {
                 <PenTool className="w-4 h-4" />
                 Custom Reports
               </TabsTrigger>
-              <TabsTrigger value="automated" className="flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                Auto Reports
+              <TabsTrigger value="accountant" className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Accountant's Report
               </TabsTrigger>
             </TabsList>
 
-            {/* Export Buttons */}
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => exportToCSV(
-                  activeReport === "income" ? "Income-Statement" : 
-                  activeReport === "balance" ? "Balance-Sheet" : "Cash-Flow",
-                  [["Report exported from Financial Reports module"]]
-                )}
-              >
+              <Button variant="outline" size="sm" onClick={exportToCSV}>
                 <Download className="w-4 h-4 mr-2" />
                 CSV
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => exportToPDF(
-                  activeReport === "income" ? "Income Statement" : 
-                  activeReport === "balance" ? "Balance Sheet" : "Cash Flow Statement"
-                )}
-              >
+              <Button variant="outline" size="sm" onClick={exportToPDF}>
                 <FileText className="w-4 h-4 mr-2" />
                 PDF
               </Button>
@@ -431,14 +407,10 @@ export default function FinancialReports() {
           <div ref={reportRef}>
             {/* Print Header */}
             <div className="hidden print:block mb-6">
-              <h1 className="text-2xl font-bold text-center">
-                {activeReport === "dashboard" ? "Financial Dashboard" :
-                 activeReport === "income" ? "Income Statement" : 
-                 activeReport === "balance" ? "Balance Sheet" : "Cash Flow Statement"}
-              </h1>
+              <h1 className="text-2xl font-bold text-center">{reportTitle(activeReport)}</h1>
               <p className="text-center text-gray-600">{company?.name}</p>
               <p className="text-center text-sm text-gray-500">
-                {format(dateRange.from, 'MMMM d, yyyy')} - {format(dateRange.to, 'MMMM d, yyyy')}
+                {rangeLabel(dateRange.from, dateRange.to)}
               </p>
               <p className="text-center text-xs text-gray-400 mt-2">
                 Generated on {format(new Date(), 'MMMM d, yyyy h:mm a')}
@@ -478,8 +450,17 @@ export default function FinancialReports() {
               <CustomReportBuilder />
             </TabsContent>
 
-            <TabsContent value="automated">
-              <AutomatedReportingEngine />
+            <TabsContent value="accountant">
+              <AccountantsReport
+                dateRange={dateRange}
+                periods={periods}
+                reportBasis={reportBasis}
+                kind={packageKind}
+                onKindChange={(next) => {
+                  setPackageKindTouched(true);
+                  setPackageKind(next);
+                }}
+              />
             </TabsContent>
           </div>
         </Tabs>
@@ -545,18 +526,15 @@ export default function FinancialReports() {
       {/* Print Styles */}
       <style>{`
         @media print {
-          body * {
-            visibility: hidden;
-          }
-          .print\\:block, .print\\:block * {
-            visibility: visible;
-          }
-          .print\\:hidden {
+          .print\\:hidden, button, [role="tablist"] {
             display: none !important;
+          }
+          body {
+            background: white;
           }
           @page {
             margin: 1cm;
-            size: A4;
+            size: letter;
           }
         }
       `}</style>

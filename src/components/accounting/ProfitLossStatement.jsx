@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import useFinancialBooks from "@/components/accounting/useFinancialBooks";
 import { accountActivity, formatAccounting, formatStatementDate, profitAndLoss } from "@/lib/financialStatements";
+import { downloadCsv, formatExportAmount } from "@/lib/reportFormat";
 
 const DRILLDOWNS = {
   vehicleSalesRevenue: { title: "Vehicle Sales Revenue", codes: ["4000"], normal: "credit" },
@@ -71,27 +72,19 @@ export default function ProfitLossStatement({ comparativePeriods = [], reportBas
   const exportToCSV = () => {
     const headers = ['Account', ...periods.map(p => p.label)];
     const rows = [
-      ['Revenue', ...periodData.map(d => d.revenue.toFixed(2))],
-      ['Cost of Goods Sold', ...periodData.map(d => d.cogs.toFixed(2))],
-      ['Gross Profit', ...periodData.map(d => d.grossProfit.toFixed(2))],
-      ['Operating Expenses', ...periodData.map(d => d.operatingExpenses.toFixed(2))],
-      ['Net Profit', ...periodData.map(d => d.netProfit.toFixed(2))],
+      ['Revenue', ...periodData.map(d => formatExportAmount(d.revenue))],
+      ['Cost of Goods Sold', ...periodData.map(d => formatExportAmount(d.cogs))],
+      ['Gross Profit', ...periodData.map(d => formatExportAmount(d.grossProfit))],
+      ['Operating Expenses', ...periodData.map(d => formatExportAmount(d.operatingExpenses))],
+      ['Net Profit', ...periodData.map(d => formatExportAmount(d.netProfit))],
     ];
-    
-    const csvContent = [
+    downloadCsv(`profit-loss-${format(new Date(), 'yyyy-MM-dd')}.csv`, [
       ['Profit & Loss Statement'],
       ['Generated on', format(new Date(), 'MMMM d, yyyy')],
       [],
       headers,
-      ...rows
-    ].map(row => row.join(',')).join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `profit-loss-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    a.click();
+      ...rows,
+    ]);
   };
 
   const exportToPDF = () => {

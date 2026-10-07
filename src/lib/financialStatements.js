@@ -103,7 +103,7 @@ export function formatStatementDate(value) {
 export function formatAccounting(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return "$0.00";
-  const abs = Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const abs = Math.abs(n).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return n < 0 ? `-$${abs}` : `$${abs}`;
 }
 

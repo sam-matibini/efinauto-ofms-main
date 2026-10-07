@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import useFinancialBooks from "@/components/accounting/useFinancialBooks";
 import { accountActivity, cashFlowStatement, formatAccounting, formatStatementDate } from "@/lib/financialStatements";
+import { downloadCsv, formatExportAmount } from "@/lib/reportFormat";
 
 export default function CashFlowStatement({ comparativePeriods = [], reportBasis = "accrual" }) {
   const { ledger } = useFinancialBooks(reportBasis);
@@ -65,25 +66,19 @@ export default function CashFlowStatement({ comparativePeriods = [], reportBasis
 
   const handleExport = () => {
     const headers = ['Account', ...periods.map(p => p.label)];
-    const csvContent = [
+    const money = (pick) => periodData.map((row) => formatExportAmount(pick(row)));
+    downloadCsv(`cash-flow-${format(new Date(), 'yyyy-MM-dd')}.csv`, [
       ['Statement of Cash Flows'],
       ['Generated on', format(new Date(), 'MMMM d, yyyy')],
       [],
       headers,
-      ['Cash from Sales', ...periodData.map(d => d.cashFromSales.toFixed(2))],
-      ['Cash to Suppliers', ...periodData.map(d => `-${d.cashPaidToSuppliers.toFixed(2)}`)],
-      ['Operating Expenses', ...periodData.map(d => `-${d.operatingExpenses.toFixed(2)}`)],
-      ['Net Cash from Operating', ...periodData.map(d => d.netCashFromOperating.toFixed(2))],
-      ['Net Cash from Investing', ...periodData.map(d => d.netCashFromInvesting.toFixed(2))],
-      ['Net Change in Cash', ...periodData.map(d => d.netChangeInCash.toFixed(2))],
-    ].map(row => row.join(',')).join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `cash-flow-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    a.click();
+      ['Cash from Sales', ...money((row) => row.cashFromSales)],
+      ['Cash to Suppliers', ...money((row) => -row.cashPaidToSuppliers)],
+      ['Operating Expenses', ...money((row) => -row.operatingExpenses)],
+      ['Net Cash from Operating', ...money((row) => row.netCashFromOperating)],
+      ['Net Cash from Investing', ...money((row) => row.netCashFromInvesting)],
+      ['Net Change in Cash', ...money((row) => row.netChangeInCash)],
+    ]);
   };
 
   return (

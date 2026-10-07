@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import useFinancialBooks from "@/components/accounting/useFinancialBooks";
 import { accountActivity, balanceSheet, formatAccounting, formatStatementDate } from "@/lib/financialStatements";
+import { downloadCsv, formatExportAmount } from "@/lib/reportFormat";
 
 const DRILLDOWNS = {
   cashAndBank: { title: "Cash and Bank", codes: ["1000", "1050"], normal: "debit" },
@@ -72,31 +73,25 @@ export default function BalanceSheet({ comparativePeriods = [], reportBasis = "a
 
   const exportToCSV = () => {
     const headers = ['Account', ...periods.map(p => p.label)];
-    const csvContent = [
+    const money = (pick) => periodData.map((row) => formatExportAmount(pick(row)));
+    downloadCsv(`balance-sheet-${format(new Date(), 'yyyy-MM-dd')}.csv`, [
       ['Balance Sheet'],
       ['Generated on', format(new Date(), 'MMMM d, yyyy')],
       [],
       headers,
-      ['Cash and Bank', ...periodData.map(d => d.cashAndBank.toFixed(2))],
-      ['Accounts Receivable', ...periodData.map(d => d.accountsReceivable.toFixed(2))],
-      ['Vehicle Inventory', ...periodData.map(d => d.vehicleInventory.toFixed(2))],
-      ['Parts and Other Inventory', ...periodData.map(d => d.otherInventory.toFixed(2))],
-      ['Sales Tax Receivable', ...periodData.map(d => d.taxReceivable.toFixed(2))],
-      ['Total Assets', ...periodData.map(d => d.totalAssets.toFixed(2))],
-      ['Accounts Payable', ...periodData.map(d => d.accountsPayable.toFixed(2))],
-      ['Sales Tax Payable', ...periodData.map(d => d.taxPayable.toFixed(2))],
-      ['Total Liabilities', ...periodData.map(d => d.totalLiabilities.toFixed(2))],
-      ['Owner Equity', ...periodData.map(d => d.ownerEquity.toFixed(2))],
-      ['Retained Earnings', ...periodData.map(d => d.retainedEarnings.toFixed(2))],
-      ['Total Liabilities and Equity', ...periodData.map(d => d.totalLiabilitiesAndEquity.toFixed(2))],
-    ].map(row => row.join(',')).join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `balance-sheet-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    a.click();
+      ['Cash and Bank', ...money((row) => row.cashAndBank)],
+      ['Accounts Receivable', ...money((row) => row.accountsReceivable)],
+      ['Vehicle Inventory', ...money((row) => row.vehicleInventory)],
+      ['Parts and Other Inventory', ...money((row) => row.otherInventory)],
+      ['Sales Tax Receivable', ...money((row) => row.taxReceivable)],
+      ['Total Assets', ...money((row) => row.totalAssets)],
+      ['Accounts Payable', ...money((row) => row.accountsPayable)],
+      ['Sales Tax Payable', ...money((row) => row.taxPayable)],
+      ['Total Liabilities', ...money((row) => row.totalLiabilities)],
+      ['Owner Equity', ...money((row) => row.ownerEquity)],
+      ['Retained Earnings', ...money((row) => row.retainedEarnings)],
+      ['Total Liabilities and Equity', ...money((row) => row.totalLiabilitiesAndEquity)],
+    ]);
   };
 
   return (

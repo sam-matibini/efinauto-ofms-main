@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import useFinancialBooks from "@/components/accounting/useFinancialBooks";
 import { accountActivity, dayKey, formatAccounting, formatStatementDate, retainedEarningsStatement } from "@/lib/financialStatements";
+import { downloadCsv, formatExportAmount } from "@/lib/reportFormat";
 
 export default function RetainedEarningsStatement({ comparativePeriods = [], reportBasis = "accrual" }) {
   const { ledger } = useFinancialBooks(reportBasis);
@@ -56,23 +57,17 @@ export default function RetainedEarningsStatement({ comparativePeriods = [], rep
 
   const exportToCSV = () => {
     const headers = ['Account', ...periods.map(p => p.label)];
-    const csvContent = [
+    const money = (pick) => periodData.map((row) => formatExportAmount(pick(row)));
+    downloadCsv(`retained-earnings-${format(new Date(), 'yyyy-MM-dd')}.csv`, [
       ['Statement of Retained Earnings'],
       ['Generated on', format(new Date(), 'MMMM d, yyyy')],
       [],
       headers,
-      ['Beginning Retained Earnings', ...periodData.map(d => d.beginningRetainedEarnings.toFixed(2))],
-      ['Add: Net Income', ...periodData.map(d => d.netIncome.toFixed(2))],
-      ['Less: Dividends', ...periodData.map(d => d.dividends.toFixed(2))],
-      ['Ending Retained Earnings', ...periodData.map(d => d.endingRetainedEarnings.toFixed(2))],
-    ].map(row => row.join(',')).join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `retained-earnings-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    a.click();
+      ['Beginning Retained Earnings', ...money((row) => row.beginningRetainedEarnings)],
+      ['Add: Net Income', ...money((row) => row.netIncome)],
+      ['Less: Dividends', ...money((row) => row.dividends)],
+      ['Ending Retained Earnings', ...money((row) => row.endingRetainedEarnings)],
+    ]);
   };
 
   return (
