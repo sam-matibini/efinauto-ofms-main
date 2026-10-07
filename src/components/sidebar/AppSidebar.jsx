@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, Plus } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -8,7 +8,6 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import CompanySelector from "@/components/shared/CompanySelector";
 import { EFIN_LOGO_URL } from "./navigation";
 
@@ -55,7 +54,7 @@ function NavSection({ section, pathname }) {
   );
 }
 
-export default function AppSidebar({ sections, pathname, newEntryActions, onAddCompany, currentUser, onEditProfile }) {
+export default function AppSidebar({ sections, pathname, onAddCompany, currentUser, onEditProfile }) {
   return (
     <Sidebar
       className="border-r border-white/10"
@@ -80,37 +79,7 @@ export default function AppSidebar({ sections, pathname, newEntryActions, onAddC
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="space-y-3 border-t border-white/10 bg-[#0A1F44] p-4">
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#A8FF60] px-4 py-3 text-sm font-semibold text-[#0A1F44] shadow-lg transition-transform duration-200 hover:-translate-y-0.5 hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-            >
-              <Plus className="h-4 w-4" strokeWidth={1.75} />
-              New Entry
-            </button>
-          </PopoverTrigger>
-          <PopoverContent side="top" align="center" className="w-56 p-2">
-            <p className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-[#0A1F44]/70">New Entry</p>
-            <div className="mt-1 flex flex-col">
-              {newEntryActions.map((action) => {
-                const Icon = action.icon;
-                return (
-                  <Link
-                    key={action.pageId}
-                    to={action.url}
-                    className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-[#0A1F44] hover:bg-[#F5F6F8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#0A1F44]"
-                  >
-                    <Icon className="h-4 w-4" strokeWidth={1.75} />
-                    {action.title}
-                  </Link>
-                );
-              })}
-            </div>
-          </PopoverContent>
-        </Popover>
-
+      <SidebarFooter className="border-t border-white/10 bg-[#0A1F44] p-4">
         <button
           type="button"
           onClick={onEditProfile}

@@ -90,7 +90,6 @@ export default function Layout({ children, currentPageName }) {
               <AppSidebar
                 sections={sections}
                 pathname={location.pathname}
-                newEntryActions={newEntryActions}
                 onAddCompany={() => setCompanyDialogOpen(true)}
                 currentUser={currentUser}
                 onEditProfile={() => setProfileDialogOpen(true)}
@@ -103,6 +102,7 @@ export default function Layout({ children, currentPageName }) {
                   currentUser={currentUser}
                   onEditProfile={() => setProfileDialogOpen(true)}
                   onLogout={handleLogout}
+                  newEntryActions={newEntryActions}
                 />
               )}
 
