@@ -4,16 +4,13 @@ import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
-  DollarSign, 
   TrendingUp, 
   TrendingDown, 
   Wallet,
   BarChart3,
-  Play,
   Filter
 } from "lucide-react";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subDays, subWeeks, subMonths, subQuarters, subYears } from "date-fns";
@@ -33,7 +30,6 @@ import FXGainLossCalculator from "@/components/shared/FXGainLossCalculator";
 
 export default function Accounting() {
   const { selectedCompanyId } = useCompany();
-  const [comparativePeriods, setComparativePeriods] = useState([]);
   const [activePeriods, setActivePeriods] = useState([]);
   const [dateRange, setDateRange] = useState("this_year");
   const [reportBasis, setReportBasis] = useState("accrual");
@@ -93,11 +89,7 @@ export default function Accounting() {
   };
 
   const handlePeriodsChange = (periods) => {
-    setComparativePeriods(periods);
-  };
-
-  const handleRunReport = () => {
-    setActivePeriods(comparativePeriods);
+    setActivePeriods(periods);
   };
 
   const { data: transactions = [], isLoading: loadingTransactions } = useQuery({
@@ -292,11 +284,6 @@ export default function Accounting() {
     previous_year: 'Previous Year'
   };
   
-  // When date range filter changes, reset activePeriods so reports use the new filter
-  React.useEffect(() => {
-    setActivePeriods([]);
-  }, [dateRange]);
-
   const effectivePeriods = activePeriods.length > 0 
     ? activePeriods 
     : [{ from: selectedDateRange.from, to: selectedDateRange.to, label: dateRangeLabels[dateRange] || 'Current Period' }];
@@ -337,14 +324,15 @@ export default function Accounting() {
     };
   });
 
-  // Use first period for main display
-  const currentPeriod = periodMetrics[0] || { revenue: 0, expenses: 0, profit: 0 };
+  const selectedLabel = dateRangeLabels[dateRange] || "Current Period";
+  const currentPeriod = periodMetrics.find((period) => period.label === selectedLabel) || periodMetrics[0] || { revenue: 0, expenses: 0, profit: 0 };
   const totalRevenue = currentPeriod.revenue;
   const totalExpenses = currentPeriod.expenses;
   const netProfit = currentPeriod.profit;
 
-  // Calculate growth compared to previous period
-  const previousPeriod = periodMetrics[1];
+  const previousPeriod = periodMetrics
+    .filter((period) => period !== currentPeriod)
+    .sort((left, right) => right.dateRange.to - left.dateRange.to)[0];
   const revenueGrowth = previousPeriod && previousPeriod.revenue > 0
     ? ((totalRevenue - previousPeriod.revenue) / previousPeriod.revenue * 100).toFixed(1)
     : 0;
@@ -424,20 +412,14 @@ export default function Accounting() {
         </Card>
 
         {/* Period Comparison Selector */}
-        <PeriodComparison onPeriodsChange={handlePeriodsChange} maxPeriods={12} />
-
-        {comparativePeriods.length > 0 && (
-          <div className="flex justify-end">
-            <Button 
-              onClick={handleRunReport} 
-              size="lg"
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Play className="w-4 h-4 mr-2" />
-              Run Comparison Report
-            </Button>
-          </div>
-        )}
+        <PeriodComparison
+          from={selectedDateRange.from}
+          to={selectedDateRange.to}
+          preset={dateRange}
+          currentLabel={dateRangeLabels[dateRange] || "Current Period"}
+          onPeriodsChange={handlePeriodsChange}
+          maxPeriods={12}
+        />
 
         {/* Comparative Periods Summary */}
         {activePeriods.length > 0 && (

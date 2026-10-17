@@ -1,21 +1,27 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/api/supabaseClient";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle, Loader2, Sparkles } from "lucide-react";
+import { CheckCircle, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { payrollRules } from "@/lib/canadianTaxSchedule";
+
+const taxRules = payrollRules();
+
+function provincialBasicAmount(code) {
+  return taxRules.personal[code]?.amount || taxRules.personal.ON.amount;
+}
 
 export default function TD1Form() {
   const urlParams = new URLSearchParams(window.location.search);
   const employeeId = urlParams.get('employee_id');
   const [submitted, setSubmitted] = useState(false);
   const [selectedProvince, setSelectedProvince] = useState("ON");
-  const [aiLoading, setAiLoading] = useState(false);
 
   const { data: employee, isLoading } = useQuery({
     queryKey: ['employee', employeeId],
@@ -30,15 +36,15 @@ export default function TD1Form() {
   });
 
   const [federalData, setFederalData] = useState({
-    basic_personal_amount: 15000,
+    basic_personal_amount: taxRules.personal.federal.amount,
     additional_amount: 0,
-    total_claim_amount: 15000
+    total_claim_amount: taxRules.personal.federal.amount
   });
 
   const [provincialData, setProvincialData] = useState({
-    basic_personal_amount: 11809,
+    basic_personal_amount: provincialBasicAmount("ON"),
     additional_amount: 0,
-    total_claim_amount: 11809
+    total_claim_amount: provincialBasicAmount("ON")
   });
 
   useEffect(() => {
@@ -76,55 +82,29 @@ export default function TD1Form() {
     onError: () => toast.error("Failed to submit forms")
   });
 
-  const fetchTaxCreditsWithAI = async () => {
-    setAiLoading(true);
-    try {
-      const response = await supabase.integrations.Core.InvokeLLM({
-        prompt: `Search the Canada Revenue Agency (CRA) official website for the EXACT tax credit amounts for tax year 2025:
+  useEffect(() => {
+    const amount = provincialBasicAmount(selectedProvince);
+    setProvincialData((prev) => ({
+      ...prev,
+      basic_personal_amount: amount,
+      total_claim_amount: amount + (parseFloat(prev.additional_amount) || 0),
+    }));
+  }, [selectedProvince]);
 
-Province/Territory: ${selectedProvince}
-
-Find the official CRA amounts for:
-1. Federal basic personal amount for 2025 tax year (from CRA TD1 federal form)
-2. Provincial/territorial basic personal amount for ${selectedProvince} for 2025 tax year (from provincial TD1 form)
-
-IMPORTANT: 
-- Get the exact dollar amounts from official CRA sources only (canada.ca website)
-- Use the 2025 tax year amounts
-- Return precise numbers from official TD1 forms, not estimates
-- The federal BPA for 2025 should be around $15,705
-- Provincial amounts vary by province/territory (e.g., Ontario: $12,399, BC: $12,580, etc.)
-
-Provide the exact amounts in Canadian dollars.`,
-        add_context_from_internet: true,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            federal_basic_amount: { type: "number" },
-            provincial_basic_amount: { type: "number" },
-            federal_explanation: { type: "string" },
-            provincial_explanation: { type: "string" }
-          }
-        }
-      });
-
-      setFederalData(prev => ({
-        ...prev,
-        basic_personal_amount: response.federal_basic_amount
-      }));
-
-      setProvincialData(prev => ({
-        ...prev,
-        basic_personal_amount: response.provincial_basic_amount
-      }));
-
-      toast.success(`Tax credits updated for ${selectedProvince} with current CRA guidelines`);
-    } catch (error) {
-      console.error("AI fetch error:", error);
-      toast.error("Failed to fetch tax credits. Please enter manually.");
-    } finally {
-      setAiLoading(false);
-    }
+  const applyCurrentTaxCredits = () => {
+    const federal = taxRules.personal.federal.amount;
+    const provincial = provincialBasicAmount(selectedProvince);
+    setFederalData((prev) => ({
+      ...prev,
+      basic_personal_amount: federal,
+      total_claim_amount: federal + (parseFloat(prev.additional_amount) || 0),
+    }));
+    setProvincialData((prev) => ({
+      ...prev,
+      basic_personal_amount: provincial,
+      total_claim_amount: provincial + (parseFloat(prev.additional_amount) || 0),
+    }));
+    toast.success(`${taxRules.taxYear} basic personal amounts applied for ${selectedProvince}`);
   };
 
   const handleSubmit = () => {
@@ -236,28 +216,18 @@ Provide the exact amounts in Canadian dollars.`,
                 </Select>
               </div>
               <div>
-                <Button 
-                  onClick={fetchTaxCreditsWithAI} 
-                  disabled={aiLoading}
+                <Button
+                  onClick={applyCurrentTaxCredits}
                   variant="outline"
                   className="w-full border-blue-400 hover:bg-blue-50"
                 >
-                  {aiLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Fetching CRA Guidelines...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      AI: Get Current CRA Tax Credits
-                    </>
-                  )}
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Apply {taxRules.taxYear} CRA amounts
                 </Button>
               </div>
             </div>
             <p className="text-xs text-blue-700 mt-2">
-              💡 Use AI to automatically fetch the latest CRA tax credit amounts for your province
+              Basic personal amounts follow the {taxRules.taxYear} federal and provincial schedule. Changing the province updates the provincial amount.
             </p>
           </CardContent>
         </Card>
@@ -272,9 +242,9 @@ Provide the exact amounts in Canadian dollars.`,
 
               <TabsContent value="federal" className="space-y-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-blue-900 mb-2">Federal Personal Tax Credits (2024)</h3>
+                  <h3 className="font-semibold text-blue-900 mb-2">Federal Personal Tax Credits ({taxRules.taxYear})</h3>
                   <p className="text-sm text-blue-800">
-                    The basic personal amount for 2024 is $15,000. You may claim additional amounts if applicable.
+                    The basic personal amount for {taxRules.taxYear} is ${taxRules.personal.federal.amount.toLocaleString("en-CA")}. You may claim additional amounts if applicable.
                   </p>
                 </div>
 
@@ -286,7 +256,7 @@ Provide the exact amounts in Canadian dollars.`,
                     value={federalData.basic_personal_amount}
                     onChange={(e) => handleFederalAmountChange('basic_personal_amount', e.target.value)}
                   />
-                  <p className="text-xs text-gray-500 mt-1">Standard federal basic personal amount: $15,000</p>
+                  <p className="text-xs text-gray-500 mt-1">Standard federal basic personal amount: ${taxRules.personal.federal.amount.toLocaleString("en-CA")}</p>
                 </div>
 
                 <div>
@@ -328,7 +298,7 @@ Provide the exact amounts in Canadian dollars.`,
                     value={provincialData.basic_personal_amount}
                     onChange={(e) => handleProvincialAmountChange('basic_personal_amount', e.target.value)}
                   />
-                  <p className="text-xs text-gray-500 mt-1">{selectedProvince} basic personal amount (varies by province)</p>
+                  <p className="text-xs text-gray-500 mt-1">{selectedProvince} basic personal amount for {taxRules.taxYear}: ${provincialBasicAmount(selectedProvince).toLocaleString("en-CA")}</p>
                 </div>
 
                 <div>

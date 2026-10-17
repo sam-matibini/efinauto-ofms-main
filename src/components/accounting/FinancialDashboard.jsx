@@ -1,10 +1,9 @@
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/api/supabaseClient";
-import { useCompany } from "@/components/shared/CompanyContext";
+import useFinancialBooks from "@/components/accounting/useFinancialBooks";
+import { balanceSheet, cashFlowStatement, profitAndLoss } from "@/lib/financialStatements";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
 } from "recharts";
 import { 
@@ -13,221 +12,76 @@ import {
 } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 
-export default function FinancialDashboard({ dateRange, accountTypeFilter = "all" }) {
-  const { selectedCompanyId } = useCompany();
+export default function FinancialDashboard({ dateRange, reportBasis = "accrual" }) {
+  const { ledger } = useFinancialBooks(reportBasis);
 
-  const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions', selectedCompanyId],
-    queryFn: () => supabase.entities.Transaction.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-  });
-
-  const { data: sales = [] } = useQuery({
-    queryKey: ['sales', selectedCompanyId],
-    queryFn: () => supabase.entities.Sale.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-  });
-
-  const { data: purchases = [] } = useQuery({
-    queryKey: ['purchases', selectedCompanyId],
-    queryFn: () => supabase.entities.Purchase.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-  });
-
-  const { data: vehicles = [] } = useQuery({
-    queryKey: ['vehicles', selectedCompanyId],
-    queryFn: () => supabase.entities.Vehicle.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-  });
-
-  const { data: accounts = [] } = useQuery({
-    queryKey: ['accounts', selectedCompanyId],
-    queryFn: () => supabase.entities.Account.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-  });
-
-  // Generate monthly data for the last 12 months
   const monthlyData = React.useMemo(() => {
     const months = [];
     for (let i = 11; i >= 0; i--) {
       const monthDate = subMonths(new Date(), i);
       const monthStart = startOfMonth(monthDate);
       const monthEnd = endOfMonth(monthDate);
-
-      // Filter by date range if provided
       if (dateRange?.from && monthEnd < dateRange.from) continue;
       if (dateRange?.to && monthStart > dateRange.to) continue;
-
-      const monthSales = sales.filter(s => {
-        const saleDate = new Date(s.sale_date || s.created_date);
-        return saleDate >= monthStart && saleDate <= monthEnd;
-      });
-
-      const monthPurchases = purchases.filter(p => {
-        const purchaseDate = new Date(p.order_date || p.created_date);
-        return purchaseDate >= monthStart && purchaseDate <= monthEnd;
-      });
-
-      const revenue = monthSales.reduce((sum, s) => sum + (s.grand_total || s.sale_price || 0), 0);
-      
-      const cogs = monthSales.reduce((sum, s) => {
-        if (s.vehicle_id) {
-          const vehicle = vehicles.find(v => v.id === s.vehicle_id);
-          return sum + (vehicle?.total_cost || vehicle?.purchase_price || 0);
-        }
-        return sum;
-      }, 0);
-
-      const expenses = transactions
-        .filter(t => {
-          const transDate = new Date(t.transaction_date);
-          if (transDate < monthStart || transDate > monthEnd) return false;
-          const account = accounts.find(a => a.id === t.account_id);
-          if (accountTypeFilter !== "all" && account?.account_type !== accountTypeFilter) return false;
-          return account?.account_type === 'expense';
-        })
-        .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-      const grossProfit = revenue - cogs;
-      const netProfit = grossProfit - expenses;
-
-      const cashIn = monthSales
-        .filter(s => s.payment_status === 'paid')
-        .reduce((sum, s) => sum + (s.total_paid || 0), 0);
-
-      const cashOut = monthPurchases
-        .filter(p => p.payment_status === 'paid')
-        .reduce((sum, p) => sum + (p.amount_paid || 0), 0);
-
+      const earnings = profitAndLoss(ledger, monthStart, monthEnd);
+      const flow = cashFlowStatement(ledger, monthStart, monthEnd);
+      const cashIn = Math.max(flow.cashFromSales, 0) + Math.max(flow.netCashFromFinancing, 0);
+      const cashOut = flow.cashPaidToSuppliers + flow.vehicleInventoryPurchases + flow.equipmentPurchases
+        + Math.max(flow.operatingExpenses, 0) + Math.max(-flow.netCashFromFinancing, 0) + Math.max(-flow.cashFromSales, 0);
       months.push({
-        month: format(monthDate, 'MMM yy'),
-        revenue,
-        cogs,
-        grossProfit,
-        expenses,
-        netProfit,
+        month: format(monthDate, "MMM yy"),
+        revenue: earnings.revenue,
+        cogs: earnings.cogs,
+        grossProfit: earnings.grossProfit,
+        expenses: earnings.operatingExpenses + earnings.payrollExpenses,
+        netProfit: earnings.netProfit,
         cashIn,
         cashOut,
-        netCash: cashIn - cashOut
+        netCash: flow.netChangeInCash,
       });
     }
     return months;
-  }, [sales, purchases, transactions, vehicles, accounts, dateRange, accountTypeFilter]);
+  }, [ledger, dateRange]);
 
-  // Current period totals
   const currentTotals = React.useMemo(() => {
-    const filteredSales = sales.filter(s => {
-      const saleDate = new Date(s.sale_date || s.created_date);
-      if (dateRange?.from && saleDate < dateRange.from) return false;
-      if (dateRange?.to && saleDate > dateRange.to) return false;
-      return true;
-    });
+    const earnings = profitAndLoss(ledger, dateRange?.from, dateRange?.to);
+    const position = balanceSheet(ledger, dateRange?.to || new Date());
+    const grossMargin = earnings.revenue > 0 ? (earnings.grossProfit / earnings.revenue) * 100 : 0;
+    const netMargin = earnings.revenue > 0 ? (earnings.netProfit / earnings.revenue) * 100 : 0;
+    return {
+      revenue: earnings.revenue,
+      cogs: earnings.cogs,
+      grossProfit: earnings.grossProfit,
+      expenses: earnings.operatingExpenses + earnings.payrollExpenses,
+      netProfit: earnings.netProfit,
+      grossMargin,
+      netMargin,
+      inventory: position.vehicleInventory + position.otherInventory,
+      receivables: position.accountsReceivable,
+      payables: position.accountsPayable,
+    };
+  }, [ledger, dateRange]);
 
-    const filteredPurchases = purchases.filter(p => {
-      const purchaseDate = new Date(p.order_date || p.created_date);
-      if (dateRange?.from && purchaseDate < dateRange.from) return false;
-      if (dateRange?.to && purchaseDate > dateRange.to) return false;
-      return true;
-    });
-
-    const revenue = filteredSales.reduce((sum, s) => sum + (s.grand_total || s.sale_price || 0), 0);
-    
-    const cogs = filteredSales.reduce((sum, s) => {
-      if (s.vehicle_id) {
-        const vehicle = vehicles.find(v => v.id === s.vehicle_id);
-        return sum + (vehicle?.total_cost || vehicle?.purchase_price || 0);
-      }
-      return sum;
-    }, 0);
-
-    const expenses = transactions
-      .filter(t => {
-        const transDate = new Date(t.transaction_date);
-        if (dateRange?.from && transDate < dateRange.from) return false;
-        if (dateRange?.to && transDate > dateRange.to) return false;
-        const account = accounts.find(a => a.id === t.account_id);
-        return account?.account_type === 'expense';
-      })
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-    const grossProfit = revenue - cogs;
-    const netProfit = grossProfit - expenses;
-    const grossMargin = revenue > 0 ? (grossProfit / revenue * 100) : 0;
-    const netMargin = revenue > 0 ? (netProfit / revenue * 100) : 0;
-
-    const inventory = vehicles
-      .filter(v => v.status === 'in_stock')
-      .reduce((sum, v) => sum + (v.total_cost || v.purchase_price || 0), 0);
-
-    const receivables = filteredSales
-      .filter(s => s.payment_status !== 'paid')
-      .reduce((sum, s) => sum + ((s.grand_total || s.sale_price || 0) - (s.total_paid || 0)), 0);
-
-    const payables = filteredPurchases
-      .filter(p => p.payment_status !== 'paid')
-      .reduce((sum, p) => sum + ((p.total_amount || 0) - (p.amount_paid || 0)), 0);
-
-    return { revenue, cogs, grossProfit, expenses, netProfit, grossMargin, netMargin, inventory, receivables, payables };
-  }, [sales, purchases, transactions, vehicles, accounts, dateRange]);
-
-  // Revenue breakdown by type
   const revenueBreakdown = React.useMemo(() => {
-    const vehicleSales = sales
-      .filter(s => {
-        const saleDate = new Date(s.sale_date || s.created_date);
-        if (dateRange?.from && saleDate < dateRange.from) return false;
-        if (dateRange?.to && saleDate > dateRange.to) return false;
-        return s.sale_type === 'domestic' || !s.sale_type;
-      })
-      .reduce((sum, s) => sum + (s.grand_total || s.sale_price || 0), 0);
-
-    const exportSales = sales
-      .filter(s => {
-        const saleDate = new Date(s.sale_date || s.created_date);
-        if (dateRange?.from && saleDate < dateRange.from) return false;
-        if (dateRange?.to && saleDate > dateRange.to) return false;
-        return s.sale_type === 'export';
-      })
-      .reduce((sum, s) => sum + (s.grand_total || s.sale_price || 0), 0);
-
-    const serviceRevenue = transactions
-      .filter(t => {
-        const transDate = new Date(t.transaction_date);
-        if (dateRange?.from && transDate < dateRange.from) return false;
-        if (dateRange?.to && transDate > dateRange.to) return false;
-        return t.transaction_type === 'service_revenue' || t.reference_type === 'RepairOrder';
-      })
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
-
+    const earnings = profitAndLoss(ledger, dateRange?.from, dateRange?.to);
     return [
-      { name: 'Domestic Sales', value: vehicleSales, color: '#3b82f6' },
-      { name: 'Export Sales', value: exportSales, color: '#10b981' },
-      { name: 'Service Revenue', value: serviceRevenue, color: '#f59e0b' }
-    ].filter(item => item.value > 0);
-  }, [sales, transactions, dateRange]);
+      { name: "Vehicle Sales", value: earnings.vehicleSalesRevenue, color: "#3b82f6" },
+      { name: "Service Revenue", value: earnings.serviceRevenue, color: "#10b981" },
+      { name: "Parts Revenue", value: earnings.partsRevenue, color: "#f59e0b" },
+      { name: "Other Revenue", value: earnings.otherRevenue, color: "#8b5cf6" },
+    ].filter((item) => item.value > 0);
+  }, [ledger, dateRange]);
 
-  // Expense breakdown
   const expenseBreakdown = React.useMemo(() => {
-    const expenseByType = {};
-    
-    transactions.forEach(t => {
-      const transDate = new Date(t.transaction_date);
-      if (dateRange?.from && transDate < dateRange.from) return;
-      if (dateRange?.to && transDate > dateRange.to) return;
-      
-      const account = accounts.find(a => a.id === t.account_id);
-      if (account?.account_type !== 'expense') return;
-      
-      const category = account?.account_name || 'Other Expenses';
-      expenseByType[category] = (expenseByType[category] || 0) + (t.amount || 0);
-    });
-
-    const colors = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e', '#14b8a6'];
-    return Object.entries(expenseByType)
-      .map(([name, value], idx) => ({ name, value, color: colors[idx % colors.length] }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 6);
-  }, [transactions, accounts, dateRange]);
+    const earnings = profitAndLoss(ledger, dateRange?.from, dateRange?.to);
+    const colors = ["#ef4444", "#f97316", "#eab308", "#84cc16"];
+    return [
+      { name: "Vehicle COGS", value: earnings.vehicleCogs },
+      { name: "Parts COGS", value: earnings.otherCogs },
+      { name: "Operating", value: earnings.operatingExpenses },
+      { name: "Payroll", value: earnings.payrollExpenses },
+    ].filter((item) => item.value > 0).map((item, index) => ({ ...item, color: colors[index % colors.length] }));
+  }, [ledger, dateRange]);
 
   const KPICard = ({ title, value, subtitle, icon: Icon, trend, trendValue, color = "blue" }) => (
     <Card>

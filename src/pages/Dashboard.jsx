@@ -1,14 +1,13 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/api/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
-import { Car, Settings, Wrench, DollarSign, ShoppingCart, Plane, Package, TrendingUp, LayoutGrid, List } from "lucide-react";
+import { Car, Settings, Wrench, DollarSign, ShoppingCart, Plane, Package, LayoutGrid, List } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { useCompany } from "../components/shared/CompanyContext";
-import { format } from "date-fns";
 import ExportOrderPipeline from "../components/dashboard/ExportOrderPipeline";
 import ShipmentTrackingOverview from "../components/dashboard/ShipmentTrackingOverview";
 import ComplianceStatusSummary from "../components/dashboard/ComplianceStatusSummary";
@@ -16,6 +15,8 @@ import RevenueAndCosts from "../components/dashboard/RevenueAndCosts";
 import FinancialHealthOverview from "../components/dashboard/FinancialHealthOverview";
 import CompliancePerformance from "../components/dashboard/CompliancePerformance";
 import ShippingPerformance from "../components/dashboard/ShippingPerformance";
+import BooksSnapshot from "../components/dashboard/BooksSnapshot";
+import { formatStatementDate } from "@/lib/financialStatements";
 
 function StatsCard({ title, value, icon: Icon, bgColor, textColor, index = 0 }) {
   return (
@@ -121,30 +122,23 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <div className="px-4 md:px-6 py-3 md:py-4" style={{ backgroundColor: '#1e293b' }}>
         <h1 className="text-xl md:text-2xl font-bold text-white">Dashboard</h1>
-        <p className="text-xs md:text-sm text-gray-300 mt-1">Global Trade Management & Financial Intelligence</p>
+        <p className="text-xs md:text-sm text-gray-300 mt-1">
+          Books and operations through {formatStatementDate(new Date())}
+        </p>
       </div>
       
       <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
 
-        {/* Export Analytics Dashboard */}
-        <div className="grid gap-6 md:grid-cols-2 mb-6">
-          <ExportOrderPipeline companyId={selectedCompanyId} />
-          <ShipmentTrackingOverview companyId={selectedCompanyId} />
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2 mb-6">
-          <ComplianceStatusSummary companyId={selectedCompanyId} />
-          <RevenueAndCosts companyId={selectedCompanyId} />
-        </div>
-
-        {/* Advanced Analytics */}
         <div className="mb-6">
-          <FinancialHealthOverview companyId={selectedCompanyId} />
+          <BooksSnapshot />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 mb-6">
-          <CompliancePerformance companyId={selectedCompanyId} />
-          <ShippingPerformance companyId={selectedCompanyId} />
+        <div className="mb-6">
+          <FinancialHealthOverview />
+        </div>
+
+        <div className="mb-6">
+          <RevenueAndCosts companyId={selectedCompanyId} />
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
@@ -208,6 +202,24 @@ export default function Dashboard() {
           index={6}
         />
       </div>
+
+        <div className="mb-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Export activity</h2>
+          <p className="text-xs text-slate-500">These cards count export orders and shipment tracking. They stay at zero until that work is recorded.</p>
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 mb-6">
+          <ExportOrderPipeline companyId={selectedCompanyId} />
+          <ShipmentTrackingOverview companyId={selectedCompanyId} />
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2 mb-6">
+          <ComplianceStatusSummary companyId={selectedCompanyId} />
+          <CompliancePerformance companyId={selectedCompanyId} />
+        </div>
+
+        <div className="mb-6">
+          <ShippingPerformance companyId={selectedCompanyId} />
+        </div>
 
         <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
         <Card className="shadow-md border-none">

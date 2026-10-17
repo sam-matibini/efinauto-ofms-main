@@ -200,9 +200,9 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
             <label className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:bg-gray-50 p-2 rounded mb-2 border-b">
               <input
                 type="checkbox"
-                checked={userData.accessible_modules?.length === 37}
+                checked={userData.accessible_modules?.length === 39}
                 onChange={(e) => {
-                  const allModules = ['Landing', 'Dashboard', 'Companies', 'Customers', 'InventoryManagement', 'Vehicles', 'Parts', 'ProductsServices', 'Purchases', 'Sales', 'Repairs', 'Technicians', 'Salvage', 'GlobalShipping', 'RateShopping', 'TrackShipment', 'CustomerTracking', 'ShipmentMonitoring', 'DispatchDashboard', 'DriverMobile', 'Projects', 'Reports', 'FinancialReports', 'Analytics', 'VehicleAnalytics', 'Accounting', 'Banking', 'BankingMobile', 'Payroll', 'EmployeePortal', 'CustomerCommunications', 'CustomerSupport', 'Notifications', 'UserManagement', 'Settings', 'BOSSettings', 'AuditLogs', 'Pricing', 'FinancialAssistant', 'IntegrationDiagram'];
+                  const allModules = ['Landing', 'Dashboard', 'Companies', 'Customers', 'InventoryManagement', 'Vehicles', 'Parts', 'ProductsServices', 'Purchases', 'Sales', 'Repairs', 'Technicians', 'Salvage', 'GlobalShipping', 'RateShopping', 'TrackShipment', 'CustomerTracking', 'ShipmentMonitoring', 'DispatchDashboard', 'DriverMobile', 'Projects', 'Reports', 'FinancialReports', 'Analytics', 'VehicleAnalytics', 'Accounting', 'Banking', 'BankingMobile', 'Payroll', 'EmployeePortal', 'CustomerCommunications', 'CustomerSupport', 'Notifications', 'UserManagement', 'Settings', 'BOSSettings', 'AuditLogs', 'FinancialAssistant', 'IntegrationDiagram'];
                   setUserData({
                     ...userData,
                     accessible_modules: e.target.checked ? allModules : []
@@ -251,7 +251,6 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
                 { id: 'Settings', label: 'Settings' },
                 { id: 'BOSSettings', label: 'BOS Settings' },
                 { id: 'AuditLogs', label: 'Audit Logs' },
-                { id: 'Pricing', label: 'Pricing' },
                 { id: 'FinancialAssistant', label: 'AI Assistant' },
                 { id: 'IntegrationDiagram', label: 'Integration Diagram' }
               ].map(module => (

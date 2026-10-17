@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Upload, Download, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { supabase } from "@/api/supabaseClient";
 import { toast } from "sonner";
 import { useCompany } from "@/components/shared/CompanyContext";
+import { salesRate, roundMoney } from "@/lib/canadianTaxSchedule";
 
 export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
   const { selectedCompanyId } = useCompany();
@@ -87,21 +88,17 @@ export default function VehicleBulkImportDialog({ open, onClose, onSuccess }) {
       }
 
       const vehicles = result.output.vehicles;
-      
-      const companies = await supabase.entities.Company.filter({ id: selectedCompanyId });
-      const company = companies[0];
-
       const imported = [];
       
       for (const v of vehicles) {
         const purchasePrice = Number(v.purchase_price) || 0;
         let taxGst = 0, taxPst = 0, taxHst = 0;
 
-        if (v.province && company?.tax_rates?.[v.province.toUpperCase()]) {
-          const rates = company.tax_rates[v.province.toUpperCase()];
-          taxGst = Math.round(purchasePrice * (rates.gst || 0) / 100 * 100) / 100;
-          taxPst = Math.round(purchasePrice * (rates.pst || 0) / 100 * 100) / 100;
-          taxHst = Math.round(purchasePrice * (rates.hst || 0) / 100 * 100) / 100;
+        if (v.province) {
+          const rates = salesRate(String(v.province).toUpperCase()) || { gst: 0, pst: 0, hst: 0 };
+          taxGst = roundMoney(purchasePrice * (rates.gst || 0) / 100);
+          taxPst = roundMoney(purchasePrice * (rates.pst || 0) / 100);
+          taxHst = roundMoney(purchasePrice * (rates.hst || 0) / 100);
         }
 
         const taxTotal = taxGst + taxPst + taxHst;

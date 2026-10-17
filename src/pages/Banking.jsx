@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
@@ -294,6 +294,7 @@ export default function BankingPage() {
         bankAccounts={bankAccounts}
         glAccounts={glAccounts}
         companyId={selectedCompanyId}
+        transactions={transactions}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['bankTransactions'] });
           setImportDialogOpen(false);

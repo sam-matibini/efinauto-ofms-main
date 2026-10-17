@@ -33,8 +33,43 @@ export default function Landing() {
   // Get user from auth context (sync, no race condition)
   const { user, logout } = useAuth();
 
-  // Fetch financial news and rates
+  // Fetch financial news and rates (cached 24h — the LLM call is expensive
+  // and this page is public, so we must not fire it on every visit)
   useEffect(() => {
+    const CACHE_KEY = "efinauto:landing-financial-data";
+    const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+    const readCache = () => {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return null;
+        const { timestamp, data } = JSON.parse(raw);
+        if (!timestamp || !data) return null;
+        if (Date.now() - timestamp > CACHE_TTL_MS) return null;
+        return data;
+      } catch {
+        return null;
+      }
+    };
+
+    const writeCache = (data) => {
+      try {
+        localStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({ timestamp: Date.now(), data })
+        );
+      } catch {
+        // localStorage unavailable (private mode / quota) — cache is best-effort
+      }
+    };
+
+    const cached = readCache();
+    if (cached) {
+      setFinancialNews(cached);
+      setLoadingNews(false);
+      return;
+    }
+
     const fetchFinancialData = async () => {
       setLoadingNews(true);
       try {
@@ -112,6 +147,7 @@ Keep each item concise.`,
           }
         });
         setFinancialNews(response);
+        writeCache(response);
       } catch (error) {
         console.error("Failed to fetch financial data:", error);
         // Set fallback static data when API fails

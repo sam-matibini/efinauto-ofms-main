@@ -3,11 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Download, Printer, BookOpen, ChevronDown, ChevronRight, X } from "lucide-react";
+import { Download, Printer, BookOpen, ChevronDown, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/api/supabaseClient";
-import { useCompany } from "@/components/shared/CompanyContext";
+import useFinancialBooks from "@/components/accounting/useFinancialBooks";
+import { generalLedgerRows, inRange } from "@/lib/financialStatements";
 import {
   Dialog,
   DialogContent,
@@ -15,8 +14,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-export default function GeneralLedger({ comparativePeriods = [] }) {
-  const { selectedCompanyId } = useCompany();
+export default function GeneralLedger({ comparativePeriods = [], reportBasis = "accrual" }) {
+  const { ledger } = useFinancialBooks(reportBasis);
   const [selectedAccount, setSelectedAccount] = useState("all");
   const [viewMode, setViewMode] = useState("grouped"); // "grouped" or "detailed"
   const [expandedAccounts, setExpandedAccounts] = useState(new Set());
@@ -28,448 +27,22 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
     label: 'Current Period'
   }];
 
-  const { data: chartAccounts = [] } = useQuery({
-    queryKey: ['accounts', selectedCompanyId],
-    queryFn: () => supabase.entities.Account.filter({ company_id: selectedCompanyId }, 'account_code'),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  // Fetch additional data sources for complete ledger
-  const { data: vehicles = [] } = useQuery({
-    queryKey: ['vehicles', selectedCompanyId],
-    queryFn: () => supabase.entities.Vehicle.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  const { data: sales = [] } = useQuery({
-    queryKey: ['sales', selectedCompanyId],
-    queryFn: () => supabase.entities.Sale.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  const { data: purchases = [] } = useQuery({
-    queryKey: ['purchases', selectedCompanyId],
-    queryFn: () => supabase.entities.Purchase.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  const { data: repairs = [] } = useQuery({
-    queryKey: ['repairs', selectedCompanyId],
-    queryFn: () => supabase.entities.RepairOrder.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  const { data: parts = [] } = useQuery({
-    queryKey: ['parts', selectedCompanyId],
-    queryFn: () => supabase.entities.Part.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions', selectedCompanyId],
-    queryFn: () => supabase.entities.Transaction.filter({ company_id: selectedCompanyId }),
-    enabled: !!selectedCompanyId,
-    initialData: [],
-  });
-
-  // Build account options from chart of accounts
   const accounts = [
     { value: "all", label: "All Accounts" },
-    ...chartAccounts.map(acc => ({
-      value: acc.id,
-      label: `${acc.account_code} - ${acc.account_name}`
-    }))
+    ...ledger.accountList.map((account) => ({
+      value: account.code,
+      label: `${account.code} - ${account.name}`,
+    })),
   ];
 
   const currentPeriod = periods[0];
+  const allLedgerEntries = generalLedgerRows(ledger);
 
-  // Helper function to assign account codes based on transaction type/description
-  const assignAccountCode = (entry) => {
-    const desc = (entry.description || '').toLowerCase();
-    const type = entry.transaction_type || '';
-    const refType = entry.reference_type || '';
-    
-    // Cost of Goods Sold - check this first before other matches
-    if (desc.includes('cogs') || desc.includes('cost of goods') || desc.includes('cost of vehicle')) {
-      return { account_code: '5000', account_name: 'Cost of Vehicles Sold', account_type: 'expense' };
-    }
-    // Inventory adjustments
-    if (desc.includes('inventory adjustment') || type === 'inventory_adjustment') {
-      if (desc.includes('shrinkage') || desc.includes('loss')) {
-        return { account_code: '5500', account_name: 'Inventory Shrinkage', account_type: 'expense' };
-      }
-      if (desc.includes('write-off') || desc.includes('writeoff')) {
-        return { account_code: '5510', account_name: 'Inventory Write-Off', account_type: 'expense' };
-      }
-      return { account_code: '4700', account_name: 'Inventory Adjustment Gain', account_type: 'revenue' };
-    }
-    // Freight/Shipping revenue
-    if (desc.includes('freight') && (desc.includes('revenue') || desc.includes('service'))) {
-      return { account_code: '4200', account_name: 'Freight Service Revenue', account_type: 'revenue' };
-    }
-    // Salvage revenue
-    if (desc.includes('salvage') || desc.includes('scrap')) {
-      return { account_code: '4400', account_name: 'Salvage Revenue', account_type: 'revenue' };
-    }
-    // Export sale revenue
-    if (desc.includes('export') && (desc.includes('sale') || desc.includes('revenue'))) {
-      return { account_code: '4000', account_name: 'Vehicle Sales Revenue', account_type: 'revenue' };
-    }
-    // Vehicle sales
-    if (type === 'sale_revenue' || refType === 'Sale' || desc.includes('vehicle sale')) {
-      return { account_code: '4000', account_name: 'Vehicle Sales Revenue', account_type: 'revenue' };
-    }
-    // Service revenue
-    if (type === 'service_revenue' || refType === 'RepairOrder' || desc.includes('service')) {
-      return { account_code: '4100', account_name: 'Service Revenue', account_type: 'revenue' };
-    }
-    // Vehicle purchase/inventory
-    if (type === 'vehicle_purchase' || desc.includes('vehicle purchase')) {
-      return { account_code: '1200', account_name: 'Vehicle Inventory', account_type: 'asset' };
-    }
-    // Parts purchase
-    if (type === 'parts_purchase' || desc.includes('parts purchase')) {
-      return { account_code: '1210', account_name: 'Parts Inventory', account_type: 'asset' };
-    }
-    // Product purchase
-    if (type === 'product_purchase' || desc.includes('product purchase')) {
-      return { account_code: '1220', account_name: 'Product Inventory', account_type: 'asset' };
-    }
-    // GST/HST
-    if (desc.includes('gst') || desc.includes('hst')) {
-      if (desc.includes('payable') || desc.includes('collected')) {
-        return { account_code: '2100', account_name: 'GST Payable', account_type: 'liability' };
-      }
-      return { account_code: '1150', account_name: 'GST/HST Receivable (ITC)', account_type: 'asset' };
-    }
-    // Accounts Receivable
-    if (desc.includes('ar:') || desc.includes('accounts receivable')) {
-      return { account_code: '1100', account_name: 'Accounts Receivable', account_type: 'asset' };
-    }
-    // Accounts Payable
-    if (desc.includes('ap:') || desc.includes('accounts payable')) {
-      return { account_code: '2000', account_name: 'Accounts Payable', account_type: 'liability' };
-    }
-    // Cash
-    if (desc.includes('cash received') || desc.includes('cash payment') || desc.includes('bank')) {
-      return { account_code: '1000', account_name: 'Cash and Bank', account_type: 'asset' };
-    }
-    // Foreign Exchange
-    if (desc.includes('fx gain') || desc.includes('exchange gain')) {
-      return { account_code: '4600', account_name: 'Foreign Exchange Gain', account_type: 'revenue' };
-    }
-    if (desc.includes('fx loss') || desc.includes('exchange loss')) {
-      return { account_code: '6300', account_name: 'Foreign Exchange Loss', account_type: 'expense' };
-    }
-    // Freight expense
-    if (desc.includes('freight cost') || desc.includes('shipment cost') || desc.includes('shipping')) {
-      return { account_code: '5400', account_name: 'Shipping & Freight Expense', account_type: 'expense' };
-    }
-    // Parts expense
-    if (desc.includes('parts used') || desc.includes('parts expense') || desc.includes('cost of parts')) {
-      return { account_code: '5100', account_name: 'Cost of Parts Sold', account_type: 'expense' };
-    }
-    // Labor expense
-    if (desc.includes('labor')) {
-      return { account_code: '5200', account_name: 'Labor Expense', account_type: 'expense' };
-    }
-    // Payroll / Wages
-    if (type === 'payroll_expense' || desc.includes('payroll') || desc.includes('wages') || desc.includes('salary')) {
-      return { account_code: '6100', account_name: 'Wages & Salaries Expense', account_type: 'expense' };
-    }
-    // Bank fees
-    if (desc.includes('bank fee') || desc.includes('bank charge')) {
-      return { account_code: '6200', account_name: 'Bank Charges & Fees', account_type: 'expense' };
-    }
-    // Default based on category
-    if (entry.category === 'revenue') {
-      return { account_code: '4900', account_name: 'Other Revenue', account_type: 'revenue' };
-    }
-    if (entry.category === 'expense') {
-      return { account_code: '5900', account_name: 'Other Expense', account_type: 'expense' };
-    }
-    if (entry.category === 'asset') {
-      return { account_code: '1900', account_name: 'Other Assets', account_type: 'asset' };
-    }
-    if (entry.category === 'liability') {
-      return { account_code: '2900', account_name: 'Other Liabilities', account_type: 'liability' };
-    }
-    
-    return null;
-  };
-
-  // Build comprehensive ledger entries from all data sources
-  const allLedgerEntries = React.useMemo(() => {
-    const entries = [];
-    const existingRefs = new Set(transactions.map(t => `${t.reference_type}-${t.reference_id}`));
-
-    // Add existing transactions with auto-assigned account codes if missing
-    transactions.forEach(t => {
-      let entry = { ...t, source: 'transaction' };
-      
-      // If no account code assigned, auto-assign based on type/description
-      if (!entry.account_code || entry.account_code === '0000') {
-        const assigned = assignAccountCode(entry);
-        if (assigned) {
-          entry = { ...entry, ...assigned };
-        }
-      }
-      
-      entries.push(entry);
-    });
-
-    // Create a map of vehicles by ID for quick lookup (including sold vehicles)
-    const vehicleMap = {};
-    vehicles.forEach(v => {
-      vehicleMap[v.id] = v;
-    });
-
-    // Add vehicle purchases (Dr: Vehicle Inventory, Cr: Cash/AP) - only for unsold vehicles
-    vehicles.forEach(v => {
-      if (!existingRefs.has(`Vehicle-${v.id}`) && (v.purchase_price > 0 || v.total_cost > 0) && v.status === 'in_stock') {
-        entries.push({
-          id: `vehicle-${v.id}`,
-          transaction_date: v.transaction_date || v.created_date,
-          account_code: '1200',
-          account_name: 'Vehicle Inventory',
-          account_type: 'asset',
-          category: 'asset',
-          amount: v.total_cost || v.purchase_price || 0,
-          description: `Vehicle Purchase: ${v.year} ${v.make} ${v.model}`,
-          reference_type: 'Vehicle',
-          reference_id: v.id,
-          reference_number: v.stock_number || v.vin,
-          source: 'vehicle'
-        });
-      }
-    });
-
-    // Add sales revenue (Dr: Cash/AR, Cr: Sales Revenue)
-    sales.forEach(s => {
-      if (!existingRefs.has(`Sale-${s.id}`)) {
-        // Sales Revenue entry
-        entries.push({
-          id: `sale-revenue-${s.id}`,
-          transaction_date: s.sale_date || s.created_date,
-          account_code: '4000',
-          account_name: 'Vehicle Sales Revenue',
-          account_type: 'revenue',
-          category: 'revenue',
-          amount: s.sale_price || s.grand_total || 0,
-          description: `Vehicle Sale: ${s.vehicle_details || s.vehicle_make_model || 'Vehicle'}`,
-          reference_type: 'Sale',
-          reference_id: s.id,
-          reference_number: s.sale_number,
-          customer_name: s.customer_name,
-          source: 'sale'
-        });
-
-        // COGS entry (cost of vehicle sold) - lookup vehicle from map
-        const soldVehicle = s.vehicle_id ? vehicleMap[s.vehicle_id] : null;
-        const vehicleCost = soldVehicle ? (soldVehicle.total_cost || soldVehicle.purchase_price || 0) : 0;
-        
-        // Create COGS entry if we have a vehicle cost
-        if (vehicleCost > 0) {
-          entries.push({
-            id: `sale-cogs-${s.id}`,
-            transaction_date: s.sale_date || s.created_date,
-            account_code: '5000',
-            account_name: 'Cost of Goods Sold',
-            account_type: 'expense',
-            category: 'expense',
-            amount: vehicleCost,
-            description: `COGS: ${s.vehicle_details || (soldVehicle ? soldVehicle.year + ' ' + soldVehicle.make + ' ' + soldVehicle.model : 'Vehicle')}`,
-            reference_type: 'Sale',
-            reference_id: s.id,
-            reference_number: s.sale_number,
-            source: 'sale-cogs'
-          });
-          
-          // Also reduce inventory when vehicle is sold (Credit Vehicle Inventory)
-          entries.push({
-            id: `sale-inv-reduce-${s.id}`,
-            transaction_date: s.sale_date || s.created_date,
-            account_code: '1200',
-            account_name: 'Vehicle Inventory',
-            account_type: 'asset',
-            category: 'asset',
-            amount: vehicleCost,
-            credit_amount: vehicleCost, // Credit to reduce inventory asset
-            debit_amount: 0,
-            description: `Inventory Reduction: ${s.vehicle_details || (soldVehicle ? soldVehicle.year + ' ' + soldVehicle.make + ' ' + soldVehicle.model : 'Vehicle')}`,
-            reference_type: 'Sale',
-            reference_id: s.id,
-            reference_number: s.sale_number,
-            source: 'sale-inv-reduce',
-            is_credit: true // Flag for credit entry
-          });
-        }
-
-        // Accounts Receivable if not fully paid
-        if (s.payment_status !== 'paid' && (s.balance_due > 0 || (s.grand_total - (s.total_paid || 0)) > 0)) {
-          const arAmount = s.balance_due || ((s.grand_total || s.sale_price || 0) - (s.total_paid || 0));
-          if (arAmount > 0) {
-            entries.push({
-              id: `sale-ar-${s.id}`,
-              transaction_date: s.sale_date || s.created_date,
-              account_code: '1100',
-              account_name: 'Accounts Receivable',
-              account_type: 'asset',
-              category: 'asset',
-              amount: arAmount,
-              description: `AR: ${s.customer_name} - ${s.sale_number}`,
-              reference_type: 'Sale',
-              reference_id: s.id,
-              reference_number: s.sale_number,
-              source: 'sale-ar'
-            });
-          }
-        }
-
-        // Cash received
-        if (s.total_paid > 0) {
-          entries.push({
-            id: `sale-cash-${s.id}`,
-            transaction_date: s.sale_date || s.created_date,
-            account_code: '1000',
-            account_name: 'Cash and Bank',
-            account_type: 'asset',
-            category: 'asset',
-            amount: s.total_paid,
-            description: `Cash Received: ${s.customer_name} - ${s.sale_number}`,
-            reference_type: 'Sale',
-            reference_id: s.id,
-            reference_number: s.sale_number,
-            source: 'sale-cash'
-          });
-        }
-      }
-    });
-
-    // Add purchases
-    purchases.forEach(p => {
-      if (!existingRefs.has(`Purchase-${p.id}`)) {
-        const accountCode = p.purchase_type === 'vehicle' ? '1200' : 
-                           p.purchase_type === 'parts' ? '1210' : '5300';
-        const accountName = p.purchase_type === 'vehicle' ? 'Vehicle Inventory' :
-                           p.purchase_type === 'parts' ? 'Parts Inventory' : 'Purchases Expense';
-        const accountType = p.purchase_type === 'vehicle' || p.purchase_type === 'parts' ? 'asset' : 'expense';
-
-        entries.push({
-          id: `purchase-${p.id}`,
-          transaction_date: p.order_date || p.created_date,
-          account_code: accountCode,
-          account_name: accountName,
-          account_type: accountType,
-          category: accountType,
-          amount: p.total_amount || p.subtotal || 0,
-          description: `Purchase: ${p.purchase_type} from ${p.supplier_name}`,
-          reference_type: 'Purchase',
-          reference_id: p.id,
-          reference_number: p.purchase_number,
-          source: 'purchase'
-        });
-
-        // Accounts Payable if not fully paid
-        if (p.payment_status !== 'paid') {
-          const apAmount = (p.total_amount || 0) - (p.amount_paid || 0);
-          if (apAmount > 0) {
-            entries.push({
-              id: `purchase-ap-${p.id}`,
-              transaction_date: p.order_date || p.created_date,
-              account_code: '2000',
-              account_name: 'Accounts Payable',
-              account_type: 'liability',
-              category: 'liability',
-              amount: apAmount,
-              description: `AP: ${p.supplier_name} - ${p.purchase_number}`,
-              reference_type: 'Purchase',
-              reference_id: p.id,
-              reference_number: p.purchase_number,
-              source: 'purchase-ap'
-            });
-          }
-        }
-      }
-    });
-
-    // Add repair order revenue and expenses
-    repairs.forEach(r => {
-      if (!existingRefs.has(`RepairOrder-${r.id}`) && r.status === 'completed') {
-        // Service Revenue
-        entries.push({
-          id: `repair-revenue-${r.id}`,
-          transaction_date: r.completion_date || r.created_date,
-          account_code: '4100',
-          account_name: 'Service Revenue',
-          account_type: 'revenue',
-          category: 'revenue',
-          amount: r.total_cost || 0,
-          description: `Service: ${r.service_type?.replace(/_/g, ' ')} - ${r.customer_name}`,
-          reference_type: 'RepairOrder',
-          reference_id: r.id,
-          reference_number: r.order_number,
-          customer_name: r.customer_name,
-          source: 'repair'
-        });
-
-        // Parts Cost (expense)
-        if (r.parts_cost > 0) {
-          entries.push({
-            id: `repair-parts-${r.id}`,
-            transaction_date: r.completion_date || r.created_date,
-            account_code: '5100',
-            account_name: 'Parts Expense',
-            account_type: 'expense',
-            category: 'expense',
-            amount: r.parts_cost,
-            description: `Parts Used: ${r.order_number}`,
-            reference_type: 'RepairOrder',
-            reference_id: r.id,
-            reference_number: r.order_number,
-            source: 'repair-parts'
-          });
-        }
-
-        // Labor Cost (expense)
-        if (r.labor_cost > 0) {
-          entries.push({
-            id: `repair-labor-${r.id}`,
-            transaction_date: r.completion_date || r.created_date,
-            account_code: '5200',
-            account_name: 'Labor Expense',
-            account_type: 'expense',
-            category: 'expense',
-            amount: r.labor_cost,
-            description: `Labor: ${r.order_number}`,
-            reference_type: 'RepairOrder',
-            reference_id: r.id,
-            reference_number: r.order_number,
-            source: 'repair-labor'
-          });
-        }
-      }
-    });
-
-    return entries.sort((a, b) => new Date(a.transaction_date) - new Date(b.transaction_date));
-  }, [transactions, vehicles, sales, purchases, repairs]);
-  
   // Filter transactions by period and account
-  const filteredTransactions = allLedgerEntries.filter(t => {
-    const transDate = new Date(t.transaction_date);
-    const inPeriod = transDate >= currentPeriod.from && transDate <= currentPeriod.to;
-    
-    if (!inPeriod) return false;
+  const filteredTransactions = allLedgerEntries.filter((entry) => {
+    if (!inRange(entry.transaction_date, currentPeriod.from, currentPeriod.to)) return false;
     if (selectedAccount === "all") return true;
-
-    // Filter by selected account ID or code
-    return t.account_id === selectedAccount || t.account_code === selectedAccount;
+    return entry.account_code === selectedAccount;
   });
 
   // Calculate running balance
@@ -502,18 +75,9 @@ export default function GeneralLedger({ comparativePeriods = [] }) {
   const groupedByAccount = {};
   filteredTransactions.forEach(t => {
     // Auto-assign account code if missing
-    let accountCode = t.account_code;
-    let accountName = t.account_name;
-    let accountType = t.account_type || t.category;
-    
-    if (!accountCode || accountCode === '0000') {
-      const assigned = assignAccountCode(t);
-      if (assigned) {
-        accountCode = assigned.account_code;
-        accountName = assigned.account_name;
-        accountType = assigned.account_type;
-      }
-    }
+    const accountCode = t.account_code;
+    const accountName = t.account_name;
+    const accountType = t.account_type || t.category;
     
     const accountKey = t.account_id || accountCode || 'unassigned';
     const accountLabel = accountCode ? `${accountCode} - ${accountName}` : (accountName || 'Unassigned');

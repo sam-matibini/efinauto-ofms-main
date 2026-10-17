@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,21 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Mail, Phone, User } from "lucide-react";
 
-const defaultTaxRates = {
-  AB: { gst: 5, pst: 0, hst: 0 },
-  BC: { gst: 5, pst: 7, hst: 0 },
-  MB: { gst: 5, pst: 7, hst: 0 },
-  NB: { gst: 0, pst: 0, hst: 15 },
-  NL: { gst: 0, pst: 0, hst: 15 },
-  NT: { gst: 5, pst: 0, hst: 0 },
-  NS: { gst: 0, pst: 0, hst: 15 },
-  NU: { gst: 5, pst: 0, hst: 0 },
-  ON: { gst: 0, pst: 0, hst: 13 },
-  PE: { gst: 0, pst: 0, hst: 15 },
-  QC: { gst: 5, pst: 9.975, hst: 0 },
-  SK: { gst: 5, pst: 6, hst: 0 },
-  YT: { gst: 5, pst: 0, hst: 0 }
-};
+import { compactSalesRates } from "@/lib/canadianTaxSchedule";
+
+const defaultTaxRates = compactSalesRates();
 
 const provinceNames = {
   AB: "Alberta",
