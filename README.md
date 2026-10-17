@@ -19,6 +19,23 @@ Required env vars:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
+## AI features (InvokeLLM)
+
+AI calls go through the `invoke-llm` Supabase Edge Function, which proxies to any OpenAI-compatible endpoint (Ollama, vLLM, LiteLLM, OpenAI, OpenRouter, internal gateway). Deploy it and set its secrets:
+
+```bash
+supabase functions deploy invoke-llm
+supabase secrets set \
+  LLM_API_URL=http://your-gateway:11434/v1 \
+  LLM_MODEL=llama3.1 \
+  LLM_API_KEY=...            # optional; omit for an unauthenticated local Ollama
+  LLM_VISION_MODEL=...       # optional; model for file_urls (vision) calls
+  LLM_SYSTEM_PROMPT=...      # optional; extra instructions for every call
+  LLM_ALLOW_ANON=true        # optional; lets signed-out visitors (Landing page) use AI
+```
+
+The frontend is already wired (`integrations.invokeLlmFunction: "invoke-llm"` in `src/api/supabaseClient.js`); until the function is deployed with these secrets, every AI feature fails gracefully to its fallback/static data.
+
 ## Scripts
 
 | Command | Description |
