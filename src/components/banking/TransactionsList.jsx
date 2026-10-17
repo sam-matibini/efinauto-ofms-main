@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Search, Check, X, Undo2, ArrowUpRight, ArrowDownRight, Sparkles } from "lucide-react";
+import { Search, Check, X, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { supabase } from "@/api/supabaseClient";
+import StatementImportHistory from "@/components/banking/StatementImportHistory";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -87,17 +88,6 @@ export default function TransactionsList({ transactions, bankAccounts, glAccount
     },
   });
 
-  const deleteImportBatchMutation = useMutation({
-    mutationFn: async (batchId) => {
-      const batchTransactions = transactions.filter(t => t.import_batch_id === batchId);
-      await Promise.all(batchTransactions.map(t => supabase.entities.BankTransaction.delete(t.id)));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bankTransactions'] });
-      toast.success("Import batch deleted");
-    },
-  });
-
   const filteredTransactions = transactions.filter(t => {
     const matchesSearch = t.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          t.payee?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -126,30 +116,19 @@ export default function TransactionsList({ transactions, bankAccounts, glAccount
     postToGLMutation.mutate({ transaction });
   };
 
-  const importBatches = [...new Set(transactions.map(t => t.import_batch_id).filter(Boolean))];
-  const lastImportBatch = importBatches[0];
-
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Bank Transactions</CardTitle>
-            {lastImportBatch && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (confirm('Undo last import? This will delete all transactions from the last import batch.')) {
-                    deleteImportBatchMutation.mutate(lastImportBatch);
-                  }
-                }}
-              >
-                <Undo2 className="w-4 h-4 mr-2" />
-                Undo Last Import
-              </Button>
-            )}
-          </div>
+          <CardTitle>Import history</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <StatementImportHistory companyId={companyId} transactions={transactions} bankAccounts={bankAccounts} />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Bank Transactions</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -5,6 +5,7 @@ import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, FileText, Calendar, DollarSign } from "lucide-react";
+import MetricCard from "@/components/cards/MetricCard";
 import MyProfile from "@/components/employee-portal/MyProfile";
 import MyPaystubs from "@/components/employee-portal/MyPaystubs";
 import MyTimeOff from "@/components/employee-portal/MyTimeOff";
@@ -80,83 +81,39 @@ export default function EmployeePortal() {
     );
   }
 
+  const payPeriod = employee?.pay_type === "hourly" ? "hr" : "yr";
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="px-6 py-4" style={{ backgroundColor: '#1e293b' }}>
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <User className="w-6 h-6" />
-              Employee Self-Service Portal
-            </h1>
-            <p className="text-sm text-gray-300 mt-1">
-              Welcome, {employee?.first_name} {employee?.last_name}
-            </p>
-          </div>
-        </div>
+    <div className="min-h-screen bg-[#F5F6F8]">
+      <div className="px-6 py-6">
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-[#0A1F44]">
+          <User className="h-6 w-6" strokeWidth={1.75} />
+          Employee Self-Service Portal
+        </h1>
+        <p className="mt-1 text-sm text-[#0A1F44]/70">
+          Welcome, {employee?.first_name} {employee?.last_name}
+        </p>
       </div>
 
-      <div className="p-6 space-y-6">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Calendar className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Vacation Balance</p>
-                  <p className="text-2xl font-bold">{employee?.vacation_balance || 0} hrs</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Pay Rate</p>
-                  <p className="text-2xl font-bold">
-                    ${employee?.pay_rate}/{employee?.pay_type === 'hourly' ? 'hr' : 'yr'}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Position</p>
-                  <p className="text-lg font-bold">{employee?.position}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="space-y-6 p-6 pt-0">
+        <div className="grid grid-cols-1 gap-4 rounded-3xl bg-gradient-to-br from-[#0A1F44]/10 via-white to-[#A8FF60]/40 p-4 md:grid-cols-3">
+          <MetricCard icon={Calendar} label="Vacation Balance" value={`${employee?.vacation_balance || 0} hrs`} />
+          <MetricCard icon={DollarSign} label="Pay Rate" value={`$${employee?.pay_rate}/${payPeriod}`} />
+          <MetricCard icon={FileText} label="Position" value={employee?.position || "—"} />
         </div>
 
-        {/* Main Content */}
         <Tabs defaultValue="profile">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="profile" className="flex items-center gap-2">
-              <User className="w-4 h-4" />
+          <TabsList className="flex h-auto w-full flex-wrap justify-start gap-2 bg-transparent p-0">
+            <TabsTrigger value="profile" className="gap-2 rounded-full bg-white px-4 py-2 text-[#0A1F44] data-[state=active]:bg-[#0A1F44] data-[state=active]:text-white data-[state=active]:shadow-none">
+              <User className="h-4 w-4" strokeWidth={1.75} />
               My Profile
             </TabsTrigger>
-            <TabsTrigger value="paystubs" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
+            <TabsTrigger value="paystubs" className="gap-2 rounded-full bg-white px-4 py-2 text-[#0A1F44] data-[state=active]:bg-[#0A1F44] data-[state=active]:text-white data-[state=active]:shadow-none">
+              <FileText className="h-4 w-4" strokeWidth={1.75} />
               Paystubs & Tax Forms
             </TabsTrigger>
-            <TabsTrigger value="timeoff" className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
+            <TabsTrigger value="timeoff" className="gap-2 rounded-full bg-white px-4 py-2 text-[#0A1F44] data-[state=active]:bg-[#0A1F44] data-[state=active]:text-white data-[state=active]:shadow-none">
+              <Calendar className="h-4 w-4" strokeWidth={1.75} />
               Time Off
             </TabsTrigger>
           </TabsList>

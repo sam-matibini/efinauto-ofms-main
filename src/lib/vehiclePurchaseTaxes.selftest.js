@@ -20,6 +20,11 @@ const manual = vehiclePurchaseTaxes({ pretax: 2000, tax_gst: 100, tax_pst: 80, t
 checks.push(["manual RST", manual.tax_rst === 180]);
 checks.push(["manual total", manual.total_vehicle_expenditure === 2180]);
 
+const ns = vehiclePurchaseTaxes({ pretax: 10000, province: "NS", tax_status: "taxable", asOf: "2026-10-07" });
+checks.push(["NS HST 14%", ns.tax_hst === 1400]);
+const nsOld = vehiclePurchaseTaxes({ pretax: 10000, province: "NS", tax_status: "taxable", asOf: "2025-03-31" });
+checks.push(["NS HST 15% before April 2025", nsOld.tax_hst === 1500]);
+
 const exempt = vehiclePurchaseTaxes({ pretax: 10000, province: "SK", tax_status: "exempt" });
 checks.push(["exempt RST", exempt.tax_rst === 0]);
 checks.push(["exempt total", exempt.total_vehicle_expenditure === 10000]);

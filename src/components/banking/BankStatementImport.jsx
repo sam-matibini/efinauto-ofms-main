@@ -1,127 +1,143 @@
-import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useEffect, useMemo, useState } from "react";
+import { Download, FileText, Loader2, Upload } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/api/supabaseClient";
+import StatementImportHistory from "@/components/banking/StatementImportHistory";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, FileText, Sparkles, Loader2, Download, HelpCircle } from "lucide-react";
-import { supabase } from "@/api/supabaseClient";
-import { toast } from "sonner";
+import {
+  applyMapping,
+  autoMapColumns,
+  parseStatementBytes,
+  rememberImport,
+  sampleCsv,
+  sampleSpreadsheetXml,
+  STATEMENT_FIELDS,
+} from "@/lib/statementImport";
 
-export default function BankStatementImport({ open, onClose, bankAccounts, glAccounts, companyId, onSuccess }) {
+const ENCODINGS = [
+  { value: "utf-8", label: "UTF-8 (Unicode)" },
+  { value: "iso-8859-1", label: "ISO-8859-1 (Latin-1)" },
+  { value: "windows-1252", label: "Windows-1252" },
+];
+
+function downloadText(filename, contents, type) {
+  const blob = new Blob([contents], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+export default function BankStatementImport({ open, onClose, bankAccounts = [], companyId, transactions = [], onSuccess }) {
   const [step, setStep] = useState(1);
+  const [showHistory, setShowHistory] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState("");
   const [file, setFile] = useState(null);
+  const [encoding, setEncoding] = useState("utf-8");
+  const [table, setTable] = useState(null);
+  const [mapping, setMapping] = useState({});
+  const [parseError, setParseError] = useState("");
+  const [reading, setReading] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [aiAnalyzing, setAiAnalyzing] = useState(false);
-  const [encoding, setEncoding] = useState("UTF-8");
+  const [dragOver, setDragOver] = useState(false);
 
-  const handleFileUpload = (e) => {
-    const uploadedFile = e.target.files[0];
-    if (uploadedFile) {
-      setFile(uploadedFile);
-    }
-  };
+  useEffect(() => {
+    if (open) return;
+    setStep(1);
+    setShowHistory(false);
+    setFile(null);
+    setTable(null);
+    setMapping({});
+    setParseError("");
+  }, [open]);
 
-  const handleImport = async () => {
-    if (!selectedAccount || !file) {
-      toast.error("Please select an account and upload a file");
+  const preview = useMemo(() => (table ? applyMapping(table, mapping) : []), [table, mapping]);
+  const validRows = preview.filter((row) => !row.error);
+  const amountMapped = mapping.debit != null || mapping.credit != null || mapping.amount != null;
+  const mappingReady = mapping.transaction_date != null && amountMapped;
+
+  const readFile = async (nextFile, nextEncoding = encoding) => {
+    if (!nextFile) return;
+    if (nextFile.size > 1024 * 1024) {
+      setFile(nextFile);
+      setTable(null);
+      setParseError("The file is larger than 1 MB.");
       return;
     }
-
-    setImporting(true);
-    setAiAnalyzing(true);
-
+    setReading(true);
+    setFile(nextFile);
     try {
-      // Upload file
-      const { file_url } = await supabase.integrations.Core.UploadFile({ file });
-      
-      // Use AI to extract transactions from statement
-      toast.info("AI is analyzing your statement...");
-      const extractedData = await supabase.integrations.Core.InvokeLLM({
-        prompt: `Analyze this bank statement and extract all transactions. For each transaction, extract:
-        - transaction_date (YYYY-MM-DD format)
-        - post_date (if different from transaction date)
-        - description (transaction description)
-        - payee (merchant/payee name if identifiable)
-        - amount (numerical amount)
-        - transaction_type (either "debit" for withdrawals/payments or "credit" for deposits)
-        - balance (running balance if shown)
-        - reference_number (check number or transaction ID if shown)
-        
-        Return an array of transaction objects. Be thorough and extract all visible transactions.
-        Identify patterns and suggest categorization where possible.`,
-        file_urls: [file_url],
-        response_json_schema: {
-          type: "object",
-          properties: {
-            statement_period_start: { type: "string" },
-            statement_period_end: { type: "string" },
-            opening_balance: { type: "number" },
-            closing_balance: { type: "number" },
-            transactions: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  transaction_date: { type: "string" },
-                  post_date: { type: "string" },
-                  description: { type: "string" },
-                  payee: { type: "string" },
-                  amount: { type: "number" },
-                  transaction_type: { type: "string" },
-                  balance: { type: "number" },
-                  reference_number: { type: "string" },
-                  suggested_category: { type: "string" }
-                }
-              }
-            }
-          }
-        }
+      const bytes = new Uint8Array(await nextFile.arrayBuffer());
+      const parsed = await parseStatementBytes(bytes, nextFile.name, nextEncoding);
+      setTable(parsed);
+      setMapping(autoMapColumns(parsed.headers));
+      setParseError("");
+    } catch (error) {
+      setTable(null);
+      setMapping({});
+      setParseError(error?.message || "The file could not be read.");
+    }
+    setReading(false);
+  };
+
+  const assignColumn = (field, column) => {
+    setMapping((current) => {
+      const next = {};
+      Object.entries(current).forEach(([key, index]) => {
+        if (index !== column && key !== field) next[key] = index;
       });
+      if (field !== "ignore") next[field] = column;
+      return next;
+    });
+  };
 
-      setAiAnalyzing(false);
+  const fieldForColumn = (column) => Object.entries(mapping).find(([, index]) => index === column)?.[0] || "ignore";
 
-      if (!extractedData.transactions || extractedData.transactions.length === 0) {
-        toast.error("No transactions found in the statement");
-        setImporting(false);
-        return;
-      }
-
-      // Generate import batch ID
-      const batchId = `import-${Date.now()}`;
-
-      // Create transactions with AI suggestions
-      toast.info(`Importing ${extractedData.transactions.length} transactions...`);
-      
-      const selectedBankAccount = bankAccounts.find(ba => ba.id === selectedAccount);
-      
-      const transactionsToCreate = extractedData.transactions.map(t => ({
+  const importRows = async () => {
+    if (!selectedAccount || validRows.length === 0) {
+      toast.error("Choose an account and map at least one valid transaction");
+      return;
+    }
+    setImporting(true);
+    const batchId = `import-${Date.now()}`;
+    const account = bankAccounts.find((item) => item.id === selectedAccount);
+    try {
+      await supabase.entities.BankTransaction.bulkCreate(validRows.map((row) => ({
         company_id: companyId,
         bank_account_id: selectedAccount,
         import_batch_id: batchId,
-        transaction_date: t.transaction_date,
-        post_date: t.post_date || t.transaction_date,
-        description: t.description,
-        payee: t.payee,
-        amount: Math.abs(t.amount),
-        transaction_type: t.transaction_type,
-        balance: t.balance,
-        reference_number: t.reference_number,
-        category: t.suggested_category,
-        gl_account_id: selectedBankAccount?.gl_account_id || null,
+        transaction_date: row.transaction_date,
+        post_date: row.transaction_date,
+        description: row.description,
+        payee: row.payee || "",
+        amount: row.amount,
+        transaction_type: row.transaction_type,
+        ...(row.balance == null ? {} : { balance: row.balance }),
+        reference_number: row.reference_number || "",
+        gl_account_id: account?.gl_account_id || null,
         status: "pending",
-        ai_confidence: 75
-      }));
-
-      await supabase.entities.BankTransaction.bulkCreate(transactionsToCreate);
-
-      toast.success(`Successfully imported ${transactionsToCreate.length} transactions`);
-      onSuccess();
+      })));
+      rememberImport(companyId, {
+        id: batchId,
+        filename: file?.name || "Imported statement",
+        accountId: selectedAccount,
+        accountName: account?.account_name || account?.institution_name || "Bank account",
+        importedAt: new Date().toISOString(),
+        count: validRows.length,
+        format: table?.format || "",
+        status: "imported",
+      });
+      const skipped = preview.length - validRows.length;
+      toast.success(skipped ? `Imported ${validRows.length} transaction(s). Skipped ${skipped} invalid row(s).` : `Imported ${validRows.length} transaction(s)`);
+      onSuccess?.();
     } catch (error) {
-      console.error("Import error:", error);
-      toast.error("Failed to import statement: " + error.message);
+      toast.error(error?.message || "Failed to import the statement");
     }
-
     setImporting(false);
   };
 
@@ -132,41 +148,23 @@ export default function BankStatementImport({ open, onClose, bankAccounts, glAcc
           <DialogTitle className="text-center text-xl">Import Statements</DialogTitle>
         </DialogHeader>
 
-        {/* Steps Indicator */}
-        <div className="flex items-center justify-center gap-8 py-6 border-b">
-          <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-              step === 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-            }`}>
-              1
+        <div className="flex items-center justify-center gap-8 border-b py-6">
+          {["Configure", "Map Fields", "Preview"].map((label, index) => (
+            <div key={label} className="flex items-center gap-2">
+              <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${step === index + 1 && !showHistory ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"}`}>{index + 1}</div>
+              <span className={`text-sm font-medium ${step === index + 1 && !showHistory ? "text-blue-600" : "text-gray-500"}`}>{label}</span>
             </div>
-            <span className={`text-sm font-medium ${step === 1 ? 'text-blue-600' : 'text-gray-500'}`}>
-              Configure
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-              step === 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-            }`}>
-              2
-            </div>
-            <span className={`text-sm font-medium ${step === 2 ? 'text-blue-600' : 'text-gray-500'}`}>
-              Map Fields
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-              step === 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-            }`}>
-              3
-            </div>
-            <span className={`text-sm font-medium ${step === 3 ? 'text-blue-600' : 'text-gray-500'}`}>
-              Preview
-            </span>
-          </div>
+          ))}
         </div>
 
-        {step === 1 && (
+        {showHistory ? (
+          <div className="space-y-4 py-4">
+            <h3 className="font-semibold text-[#0A1F44]">Import history</h3>
+            <StatementImportHistory companyId={companyId} transactions={transactions} bankAccounts={bankAccounts} />
+          </div>
+        ) : null}
+
+        {!showHistory && step === 1 && (
           <div className="space-y-6 py-4">
             <div className="space-y-2">
               <Label className="text-red-600">Select an account*</Label>
@@ -175,171 +173,209 @@ export default function BankStatementImport({ open, onClose, bankAccounts, glAcc
                   <SelectValue placeholder="Choose your account for import" />
                 </SelectTrigger>
                 <SelectContent>
-                  {bankAccounts
-                    .filter(acc => acc.status === 'active')
-                    .map(acc => (
-                      <SelectItem key={acc.id} value={acc.id}>
-                        {acc.account_name} - {acc.institution_name}
-                      </SelectItem>
-                    ))}
+                  {bankAccounts.filter((account) => account.status === "active").map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.account_name || account.institution_name}{account.institution_name ? ` - ${account.institution_name}` : ""}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center bg-gray-50">
+            <div
+              className={`rounded-lg border-2 border-dashed p-12 text-center ${dragOver ? "border-blue-500 bg-blue-50" : "border-gray-300 bg-gray-50"}`}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(event) => {
+                event.preventDefault();
+                setDragOver(false);
+                const dropped = event.dataTransfer.files?.[0];
+                if (dropped) readFile(dropped);
+              }}
+            >
               {file ? (
                 <div className="space-y-3">
-                  <FileText className="w-16 h-16 text-green-600 mx-auto" />
+                  <FileText className="mx-auto h-16 w-16 text-green-600" />
                   <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setFile(null)}
-                  >
-                    Remove File
-                  </Button>
+                  {reading ? <p className="text-sm text-gray-500">Reading file...</p> : null}
+                  <Button type="button" variant="outline" size="sm" onClick={() => { setFile(null); setTable(null); setParseError(""); }}>Remove File</Button>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <Upload className="w-16 h-16 text-gray-400 mx-auto" />
-                  <p className="text-gray-700 font-medium">Drag and drop file to import</p>
+                  <Upload className="mx-auto h-16 w-16 text-gray-400" />
+                  <p className="font-medium text-gray-700">Drag and drop file to import</p>
                   <input
                     type="file"
-                    accept=".pdf,.csv,.xls,.xlsx,.ofx,.tsv,.camt,.camt.053,.camt.054"
-                    onChange={handleFileUpload}
+                    accept=".csv,.tsv,.xls,.xlsx,.ofx,.qif,.xml,.camt"
+                    onChange={(event) => readFile(event.target.files?.[0])}
                     className="hidden"
                     id="statement-upload"
                   />
                   <label htmlFor="statement-upload">
                     <Button className="bg-blue-600 hover:bg-blue-700" asChild>
-                      <span>
-                        <Upload className="w-4 h-4 mr-2" />
-                        Choose File
-                      </span>
+                      <span><Upload className="mr-2 h-4 w-4" />Choose File</span>
                     </Button>
                   </label>
-                  <p className="text-xs text-gray-500 mt-3">
-                    Maximum File Size: 1 MB • File format Supported: CSV, TSV, XLS, OFX, QIF, CAMT.053 and CAMT.054
-                  </p>
+                  <p className="mt-3 text-xs text-gray-500">Maximum File Size: 1 MB • File format Supported: CSV, TSV, XLS, XLSX, OFX, QIF, CAMT.053 and CAMT.054</p>
                 </div>
               )}
             </div>
 
+            {parseError ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{parseError}</p> : null}
+
             <div className="text-sm text-blue-600">
-              <p>Ensure that the import file is in the correct format by comparing it with our sample file.</p>
-              <button className="flex items-center gap-1 hover:underline mt-1">
-                <Download className="w-4 h-4" />
+              <p>The sample file uses Date, Description, Debit, Credit, Payee, Reference Number, and Balance.</p>
+              <button type="button" className="mt-1 flex items-center gap-1 hover:underline" onClick={() => downloadText("bank-statement-sample.csv", sampleCsv(), "text/csv")}>
+                <Download className="h-4 w-4" />
                 Download sample file
               </button>
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Label>Character Encoding</Label>
-                <HelpCircle className="w-4 h-4 text-gray-400" />
-              </div>
-              <Select value={encoding} onValueChange={setEncoding}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+              <Label>Character Encoding</Label>
+              <Select value={encoding} onValueChange={(value) => { setEncoding(value); if (file) readFile(file, value); }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="UTF-8">UTF-8 (Unicode)</SelectItem>
-                  <SelectItem value="ISO-8859-1">ISO-8859-1 (Latin-1)</SelectItem>
-                  <SelectItem value="Windows-1252">Windows-1252</SelectItem>
+                  {ENCODINGS.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div className="flex items-start gap-2">
-                <span className="text-lg">💡</span>
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-gray-900">Page Tips</h4>
-                  <ul className="text-sm text-gray-700 space-y-2 list-disc list-inside">
-                    <li>You can download the <button className="text-blue-600 hover:underline">sample xls file</button> to get detailed information about the data fields used while importing.</li>
-                    <li>If you have files in other formats, you can convert it to an accepted file format using any online/offline converter.</li>
-                  </ul>
-                </div>
-              </div>
+            <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+              <h4 className="font-semibold text-gray-900">Page Tips</h4>
+              <ul className="mt-2 list-disc space-y-2 pl-5 text-sm text-gray-700">
+                <li>
+                  Download the <button type="button" className="text-blue-600 hover:underline" onClick={() => downloadText("bank-statement-sample.xls", sampleSpreadsheetXml(), "application/vnd.ms-excel")}>sample xls file</button> to see the columns: Date, Description, Debit, Credit, Payee, Reference Number, and Balance.
+                </li>
+                <li>Withdrawals go in Debit and deposits go in Credit. A single Amount column is also accepted, with a negative amount for a withdrawal.</li>
+                <li>OFX, QIF, and CAMT.053 or CAMT.054 files are read directly and do not need this column layout.</li>
+              </ul>
             </div>
+          </div>
+        )}
 
-            {aiAnalyzing && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-center gap-3">
-                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-                  <div>
-                    <p className="font-semibold text-blue-900">Analyzing statement...</p>
-                    <p className="text-sm text-blue-800">
-                      AI is extracting and categorizing transactions
-                    </p>
-                  </div>
-                </div>
+        {!showHistory && step === 2 && table && (
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-gray-600">Match each file column to a transaction field. The first data row is shown so you can check the mapping.</p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left">
+                    <th className="py-2 pr-3">File column</th>
+                    <th className="py-2 pr-3">Sample</th>
+                    <th className="py-2">Maps to</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {table.headers.map((header, index) => (
+                    <tr key={`${header}-${index}`} className="border-b">
+                      <td className="py-2 pr-3 font-medium">{header || `Column ${index + 1}`}</td>
+                      <td className="py-2 pr-3 text-gray-600">{table.rows[0]?.[index] || "-"}</td>
+                      <td className="py-2">
+                        <Select value={fieldForColumn(index)} onValueChange={(value) => assignColumn(value, index)}>
+                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ignore">Do not import</SelectItem>
+                            {STATEMENT_FIELDS.map((field) => (
+                              <SelectItem key={field.key} value={field.key}>{field.label}{field.required ? " *" : ""}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {mappingReady ? (
+              <div>
+                <p className="mb-2 text-sm font-medium">Mapping preview</p>
+                <PreviewTable rows={preview.slice(0, 5)} />
               </div>
+            ) : (
+              <p className="text-sm text-amber-800">Map Date and either Debit and Credit or Amount before continuing.</p>
             )}
           </div>
         )}
 
-        {step === 2 && (
-          <div className="space-y-6 py-4">
-            <div className="text-center py-12">
-              <p className="text-gray-600">Map Fields step - Coming soon</p>
-              <p className="text-sm text-gray-500 mt-2">This will allow you to map CSV columns to transaction fields</p>
-            </div>
+        {!showHistory && step === 3 && (
+          <div className="space-y-3 py-4">
+            <p className="text-sm text-gray-600">{validRows.length} of {preview.length} row(s) are ready to import into {bankAccounts.find((account) => account.id === selectedAccount)?.account_name || "the selected account"}.</p>
+            <PreviewTable rows={preview} />
           </div>
         )}
 
-        {step === 3 && (
-          <div className="space-y-6 py-4">
-            <div className="text-center py-12">
-              <p className="text-gray-600">Preview step - Coming soon</p>
-              <p className="text-sm text-gray-500 mt-2">This will show a preview of transactions before final import</p>
-            </div>
-          </div>
-        )}
-
-        <div className="flex justify-end gap-3 pt-4 border-t">
-          <Button variant="outline" onClick={onClose} disabled={importing}>
-            Cancel
+        <div className="flex justify-end gap-3 border-t pt-4">
+          <Button type="button" variant="ghost" onClick={() => setShowHistory((current) => !current)}>
+            {showHistory ? "Back to import" : "Import history"}
           </Button>
-          {step > 1 && (
-            <Button variant="outline" onClick={() => setStep(step - 1)} disabled={importing}>
-              Previous
-            </Button>
+          <Button type="button" variant="outline" onClick={onClose} disabled={importing}>Cancel</Button>
+          {!showHistory && step > 1 && (
+            <Button type="button" variant="outline" onClick={() => setStep(step - 1)} disabled={importing}>Previous</Button>
           )}
-          {step < 3 ? (
+          {!showHistory && step < 3 && (
             <Button
+              type="button"
+              className="bg-blue-600 hover:bg-blue-700"
               onClick={() => {
-                if (step === 1 && (!selectedAccount || !file)) {
-                  toast.error("Please select an account and upload a file");
+                if (step === 1 && (!selectedAccount || !table)) {
+                  toast.error(parseError || "Select an account and upload a statement file");
+                  return;
+                }
+                if (step === 2 && !mappingReady) {
+                  toast.error("Map Date and an amount column");
                   return;
                 }
                 setStep(step + 1);
               }}
-              className="bg-blue-600 hover:bg-blue-700"
             >
               Next
             </Button>
-          ) : (
-            <Button
-              onClick={handleImport}
-              disabled={!selectedAccount || !file || importing}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {importing ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Importing...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Import
-                </>
-              )}
+          )}
+          {!showHistory && step === 3 && (
+            <Button type="button" className="bg-blue-600 hover:bg-blue-700" onClick={importRows} disabled={importing || validRows.length === 0}>
+              {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Import {validRows.length || ""}
             </Button>
           )}
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PreviewTable({ rows }) {
+  return (
+    <div className="max-h-64 overflow-auto rounded-md border">
+      <table className="w-full text-sm">
+        <thead className="sticky top-0 bg-white">
+          <tr className="border-b text-left">
+            <th className="px-2 py-2">Date</th>
+            <th className="px-2 py-2">Description</th>
+            <th className="px-2 py-2">Type</th>
+            <th className="px-2 py-2 text-right">Amount</th>
+            <th className="px-2 py-2">Payee</th>
+            <th className="px-2 py-2">Reference</th>
+            <th className="px-2 py-2">Check</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.rowNumber} className="border-b last:border-0">
+              <td className="px-2 py-1.5">{row.transaction_date || "-"}</td>
+              <td className="px-2 py-1.5">{row.description}</td>
+              <td className="px-2 py-1.5 capitalize">{row.transaction_type || "-"}</td>
+              <td className="px-2 py-1.5 text-right tabular-nums">{row.amount == null ? "-" : row.amount.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td className="px-2 py-1.5">{row.payee || "-"}</td>
+              <td className="px-2 py-1.5">{row.reference_number || "-"}</td>
+              <td className={`px-2 py-1.5 ${row.error ? "text-red-700" : "text-green-700"}`}>{row.error || "Ready"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

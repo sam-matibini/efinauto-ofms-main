@@ -1,18 +1,4 @@
-const FALLBACK_RATES = {
-  AB: { gst: 5, pst: 0, hst: 0 },
-  BC: { gst: 5, pst: 7, hst: 0 },
-  MB: { gst: 5, pst: 7, hst: 0 },
-  NB: { gst: 0, pst: 0, hst: 15 },
-  NL: { gst: 0, pst: 0, hst: 15 },
-  NT: { gst: 5, pst: 0, hst: 0 },
-  NS: { gst: 0, pst: 0, hst: 15 },
-  NU: { gst: 5, pst: 0, hst: 0 },
-  ON: { gst: 0, pst: 0, hst: 13 },
-  PE: { gst: 0, pst: 0, hst: 15 },
-  QC: { gst: 5, pst: 9.975, hst: 0 },
-  SK: { gst: 5, pst: 6, hst: 0 },
-  YT: { gst: 5, pst: 0, hst: 0 },
-};
+import { salesRate } from "./canadianTaxSchedule.js";
 
 export function roundMoney(value) {
   const amount = Number(value);
@@ -28,31 +14,25 @@ export function vehiclePurchaseTaxes({
   province,
   tax_status = "taxable",
   pst_exempt = false,
-  companyRates,
-  useRates = false,
+  asOf = new Date(),
 } = {}) {
   const pretaxAmount = roundMoney(pretax);
-  const useEnteredAmounts = !useRates && (tax_gst != null || tax_pst != null || tax_hst != null);
+  const useEnteredAmounts = tax_gst != null || tax_pst != null || tax_hst != null;
 
   let gst = roundMoney(tax_gst);
   let pst = roundMoney(tax_pst);
   let hst = roundMoney(tax_hst);
 
   if (!useEnteredAmounts) {
-    const fromCompany = companyRates?.[province];
-    if (tax_status !== "taxable" || !province || !pretaxAmount) {
+    const official = salesRate(province, asOf);
+    if (tax_status !== "taxable" || !province || !pretaxAmount || !official) {
       gst = 0;
       pst = 0;
       hst = 0;
-    } else if (fromCompany) {
-      gst = roundMoney((pretaxAmount * (fromCompany.gst || 0)) / 100);
-      pst = pst_exempt ? 0 : roundMoney((pretaxAmount * (fromCompany.pst || 0)) / 100);
-      hst = roundMoney((pretaxAmount * (fromCompany.hst || 0)) / 100);
     } else {
-      const rates = FALLBACK_RATES[province] || { gst: 0, pst: 0, hst: 0 };
-      gst = roundMoney((pretaxAmount * (rates.gst || 0)) / 100);
-      pst = pst_exempt ? 0 : roundMoney((pretaxAmount * (rates.pst || 0)) / 100);
-      hst = roundMoney((pretaxAmount * (rates.hst || 0)) / 100);
+      gst = roundMoney((pretaxAmount * (official.gst || 0)) / 100);
+      pst = pst_exempt ? 0 : roundMoney((pretaxAmount * (official.pst || 0)) / 100);
+      hst = roundMoney((pretaxAmount * (official.hst || 0)) / 100);
     }
   }
 
