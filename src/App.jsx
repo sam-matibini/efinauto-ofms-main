@@ -14,12 +14,13 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import LoginPage from '@/components/auth/LoginPage';
 import ForgotPasswordPage from '@/components/auth/ForgotPasswordPage';
 import ResetPasswordPage from '@/components/auth/ResetPasswordPage';
+import PaySuccess from '@/pages/PaySuccess';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 
-const PUBLIC_PATHS = ['/', '/login', '/forgot-password', '/reset-password'];
+const PUBLIC_PATHS = ['/', '/login', '/forgot-password', '/reset-password', '/pay/success', '/pay/cancelled'];
 
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
@@ -68,6 +69,8 @@ const AuthenticatedApp = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/pay/success" element={<PaySuccess variant="success" />} />
+      <Route path="/pay/cancelled" element={<PaySuccess variant="cancelled" />} />
       <Route path="/" element={
         <ProtectedRoute>
           <LayoutWrapper currentPageName={mainPageKey}>

@@ -66,6 +66,55 @@ Add Vehicle includes **Sales taxes (RST) paid**: pretax amount, GST, PST, HST, R
 - posts Dr Vehicle Inventory (1200) / Cr AP, and Dr GST/HST Receivable ITC (1150) / Cr AP
 
 
+## Payment links (click-to-pay)
+
+Sales invoices and repair invoices can generate a **Stripe payment link**. Clicking the link opens a hosted Stripe Checkout page; once the customer pays, a webhook records the payment, updates the invoice status, and posts the double-entry GL (Dr Cash 1000 / Cr A/R 1100) automatically.
+
+### Stripe Connect (multi-tenant)
+
+eFinAuto is multi-tenant SaaS, so payments use **Stripe Connect with Standard accounts and direct charges**:
+
+- Each dealership connects **its own Stripe account** via **Settings → Payments** ("Connect with Stripe", Stripe-hosted onboarding).
+- Pay links are created *as* that connected account (`Stripe-Account` header), so the **dealership is the merchant of record**, bears the card fees, and receives payouts straight to its own bank. eFinAuto never holds tenant funds and never sees tenant secret keys — only `acct_...` ids and status.
+- Payment links are **blocked with a clear error until the company finishes onboarding** (`charges_enabled`).
+- The webhook's `account.updated` handler keeps the connection status fresh.
+
+- **Where it lives:** `Payment Link` / `Pay Link` buttons on the Sales Invoices list (`InvoicesTab`), the invoice preview header (`InvoicePreview`), and the repair invoice generator (`InvoiceGenerator`). Outgoing invoice emails include a **Pay Now** button when there is a balance and a valid customer email. Connection status/onboarding lives in **Settings → Payments** (`PaymentsTab.jsx`).
+- **Edge functions:** `supabase/functions/create-payment-link` (creates/reuses a Stripe Checkout session), `supabase/functions/create-connect-onboarding` (creates/reuses the Connect account + hosted onboarding link), and `supabase/functions/stripe-webhook` (source of truth for recording payment + syncing Connect status).
+- **Tables:** `public.payment_links` (`20261020100000_payment_links.sql`) and `public.stripe_connect_accounts` (`20261021100000_stripe_connect_accounts.sql`). This repo does not auto-apply migrations; run the SQL in the Supabase SQL editor.
+
+### One-time setup
+
+1. Run both SQL files in `supabase/migrations/` (Supabase SQL editor):
+   `20261020100000_payment_links.sql` and `20261021100000_stripe_connect_accounts.sql`.
+2. Set Edge Function secrets (`STRIPE_SECRET_KEY` is the **platform** account's key — dealerships never add keys):
+   ```bash
+   supabase secrets set STRIPE_SECRET_KEY=sk_test_... \
+     STRIPE_WEBHOOK_SECRET=whsec_... \
+     PAYMENT_RETURN_BASE_URL=https://your-app.vercel.app
+   ```
+3. Deploy the functions:
+   ```bash
+   supabase functions deploy create-payment-link
+   supabase functions deploy create-connect-onboarding
+   supabase functions deploy stripe-webhook --no-verify-jwt
+   ```
+4. In the Stripe dashboard (platform account), add a webhook endpoint pointing to
+   `https://<project-ref>.supabase.co/functions/v1/stripe-webhook` for events
+   `checkout.session.completed`, `checkout.session.async_payment_failed`,
+   `checkout.session.expired`, and `account.updated`. Copy its signing secret
+   into `STRIPE_WEBHOOK_SECRET`.
+   **Important (direct charges):** the payment events fire against the
+   dealership's connected account, so the endpoint must also receive events
+   from connected accounts (the endpoint's "events from connected accounts"
+   / Connect option — API: `connect: true` when creating the endpoint).
+   Verify in test mode that `checkout.session.completed` actually arrives;
+   without this the invoice won't be marked paid automatically.
+5. Each dealership: **Settings → Payments → Connect with Stripe** and complete
+   onboarding (test mode first).
+
+To test locally: `stripe listen --forward-to http://localhost:54321/functions/v1/stripe-webhook` and use test card `4242 4242 4242 4242`.
+
 ## Deploy
 
 `vercel.json` is configured for a Vite static build on Vercel.
