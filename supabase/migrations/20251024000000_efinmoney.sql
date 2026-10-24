@@ -2,7 +2,7 @@
 
 create table if not exists public.efinmoney_links (
   id uuid primary key default gen_random_uuid(),
-  company_id uuid not null references public.companies(id) on delete cascade,
+  company_id text not null references public.companies(id) on delete cascade,
   user_id uuid,
   external_ref text,
   link_id text,
@@ -23,7 +23,7 @@ create table if not exists public.efinmoney_links (
 
 create table if not exists public.efinmoney_link_states (
   state text primary key,
-  company_id uuid not null references public.companies(id) on delete cascade,
+  company_id text not null references public.companies(id) on delete cascade,
   user_id uuid,
   redirect_uri text not null,
   expires_at timestamptz not null,

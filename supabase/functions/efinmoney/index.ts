@@ -126,7 +126,8 @@ Deno.serve(async (req: Request) => {
       .eq("id", caller.id)
       .maybeSingle();
 
-    const body = await req.json().catch(() => ({}));
+    const payload = await req.json().catch(() => ({}));
+    const body = payload.body || payload;
     const action = body.action as string;
 
     const assertCompanyAccess = (companyId: string, requireAdmin = false) => {
