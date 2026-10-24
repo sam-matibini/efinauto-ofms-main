@@ -5,8 +5,9 @@ import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, CreditCard, Receipt, GitCompare, Settings, Building2, Brain } from "lucide-react";
+import { Plus, CreditCard, Receipt, GitCompare, Settings, Building2, Brain, Landmark } from "lucide-react";
 import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 import BankAccountDialog from "@/components/banking/BankAccountDialog.jsx";
 import BankAccountsList from "@/components/banking/BankAccountsList.jsx";
 import TransactionsList from "@/components/banking/TransactionsList.jsx";
@@ -14,10 +15,14 @@ import ReconciliationManager from "@/components/banking/ReconciliationManager.js
 import TransactionRulesManager from "@/components/banking/TransactionRulesManager.jsx";
 import BankStatementImport from "@/components/banking/BankStatementImport.jsx";
 import AITransactionCategorizer from "@/components/accounting/AITransactionCategorizer.jsx";
+import EfinMoneyTab from "@/components/efinmoney/EfinMoneyTab";
 
 export default function BankingPage() {
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'accounts';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -194,12 +199,16 @@ export default function BankingPage() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="accounts" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="w-full overflow-x-auto flex-nowrap justify-start">
             <TabsTrigger value="accounts" className="flex items-center gap-2 text-xs md:text-sm">
               <CreditCard className="w-3 h-3 md:w-4 md:h-4" />
               <span className="hidden sm:inline">Bank Accounts</span>
               <span className="sm:hidden">Accounts</span>
+            </TabsTrigger>
+            <TabsTrigger value="efinmoney" className="flex items-center gap-2 text-xs md:text-sm">
+              <Landmark className="w-3 h-3 md:w-4 md:h-4" />
+              <span>eFinMoney</span>
             </TabsTrigger>
             <TabsTrigger value="transactions" className="flex items-center gap-2 text-xs md:text-sm">
               <Receipt className="w-3 h-3 md:w-4 md:h-4" />
@@ -272,6 +281,10 @@ export default function BankingPage() {
                 queryClient.invalidateQueries({ queryKey: ['bankTransactions'] });
               }}
             />
+          </TabsContent>
+
+          <TabsContent value="efinmoney">
+            <EfinMoneyTab companyId={selectedCompanyId} />
           </TabsContent>
         </Tabs>
       </div>
