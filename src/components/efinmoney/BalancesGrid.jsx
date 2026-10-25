@@ -18,7 +18,12 @@ export default function BalancesGrid({ balances = [] }) {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-gray-500">{b.currency_name || b.currency}</p>
-                <p className="text-xl font-semibold">{b.currency} {Number(b.balance || 0).toFixed(2)}</p>
+                <p className="text-xl font-semibold">
+                  {Number(b.balance || 0).toLocaleString("en-US", {
+                    style: "currency",
+                    currency: b.currency || "USD",
+                  })}
+                </p>              
               </div>
               <div className="flex flex-col items-end gap-1">
                 {b.is_default && <Badge>Default</Badge>}

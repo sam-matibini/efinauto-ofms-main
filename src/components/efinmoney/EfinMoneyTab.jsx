@@ -12,38 +12,15 @@ import { toast } from "sonner";
 import AccountsGrid from "./AccountsGrid";
 import BalancesGrid from "./BalancesGrid";
 
-export default function EfinMoneyTab({ companyId }) {
+export default function EfinMoneyTab({ 
+  status, accounts, balances, companyId, 
+  statusLoading, accountsLoading, balancesLoading,
+  refetchAccounts, refetchBalances, connected 
+}) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const isAdmin = isAdminUser(user);
   const [starting, setStarting] = useState(false);
-
-  const { data: status, isLoading: statusLoading } = useQuery({
-    queryKey: ['efinmoney', 'status', companyId],
-    queryFn: () => efinMoneyApi.status(companyId),
-    enabled: !!companyId,
-    staleTime: 30000,
-  });
-
-  const connected = status?.status === 'connected';
-
-  const { data: accounts = [], isLoading: accountsLoading, refetch: refetchAccounts } = useQuery({
-    queryKey: ['efinmoney', 'accounts', companyId],
-    queryFn: () => efinMoneyApi.accounts(companyId),
-    enabled: !!companyId && connected,
-    staleTime: 30000,
-    refetchInterval: connected ? 60000 : false,
-    refetchOnWindowFocus: connected,
-  });
-
-  const { data: balances = [], isLoading: balancesLoading, refetch: refetchBalances } = useQuery({
-    queryKey: ['efinmoney', 'balances', companyId],
-    queryFn: () => efinMoneyApi.balances(companyId),
-    enabled: !!companyId && connected,
-    staleTime: 30000,
-    refetchInterval: connected ? 60000 : false,
-    refetchOnWindowFocus: connected,
-  });
 
   const disconnectMutation = useMutation({
     mutationFn: () => efinMoneyApi.disconnect(companyId),
@@ -149,12 +126,12 @@ export default function EfinMoneyTab({ companyId }) {
       {connected && (
         <>
           <div>
-            <h3 className="text-base font-semibold mb-2">Virtual accounts</h3>
-            {accountsLoading ? <Card><CardContent className="p-6 text-center text-gray-500">Loading accounts...</CardContent></Card> : <AccountsGrid accounts={accounts} />}
-          </div>
-          <div>
             <h3 className="text-base font-semibold mb-2">Wallet balances</h3>
             {balancesLoading ? <Card><CardContent className="p-6 text-center text-gray-500">Loading balances...</CardContent></Card> : <BalancesGrid balances={balances} />}
+          </div>
+          <div>
+            <h3 className="text-base font-semibold mb-2">Virtual accounts</h3>
+            {accountsLoading ? <Card><CardContent className="p-6 text-center text-gray-500">Loading accounts...</CardContent></Card> : <AccountsGrid accounts={accounts} />}
           </div>
         </>
       )}

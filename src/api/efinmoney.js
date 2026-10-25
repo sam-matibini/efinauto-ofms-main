@@ -22,4 +22,5 @@ export const efinMoneyApi = {
   accounts: (companyId) => call('accounts', { company_id: companyId }),
   balances: (companyId) => call('balances', { company_id: companyId }),
   disconnect: (companyId) => call('disconnect', { company_id: companyId }),
+  rates: (companyId, base, symbols) => call('rates', { company_id: companyId, base, symbols }),
 };

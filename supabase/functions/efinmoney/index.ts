@@ -295,6 +295,51 @@ Deno.serve(async (req: Request) => {
       return json({ success: true });
     }
 
+    if (action === "rates") {
+      const company_id = body.company_id;
+      assertCompanyAccess(company_id, false);
+      const base = body.base as string;
+      const symbols = body.symbols as string[] | string;
+      if (!base) return json({ success: false, error: "base_required" }, 400);
+      
+      let symbolsParam = "";
+      if (Array.isArray(symbols)) {
+        symbolsParam = symbols.join(",");
+      } else if (typeof symbols === "string") {
+        symbolsParam = symbols;
+      }
+      
+      // Try to get rates - may need auth or be public
+      const { data: link } = await service.from("efinmoney_links").select("*").eq("company_id", company_id).maybeSingle();
+      let token: string | undefined;
+      if (link?.access_token_enc && link?.status === "connected") {
+        try {
+          token = await decryptToken(link.access_token_enc);
+        } catch (_) {
+          token = undefined;
+        }
+      }
+      
+      // Try different endpoints
+      let res, rBody;
+      if (symbolsParam) {
+        res = (await efinFetch(`/v1/rates?base=${encodeURIComponent(base)}&symbols=${encodeURIComponent(symbolsParam)}`, {}, token)).res;
+        rBody = (await efinFetch(`/v1/rates?base=${encodeURIComponent(base)}&symbols=${encodeURIComponent(symbolsParam)}`, {}, token)).body;
+      } else {
+        res = (await efinFetch(`/v1/rates/${encodeURIComponent(base)}`, {}, token)).res;
+        rBody = (await efinFetch(`/v1/rates/${encodeURIComponent(base)}`, {}, token)).body;
+      }
+      
+      if (!rBody?.success && rBody) {
+        // If not wrapped in success, return as-is
+        return json({ success: true, data: rBody.data || rBody.rates || rBody });
+      }
+      if (!rBody?.success) {
+        return json({ success: false, code: rBody?.code, error: rBody?.error || "failed_to_fetch_rates" }, res?.status || 400);
+      }
+      return json({ success: true, data: rBody.data || rBody.rates });
+    }
+
     return json({ success: false, error: "unknown_action" }, 400);
   } catch (err: unknown) {
     console.error("efinmoney error:", err);
