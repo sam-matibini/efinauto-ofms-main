@@ -197,7 +197,7 @@ export default function BankingPage() {
   const baseCurrency = company?.currency || getCurrencyFromCountry(company?.country) || bankAccounts[0]?.currency || 'CAD';
   const symbolsToConvert = currencies.filter(c => c !== baseCurrency);
 
-  const { data: ratesData } = useQuery({
+  const { data: ratesData, isLoading: ratesLoading } = useQuery({
     queryKey: ['efinmoney', 'rates', selectedCompanyId, baseCurrency, symbolsToConvert.join(',')],
     queryFn: () => efinMoneyApi.rates(selectedCompanyId, baseCurrency, symbolsToConvert),
     enabled: !!selectedCompanyId && symbolsToConvert.length > 0 && efinAccountsConnected,
@@ -223,21 +223,34 @@ export default function BankingPage() {
     });
   }
 
+  const needsRates = symbolsToConvert.length > 0 && efinAccountsConnected;
+  const ratesReady = !needsRates || (!ratesLoading && Object.keys(rateMap).length > 0);
+
   let totalBalanceInBase = 0;
-  currencies.forEach((c) => {
-    const amount = balanceByCurrency[c];
-    if (c === baseCurrency) {
-      totalBalanceInBase += amount;
-    } else {
-      const rate = rateMap[c] || 1;
-      if (rate && rate > 0) {
-        // If rate is "1 base = rate * to", then to convert 'to' to base: amount / rate
-        totalBalanceInBase += amount / rate;
-      } else {
+  if (ratesReady) {
+    currencies.forEach((c) => {
+      const amount = balanceByCurrency[c];
+      if (c === baseCurrency) {
         totalBalanceInBase += amount;
+      } else {
+        const rate = rateMap[c] || 1;
+        if (rate && rate > 0) {
+          totalBalanceInBase += amount / rate;
+        } else {
+          totalBalanceInBase += amount;
+        }
       }
-    }
-  });
+    });
+  } else {
+    // While rates are loading, don't show converted total - keep as 0 or sum unconverted as fallback
+    // But better to sum in base currency only what we can, rest stays 0 to avoid wrong display
+    currencies.forEach((c) => {
+      if (c === baseCurrency) {
+        totalBalanceInBase += balanceByCurrency[c];
+      }
+      // Don't add foreign currency amounts until rates are ready
+    });
+  }
 
   const stats = {
     totalAccounts: totalAccountsCount,
@@ -246,6 +259,7 @@ export default function BankingPage() {
     balanceByCurrency,
     baseCurrency,
     pendingTransactions: transactions.filter(t => t.status === 'pending').length,
+    balanceLoading: needsRates && !ratesReady,
   };
 
   if (!selectedCompanyId) {
@@ -326,7 +340,9 @@ export default function BankingPage() {
             <CardContent className="p-4 md:p-6">
               <div>
                 <p className="text-xs md:text-sm text-gray-600">Total Balance</p>
-                <h3 className="text-lg md:text-2xl font-bold text-gray-900">{formatCompactCurrency(stats.totalBalance, stats.baseCurrency || 'CAD')}</h3>
+                <h3 className="text-lg md:text-2xl font-bold text-gray-900">
+                  {stats.balanceLoading ? '...' : formatCompactCurrency(stats.totalBalance, stats.baseCurrency || 'CAD')}
+                </h3>
               </div>
             </CardContent>
           </Card>
