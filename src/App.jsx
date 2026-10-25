@@ -14,6 +14,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import LoginPage from '@/components/auth/LoginPage';
 import ForgotPasswordPage from '@/components/auth/ForgotPasswordPage';
 import ResetPasswordPage from '@/components/auth/ResetPasswordPage';
+import EfinMoneyCallback from '@/pages/EfinMoneyCallback';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -68,6 +69,7 @@ const AuthenticatedApp = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/settings/efinmoney/callback" element={<ProtectedRoute><LayoutWrapper currentPageName="Banking"><EfinMoneyCallback /></LayoutWrapper></ProtectedRoute>} />
       <Route path="/" element={
         <ProtectedRoute>
           <LayoutWrapper currentPageName={mainPageKey}>

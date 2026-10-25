@@ -5,8 +5,9 @@ import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, CreditCard, Receipt, GitCompare, Settings, Building2, Brain } from "lucide-react";
+import { Plus, CreditCard, Receipt, GitCompare, Settings, Building2, Brain, Landmark } from "lucide-react";
 import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 import BankAccountDialog from "@/components/banking/BankAccountDialog.jsx";
 import BankAccountsList from "@/components/banking/BankAccountsList.jsx";
 import TransactionsList from "@/components/banking/TransactionsList.jsx";
@@ -14,13 +15,32 @@ import ReconciliationManager from "@/components/banking/ReconciliationManager.js
 import TransactionRulesManager from "@/components/banking/TransactionRulesManager.jsx";
 import BankStatementImport from "@/components/banking/BankStatementImport.jsx";
 import AITransactionCategorizer from "@/components/accounting/AITransactionCategorizer.jsx";
+import EfinMoneyTab from "@/components/efinmoney/EfinMoneyTab";
+import { efinMoneyApi } from "@/api/efinmoney";
 
 export default function BankingPage() {
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'accounts';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+
+  const formatCompactCurrency = (amount, currency = "USD", locale = "en-US") => {
+    const value = Number(amount) || 0;
+    try {
+      return new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency,
+        notation: "compact",
+        maximumFractionDigits: 1,
+      }).format(value);
+    } catch {
+      return `${currency} ${value.toFixed(2)}`;
+    }
+  };
 
   const { data: bankAccounts = [] } = useQuery({
     queryKey: ['bankAccounts', selectedCompanyId],
@@ -55,6 +75,52 @@ export default function BankingPage() {
     queryFn: () => supabase.entities.Account.filter({ company_id: selectedCompanyId }),
     enabled: !!selectedCompanyId,
     initialData: [],
+  });
+
+  const { data: company } = useQuery({
+    queryKey: ['company', selectedCompanyId],
+    queryFn: () => supabase.entities.Company.get(selectedCompanyId),
+    enabled: !!selectedCompanyId,
+  });
+
+  const getCurrencyFromCountry = (country) => {
+    if (!country) return null;
+    const c = country.toLowerCase();
+    if (c.includes('canada')) return 'CAD';
+    if (c.includes('nigeria')) return 'NGN';
+    if (c.includes('ghana')) return 'GHS';
+    if (c.includes('kenya')) return 'KES';
+    if (c.includes('united states') || c.includes('usa') || c === 'us') return 'USD';
+    if (c.includes('united kingdom') || c.includes('uk')) return 'GBP';
+    if (c.includes('euro') || c.includes('france') || c.includes('germany')) return 'EUR';
+    return null;
+  };
+
+  const { data: efinStatus, isLoading: statusLoading } = useQuery({
+    queryKey: ['efinmoney', 'status', selectedCompanyId],
+    queryFn: () => efinMoneyApi.status(selectedCompanyId),
+    enabled: !!selectedCompanyId,
+    staleTime: 30000,
+  });
+
+  const efinAccountsConnected = efinStatus?.status === 'connected';
+
+  const { data: efinAccounts = [], isLoading: accountsLoading, refetch: refetchAccounts } = useQuery({
+    queryKey: ['efinmoney', 'accounts', selectedCompanyId],
+    queryFn: () => efinMoneyApi.accounts(selectedCompanyId),
+    enabled: !!selectedCompanyId && efinAccountsConnected,
+    staleTime: 30000,
+    refetchInterval: efinAccountsConnected ? 60000 : false,
+    refetchOnWindowFocus: efinAccountsConnected,
+  });
+
+   const { data: efinBalances = [], isLoading: balancesLoading, refetch: refetchBalances } = useQuery({
+    queryKey: ['efinmoney', 'balances', selectedCompanyId],
+    queryFn: () => efinMoneyApi.balances(selectedCompanyId),
+    enabled: !!selectedCompanyId && efinAccountsConnected,
+    staleTime: 30000,
+    refetchInterval: efinAccountsConnected ? 60000 : false,
+    refetchOnWindowFocus: efinAccountsConnected,
   });
 
   const createAccountMutation = useMutation({
@@ -93,11 +159,107 @@ export default function BankingPage() {
     }
   };
 
+  const totalAccountsCount = bankAccounts.length + (efinStatus?.status === 'connected' ? (efinAccounts?.length + 1 || 0) : 0);
+  const activeEfinCount = efinStatus?.status === 'connected' ? (efinAccounts?.filter((a) => a.status === 'active')?.length + efinBalances?.length || 0) : 0;
+
+  // Calculate balances by currency
+  const balanceByCurrency = {};
+  
+  bankAccounts.forEach((a) => {
+    const currency = a.currency || 'USD';
+    const amount = Number(a.current_balance || 0);
+    if (!balanceByCurrency[currency]) balanceByCurrency[currency] = 0;
+    balanceByCurrency[currency] += amount;
+  });
+
+  if (efinStatus?.status === 'connected') {
+    efinAccounts?.forEach((a) => {
+      const currency = a.currency || 'USD';
+      let amount = 0;
+      if (a.balance && typeof a.balance === 'object') {
+        amount = Number(a.balance.amount) || 0;
+      } else if (typeof a.balance === 'number') {
+        amount = a.balance;
+      }
+      if (!balanceByCurrency[currency]) balanceByCurrency[currency] = 0;
+      balanceByCurrency[currency] += amount;
+    });
+
+    efinBalances?.forEach((b) => {
+      const currency = b.currency || b.currency_code || 'USD';
+      const amount = Number(b.balance || b.available_balance || 0);
+      if (!balanceByCurrency[currency]) balanceByCurrency[currency] = 0;
+      balanceByCurrency[currency] += amount;
+    });
+  }
+
+  const currencies = Object.keys(balanceByCurrency);
+  const baseCurrency = company?.currency || getCurrencyFromCountry(company?.country) || bankAccounts[0]?.currency || 'CAD';
+  const symbolsToConvert = currencies.filter(c => c !== baseCurrency);
+
+  const { data: ratesData, isLoading: ratesLoading } = useQuery({
+    queryKey: ['efinmoney', 'rates', selectedCompanyId, baseCurrency, symbolsToConvert.join(',')],
+    queryFn: () => efinMoneyApi.rates(selectedCompanyId, baseCurrency, symbolsToConvert),
+    enabled: !!selectedCompanyId && symbolsToConvert.length > 0 && efinAccountsConnected,
+    staleTime: 300000,
+  });
+
+  const rates = ratesData?.rates || ratesData || {};
+  const rateMap = {};
+  if (Array.isArray(rates)) {
+    rates.forEach((r) => {
+      if (r && r.to) {
+        rateMap[r.to] = r.rate || r.mid_rate || 1;
+      }
+    });
+  } else if (typeof rates === 'object') {
+    Object.keys(rates).forEach((k) => {
+      const v = rates[k];
+      if (typeof v === 'object' && v !== null) {
+        rateMap[k] = v.rate || v.mid_rate || 1;
+      } else {
+        rateMap[k] = v;
+      }
+    });
+  }
+
+  const needsRates = symbolsToConvert.length > 0 && efinAccountsConnected;
+  const ratesReady = !needsRates || (!ratesLoading && Object.keys(rateMap).length > 0);
+
+  let totalBalanceInBase = 0;
+  if (ratesReady) {
+    currencies.forEach((c) => {
+      const amount = balanceByCurrency[c];
+      if (c === baseCurrency) {
+        totalBalanceInBase += amount;
+      } else {
+        const rate = rateMap[c] || 1;
+        if (rate && rate > 0) {
+          totalBalanceInBase += amount / rate;
+        } else {
+          totalBalanceInBase += amount;
+        }
+      }
+    });
+  } else {
+    // While rates are loading, don't show converted total - keep as 0 or sum unconverted as fallback
+    // But better to sum in base currency only what we can, rest stays 0 to avoid wrong display
+    currencies.forEach((c) => {
+      if (c === baseCurrency) {
+        totalBalanceInBase += balanceByCurrency[c];
+      }
+      // Don't add foreign currency amounts until rates are ready
+    });
+  }
+
   const stats = {
-    totalAccounts: bankAccounts.length,
-    activeAccounts: bankAccounts.filter(a => a.status === 'active').length,
-    totalBalance: bankAccounts.reduce((sum, a) => sum + (a.current_balance || 0), 0),
+    totalAccounts: totalAccountsCount,
+    activeAccounts: bankAccounts.filter(a => a.status === 'active').length + activeEfinCount,
+    totalBalance: totalBalanceInBase,
+    balanceByCurrency,
+    baseCurrency,
     pendingTransactions: transactions.filter(t => t.status === 'pending').length,
+    balanceLoading: needsRates && !ratesReady,
   };
 
   if (!selectedCompanyId) {
@@ -166,7 +328,7 @@ export default function BankingPage() {
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs md:text-sm text-gray-600">Active</p>
+                  <p className="text-xs md:text-sm text-gray-600">Active Accounts/Wallets</p>
                   <h3 className="text-xl md:text-2xl font-bold text-green-600">{stats.activeAccounts}</h3>
                 </div>
                 <CreditCard className="w-6 h-6 md:w-8 md:h-8 text-green-600" />
@@ -177,8 +339,10 @@ export default function BankingPage() {
           <Card>
             <CardContent className="p-4 md:p-6">
               <div>
-                <p className="text-xs md:text-sm text-gray-600">Balance</p>
-                <h3 className="text-lg md:text-2xl font-bold text-gray-900">${(stats.totalBalance / 1000).toFixed(1)}K</h3>
+                <p className="text-xs md:text-sm text-gray-600">Total Balance</p>
+                <h3 className="text-lg md:text-2xl font-bold text-gray-900">
+                  {stats.balanceLoading ? '...' : formatCompactCurrency(stats.totalBalance, stats.baseCurrency || 'CAD')}
+                </h3>
               </div>
             </CardContent>
           </Card>
@@ -194,12 +358,16 @@ export default function BankingPage() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="accounts" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="w-full overflow-x-auto flex-nowrap justify-start">
             <TabsTrigger value="accounts" className="flex items-center gap-2 text-xs md:text-sm">
               <CreditCard className="w-3 h-3 md:w-4 md:h-4" />
               <span className="hidden sm:inline">Bank Accounts</span>
               <span className="sm:hidden">Accounts</span>
+            </TabsTrigger>
+            <TabsTrigger value="efinmoney" className="flex items-center gap-2 text-xs md:text-sm">
+              <Landmark className="w-3 h-3 md:w-4 md:h-4" />
+              <span>eFinMoney</span>
             </TabsTrigger>
             <TabsTrigger value="transactions" className="flex items-center gap-2 text-xs md:text-sm">
               <Receipt className="w-3 h-3 md:w-4 md:h-4" />
@@ -272,6 +440,21 @@ export default function BankingPage() {
                 queryClient.invalidateQueries({ queryKey: ['bankTransactions'] });
               }}
             />
+          </TabsContent>
+
+          <TabsContent value="efinmoney">
+            <EfinMoneyTab 
+              companyId={selectedCompanyId} 
+              status={efinStatus} 
+              accounts={efinAccounts}
+              balances={efinBalances}
+              statusLoading={statusLoading}
+              accountsLoading={accountsLoading}
+              balancesLoading={balancesLoading}
+              refetchAccounts={refetchAccounts}
+              refetchBalances={refetchBalances}
+              connected={efinAccountsConnected}
+             />
           </TabsContent>
         </Tabs>
       </div>
