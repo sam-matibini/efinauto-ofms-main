@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from "react";
-import { supabase } from "@/api/supabaseClient";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useCompany } from "@/components/shared/CompanyContext";
 import {
@@ -12,140 +11,74 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  CreditCard,
+  Wallet,
   Loader2,
-  ExternalLink,
   RefreshCw,
   CheckCircle2,
-  Clock,
   AlertTriangle,
   ShieldCheck,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
-import { createConnectOnboarding } from "@/lib/paymentLinks";
+import { efinMoneyApi } from "@/api/efinmoney";
 
 /**
- * Settings → Payments: Stripe Connect (Standard) onboarding for this
- * company. Each dealership connects its OWN Stripe account, so customer
- * payments from invoice pay-links go directly to that dealership's bank.
- * eFinAuto only stores the account id + status — never tenant secret keys.
+ * Settings → Payments: eFinMoney connection used for invoice pay-links.
+ * Each dealership connects its OWN eFinMoney account (the same connection
+ * shown under Banking → eFinMoney), so customer payments land directly in
+ * that dealership's eFinMoney wallet. eFinAuto only stores an encrypted
+ * link token server-side, and payment links can only collect money — never
+ * send or withdraw it.
  */
 export default function PaymentsTab({ isAdmin = false }) {
   const { selectedCompanyId } = useCompany();
   const [connecting, setConnecting] = useState(false);
-  const [returning, setReturning] = useState(false);
 
   const {
     data: conn,
     isLoading,
+    isFetching,
     refetch,
   } = useQuery({
-    queryKey: ["stripe-connect", selectedCompanyId],
-    queryFn: () =>
-      supabase.entities.StripeConnectAccount.list().then((rows) =>
-        (rows || []).find((r) => r.company_id === selectedCompanyId) ?? null,
-      ),
+    // Shared with Banking → eFinMoney so both views stay in sync.
+    queryKey: ["efinmoney", "status", selectedCompanyId],
+    queryFn: () => efinMoneyApi.status(selectedCompanyId),
     enabled: !!selectedCompanyId,
     staleTime: 30_000,
   });
 
-  // Coming back from Stripe-hosted onboarding (?stripe=return|refresh).
-  // The account.updated webhook may lag a few seconds, so poll briefly.
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const outcome = params.get("stripe");
-    if (!outcome || !selectedCompanyId) return;
-
-    // clean the URL immediately so a refresh doesn't re-run this
-    window.history.replaceState({}, "", window.location.pathname);
-
-    if (outcome === "refresh") {
-      toast.warning(
-        "Stripe onboarding was not completed. You can resume it below.",
-      );
-      refetch();
-      return;
-    }
-
-    // outcome === "return"
-    setReturning(true);
-    let cancelled = false;
-    let attempts = 0;
-    const timer = setInterval(async () => {
-      attempts += 1;
-      let ready = false;
-      try {
-        const rows = await supabase.entities.StripeConnectAccount.list();
-        const row = (rows || []).find(
-          (r) => r.company_id === selectedCompanyId,
-        );
-        ready = !!row?.charges_enabled;
-        await refetch();
-      } catch {
-        /* keep polling */
-      }
-      if (ready || attempts >= 6 || cancelled) {
-        clearInterval(timer);
-        setReturning(false);
-        if (ready) {
-          toast.success("Stripe onboarding complete — ready to accept payments");
-        } else {
-          toast.info(
-            "Stripe is reviewing the account. Status will update automatically.",
-          );
-        }
-      }
-    }, 3000);
-
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [selectedCompanyId, refetch]);
+  const connected = conn?.status === "connected";
 
   const handleConnect = async () => {
     setConnecting(true);
     try {
-      const res = await createConnectOnboarding();
-      if (!res?.url) {
-        throw new Error(res?.error || "No onboarding link returned");
+      const res = await efinMoneyApi.start(selectedCompanyId);
+      if (!res?.link_url) {
+        throw new Error("No eFinMoney connect link returned");
       }
-      // Stripe-hosted onboarding (KYC + payouts handled by Stripe).
-      window.location.href = res.url;
+      // eFinMoney-hosted consent screen; the customer approves payment links
+      // there and is sent back to /settings/efinmoney/callback.
+      window.location.href = res.link_url;
     } catch (error) {
-      toast.error(error?.message || "Could not start Stripe onboarding");
+      toast.error(error?.message || "Could not start eFinMoney connection");
       setConnecting(false);
     }
   };
 
   const status = (() => {
     if (isLoading) return { key: "loading", label: "Loading…", icon: Loader2, tone: "bg-gray-100 text-gray-600" };
-    if (!conn?.stripe_account_id)
-      return {
-        key: "not_connected",
-        label: "Not connected",
-        icon: AlertTriangle,
-        tone: "bg-red-100 text-red-700",
-      };
-    if (conn.charges_enabled && conn.payouts_enabled)
+    if (connected)
       return {
         key: "ready",
         label: "Ready to accept payments",
         icon: CheckCircle2,
         tone: "bg-green-100 text-green-700",
       };
-    if (conn.charges_enabled && !conn.payouts_enabled)
-      return {
-        key: "payouts_pending",
-        label: "Payments enabled · payouts pending",
-        icon: Clock,
-        tone: "bg-amber-100 text-amber-700",
-      };
     return {
-      key: "pending",
-      label: "Onboarding incomplete",
-      icon: Clock,
-      tone: "bg-amber-100 text-amber-700",
+      key: "not_connected",
+      label: conn?.reconnect_required ? "Reconnect required" : "Not connected",
+      icon: AlertTriangle,
+      tone: "bg-red-100 text-red-700",
     };
   })();
 
@@ -158,12 +91,12 @@ export default function PaymentsTab({ isAdmin = false }) {
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                <CreditCard className="w-5 h-5 text-blue-600" />
+                <Wallet className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <CardTitle>Stripe Payments</CardTitle>
+                <CardTitle>eFinMoney Payments</CardTitle>
                 <CardDescription>
-                  Click-to-pay buttons on sales &amp; repair invoices
+                  Click-to-pay links on sales &amp; repair invoices
                 </CardDescription>
               </div>
             </div>
@@ -176,97 +109,94 @@ export default function PaymentsTab({ isAdmin = false }) {
         <CardContent className="space-y-5">
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
             <p className="font-medium text-gray-900 mb-1">
-              Payments go straight to your bank
+              Payments go straight to your eFinMoney wallet
             </p>
             <p>
-              Connect your dealership's own Stripe account. When your customer
-              pays an invoice, Stripe deposits the funds directly to your
-              account — eFinAuto never holds your money. Stripe handles card
-              fees, payouts, and verification.
+              Connect your dealership's own eFinMoney account. When your
+              customer pays an invoice, the money lands in your eFinMoney
+              wallet for that currency — eFinAuto never holds your money.
+              Payment links can only collect money; they can't send or
+              withdraw it.
             </p>
           </div>
 
-          {conn?.stripe_account_id && (
+          {connected && conn?.account && (
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600">
-              <div>
-                <span className="text-gray-400">Account ID: </span>
-                <span className="font-mono">{conn.stripe_account_id}</span>
-              </div>
-              {conn.business_name && (
+              {(conn.account.legal_name || conn.account.name) && (
                 <div>
-                  <span className="text-gray-400">Business: </span>
-                  <span>{conn.business_name}</span>
+                  <span className="text-gray-400">Account: </span>
+                  <span>{conn.account.legal_name || conn.account.name}</span>
                 </div>
               )}
-              <div>
-                <span className="text-gray-400">Payouts: </span>
-                <span>
-                  {conn.payouts_enabled ? "Enabled" : "Not yet enabled"}
-                </span>
-              </div>
+              {conn.account.country && (
+                <div>
+                  <span className="text-gray-400">Country: </span>
+                  <span>{conn.account.country}</span>
+                </div>
+              )}
+              {conn.connected_at && (
+                <div>
+                  <span className="text-gray-400">Connected: </span>
+                  <span>{new Date(conn.connected_at).toLocaleDateString()}</span>
+                </div>
+              )}
             </div>
           )}
 
           {status.key === "not_connected" && (
             <p className="text-sm text-gray-500">
-              Payment links on invoices will be unavailable until Stripe
-              onboarding is finished.
+              Payment links on invoices will be unavailable until an admin
+              connects eFinMoney.
             </p>
           )}
 
-          {status.key === "pending" && (
-            <p className="text-sm text-amber-700">
-              Stripe is still verifying this account
-              {conn?.requirements_status
-                ? ` (${conn.requirements_status.replaceAll("_", " ")})`
-                : ""}
-              . You can resume onboarding at any time — status refreshes
-              automatically once Stripe approves the account.
-            </p>
+          {connected && (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              <Info className="w-4 h-4 mt-0.5 shrink-0" />
+              <p>
+                Connected before payment links were available? Reconnect once
+                and allow <b>payment links</b> on the eFinMoney screen, or
+                creating a pay link will fail with a permission error. Your
+                account also needs an active wallet in each invoice currency
+                (CAD, USD, NGN, GHS, KES or ZMW).
+              </p>
+            </div>
           )}
 
           <div className="flex flex-wrap items-center gap-3">
             {isAdmin && (
-              <Button onClick={handleConnect} disabled={connecting || returning}>
-                {connecting || returning ? (
+              <Button onClick={handleConnect} disabled={connecting || !selectedCompanyId}>
+                {connecting ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
-                  <CreditCard className="w-4 h-4 mr-2" />
+                  <Wallet className="w-4 h-4 mr-2" />
                 )}
-                {conn?.stripe_account_id
-                  ? "Manage / finish Stripe setup"
-                  : "Connect with Stripe"}
+                {connected ? "Reconnect eFinMoney" : "Connect eFinMoney"}
               </Button>
             )}
 
             <Button
               variant="outline"
               onClick={() => refetch()}
-              disabled={isLoading}
+              disabled={isFetching || !selectedCompanyId}
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh status
             </Button>
-
-            {conn?.charges_enabled && (
-              <Button
-                variant="outline"
-                onClick={() =>
-                  window.open("https://dashboard.stripe.com/dashboard", "_blank")
-                }
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Stripe dashboard
-              </Button>
-            )}
           </div>
+
+          {!isAdmin && (
+            <p className="text-xs text-gray-500">
+              Only admins can connect or reconnect eFinMoney.
+            </p>
+          )}
 
           <div className="flex items-start gap-2 text-xs text-gray-500">
             <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-green-600" />
             <p>
-              eFinAuto never sees or stores your Stripe secret keys — only the
-              public account id and connection status. Onboarding happens on
-              Stripe's own site.
+              eFinAuto never sees your eFinMoney login. The connection token
+              is stored encrypted on the server and is never sent to the
+              browser. You approve the connection on eFinMoney's own site.
             </p>
           </div>
         </CardContent>
@@ -286,8 +216,8 @@ export default function PaymentsTab({ isAdmin = false }) {
               <b>Pay Now</b> button.
             </li>
             <li>
-              The customer pays by card on Stripe's hosted checkout (no account
-              needed).
+              The customer pays on eFinMoney's secure page by card, Interac or
+              bank transfer (depending on currency). Links expire after 7 days.
             </li>
             <li>
               The webhook marks the invoice paid and posts the double-entry

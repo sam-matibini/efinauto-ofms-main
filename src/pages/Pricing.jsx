@@ -423,7 +423,7 @@ export default function Pricing({ embedded = false }) {
         </div>
       </div>
 
-      {/* Stripe connection is managed in Settings → Payments (Stripe Connect) */}
+      {/* Invoice payment links are managed in Settings → Payments (eFinMoney) */}
     </div>
   );
 }

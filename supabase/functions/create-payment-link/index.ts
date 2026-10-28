@@ -1,4 +1,13 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { decryptToken, efinFetch, RECONNECT_CODES } from "../_shared/efinmoney.ts";
+
+// Creates (or reuses) an eFinMoney payment link for an invoice. Money is
+// collected straight into the company's own connected eFinMoney wallet;
+// eFinAuto never holds tenant funds. The `efinmoney-webhook` function is the
+// source of truth for recording the payment.
+//
+// Secrets: EFINMONEY_API_KEY, EFINMONEY_TOKEN_ENC_KEY (shared with the
+// `efinmoney` function), SUPABASE_SERVICE_ROLE_KEY.
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -18,11 +27,26 @@ const SOURCE_TABLES: Record<string, string> = {
   repair_invoice: "invoices",
 };
 
-/** Label used in the Stripe Checkout line item description. */
+/** Label used in the payment link description shown to the payer. */
 const SOURCE_LABELS: Record<string, string> = {
   sales_invoice: "Invoice",
   repair_invoice: "Repair Invoice",
 };
+
+/** Currencies eFinMoney payment links accept, with their minimum amounts. */
+const MIN_AMOUNTS: Record<string, number> = {
+  CAD: 2,
+  USD: 2,
+  GHS: 10,
+  KES: 10,
+  ZMW: 10,
+  NGN: 100,
+};
+
+/** Local statuses for a link the payer can still pay. */
+const ACTIVE_STATUSES = ["created", "pending", "awaiting_payment"];
+
+const LINK_EXPIRES_IN_DAYS = 7;
 
 interface CreateLinkPayload {
   source_type?: string;
@@ -42,13 +66,12 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
 
-    if (!stripeSecretKey) {
+    if (!Deno.env.get("EFINMONEY_API_KEY")) {
       return json(
         {
           error:
-            "Stripe is not configured. Set STRIPE_SECRET_KEY in your Supabase Edge Function secrets.",
+            "eFinMoney is not configured. Set EFINMONEY_API_KEY in your Supabase Edge Function secrets.",
         },
         500,
       );
@@ -152,131 +175,105 @@ Deno.serve(async (req: Request) => {
       return json({ error: "This invoice has nothing due" }, 400);
     }
 
-    const currency = (invoice.currency || "CAD").toLowerCase();
-    const customerEmail = (invoice.customer_email ?? "").trim();
-    if (!/^\S+@\S+\.\S+$/.test(customerEmail)) {
+    const currency = String(invoice.currency || "CAD").toUpperCase();
+    const minAmount = MIN_AMOUNTS[currency];
+    if (minAmount === undefined) {
       return json(
         {
-          error:
-            "This invoice has no valid customer email, so a payment link cannot be created",
+          error: `eFinMoney payment links don't support ${currency}. Supported currencies: ${Object.keys(MIN_AMOUNTS).join(", ")}.`,
+          code: "invalid_currency",
+        },
+        400,
+      );
+    }
+    if (amount < minAmount) {
+      return json(
+        {
+          error: `The minimum payment link amount for ${currency} is ${minAmount}.`,
+          code: "invalid_amount",
         },
         400,
       );
     }
 
-    // --- 4b. Require a connected, charges-enabled Stripe account -------------
-    // Direct charges: the session is created AS the dealership's connected
-    // account, so the dealership is the merchant of record, bears the Stripe
-    // fee, and receives the payout directly.
-    const { data: connectAccount } = await service
-      .schema("public")
-      .from("stripe_connect_accounts")
-      .select("stripe_account_id, charges_enabled, payouts_enabled")
+    // --- 4b. Require a connected eFinMoney account ---------------------------
+    // The company's link token (from the Banking → eFinMoney connect flow)
+    // authorises creating payment links on its account.
+    const { data: efinLink } = await service
+      .from("efinmoney_links")
+      .select("status, access_token_enc")
       .eq("company_id", companyId)
       .maybeSingle();
 
-    if (!connectAccount?.stripe_account_id || !connectAccount.charges_enabled) {
+    if (efinLink?.status !== "connected" || !efinLink.access_token_enc) {
       return json(
         {
           error:
-            "This company has not finished Stripe onboarding. Go to Settings → Payments and complete \"Connect with Stripe\" before creating payment links.",
+            "This company has not connected eFinMoney. An admin needs to go to Settings → Payments and click \"Connect eFinMoney\" before creating payment links.",
           code: "connect_required",
         },
         400,
       );
     }
-    const stripeAccountId = connectAccount.stripe_account_id;
+    const linkToken = await decryptToken(efinLink.access_token_enc);
 
     // --- 5. Reuse an active link (idempotent) --------------------------------
-    if (!body.force) {
-      const { data: existing } = await service
+    const { data: activeLinks } = await service
+      .schema("public")
+      .from("payment_links")
+      .select("id, efinmoney_link_id, url, status, amount, currency, expires_at")
+      .eq("company_id", companyId)
+      .eq("source_type", sourceType)
+      .eq("source_id", sourceId)
+      .in("status", ACTIVE_STATUSES)
+      .order("created_at", { ascending: false });
+
+    const now = Date.now();
+    const reusable = (activeLinks ?? []).find(
+      (l) =>
+        l.url &&
+        Number(l.amount) === amount &&
+        l.currency === currency &&
+        (!l.expires_at || new Date(l.expires_at).getTime() > now),
+    );
+    if (reusable && !body.force) {
+      return json({
+        ok: true,
+        reused: true,
+        id: reusable.id,
+        url: reusable.url,
+        status: reusable.status,
+        amount: reusable.amount,
+        currency: reusable.currency,
+      });
+    }
+
+    // Any other still-open link for this invoice is stale (forced refresh,
+    // or the amount changed since it was made). Cancel it at eFinMoney so
+    // the payer can't pay an outdated amount. Best effort.
+    for (const stale of activeLinks ?? []) {
+      if (stale.efinmoney_link_id) {
+        const { body: cBody } = await efinFetch(
+          `/v1/payment-links/${encodeURIComponent(stale.efinmoney_link_id)}/cancel`,
+          { method: "POST" },
+          linkToken,
+        ).catch(() => ({ body: null }));
+        // `not_cancellable` means it already ended (maybe paid); leave the
+        // row for the webhook to settle.
+        if (cBody && !cBody.success && cBody.code === "not_cancellable") continue;
+      }
+      await service
         .schema("public")
         .from("payment_links")
-        .select("id, url, status, amount, currency, created_at")
-        .eq("company_id", companyId)
-        .eq("source_type", sourceType)
-        .eq("source_id", sourceId)
-        .in("status", ["created", "pending"])
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      // Stripe Checkout sessions expire after 24h; only reuse links younger
-      // than 24h. Older ones get a fresh session.
-      const fresh =
-        existing &&
-        Date.now() - new Date(existing.created_at).getTime() < 24 * 3600 * 1000;
-      if (fresh && existing.url) {
-        return json({
-          ok: true,
-          reused: true,
-          id: existing.id,
-          url: existing.url,
-          status: existing.status,
-          amount: existing.amount,
-          currency: existing.currency,
-        });
-      }
+        .update({ status: "cancelled", updated_at: new Date().toISOString() })
+        .eq("id", stale.id)
+        .in("status", ACTIVE_STATUSES);
     }
 
-    // --- 6. Create Stripe Checkout Session -----------------------------------
-    const baseUrl = (Deno.env.get("PAYMENT_RETURN_BASE_URL") ??
-      req.headers.get("Origin") ??
-      "")
-      .replace(/\/+$/, "");
-    if (!baseUrl) {
-      return json(
-        {
-          error:
-            "Set PAYMENT_RETURN_BASE_URL (or send an Origin header) so Stripe knows where to send the customer",
-        },
-        500,
-      );
-    }
-
-    const unitAmount = Math.round(amount * 100); // Stripe minor units
-    const description = `${SOURCE_LABELS[sourceType]} ${invoice.invoice_number ?? ""}`.trim();
-
-    const form = new URLSearchParams();
-    form.set("mode", "payment");
-    form.set("line_items[0][quantity]", "1");
-    form.set("line_items[0][price_data][currency]", currency);
-    form.set("line_items[0][price_data][unit_amount]", String(unitAmount));
-    form.set("line_items[0][price_data][product_data][name]", description.slice(0, 128));
-    form.set("customer_email", customerEmail);
-    form.set("client_reference_id", `${sourceType}:${sourceId}`);
-    form.set("metadata[company_id]", companyId);
-    form.set("metadata[source_type]", sourceType);
-    form.set("metadata[source_id]", sourceId);
-    form.set("metadata[invoice_number]", invoice.invoice_number ?? "");
-    form.set("success_url", `${baseUrl}/pay/success?session_id={CHECKOUT_SESSION_ID}`);
-    form.set("cancel_url", `${baseUrl}/pay/cancelled`);
-    // Sessions expire after 24h so stale links stop accepting money.
-    form.set("expires_at", String(Math.floor(Date.now() / 1000) + 24 * 3600));
-
-    const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${stripeSecretKey}`,
-        // Direct charge: create the session AS the connected account so the
-        // dealership is the merchant of record and receives the payout.
-        "Stripe-Account": stripeAccountId,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: form.toString(),
-    });
-    const session = await stripeRes.json();
-
-    if (!stripeRes.ok || !session.id) {
-      console.error("Stripe error:", JSON.stringify(session));
-      return json(
-        { error: session?.error?.message || "Failed to create Stripe session" },
-        502,
-      );
-    }
-
-    // --- 7. Persist the link -------------------------------------------------
-    const { data: link, error: insertErr } = await service
+    // --- 6. Reserve a local row; its id is the eFinMoney `reference` --------
+    // eFinMoney treats a repeated reference as an idempotent replay, so each
+    // link attempt gets its own unique reference.
+    const { data: row, error: insertErr } = await service
       .schema("public")
       .from("payment_links")
       .insert({
@@ -284,20 +281,111 @@ Deno.serve(async (req: Request) => {
         source_type: sourceType,
         source_id: sourceId,
         invoice_number: invoice.invoice_number ?? null,
-        stripe_session_id: session.id,
-        url: session.url,
         amount,
-        currency: currency.toUpperCase(),
+        currency,
         status: "created",
         created_by: caller.email ?? caller.id,
       })
+      .select("id")
+      .single();
+
+    if (insertErr || !row) {
+      console.error("payment_links insert failed:", insertErr?.message);
+      return json({ error: "Could not save the payment link" }, 500);
+    }
+
+    // --- 7. Create the eFinMoney payment link --------------------------------
+    const description = `${SOURCE_LABELS[sourceType]} ${invoice.invoice_number ?? ""}`.trim();
+    const { res: efinRes, body: efinBody } = await efinFetch(
+      "/v1/payment-links",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          amount,
+          currency,
+          reference: row.id,
+          description: description.slice(0, 280),
+          customer_name: invoice.customer_name || undefined,
+          expires_in_days: LINK_EXPIRES_IN_DAYS,
+        }),
+      },
+      linkToken,
+    );
+
+    if (!efinBody?.success || !efinBody.data?.url) {
+      await service.schema("public").from("payment_links").delete().eq("id", row.id);
+      console.error("eFinMoney error:", JSON.stringify(efinBody));
+      const code = efinBody?.code as string | undefined;
+
+      if (code && RECONNECT_CODES.has(code)) {
+        await service
+          .from("efinmoney_links")
+          .update({
+            status: "disconnected",
+            access_token_enc: null,
+            disconnected_at: new Date().toISOString(),
+          })
+          .eq("company_id", companyId);
+        return json(
+          {
+            error:
+              "The eFinMoney connection is no longer valid. An admin needs to reconnect eFinMoney in Settings → Payments.",
+            code: "reconnect_required",
+          },
+          401,
+        );
+      }
+      if (code === "scope_missing") {
+        return json(
+          {
+            error:
+              "This eFinMoney connection doesn't allow payment links yet. An admin needs to reconnect eFinMoney once in Settings → Payments and approve payment links.",
+            code,
+          },
+          403,
+        );
+      }
+      if (code === "no_wallet") {
+        return json(
+          {
+            error: `Your eFinMoney account has no active ${currency} wallet, so it can't collect ${currency} payments.`,
+            code,
+          },
+          400,
+        );
+      }
+      return json(
+        {
+          error: efinBody?.error || "Failed to create eFinMoney payment link",
+          code,
+          request_id: efinBody?.request_id,
+        },
+        efinRes.status === 429 ? 429 : efinRes.status >= 500 ? 502 : 400,
+      );
+    }
+
+    // --- 8. Persist the eFinMoney link details ------------------------------
+    const efin = efinBody.data;
+    const { data: link, error: updateErr } = await service
+      .schema("public")
+      .from("payment_links")
+      .update({
+        efinmoney_link_id: efin.id,
+        short_code: efin.short_code ?? null,
+        reference: efin.reference ?? row.id,
+        url: efin.url,
+        status: efin.status ?? "pending",
+        expires_at: efin.expires_at ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", row.id)
       .select("id, url, status, amount, currency")
       .single();
 
-    if (insertErr) {
-      console.error("payment_links insert failed:", insertErr.message);
+    if (updateErr) {
+      console.error("payment_links update failed:", updateErr.message);
       return json(
-        { error: "Payment link was created in Stripe but could not be saved" },
+        { error: "Payment link was created in eFinMoney but could not be saved" },
         500,
       );
     }

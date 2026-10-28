@@ -40,10 +40,6 @@ export default function InvoiceGenerator({ open, onClose, repairOrder }) {
 
   const handleCopyPaymentLink = async () => {
     if (!invoiceData) return;
-    if (!hasValidEmail(invoiceData.customer_email)) {
-      toast.error("This invoice has no valid customer email, so a payment link cannot be created");
-      return;
-    }
     if (Number(invoiceData.balance_due || 0) <= 0) {
       toast.error("This invoice has nothing due");
       return;
@@ -184,7 +180,7 @@ ${company?.name || 'Auto Repair Team'}
 ${company?.phone || ''}
       `.trim();
 
-      // Attach a secure Stripe pay button when there's a balance and a valid email.
+      // Attach a secure eFinMoney pay button when there's a balance and a valid email.
       let payHtml = "";
       if (
         Number(invoiceData.balance_due || 0) > 0 &&
@@ -531,9 +527,7 @@ ${company?.phone || ''}
                   title={
                     Number(invoiceData.balance_due || 0) <= 0
                       ? "This invoice has nothing due"
-                      : !hasValidEmail(invoiceData.customer_email)
-                      ? "A valid customer email is required"
-                      : "Create a secure Stripe payment link"
+                      : "Create a secure eFinMoney payment link"
                   }
                 >
                   {creatingLink ? (

@@ -1,21 +1,24 @@
--- Payment links for click-to-pay invoicing (Stripe Checkout).
+-- Payment links for click-to-pay invoicing (eFinMoney payment links).
 -- NOTE: this project keeps its schema out-of-band (no migrations applied
 -- automatically). Run this file's SQL manually in the Supabase SQL editor
 -- and keep it here for documentation.
 
 create table if not exists public.payment_links (
-  id uuid primary key default gen_random_uuid(),
+  id uuid primary key default gen_random_uuid(),    -- also sent as the eFinMoney `reference`
   company_id uuid not null,
   source_type text not null check (source_type in ('sales_invoice', 'repair_invoice')),
   source_id uuid not null,
   invoice_number text,
-  stripe_session_id text unique,
-  stripe_payment_intent_id text,
+  efinmoney_link_id text unique,                    -- eFinMoney payment link id
+  short_code text,                                  -- e.g. K7QZ2MX (pay URL suffix)
+  reference text,
   url text,
   amount numeric not null,
   currency text not null default 'CAD',
   status text not null default 'created'
-    check (status in ('created', 'pending', 'paid', 'failed', 'expired')),
+    check (status in ('created', 'pending', 'awaiting_payment', 'paid', 'failed', 'expired', 'cancelled')),
+  payer_name text,
+  expires_at timestamptz,
   paid_at timestamptz,
   created_by text,
   created_at timestamptz not null default now(),

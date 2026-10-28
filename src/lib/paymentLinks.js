@@ -4,8 +4,8 @@ import { supabase } from "@/api/supabaseClient";
  * functions-js throws a generic "Edge Function returned a non-2xx status
  * code" message; the real reason lives in the response body on
  * `error.context` (the Response, still unread at that point). Parse it so
- * callers can show the function's own error text (e.g. the "finish Stripe
- * onboarding" guidance). Falls back to the original error.
+ * callers can show the function's own error text (e.g. the "connect
+ * eFinMoney" guidance). Falls back to the original error.
  */
 async function extractError(error) {
   try {
@@ -34,15 +34,18 @@ async function invokeJson(name, payload) {
 }
 
 /**
- * Create (or reuse) a Stripe Checkout payment link for an invoice.
+ * Create (or reuse) an eFinMoney payment link for an invoice. The payer pays
+ * on eFinMoney's hosted page (card, Interac or bank transfer, depending on
+ * currency) and the money lands in the company's eFinMoney wallet.
  *
- * Requires the company to have completed Stripe Connect onboarding
- * (Settings → Payments); otherwise rejects with the function's guidance.
+ * Requires the company to have connected eFinMoney with the payment links
+ * permission (Settings → Payments); otherwise rejects with the function's
+ * guidance (`code`: connect_required | reconnect_required | scope_missing).
  *
  * @param {"sales_invoice"|"repair_invoice"} sourceType
  * @param {string} sourceId invoice record id
- * @param {{ force?: boolean }} [options] force=true creates a fresh link
- *   even if an active one exists
+ * @param {{ force?: boolean }} [options] force=true cancels any open link
+ *   and creates a fresh one
  * @returns {Promise<{ ok: boolean, reused?: boolean, id: string, url: string,
  *   status: string, amount: number, currency: string }>}
  */
@@ -52,15 +55,6 @@ export async function createPaymentLink(sourceType, sourceId, options = {}) {
     source_id: sourceId,
     force: !!options.force,
   });
-}
-
-/**
- * Start (or resume) Stripe Connect onboarding for the caller's company.
- * Returns `{ url, stripe_account_id, ... }` — redirect the browser to `url`
- * to complete Stripe-hosted onboarding.
- */
-export async function createConnectOnboarding() {
-  return invokeJson("create-connect-onboarding", {});
 }
 
 /** Copy text to the clipboard; resolves true on success, false otherwise. */
@@ -109,7 +103,7 @@ export function payButtonHtml(url, amountLabel) {
         Pay Now
       </a>
       <p style="margin:16px 0 0;font-size:12px;color:#94a3b8;">
-        Secure card payment powered by Stripe.<br>
+        Secure payment powered by eFinMoney.<br>
         If the button does not work, copy and paste this link:<br>
         <span style="word-break:break-all;">${escapeHtml(url)}</span>
       </p>

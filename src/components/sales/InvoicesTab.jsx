@@ -47,10 +47,6 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
       toast.error("This invoice is already settled — no payment link needed");
       return;
     }
-    if (!invoice.customer_email || !/^\S+@\S+\.\S+$/.test(invoice.customer_email)) {
-      toast.error("Add a valid customer email to this invoice before creating a payment link");
-      return;
-    }
     try {
       const link = await createPaymentLink('sales_invoice', invoice.id);
       const copied = await copyToClipboard(link.url);
@@ -160,7 +156,7 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
       // If status changed to paid, create payment transaction
       if (data.status === 'paid' && oldInvoice?.status !== 'paid') {
         try {
-          // Guard against double-posting: the Stripe webhook already creates a
+          // Guard against double-posting: the eFinMoney webhook already creates a
           // payment_received GL entry when a customer pays via a payment link.
           const existingPayments = await supabase.entities.Transaction.filter({
             reference_type: 'SalesInvoice',
@@ -168,7 +164,7 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
             transaction_type: 'payment_received',
           });
           if (existingPayments?.length > 0) {
-            console.info("Payment ledger entry already recorded via Stripe; skipping manual posting.");
+            console.info("Payment ledger entry already recorded via eFinMoney; skipping manual posting.");
           } else {
             await supabase.entities.Transaction.create({
               company_id: selectedCompanyId,
