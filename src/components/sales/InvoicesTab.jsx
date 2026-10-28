@@ -3,7 +3,7 @@ import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, LayoutGrid, List, ArrowUpDown, Search, Edit, Eye } from "lucide-react";
+import { Plus, Trash2, LayoutGrid, List, ArrowUpDown, Search, Edit, Eye, Link2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -15,6 +15,7 @@ import InvoiceDialog from "./InvoiceDialog";
 import InvoicePreview from "./InvoicePreview";
 import DocumentViewer from "../shared/DocumentViewer";
 import { persistInvoiceRecord } from "@/lib/invoiceRecord";
+import { createPaymentLink, copyToClipboard } from "@/lib/paymentLinks";
 
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-US', {
@@ -39,6 +40,20 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
   const handleViewInvoice = (invoice) => {
     setPreviewInvoice(invoice);
     setPreviewOpen(true);
+  };
+
+  const handleCopyPaymentLink = async (invoice) => {
+    if (invoice.status === 'paid' || invoice.status === 'cancelled') {
+      toast.error("This invoice is already settled — no payment link needed");
+      return;
+    }
+    try {
+      const link = await createPaymentLink('sales_invoice', invoice.id);
+      const copied = await copyToClipboard(link.url);
+      toast.success(copied ? `Payment link for ${invoice.invoice_number} copied` : link.url);
+    } catch (error) {
+      toast.error(error?.message || "Could not create payment link");
+    }
   };
 
   const filteredInvoices = invoices.filter(i => {
@@ -141,25 +156,36 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
       // If status changed to paid, create payment transaction
       if (data.status === 'paid' && oldInvoice?.status !== 'paid') {
         try {
-          await supabase.entities.Transaction.create({
-            company_id: selectedCompanyId,
-            transaction_number: `PMT-${id.slice(0, 8)}`,
-            transaction_type: 'payment_received',
-            category: 'asset',
-            amount: data.total_amount || 0,
-            account_code: '1000',
-            account_name: 'Cash',
-            account_type: 'asset',
-            contra_account_code: '1100',
-            contra_account_name: 'Accounts Receivable',
+          // Guard against double-posting: the eFinMoney webhook already creates a
+          // payment_received GL entry when a customer pays via a payment link.
+          const existingPayments = await supabase.entities.Transaction.filter({
             reference_type: 'SalesInvoice',
             reference_id: id,
-            reference_number: data.invoice_number,
-            customer_name: data.customer_name,
-            description: `Payment received for invoice: ${data.invoice_number}`,
-            transaction_date: new Date().toISOString().split('T')[0],
-            status: 'completed'
+            transaction_type: 'payment_received',
           });
+          if (existingPayments?.length > 0) {
+            console.info("Payment ledger entry already recorded via eFinMoney; skipping manual posting.");
+          } else {
+            await supabase.entities.Transaction.create({
+              company_id: selectedCompanyId,
+              transaction_number: `PMT-${id.slice(0, 8)}`,
+              transaction_type: 'payment_received',
+              category: 'asset',
+              amount: data.total_amount || 0,
+              account_code: '1000',
+              account_name: 'Cash',
+              account_type: 'asset',
+              contra_account_code: '1100',
+              contra_account_name: 'Accounts Receivable',
+              reference_type: 'SalesInvoice',
+              reference_id: id,
+              reference_number: data.invoice_number,
+              customer_name: data.customer_name,
+              description: `Payment received for invoice: ${data.invoice_number}`,
+              transaction_date: new Date().toISOString().split('T')[0],
+              status: 'completed'
+            });
+          }
         } catch (error) {
           console.warn("Invoice updated but payment ledger entry was skipped.", error);
         }
@@ -282,6 +308,7 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="sm" onClick={() => handleViewInvoice(invoice)} title="View Invoice"><Eye className="w-4 h-4" /></Button>
                       <Button variant="ghost" size="sm" onClick={() => handleEditInvoice(invoice)} title="Edit"><Edit className="w-4 h-4" /></Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleCopyPaymentLink(invoice)} title="Copy payment link" disabled={invoice.status === 'paid' || invoice.status === 'cancelled'}><Link2 className="w-4 h-4" /></Button>
                       <Button variant="ghost" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(invoice.id)} title="Delete"><Trash2 className="w-4 h-4" /></Button>
                     </div>
                   </TableCell>
@@ -319,6 +346,15 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
                       <Button variant="outline" size="sm" onClick={() => handleEditInvoice(invoice)}>
                         <Edit className="w-4 h-4 mr-1" />
                         Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopyPaymentLink(invoice)}
+                        disabled={invoice.status === 'paid' || invoice.status === 'cancelled'}
+                      >
+                        <Link2 className="w-4 h-4 mr-1" />
+                        Pay Link
                       </Button>
                       <Button variant="outline" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(invoice.id)}>
                         <Trash2 className="w-4 h-4 mr-1" />

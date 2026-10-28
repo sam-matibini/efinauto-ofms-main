@@ -427,3 +427,6 @@ verify_jwt = false
 
 [functions.efinmoney]
 verify_jwt = true
+
+[functions.efinmoney-webhook]
+verify_jwt = false

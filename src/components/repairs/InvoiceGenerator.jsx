@@ -7,10 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Mail, Download, Loader2, Sparkles, Eye } from "lucide-react";
+import { FileText, Mail, Download, Loader2, Sparkles, Eye, Link2, Copy } from "lucide-react";
 import DocumentViewer from "../shared/DocumentViewer";
 import { toast } from "sonner";
 import { useCompany } from "@/components/shared/CompanyContext";
+import { createPaymentLink, copyToClipboard, payButtonHtml } from "@/lib/paymentLinks";
 
 export default function InvoiceGenerator({ open, onClose, repairOrder }) {
   const { selectedCompanyId } = useCompany();
@@ -32,6 +33,29 @@ export default function InvoiceGenerator({ open, onClose, repairOrder }) {
   });
 
   const [invoiceData, setInvoiceData] = useState(null);
+  const [paymentLink, setPaymentLink] = useState(null);
+  const [creatingLink, setCreatingLink] = useState(false);
+
+  const hasValidEmail = (email) => !!email && /^\S+@\S+\.\S+$/.test(email);
+
+  const handleCopyPaymentLink = async () => {
+    if (!invoiceData) return;
+    if (Number(invoiceData.balance_due || 0) <= 0) {
+      toast.error("This invoice has nothing due");
+      return;
+    }
+    setCreatingLink(true);
+    try {
+      const link = paymentLink ?? (await createPaymentLink("repair_invoice", invoiceData.id));
+      setPaymentLink(link);
+      const copied = await copyToClipboard(link.url);
+      toast.success(copied ? "Payment link copied to clipboard" : link.url);
+    } catch (error) {
+      toast.error(error?.message || "Could not create payment link");
+    } finally {
+      setCreatingLink(false);
+    }
+  };
 
   const generateInvoiceMutation = useMutation({
     mutationFn: async () => {
@@ -156,10 +180,35 @@ ${company?.name || 'Auto Repair Team'}
 ${company?.phone || ''}
       `.trim();
 
+      // Attach a secure eFinMoney pay button when there's a balance and a valid email.
+      let payHtml = "";
+      if (
+        Number(invoiceData.balance_due || 0) > 0 &&
+        hasValidEmail(invoiceData.customer_email)
+      ) {
+        try {
+          const link =
+            paymentLink ?? (await createPaymentLink("repair_invoice", invoiceData.id));
+          setPaymentLink(link);
+          payHtml = payButtonHtml(link.url, `$${Number(invoiceData.balance_due).toFixed(2)}`);
+        } catch (linkError) {
+          console.warn("Payment link unavailable for this invoice email:", linkError);
+        }
+      }
+
       await supabase.integrations.Core.SendEmail({
         to: invoiceData.customer_email || repairOrder.customer_phone,
         subject: `Invoice ${invoiceData.invoice_number} - ${company?.name || 'Auto Repair'}`,
         body: emailBody,
+        text: emailBody,
+        html: `
+          <div style="font-family:Arial,Helvetica,sans-serif;color:#0f172a;line-height:1.6;">
+            <pre style="white-space:pre-wrap;font-family:inherit;margin:0;">${emailBody
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")}</pre>
+            ${payHtml}
+          </div>`,
         from_name: company?.name
       });
 
@@ -436,7 +485,7 @@ ${company?.phone || ''}
                 </CardContent>
               </Card>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <Button 
                   onClick={handleDownloadPDF} 
                   variant="outline"
@@ -467,6 +516,29 @@ ${company?.phone || ''}
                     <>
                       <Mail className="w-4 h-4 mr-2" />
                       Email
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={handleCopyPaymentLink}
+                  disabled={creatingLink}
+                  variant="outline"
+                  className="w-full"
+                  title={
+                    Number(invoiceData.balance_due || 0) <= 0
+                      ? "This invoice has nothing due"
+                      : "Create a secure eFinMoney payment link"
+                  }
+                >
+                  {creatingLink ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      {paymentLink ? <Copy className="w-4 h-4 mr-2" /> : <Link2 className="w-4 h-4 mr-2" />}
+                      {paymentLink ? "Copy Pay Link" : "Payment Link"}
                     </>
                   )}
                 </Button>
