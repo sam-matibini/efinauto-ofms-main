@@ -5,9 +5,9 @@
 
 create table if not exists public.payment_links (
   id uuid primary key default gen_random_uuid(),    -- also sent as the eFinMoney `reference`
-  company_id uuid not null,
+  company_id text not null,                         -- text: matches companies.id / core.users.company_id
   source_type text not null check (source_type in ('sales_invoice', 'repair_invoice')),
-  source_id uuid not null,
+  source_id text not null,
   invoice_number text,
   efinmoney_link_id text unique,                    -- eFinMoney payment link id
   short_code text,                                  -- e.g. K7QZ2MX (pay URL suffix)
@@ -25,6 +25,10 @@ create table if not exists public.payment_links (
   updated_at timestamptz not null default now()
 );
 
+-- In case an earlier run created these columns as uuid.
+alter table public.payment_links alter column company_id type text using company_id::text;
+alter table public.payment_links alter column source_id type text using source_id::text;
+
 create index if not exists idx_payment_links_source
   on public.payment_links (source_type, source_id);
 
@@ -37,6 +41,7 @@ alter table public.payment_links enable row level security;
 -- place invite-user reads/writes it). If your deployment keeps users in
 -- public instead, change core.users to public.users below.
 
+drop policy if exists "payment_links_select_company" on public.payment_links;
 create policy "payment_links_select_company"
   on public.payment_links for select
   using (
@@ -45,6 +50,7 @@ create policy "payment_links_select_company"
     )
   );
 
+drop policy if exists "payment_links_insert_company" on public.payment_links;
 create policy "payment_links_insert_company"
   on public.payment_links for insert
   with check (
@@ -53,6 +59,7 @@ create policy "payment_links_insert_company"
     )
   );
 
+drop policy if exists "payment_links_update_company" on public.payment_links;
 create policy "payment_links_update_company"
   on public.payment_links for update
   using (
