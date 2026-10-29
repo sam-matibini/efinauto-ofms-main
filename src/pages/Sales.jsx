@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
@@ -57,9 +57,13 @@ import { sendBOSCreatedNotification, sendBOSFinalizedNotification } from "../com
 import CreateExportOrderDialog from "../components/export/CreateExportOrderDialog";
 import { errorText } from "@/lib/persistErrors";
 import { hydrateSaleRecord, persistSaleRecord } from "@/lib/saleRecord";
+import { createPaymentLink, onlinePaidAmount } from "@/lib/paymentLinks";
+import PaymentLinkActions, { useInvalidatePaymentLinks } from "@/components/payments/PaymentLinkActions";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Sales() {
   const [activeMainTab, setActiveMainTab] = useState("sales");
+  const invalidatePaymentLinks = useInvalidatePaymentLinks();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const [expandedSaleId, setExpandedSaleId] = useState(null);
@@ -202,12 +206,17 @@ export default function Sales() {
       // If payment status changed to paid and wasn't before, create payment transaction
       if (data.payment_status === 'paid' && oldSale?.payment_status !== 'paid') {
         try {
-          await supabase.entities.Transaction.create({
+          // The eFinMoney webhook already posted each online payment, so only
+          // the remainder is posted here.
+          const remaining = Math.round(
+            ((data.grand_total || data.sale_price || 0) - await onlinePaidAmount('sale', id)) * 100,
+          ) / 100;
+          if (remaining > 0) await supabase.entities.Transaction.create({
             company_id: selectedCompanyId,
             transaction_number: `PMT-${id.slice(0, 8)}`,
             transaction_type: 'payment_received',
             category: 'asset',
-            amount: data.grand_total || data.sale_price || 0,
+            amount: remaining,
             account_code: '1000',
             account_name: 'Cash',
             account_type: 'asset',
@@ -309,7 +318,7 @@ export default function Sales() {
   };
 
   const createMutation = useMutation({
-    mutationFn: async (data) => {
+    mutationFn: async ({ data, createLink }) => {
       const sale = await persistSaleRecord({
         supabase,
         companyId: selectedCompanyId,
@@ -390,9 +399,20 @@ export default function Sales() {
         console.warn("Sale recorded but revenue ledger entry was skipped.", error);
       }
       
-      return { sale, exportRecord };
+      // Optional: create (but don't copy) a payment link for the new sale.
+      let linkError = null;
+      if (createLink) {
+        try {
+          await createPaymentLink('sale', sale.id);
+        } catch (error) {
+          linkError = error;
+        }
+      }
+
+      return { sale, exportRecord, createLink, linkError };
     },
     onSuccess: (result) => {
+      invalidatePaymentLinks();
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -402,6 +422,11 @@ export default function Sales() {
         toast.success("Export sale recorded and export order created!");
       } else {
         toast.success("Sale recorded successfully!");
+      }
+      if (result.linkError) {
+        toast.warning(`The payment link couldn't be created: ${result.linkError.message}`);
+      } else if (result.createLink) {
+        toast.success("Payment link created. Use Copy link to share it.");
       }
     },
     onError: (error) => {
@@ -455,6 +480,15 @@ export default function Sales() {
     setSelectedSale(sale);
     setBillOfSaleOpen(true);
   };
+
+  // Mirrors create-payment-link: balance_due if set, else total minus paid.
+  const saleBalanceDue = (sale) => {
+    if (!sale) return 0;
+    if (Number(sale.balance_due || 0) > 0) return Number(sale.balance_due);
+    return (sale.grand_total || sale.sale_price || 0) - (sale.total_paid || 0);
+  };
+  const canTakeSalePayment = (sale) =>
+    !!sale && sale.payment_status !== 'paid' && sale.status !== 'cancelled' && saleBalanceDue(sale) > 0;
 
   if (!selectedCompanyId) {
     return (
@@ -662,6 +696,7 @@ export default function Sales() {
                             <Button size="icon" variant="ghost" onClick={() => handleViewBillOfSale(sale)}>
                               <FileText className="w-4 h-4" />
                             </Button>
+                            <PaymentLinkActions size="icon" sourceType="sale" sourceId={sale.id} amountDue={saleBalanceDue(sale)} currency={sale.currency || 'CAD'} canTakePayment={canTakeSalePayment(sale)} />
                             {sale.bos_status === 'finalized' && (
                               <>
                                 <Button size="icon" variant="ghost" onClick={() => handleDownloadBOS(sale)} disabled={pdfLoadingId === sale.id} title="Download PDF">
@@ -793,6 +828,7 @@ export default function Sales() {
                             <FileText className="w-4 h-4 mr-2" />
                             View
                             </Button>
+                          <PaymentLinkActions sourceType="sale" sourceId={sale.id} amountDue={saleBalanceDue(sale)} currency={sale.currency || 'CAD'} canTakePayment={canTakeSalePayment(sale)} />
                             {sale.sale_type === 'export' && sale.bos_status === 'finalized' && (
                             <Button
                               variant="outline"
@@ -1003,11 +1039,11 @@ export default function Sales() {
         open={dialogOpen}
         onClose={() => { setDialogOpen(false); setEditingSale(null); }}
         saving={createMutation.isPending || updateMutation.isPending}
-        onSave={(data) => {
+        onSave={(data, { createPaymentLink: createLink = false } = {}) => {
           if (editingSale) {
             updateMutation.mutate({ id: editingSale.id, data });
           } else {
-            createMutation.mutate(data);
+            createMutation.mutate({ data, createLink });
           }
         }}
         onCreateCustomer={canManageCustomers ? () => setCustomerDialogOpen(true) : undefined}
@@ -1061,6 +1097,9 @@ export default function Sales() {
           )}
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button variant="outline" onClick={() => setBillOfSaleOpen(false)}>Close</Button>
+            {selectedSale && (
+              <PaymentLinkActions sourceType="sale" sourceId={selectedSale.id} amountDue={saleBalanceDue(selectedSale)} currency={selectedSale.currency || 'CAD'} canTakePayment={canTakeSalePayment(selectedSale)} />
+            )}
             <Button 
               variant="outline" 
               onClick={() => {
@@ -1175,6 +1214,10 @@ export default function Sales() {
 
 function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale, saving }) {
   const [activeTab, setActiveTab] = useState("basic");
+  const [createPaymentLink, setCreatePaymentLink] = useState(false);
+  useEffect(() => {
+    if (open) setCreatePaymentLink(false);
+  }, [open]);
   const { user: currentUser } = useAuth();
   const [formData, setFormData] = useState({
     sale_number: `SALE-${Date.now()}`,
@@ -1195,6 +1238,7 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale, savi
     vehicle_mileage: 0,
     vehicle_color: "",
     sale_price: 0,
+    currency: "CAD",
     province: "ON",
     tax_status: "taxable",
     pst_exempt: false,
@@ -1245,6 +1289,7 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale, savi
         vehicle_mileage: editingSale.vehicle_mileage || 0,
         vehicle_color: editingSale.vehicle_color || "",
         sale_price: editingSale.sale_price || 0,
+        currency: editingSale.currency || "CAD",
         province: editingSale.province || "ON",
         tax_status: editingSale.tax_status || "taxable",
         pst_exempt: editingSale.pst_exempt || false,
@@ -1294,6 +1339,7 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale, savi
         vehicle_mileage: 0,
         vehicle_color: "",
         sale_price: 0,
+        currency: "CAD",
         province: "ON",
         tax_status: "taxable",
         pst_exempt: false,
@@ -1438,7 +1484,7 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale, savi
       dataToSave.pst_exempt_timestamp = new Date().toISOString();
     }
     
-    onSave(dataToSave);
+    onSave(dataToSave, { createPaymentLink: !editingSale && createPaymentLink });
   };
 
   return (
@@ -1549,6 +1595,20 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale, savi
                 <Input type="number" value={formData.sale_price} onChange={(e) => setFormData({...formData, sale_price: parseFloat(e.target.value) || 0})} />
               </div>
               <div className="space-y-2">
+                <Label>Currency</Label>
+                <Select value={formData.currency || "CAD"} onValueChange={(v) => setFormData({...formData, currency: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
+                    <SelectItem value="USD">USD - US Dollar</SelectItem>
+                    <SelectItem value="NGN">NGN - Nigerian Naira</SelectItem>
+                    <SelectItem value="GHS">GHS - Ghanaian Cedi</SelectItem>
+                    <SelectItem value="KES">KES - Kenyan Shilling</SelectItem>
+                    <SelectItem value="ZMW">ZMW - Zambian Kwacha</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label>Sale Date</Label>
                 <Input type="date" value={formData.sale_date} onChange={(e) => setFormData({...formData, sale_date: e.target.value})} />
               </div>
@@ -1630,7 +1690,13 @@ function SaleDialog({ open, onClose, onSave, onCreateCustomer, editingSale, savi
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-end gap-3 pt-4 border-t">
+        <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t">
+          {!editingSale && (
+            <label className="mr-auto flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <Checkbox checked={createPaymentLink} onCheckedChange={(v) => setCreatePaymentLink(!!v)} disabled={saving} />
+              Create eFinMoney payment link
+            </label>
+          )}
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
           <Button onClick={handleSubmit} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
             {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}

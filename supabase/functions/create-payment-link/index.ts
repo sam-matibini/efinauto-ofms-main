@@ -25,13 +25,41 @@ function json(body: unknown, status = 200) {
 const SOURCE_TABLES: Record<string, string> = {
   sales_invoice: "sales_invoices",
   repair_invoice: "invoices",
+  sale: "sales",
 };
 
 /** Label used in the payment link description shown to the payer. */
 const SOURCE_LABELS: Record<string, string> = {
   sales_invoice: "Invoice",
   repair_invoice: "Repair Invoice",
+  sale: "Bill of Sale",
 };
+
+/**
+ * Normalise the amount/status fields that differ between invoices and
+ * sales (bill of sale) records.
+ */
+function describeSource(sourceType: string, rec: Record<string, any>) {
+  if (sourceType === "sale") {
+    const total = Number(rec.grand_total || rec.sale_price || 0);
+    const balance = Number(rec.balance_due || 0) > 0
+      ? Number(rec.balance_due)
+      : total - Number(rec.total_paid || 0);
+    return {
+      settled: rec.payment_status === "paid" || rec.status === "cancelled",
+      due: balance > 0 ? balance : 0,
+      number: rec.bos_number || rec.sale_number || null,
+    };
+  }
+  const status = rec.status ?? rec.payment_status;
+  const total = Number(rec.total_amount || 0);
+  const balance = Number(rec.balance_due || 0);
+  return {
+    settled: status === "paid" || status === "cancelled",
+    due: balance > 0 ? balance : total,
+    number: rec.invoice_number ?? null,
+  };
+}
 
 /** Currencies eFinMoney payment links accept, with their minimum amounts. */
 const MIN_AMOUNTS: Record<string, number> = {
@@ -139,7 +167,7 @@ Deno.serve(async (req: Request) => {
       return json(
         {
           error:
-            "source_type (sales_invoice | repair_invoice) and source_id are required",
+            "source_type (sales_invoice | repair_invoice | sale) and source_id are required",
         },
         400,
       );
@@ -160,17 +188,15 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Not authorized for this invoice" }, 403);
     }
 
-    const invoiceStatus = invoice.status ?? invoice.payment_status;
-    if (invoiceStatus === "paid" || invoiceStatus === "cancelled") {
+    const source = describeSource(sourceType, invoice);
+    if (source.settled) {
       return json(
-        { error: "This invoice is already paid or cancelled" },
+        { error: `This ${sourceType === "sale" ? "sale" : "invoice"} is already paid or cancelled` },
         400,
       );
     }
 
-    const total = Number(invoice.total_amount || 0);
-    const balance = Number(invoice.balance_due || 0);
-    const amount = Math.round((balance > 0 ? balance : total) * 100) / 100;
+    const amount = Math.round(source.due * 100) / 100;
     if (amount <= 0) {
       return json({ error: "This invoice has nothing due" }, 400);
     }
@@ -280,7 +306,7 @@ Deno.serve(async (req: Request) => {
         company_id: companyId,
         source_type: sourceType,
         source_id: sourceId,
-        invoice_number: invoice.invoice_number ?? null,
+        invoice_number: source.number,
         amount,
         currency,
         status: "created",
@@ -295,7 +321,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // --- 7. Create the eFinMoney payment link --------------------------------
-    const description = `${SOURCE_LABELS[sourceType]} ${invoice.invoice_number ?? ""}`.trim();
+    const description = `${SOURCE_LABELS[sourceType]} ${source.number ?? ""}`.trim();
     const { res: efinRes, body: efinBody } = await efinFetch(
       "/v1/payment-links",
       {

@@ -123,6 +123,12 @@
     "vehicle_color": {
       "type": "string"
     },
+    "currency": {
+      "type": "string",
+      "enum": ["CAD", "USD", "NGN", "GHS", "KES", "ZMW"],
+      "default": "CAD",
+      "description": "Sale currency (used for eFinMoney payment links)"
+    },
     "sale_price": {
       "type": "number"
     },

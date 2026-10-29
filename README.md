@@ -68,7 +68,7 @@ Add Vehicle includes **Sales taxes (RST) paid**: pretax amount, GST, PST, HST, R
 
 ## Payment links (click-to-pay)
 
-Sales invoices and repair invoices can generate an **eFinMoney payment link**. The customer pays on eFinMoney's hosted page (card, Interac or bank transfer depending on currency); once paid, a signed webhook records the payment, updates the invoice status, and posts the double-entry GL (Dr Cash 1000 / Cr A/R 1100) automatically.
+Bills of sale, sales invoices and repair invoices can generate an **eFinMoney payment link**. The customer pays on eFinMoney's hosted page (card, Interac or bank transfer depending on currency); once paid, a signed webhook records the payment, updates the invoice status, and posts the double-entry GL (Dr Cash 1000 / Cr A/R 1100) automatically.
 
 ### How it works (multi-tenant)
 
@@ -77,9 +77,9 @@ Sales invoices and repair invoices can generate an **eFinMoney payment link**. T
 - Supported currencies (minimum amount): CAD/USD (2), GHS/KES/ZMW (10), NGN (100). The account needs an active wallet in that currency.
 - Customers who connected before payment links existed must **reconnect once** and approve payment links, otherwise creation fails with `scope_missing`.
 - Links expire after 7 days. An open link is reused while its amount still matches the invoice; if the amount changed, the old link is cancelled at eFinMoney and a new one is created.
-- **Where it lives:** `Payment Link` / `Pay Link` buttons on the Sales Invoices list (`InvoicesTab`), the invoice preview header (`InvoicePreview`), and the repair invoice generator (`InvoiceGenerator`). Outgoing invoice emails include a **Pay Now** button when there is a balance.
+- **Where it lives:** `Payment Link` / `Pay Link` buttons on the Sales list and Bill of Sale dialog (`Sales.jsx`; a paid link is appended to the sale's `payments`), the Sales Invoices list (`InvoicesTab`), the invoice preview header (`InvoicePreview`), and the repair invoice generator (`InvoiceGenerator`). Outgoing invoice emails include a **Pay Now** button when there is a balance.
 - **Edge functions:** `supabase/functions/create-payment-link` (creates/reuses an eFinMoney payment link) and `supabase/functions/efinmoney-webhook` (source of truth for recording payment). Shared API/crypto helpers live in `supabase/functions/_shared/efinmoney.ts`.
-- **Tables:** `public.payment_links` (`20261020100000_payment_links.sql`). If you already ran the earlier Stripe version of the SQL, also run `20261028100000_payment_links_efinmoney.sql`. This repo does not auto-apply migrations; run the SQL in the Supabase SQL editor.
+- **Tables:** `public.payment_links` (`20261020100000_payment_links.sql`, plus `20261029100000_payment_links_sales.sql` to allow bills of sale). If you already ran the earlier Stripe version of the SQL, also run `20261028100000_payment_links_efinmoney.sql`. This repo does not auto-apply migrations; run the SQL in the Supabase SQL editor.
 
 ### One-time setup
 
