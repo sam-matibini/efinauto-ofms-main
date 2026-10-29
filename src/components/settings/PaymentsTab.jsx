@@ -96,7 +96,7 @@ export default function PaymentsTab({ isAdmin = false }) {
               <div>
                 <CardTitle>eFinMoney Payments</CardTitle>
                 <CardDescription>
-                  Click-to-pay links on sales &amp; repair invoices
+                  Click-to-pay links on bills of sale and sales &amp; repair invoices
                 </CardDescription>
               </div>
             </div>
@@ -209,7 +209,8 @@ export default function PaymentsTab({ isAdmin = false }) {
         <CardContent className="text-sm text-gray-600 space-y-2">
           <ol className="list-decimal list-inside space-y-1">
             <li>
-              Open a sales or repair invoice and click <b>Payment Link</b>.
+              Open a bill of sale, sales invoice or repair invoice and click{" "}
+              <b>Payment Link</b>.
             </li>
             <li>
               Share the link or send the invoice email — it includes a{" "}

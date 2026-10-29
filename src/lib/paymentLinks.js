@@ -33,6 +33,9 @@ async function invokeJson(name, payload) {
   }
 }
 
+/** payment_links statuses a payer can still pay. */
+export const ACTIVE_LINK_STATUSES = ["created", "pending", "awaiting_payment"];
+
 /**
  * Create (or reuse) an eFinMoney payment link for an invoice. The payer pays
  * on eFinMoney's hosted page (card, Interac or bank transfer, depending on
@@ -55,6 +58,23 @@ export async function createPaymentLink(sourceType, sourceId, options = {}) {
     source_id: sourceId,
     force: !!options.force,
   });
+}
+
+/**
+ * Total already collected online through paid eFinMoney links for a record.
+ * The webhook posts its own ledger entry for each of these, so manual
+ * "mark as paid" postings must only cover what's left.
+ *
+ * @param {"sales_invoice"|"repair_invoice"|"sale"} sourceType
+ * @param {string} sourceId
+ */
+export async function onlinePaidAmount(sourceType, sourceId) {
+  const rows = await supabase.entities.PaymentLink.filter({
+    source_type: sourceType,
+    source_id: sourceId,
+    status: "paid",
+  });
+  return (rows || []).reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
 }
 
 /** Copy text to the clipboard; resolves true on success, false otherwise. */

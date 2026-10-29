@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Mail, Download, Loader2, Sparkles, Eye, Link2, Copy } from "lucide-react";
+import { FileText, Mail, Download, Loader2, Sparkles, Eye } from "lucide-react";
 import DocumentViewer from "../shared/DocumentViewer";
 import { toast } from "sonner";
 import { useCompany } from "@/components/shared/CompanyContext";
-import { createPaymentLink, copyToClipboard, payButtonHtml } from "@/lib/paymentLinks";
+import { createPaymentLink, payButtonHtml } from "@/lib/paymentLinks";
+import PaymentLinkActions, { useActivePaymentLink, useInvalidatePaymentLinks } from "@/components/payments/PaymentLinkActions";
 
 export default function InvoiceGenerator({ open, onClose, repairOrder }) {
   const { selectedCompanyId } = useCompany();
@@ -33,29 +34,12 @@ export default function InvoiceGenerator({ open, onClose, repairOrder }) {
   });
 
   const [invoiceData, setInvoiceData] = useState(null);
-  const [paymentLink, setPaymentLink] = useState(null);
-  const [creatingLink, setCreatingLink] = useState(false);
+  const activeLink = useActivePaymentLink("repair_invoice", invoiceData?.id);
+  const invalidatePaymentLinks = useInvalidatePaymentLinks();
 
   const hasValidEmail = (email) => !!email && /^\S+@\S+\.\S+$/.test(email);
 
-  const handleCopyPaymentLink = async () => {
-    if (!invoiceData) return;
-    if (Number(invoiceData.balance_due || 0) <= 0) {
-      toast.error("This invoice has nothing due");
-      return;
-    }
-    setCreatingLink(true);
-    try {
-      const link = paymentLink ?? (await createPaymentLink("repair_invoice", invoiceData.id));
-      setPaymentLink(link);
-      const copied = await copyToClipboard(link.url);
-      toast.success(copied ? "Payment link copied to clipboard" : link.url);
-    } catch (error) {
-      toast.error(error?.message || "Could not create payment link");
-    } finally {
-      setCreatingLink(false);
-    }
-  };
+
 
   const generateInvoiceMutation = useMutation({
     mutationFn: async () => {
@@ -187,9 +171,14 @@ ${company?.phone || ''}
         hasValidEmail(invoiceData.customer_email)
       ) {
         try {
+          // Reuse the open link unless its amount no longer matches the
+          // balance; the server then replaces it with one for the balance.
+          const due = Number(invoiceData.balance_due || 0);
           const link =
-            paymentLink ?? (await createPaymentLink("repair_invoice", invoiceData.id));
-          setPaymentLink(link);
+            activeLink && Math.abs(Number(activeLink.amount) - due) <= 0.005
+              ? activeLink
+              : await createPaymentLink("repair_invoice", invoiceData.id);
+          invalidatePaymentLinks();
           payHtml = payButtonHtml(link.url, `$${Number(invoiceData.balance_due).toFixed(2)}`);
         } catch (linkError) {
           console.warn("Payment link unavailable for this invoice email:", linkError);
@@ -519,29 +508,16 @@ ${company?.phone || ''}
                     </>
                   )}
                 </Button>
-                <Button
-                  onClick={handleCopyPaymentLink}
-                  disabled={creatingLink}
-                  variant="outline"
-                  className="w-full"
-                  title={
-                    Number(invoiceData.balance_due || 0) <= 0
-                      ? "This invoice has nothing due"
-                      : "Create a secure eFinMoney payment link"
-                  }
-                >
-                  {creatingLink ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      {paymentLink ? <Copy className="w-4 h-4 mr-2" /> : <Link2 className="w-4 h-4 mr-2" />}
-                      {paymentLink ? "Copy Pay Link" : "Payment Link"}
-                    </>
-                  )}
-                </Button>
+                <div className="col-span-2 flex flex-wrap gap-2">
+                  <PaymentLinkActions
+                    sourceType="repair_invoice"
+                    sourceId={invoiceData.id}
+                    amountDue={Number(invoiceData.balance_due || 0)}
+                    currency={invoiceData.currency || "CAD"}
+                    canTakePayment={Number(invoiceData.balance_due || 0) > 0 && invoiceData.payment_status !== "paid"}
+                    className="flex-1"
+                  />
+                </div>
               </div>
             </div>
           )}

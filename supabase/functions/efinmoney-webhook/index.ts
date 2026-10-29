@@ -25,6 +25,7 @@ const corsHeaders: Record<string, string> = {
 const SOURCE_TABLES: Record<string, string> = {
   sales_invoice: "sales_invoices",
   repair_invoice: "invoices",
+  sale: "sales",
 };
 
 const TERMINAL_EVENTS: Record<string, string> = {
@@ -240,11 +241,53 @@ Deno.serve(async (req: Request) => {
 
     if (!invoice) return json({ ok: true, warning: "invoice missing" });
 
-    const alreadyPaid =
-      (invoice.status ?? invoice.payment_status) === "paid";
+    const isSale = link.source_type === "sale";
+    const docNumber = isSale
+      ? invoice.bos_number || invoice.sale_number || null
+      : invoice.invoice_number ?? null;
+    const alreadyPaid = isSale
+      ? invoice.payment_status === "paid"
+      : (invoice.status ?? invoice.payment_status) === "paid";
+
+    // --- Update sale payments / balances (mirrors Sales.jsx) ---------------
+    if (isSale && !alreadyPaid) {
+      const grandTotal = Number(invoice.grand_total || invoice.sale_price || 0);
+      const payments = [
+        ...(Array.isArray(invoice.payments) ? invoice.payments : []),
+        {
+          date: today,
+          amount: amountPaid,
+          method: "eFinMoney",
+          reference: efinRef,
+          notes: `Paid online via eFinMoney payment link${
+            pl.payer_name ? ` by ${pl.payer_name}` : ""
+          }`,
+        },
+      ];
+      const totalPaid = payments.reduce(
+        (sum: number, p: { amount?: unknown }) => sum + (Number(p.amount) || 0),
+        0,
+      );
+      const { error: saleErr } = await service
+        .schema("public")
+        .from(table)
+        .update({
+          payments,
+          total_paid: totalPaid,
+          balance_due: Math.max(0, grandTotal - totalPaid),
+          // Sale.payment_status enum: pending|partial|paid|refunded
+          payment_status: totalPaid >= grandTotal ? "paid" : "partial",
+        })
+        .eq("id", invoice.id);
+      if (saleErr) {
+        console.error("Failed to update sale:", saleErr.message);
+        await release();
+        return json({ error: saleErr.message }, 500);
+      }
+    }
 
     // --- Update invoice balances + status ----------------------------------
-    if (!alreadyPaid) {
+    if (!isSale && !alreadyPaid) {
       const newAmountPaid = Number(invoice.amount_paid || 0) + amountPaid;
       const newBalance = Math.max(
         0,
@@ -289,8 +332,8 @@ Deno.serve(async (req: Request) => {
         payment_date: today,
         payment_method: "other",
         reference_number: efinRef,
-        applied_to_invoice: invoice.id,
-        invoice_number: invoice.invoice_number ?? null,
+        applied_to_invoice: isSale ? undefined : invoice.id,
+        invoice_number: docNumber,
         status: "completed",
         notes: `Paid online via eFinMoney payment link ${efinRef}${
           pl.payer_name ? ` by ${pl.payer_name}` : ""
@@ -336,8 +379,8 @@ Deno.serve(async (req: Request) => {
         description: `Payment received from ${
           invoice.customer_name ?? "customer"
         }${
-          invoice.invoice_number
-            ? ` for Invoice ${invoice.invoice_number}`
+          docNumber
+            ? ` for ${isSale ? "Bill of Sale" : "Invoice"} ${docNumber}`
             : ""
         } (online via eFinMoney)`,
         transaction_date: today,
@@ -367,7 +410,7 @@ Deno.serve(async (req: Request) => {
         entity_type: link.source_type,
         entity_id: invoice.id,
         details: {
-          invoice_number: invoice.invoice_number ?? null,
+          invoice_number: docNumber,
           amount: amountPaid,
           currency,
           payment_number: payment?.payment_number || paymentNumber,
