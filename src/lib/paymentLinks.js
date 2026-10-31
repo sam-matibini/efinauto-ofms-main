@@ -129,3 +129,87 @@ export function payButtonHtml(url, amountLabel) {
       </p>
     </div>`;
 }
+
+/** Amount still owed on a bill of sale (public.sales row). */
+export function saleBalanceDue(sale) {
+  if (!sale) return 0;
+  if (Number(sale.balance_due || 0) > 0) return Number(sale.balance_due);
+  return (sale.grand_total || sale.sale_price || 0) - (sale.total_paid || 0);
+}
+
+/** Whether a bill of sale can still take a payment. */
+export function canTakeSalePayment(sale) {
+  return !!sale && sale.payment_status !== "paid" && sale.status !== "cancelled" && saleBalanceDue(sale) > 0;
+}
+
+/**
+ * The newest open (payable, unexpired) payment link for a record, or null.
+ * For code outside React (PDF templates); components should use
+ * useActivePaymentLink instead.
+ */
+export async function getActivePaymentLink(sourceType, sourceId) {
+  if (!sourceId) return null;
+  const rows = await supabase.entities.PaymentLink.filter(
+    { source_type: sourceType, source_id: sourceId, status: ACTIVE_LINK_STATUSES },
+    "-created_at",
+    10,
+  );
+  const now = Date.now();
+  return (
+    (rows || []).find(
+      (r) => r.url && !(r.expires_at && new Date(r.expires_at).getTime() <= now),
+    ) || null
+  );
+}
+
+/**
+ * The link to print on a document, or null. A link whose amount no longer
+ * matches the balance is left off so the customer isn't sent to pay the
+ * wrong amount (staff see a "regenerate" warning in the app instead).
+ */
+export function documentPaymentLink(link, amountDue, canTakePayment = true) {
+  if (!link?.url || !canTakePayment || !(Number(amountDue) > 0)) return null;
+  if (Math.abs(Number(link.amount || 0) - Number(amountDue || 0)) > 0.005) return null;
+  return link;
+}
+
+/**
+ * "Pay online" block for the document itself (printed page, PDF, preview).
+ * Inline styles only, because these documents are copied into print windows
+ * and html2canvas without the app's CSS. Returns "" when there's no link.
+ */
+export function paymentLinkDocumentHtml(link) {
+  if (!link?.url) return "";
+  const amount = `${Number(link.amount || 0).toFixed(2)} ${link.currency || ""}`.trim();
+  const expires = link.expires_at ? new Date(link.expires_at) : null;
+  const expiresLabel =
+    expires && !Number.isNaN(expires.getTime()) ? ` &middot; Link expires ${escapeHtml(expires.toLocaleDateString())}` : "";
+  return `
+    <div style="margin:16px 0;padding:10px 14px;border:1px solid #93c5fd;border-left:4px solid #2563eb;border-radius:6px;background:#eff6ff;font-family:Arial,Helvetica,sans-serif;page-break-inside:avoid;">
+      <div style="font-size:10px;font-weight:bold;letter-spacing:0.5px;text-transform:uppercase;color:#1e40af;">Pay online</div>
+      <div style="margin-top:4px;font-size:12px;color:#0f172a;">
+        Amount: <strong>${escapeHtml(amount)}</strong>${expiresLabel}
+      </div>
+      <a href="${escapeHtml(link.url)}" style="display:block;margin-top:4px;font-size:12px;color:#1d4ed8;word-break:break-all;text-decoration:underline;">${escapeHtml(link.url)}</a>
+      <div style="margin-top:4px;font-size:9.5px;color:#64748b;">Secure payment powered by eFinMoney (card, Interac or bank transfer).</div>
+    </div>`;
+}
+
+/**
+ * Fetch + filter in one step for non-React document builders. Never throws:
+ * a failed lookup just leaves the link off the document.
+ */
+export async function getDocumentPaymentLink(sourceType, sourceId, amountDue, canTakePayment = true) {
+  try {
+    return documentPaymentLink(await getActivePaymentLink(sourceType, sourceId), amountDue, canTakePayment);
+  } catch (error) {
+    console.warn("Payment link lookup failed; leaving it off the document:", error);
+    return null;
+  }
+}
+
+/** Open payment link to put on a bill of sale, or null. */
+export function getSaleDocumentPaymentLink(sale) {
+  if (!sale?.id) return Promise.resolve(null);
+  return getDocumentPaymentLink("sale", sale.id, saleBalanceDue(sale), canTakeSalePayment(sale));
+}
