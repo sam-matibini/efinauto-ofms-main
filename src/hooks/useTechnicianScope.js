@@ -11,8 +11,8 @@ export function useTechnicianScope() {
   const { user } = useAuth();
 
   const role = user?.role;
-  const canViewAll = ["admin", "manager", "accountant"].includes(role);
-  const canEditAll = ["admin", "manager"].includes(role);
+  const canViewAll = ["super_admin", "admin", "manager", "accountant"].includes(role);
+  const canEditAll = ["super_admin", "admin", "manager"].includes(role);
   const employeeEntityId = user?.employee_entity_id;
 
   const { data: ownedTechnicians = [] } = useQuery({

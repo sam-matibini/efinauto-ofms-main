@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
+import { isCompanyManager } from "@/lib/access";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, DollarSign, TrendingUp, ChevronDown, ChevronUp, FileText, Users, FileCheck, Receipt, RefreshCw, CreditCard, FileX, Mail, Edit, Trash2, LayoutGrid, List, Download, FileSpreadsheet, Loader2, XCircle, Ship, Printer, Share2 } from "lucide-react";
@@ -89,7 +90,7 @@ export default function Sales() {
   const [pdfLoadingId, setPdfLoadingId] = useState(null);
   const { selectedCompanyId } = useCompany();
   const { user: currentUser } = useAuth();
-  const canManageCustomers = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+  const canManageCustomers = isCompanyManager(currentUser);
 
   const handleDownloadBOS = async (sale) => {
     setPdfLoadingId(sale.id);

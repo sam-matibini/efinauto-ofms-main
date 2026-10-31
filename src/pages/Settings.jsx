@@ -17,7 +17,7 @@ import LogoUpload from "@/components/settings/LogoUpload";
 import AssignedUsersTab from "@/components/settings/AssignedUsersTab";
 import PaymentsTab from "@/components/settings/PaymentsTab";
 import AdminDenied from "@/components/admin/AdminDenied";
-import { isAdminUser } from "@/lib/access";
+import { isAdminUser, isCompanyManager } from "@/lib/access";
 
 export default function Settings({ embedded = false }) {
   const { selectedCompanyId } = useCompany();
@@ -25,7 +25,8 @@ export default function Settings({ embedded = false }) {
 
   const { user: currentUser } = useAuth();
 
-  const isAdmin = currentUser?.role === 'admin';
+  // Admins and managers edit their company's settings; RLS scopes the writes.
+  const isAdmin = isCompanyManager(currentUser);
 
   const { data: company, isLoading } = useQuery({
     queryKey: ['company', selectedCompanyId],
@@ -106,7 +107,7 @@ export default function Settings({ embedded = false }) {
     });
   };
 
-  if (!isAdminUser(currentUser)) return <AdminDenied />;
+  if (!isCompanyManager(currentUser)) return <AdminDenied />;
 
   if (!selectedCompanyId) {
     return (
@@ -532,7 +533,7 @@ export default function Settings({ embedded = false }) {
           </TabsContent>
 
           <TabsContent value="payments">
-            <PaymentsTab isAdmin={isAdmin} />
+            <PaymentsTab isAdmin={isAdminUser(currentUser)} />
           </TabsContent>
 
           <TabsContent value="users">

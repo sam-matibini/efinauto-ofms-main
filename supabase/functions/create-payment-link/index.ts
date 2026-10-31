@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { decryptToken, efinFetch, RECONNECT_CODES } from "../_shared/efinmoney.ts";
+import { canAccessCompany, loadCallerProfile } from "../_shared/authz.ts";
 
 // Creates (or reuses) an eFinMoney payment link for an invoice. Money is
 // collected straight into the company's own connected eFinMoney wallet;
@@ -122,40 +123,11 @@ Deno.serve(async (req: Request) => {
     }
     const caller = callerData.user;
 
-    // --- 2. Resolve caller profile → company_id -----------------------------
-    // The users/profile table lives in the shared `core` schema; fall back to
-    // public.users for deployments that keep profiles in the public schema.
-    let profile: { company_id: string | null } | null = null;
-    for (const schema of ["core", "public"]) {
-      const byId = await service
-        .schema(schema)
-        .from("users")
-        .select("id, company_id")
-        .eq("id", caller.id)
-        .maybeSingle();
-      if (byId.data) {
-        profile = byId.data;
-        break;
-      }
-      const byEmail = await service
-        .schema(schema)
-        .from("users")
-        .select("id, company_id")
-        .ilike("email", caller.email ?? "")
-        .maybeSingle();
-      if (byEmail.data) {
-        profile = byEmail.data;
-        break;
-      }
+    // --- 2. Resolve caller profile -------------------------------------------
+    const profile = await loadCallerProfile(service, caller);
+    if (!profile) {
+      return json({ error: "Your user profile was not found" }, 403);
     }
-
-    if (!profile?.company_id) {
-      return json(
-        { error: "Your user profile is not linked to a company" },
-        403,
-      );
-    }
-    const companyId = profile.company_id;
 
     // --- 3. Validate payload -------------------------------------------------
     const body: CreateLinkPayload = await req.json();
@@ -184,7 +156,9 @@ Deno.serve(async (req: Request) => {
     if (invoiceErr || !invoice) {
       return json({ error: "Invoice not found" }, 404);
     }
-    if (invoice.company_id !== companyId) {
+    // The invoice's company is the tenant; super_admin may act for any company.
+    const companyId: string | null = invoice.company_id || null;
+    if (!canAccessCompany(profile, companyId)) {
       return json({ error: "Not authorized for this invoice" }, 403);
     }
 

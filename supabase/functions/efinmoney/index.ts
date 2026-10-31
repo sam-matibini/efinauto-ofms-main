@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { decryptToken, efinFetch, encryptToken } from "../_shared/efinmoney.ts";
+import { canAccessCompany, hasCompanyRole, loadCallerProfile } from "../_shared/authz.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -58,23 +59,20 @@ Deno.serve(async (req: Request) => {
     if (callerErr || !callerData.user) return json({ success: false, error: "Invalid or expired session" }, 401);
     const caller = callerData.user;
 
-    const { data: callerProfile } = await service
-      .schema("core")
-      .from("users")
-      .select("id, role, company_id, email")
-      .eq("id", caller.id)
-      .maybeSingle();
+    const callerProfile = await loadCallerProfile(service, caller);
 
     const payload = await req.json().catch(() => ({}));
     const body = payload.body || payload;
     const action = body.action as string;
 
+    // requireAdmin: connecting/disconnecting the wallet is for the company's
+    // admin (dealership owner) or super_admin.
     const assertCompanyAccess = (companyId: string, requireAdmin = false) => {
       if (!companyId) throw new Error("company_id required");
-      if (requireAdmin && callerProfile?.role !== "admin") throw new Error("forbidden");
-      if (callerProfile?.role === "admin") return;
-      if (callerProfile?.company_id && callerProfile.company_id === companyId) return;
-      throw new Error("forbidden");
+      const allowed = requireAdmin
+        ? hasCompanyRole(callerProfile, companyId, ["admin"])
+        : canAccessCompany(callerProfile, companyId);
+      if (!allowed) throw new Error("forbidden");
     };
 
     if (action === "start") {
