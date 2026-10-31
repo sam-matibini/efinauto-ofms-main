@@ -7,7 +7,7 @@ import AdminDenied from "@/components/admin/AdminDenied";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/lib/AuthContext";
-import { isAdminUser } from "@/lib/access";
+import { isCompanyManager } from "@/lib/access";
 import {
   lastTaxRefresh,
   payrollRules,
@@ -63,7 +63,7 @@ export default function TaxSettings({ embedded = false }) {
     applyRefresh();
   }, []);
 
-  if (!isAdminUser(user)) return <AdminDenied />;
+  if (!isCompanyManager(user)) return <AdminDenied />;
 
   const refreshedLabel = stamp?.refreshedAt
     ? new Date(stamp.refreshedAt).toLocaleString("en-CA", { dateStyle: "medium", timeStyle: "short" })

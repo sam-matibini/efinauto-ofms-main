@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { loadSavedPricing, savePricing as savePricingToStorage } from "@/components/shared/PricingConfig";
 import { useAuth } from "@/lib/AuthContext";
-import { isAdminUser } from "@/lib/access";
+import { isSuperAdmin } from "@/lib/access";
 import AdminDenied from "@/components/admin/AdminDenied";
 
 export default function Pricing({ embedded = false }) {
@@ -91,7 +91,7 @@ export default function Pricing({ embedded = false }) {
   };
 
   const currentPlan = user?.subscription_plan;
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = isSuperAdmin(user);
 
   const updatePlanPrice = (planId, newPrice) => {
     setSubscriptionPlans(prev => prev.map(plan => 
@@ -129,7 +129,7 @@ export default function Pricing({ embedded = false }) {
     return colors[color] || colors.blue;
   };
 
-  if (!isAdminUser(authUser)) return <AdminDenied />;
+  if (!isSuperAdmin(authUser)) return <AdminDenied />;
 
   if (subscriptionPlans.length === 0) {
     return (

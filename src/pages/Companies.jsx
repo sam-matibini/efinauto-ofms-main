@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import CompanyDialog from "@/components/shared/CompanyDialog";
 import AdminDenied from "@/components/admin/AdminDenied";
-import { isAdminUser } from "@/lib/access";
+import { isCompanyManager, isSuperAdmin } from "@/lib/access";
 
 export default function Companies({ embedded = false }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -92,14 +92,9 @@ export default function Companies({ embedded = false }) {
     }
   });
 
-  // Filter by user's company if not admin
+  // super_admin sees every company; everyone else only their own
   const filteredCompanies = companies
-    .filter(c => {
-      // Admin can see all companies
-      if (currentUser?.role === 'admin') return true;
-      // Non-admin users only see their own company
-      return c.id === currentUser?.company_id;
-    })
+    .filter(c => isSuperAdmin(currentUser) || c.id === currentUser?.company_id)
     .filter(c =>
       c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.code?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -155,9 +150,10 @@ export default function Companies({ embedded = false }) {
     }
   };
 
-  if (!isAdminUser(currentUser)) return <AdminDenied />;
+  if (!isCompanyManager(currentUser)) return <AdminDenied />;
 
-  const addCompanyButton = (
+  // Only eFin staff create companies (enforced by RLS on public.companies).
+  const addCompanyButton = isSuperAdmin(currentUser) && (
     <Button
       onClick={() => {
         setEditingCompany(null);
@@ -325,7 +321,7 @@ export default function Companies({ embedded = false }) {
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
-                        {currentUser?.role === 'admin' && (
+                        {isSuperAdmin(currentUser) && (
                           <Button 
                             size="sm"
                             variant="ghost"
@@ -420,7 +416,7 @@ export default function Companies({ embedded = false }) {
                       <Edit className="w-4 h-4 mr-2" />
                       Edit
                     </Button>
-                    {currentUser?.role === 'admin' && (
+                    {isSuperAdmin(currentUser) && (
                       <Button 
                         onClick={() => {
                           setCompanyToDelete(company);
