@@ -58,7 +58,7 @@ import { sendBOSCreatedNotification, sendBOSFinalizedNotification } from "../com
 import CreateExportOrderDialog from "../components/export/CreateExportOrderDialog";
 import { errorText } from "@/lib/persistErrors";
 import { hydrateSaleRecord, persistSaleRecord } from "@/lib/saleRecord";
-import { createPaymentLink, onlinePaidAmount, saleBalanceDue, canTakeSalePayment, documentPaymentLink } from "@/lib/paymentLinks";
+import { createPaymentLink, onlinePaidAmount, completePendingRevenue, saleBalanceDue, canTakeSalePayment, documentPaymentLink } from "@/lib/paymentLinks";
 import PaymentLinkActions, { useActivePaymentLink, useInvalidatePaymentLinks } from "@/components/payments/PaymentLinkActions";
 import PaymentLinkField from "@/components/payments/PaymentLinkField";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -238,6 +238,11 @@ export default function Sales() {
           });
         } catch (error) {
           console.warn("Sale updated but payment ledger entry was skipped.", error);
+        }
+        try {
+          await completePendingRevenue('Sale', id, 'sale_revenue');
+        } catch (error) {
+          console.warn("Sale updated but its revenue entry is still pending.", error);
         }
       }
       

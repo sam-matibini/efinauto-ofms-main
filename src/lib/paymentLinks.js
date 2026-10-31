@@ -77,6 +77,28 @@ export async function onlinePaidAmount(sourceType, sourceId) {
   return (rows || []).reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
 }
 
+/**
+ * Revenue rows are posted as "pending" while a document is unpaid, and the
+ * Accounting overview only counts completed revenue. Call this once the
+ * document is fully paid to mark its pending revenue rows completed (the
+ * eFinMoney webhook does the same for link payments).
+ *
+ * @param {"Sale"|"SalesInvoice"|"RepairOrder"} referenceType
+ * @param {string} referenceId
+ * @param {string} transactionType e.g. "sale_revenue" | "service_revenue"
+ */
+export async function completePendingRevenue(referenceType, referenceId, transactionType) {
+  const rows = await supabase.entities.Transaction.filter({
+    reference_type: referenceType,
+    reference_id: referenceId,
+    transaction_type: transactionType,
+    status: "pending",
+  });
+  await Promise.all((rows || []).map((row) =>
+    supabase.entities.Transaction.update(row.id, { status: "completed" })
+  ));
+}
+
 /** Copy text to the clipboard; resolves true on success, false otherwise. */
 export async function copyToClipboard(text) {
   try {
