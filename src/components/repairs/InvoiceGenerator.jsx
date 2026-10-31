@@ -11,6 +11,9 @@ import { FileText, Mail, Download, Loader2, Sparkles, Eye } from "lucide-react";
 import DocumentViewer from "../shared/DocumentViewer";
 import { toast } from "sonner";
 import { useCompany } from "@/components/shared/CompanyContext";
+import { createPaymentLink, payButtonHtml, documentPaymentLink, paymentLinkDocumentHtml } from "@/lib/paymentLinks";
+import { useActivePaymentLink, useInvalidatePaymentLinks } from "@/components/payments/PaymentLinkActions";
+import PaymentLinkField from "@/components/payments/PaymentLinkField";
 
 export default function InvoiceGenerator({ open, onClose, repairOrder }) {
   const { selectedCompanyId } = useCompany();
@@ -32,6 +35,12 @@ export default function InvoiceGenerator({ open, onClose, repairOrder }) {
   });
 
   const [invoiceData, setInvoiceData] = useState(null);
+  const activeLink = useActivePaymentLink("repair_invoice", invoiceData?.id);
+  const invalidatePaymentLinks = useInvalidatePaymentLinks();
+
+  const hasValidEmail = (email) => !!email && /^\S+@\S+\.\S+$/.test(email);
+
+
 
   const generateInvoiceMutation = useMutation({
     mutationFn: async () => {
@@ -156,10 +165,40 @@ ${company?.name || 'Auto Repair Team'}
 ${company?.phone || ''}
       `.trim();
 
+      // Attach a secure eFinMoney pay button when there's a balance and a valid email.
+      let payHtml = "";
+      if (
+        Number(invoiceData.balance_due || 0) > 0 &&
+        hasValidEmail(invoiceData.customer_email)
+      ) {
+        try {
+          // Reuse the open link unless its amount no longer matches the
+          // balance; the server then replaces it with one for the balance.
+          const due = Number(invoiceData.balance_due || 0);
+          const link =
+            activeLink && Math.abs(Number(activeLink.amount) - due) <= 0.005
+              ? activeLink
+              : await createPaymentLink("repair_invoice", invoiceData.id);
+          invalidatePaymentLinks();
+          payHtml = payButtonHtml(link.url, `$${Number(invoiceData.balance_due).toFixed(2)}`);
+        } catch (linkError) {
+          console.warn("Payment link unavailable for this invoice email:", linkError);
+        }
+      }
+
       await supabase.integrations.Core.SendEmail({
         to: invoiceData.customer_email || repairOrder.customer_phone,
         subject: `Invoice ${invoiceData.invoice_number} - ${company?.name || 'Auto Repair'}`,
         body: emailBody,
+        text: emailBody,
+        html: `
+          <div style="font-family:Arial,Helvetica,sans-serif;color:#0f172a;line-height:1.6;">
+            <pre style="white-space:pre-wrap;font-family:inherit;margin:0;">${emailBody
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")}</pre>
+            ${payHtml}
+          </div>`,
         from_name: company?.name
       });
 
@@ -306,6 +345,14 @@ ${company?.phone || ''}
           </table>
         </div>
 
+        ${paymentLinkDocumentHtml(
+          documentPaymentLink(
+            activeLink,
+            Number(invoiceData.balance_due || 0),
+            invoiceData.payment_status !== "paid",
+          ),
+        )}
+
         ${invoiceData.notes ? `
           <div class="notes">
             <strong>Notes:</strong><br>
@@ -436,7 +483,7 @@ ${company?.phone || ''}
                 </CardContent>
               </Card>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <Button 
                   onClick={handleDownloadPDF} 
                   variant="outline"
@@ -470,6 +517,14 @@ ${company?.phone || ''}
                     </>
                   )}
                 </Button>
+                <PaymentLinkField
+                  className="col-span-2"
+                  sourceType="repair_invoice"
+                  sourceId={invoiceData.id}
+                  amountDue={Number(invoiceData.balance_due || 0)}
+                  currency={invoiceData.currency || "CAD"}
+                  canTakePayment={Number(invoiceData.balance_due || 0) > 0 && invoiceData.payment_status !== "paid"}
+                />
               </div>
             </div>
           )}

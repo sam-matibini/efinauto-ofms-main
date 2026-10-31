@@ -1,4 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { decryptToken, efinFetch, encryptToken } from "../_shared/efinmoney.ts";
+import { canAccessCompany, hasCompanyRole, loadCallerProfile } from "../_shared/authz.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -10,56 +12,6 @@ function json(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-}
-
-const EFIN_BASE = "https://dkdnwumllibwdlqbjkwy.supabase.co/functions/v1/partner-api";
-
-function getApiKey() {
-  const key = Deno.env.get("EFINMONEY_API_KEY");
-  if (!key) throw new Error("EFINMONEY_API_KEY not configured");
-  return key;
-}
-
-function getEncKey() {
-  const key = Deno.env.get("EFINMONEY_TOKEN_ENC_KEY");
-  if (!key) throw new Error("EFINMONEY_TOKEN_ENC_KEY not configured");
-  return key;
-}
-
-function b64ToBytes(b64: string) {
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return bytes;
-}
-
-function bytesToB64(bytes: Uint8Array) {
-  let bin = "";
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin);
-}
-
-async function importKey() {
-  const raw = b64ToBytes(getEncKey());
-  return crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
-}
-
-async function encryptToken(plaintext: string): Promise<string> {
-  const key = await importKey();
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const enc = new TextEncoder();
-  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(plaintext));
-  return `v1.${bytesToB64(iv)}.${bytesToB64(new Uint8Array(ct))}`;
-}
-
-async function decryptToken(cipher: string): Promise<string> {
-  const parts = cipher.split(".");
-  if (parts.length !== 3 || parts[0] !== "v1") throw new Error("invalid_token_format");
-  const key = await importKey();
-  const iv = b64ToBytes(parts[1]);
-  const ct = b64ToBytes(parts[2]);
-  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct);
-  return new TextDecoder().decode(pt);
 }
 
 function getAllowedOrigins(): string[] {
@@ -80,18 +32,6 @@ function deriveRedirectUri(req: Request): string {
   // fallback to origin if present
   if (origin) return `${origin.replace(/\/$/, "")}/settings/efinmoney/callback`;
   throw new Error("invalid_redirect_uri");
-}
-
-async function efinFetch(path: string, init: RequestInit = {}, linkToken?: string) {
-  const headers: Record<string, string> = {
-    "X-API-Key": getApiKey(),
-    "Content-Type": "application/json",
-    ...(init.headers as Record<string, string> || {}),
-  };
-  if (linkToken) headers["Authorization"] = `Bearer ${linkToken}`;
-  const res = await fetch(`${EFIN_BASE}${path}`, { ...init, headers });
-  const body = await res.json().catch(() => ({}));
-  return { res, body };
 }
 
 Deno.serve(async (req: Request) => {
@@ -119,23 +59,20 @@ Deno.serve(async (req: Request) => {
     if (callerErr || !callerData.user) return json({ success: false, error: "Invalid or expired session" }, 401);
     const caller = callerData.user;
 
-    const { data: callerProfile } = await service
-      .schema("core")
-      .from("users")
-      .select("id, role, company_id, email")
-      .eq("id", caller.id)
-      .maybeSingle();
+    const callerProfile = await loadCallerProfile(service, caller);
 
     const payload = await req.json().catch(() => ({}));
     const body = payload.body || payload;
     const action = body.action as string;
 
+    // requireAdmin: connecting/disconnecting the wallet is for the company's
+    // admin (dealership owner) or super_admin.
     const assertCompanyAccess = (companyId: string, requireAdmin = false) => {
       if (!companyId) throw new Error("company_id required");
-      if (requireAdmin && callerProfile?.role !== "admin") throw new Error("forbidden");
-      if (callerProfile?.role === "admin") return;
-      if (callerProfile?.company_id && callerProfile.company_id === companyId) return;
-      throw new Error("forbidden");
+      const allowed = requireAdmin
+        ? hasCompanyRole(callerProfile, companyId, ["admin"])
+        : canAccessCompany(callerProfile, companyId);
+      if (!allowed) throw new Error("forbidden");
     };
 
     if (action === "start") {

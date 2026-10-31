@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { useAuth } from "@/lib/AuthContext";
 import AdminDenied from "@/components/admin/AdminDenied";
-import { isAdminUser } from "@/lib/access";
+import { isCompanyManager } from "@/lib/access";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -119,7 +119,7 @@ export default function BOSSettings({ embedded = false }) {
     toast.info(`Next BOS number will be: ${preview}`);
   };
 
-  if (!isAdminUser(currentUser)) return <AdminDenied />;
+  if (!isCompanyManager(currentUser)) return <AdminDenied />;
 
   if (!selectedCompanyId) {
     return (

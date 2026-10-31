@@ -35,6 +35,7 @@ export const SALE_LIVE_COLUMNS = new Set([
   "vehicle_mileage",
   "vehicle_color",
   "sale_price",
+  "currency",
   "province",
   "tax_status",
   "pst_exempt",

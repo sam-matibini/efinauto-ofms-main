@@ -111,21 +111,15 @@ export default function DocumentShareDialog({ open, onClose, sale }) {
       toast.error("No sale selected");
       return;
     }
+    // Open the tab now, while we still have the click; the PDF upload below
+    // is async and a later window.open would be blocked as a popup.
+    const waWindow = window.open("", "_blank");
     setLoading(true);
     try {
-      // Generate and download PDF for manual sharing
-      const result = await generateDocumentPDF(sale.id, "BOS");
-      
-      const a = window.document.createElement("a");
-      a.href = result.pdf_url;
-      a.download = `BOS_${sale.bos_number || sale.id}.pdf`;
-      a.click();
-      
-      setTimeout(() => URL.revokeObjectURL(result.pdf_url), 100);
-      
-      toast.info("PDF downloaded. Please share manually via WhatsApp.");
+      await shareViaWhatsApp(sale.id, phoneNumber, waWindow);
+      toast.success("WhatsApp opened with the PDF and payment links");
     } catch (error) {
-      toast.error("PDF generation failed: " + error.message);
+      toast.error("WhatsApp share failed: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -142,19 +136,10 @@ export default function DocumentShareDialog({ open, onClose, sale }) {
     }
     setLoading(true);
     try {
-      // Generate and download PDF for manual sharing
-      const result = await generateDocumentPDF(sale.id, "BOS");
-      
-      const a = window.document.createElement("a");
-      a.href = result.pdf_url;
-      a.download = `BOS_${sale.bos_number || sale.id}.pdf`;
-      a.click();
-      
-      setTimeout(() => URL.revokeObjectURL(result.pdf_url), 100);
-      
-      toast.info("PDF downloaded. Please share manually via SMS.");
+      await shareViaSMS(sale.id, phoneNumber);
+      toast.success("SMS app opened with the PDF and payment links");
     } catch (error) {
-      toast.error("PDF generation failed: " + error.message);
+      toast.error("SMS share failed: " + error.message);
     } finally {
       setLoading(false);
     }

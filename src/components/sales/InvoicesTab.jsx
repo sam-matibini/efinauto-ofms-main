@@ -15,6 +15,8 @@ import InvoiceDialog from "./InvoiceDialog";
 import InvoicePreview from "./InvoicePreview";
 import DocumentViewer from "../shared/DocumentViewer";
 import { persistInvoiceRecord } from "@/lib/invoiceRecord";
+import { createPaymentLink, onlinePaidAmount, completePendingRevenue } from "@/lib/paymentLinks";
+import PaymentLinkActions, { useInvalidatePaymentLinks } from "@/components/payments/PaymentLinkActions";
 
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-US', {
@@ -40,6 +42,15 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
     setPreviewInvoice(invoice);
     setPreviewOpen(true);
   };
+
+  const invalidatePaymentLinks = useInvalidatePaymentLinks();
+
+  // Mirrors create-payment-link: the balance if any, else the total.
+  const invoiceAmountDue = (invoice) =>
+    Number(invoice.balance_due || 0) > 0 ? Number(invoice.balance_due) : Number(invoice.total_amount || 0);
+  const canTakeInvoicePayment = (invoice) =>
+    invoice.status !== 'paid' && invoice.status !== 'cancelled' && invoiceAmountDue(invoice) > 0;
+
 
   const filteredInvoices = invoices.filter(i => {
     const matchesSearch = i.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -78,7 +89,7 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data) => {
+    mutationFn: async ({ data, createLink }) => {
       const invoice = await persistInvoiceRecord({
         supabase,
         companyId: selectedCompanyId,
@@ -113,14 +124,29 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
         }
       }
 
-      return invoice;
+      // Optional: create (but don't copy) a payment link for the new invoice.
+      let linkError = null;
+      if (createLink) {
+        try {
+          await createPaymentLink('sales_invoice', invoice.id);
+        } catch (error) {
+          linkError = error;
+        }
+      }
+
+      return { invoice, createLink, linkError };
     },
-    onSuccess: () => {
+    onSuccess: ({ createLink, linkError }) => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      invalidatePaymentLinks();
       setDialogOpen(false);
       setEditingInvoice(null);
-      toast.success("Invoice created!");
+      if (linkError) {
+        toast.warning(`Invoice created, but the payment link couldn't be created: ${linkError.message}`);
+      } else {
+        toast.success(createLink ? "Invoice and payment link created! Use Copy link to share it." : "Invoice created!");
+      }
     },
     onError: (error) => {
       toast.error(error.message || "Could not create invoice");
@@ -141,27 +167,47 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
       // If status changed to paid, create payment transaction
       if (data.status === 'paid' && oldInvoice?.status !== 'paid') {
         try {
-          await supabase.entities.Transaction.create({
-            company_id: selectedCompanyId,
-            transaction_number: `PMT-${id.slice(0, 8)}`,
-            transaction_type: 'payment_received',
-            category: 'asset',
-            amount: data.total_amount || 0,
-            account_code: '1000',
-            account_name: 'Cash',
-            account_type: 'asset',
-            contra_account_code: '1100',
-            contra_account_name: 'Accounts Receivable',
+          // Guard against double-posting: the eFinMoney webhook already posts a
+          // payment_received GL entry for each paid payment link, so only the
+          // remainder is posted here (and nothing if a manual entry exists).
+          const existingPayments = await supabase.entities.Transaction.filter({
             reference_type: 'SalesInvoice',
             reference_id: id,
-            reference_number: data.invoice_number,
-            customer_name: data.customer_name,
-            description: `Payment received for invoice: ${data.invoice_number}`,
-            transaction_date: new Date().toISOString().split('T')[0],
-            status: 'completed'
+            transaction_type: 'payment_received',
           });
+          const remaining = Math.round(
+            ((data.total_amount || 0) - await onlinePaidAmount('sales_invoice', id)) * 100,
+          ) / 100;
+          if (existingPayments?.length > 0 || remaining <= 0) {
+            console.info("Payment ledger entry already recorded; skipping manual posting.");
+          } else {
+            await supabase.entities.Transaction.create({
+              company_id: selectedCompanyId,
+              transaction_number: `PMT-${id.slice(0, 8)}`,
+              transaction_type: 'payment_received',
+              category: 'asset',
+              amount: remaining,
+              account_code: '1000',
+              account_name: 'Cash',
+              account_type: 'asset',
+              contra_account_code: '1100',
+              contra_account_name: 'Accounts Receivable',
+              reference_type: 'SalesInvoice',
+              reference_id: id,
+              reference_number: data.invoice_number,
+              customer_name: data.customer_name,
+              description: `Payment received for invoice: ${data.invoice_number}`,
+              transaction_date: new Date().toISOString().split('T')[0],
+              status: 'completed'
+            });
+          }
         } catch (error) {
           console.warn("Invoice updated but payment ledger entry was skipped.", error);
+        }
+        try {
+          await completePendingRevenue('SalesInvoice', id, 'service_revenue');
+        } catch (error) {
+          console.warn("Invoice updated but its revenue entry is still pending.", error);
         }
       }
 
@@ -187,11 +233,11 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
     },
   });
 
-  const handleSaveInvoice = (data) => {
+  const handleSaveInvoice = (data, { createPaymentLink: createLink = false } = {}) => {
     if (editingInvoice) {
       updateMutation.mutate({ id: editingInvoice.id, data });
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate({ data, createLink });
     }
   };
 
@@ -282,6 +328,7 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="sm" onClick={() => handleViewInvoice(invoice)} title="View Invoice"><Eye className="w-4 h-4" /></Button>
                       <Button variant="ghost" size="sm" onClick={() => handleEditInvoice(invoice)} title="Edit"><Edit className="w-4 h-4" /></Button>
+                      <PaymentLinkActions size="icon" sourceType="sales_invoice" sourceId={invoice.id} amountDue={invoiceAmountDue(invoice)} currency={invoice.currency || 'CAD'} canTakePayment={canTakeInvoicePayment(invoice)} />
                       <Button variant="ghost" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(invoice.id)} title="Delete"><Trash2 className="w-4 h-4" /></Button>
                     </div>
                   </TableCell>
@@ -320,6 +367,7 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
                         <Edit className="w-4 h-4 mr-1" />
                         Edit
                       </Button>
+                      <PaymentLinkActions sourceType="sales_invoice" sourceId={invoice.id} amountDue={invoiceAmountDue(invoice)} currency={invoice.currency || 'CAD'} canTakePayment={canTakeInvoicePayment(invoice)} />
                       <Button variant="outline" size="sm" className="text-red-600" onClick={() => deleteMutation.mutate(invoice.id)}>
                         <Trash2 className="w-4 h-4 mr-1" />
                         Delete
