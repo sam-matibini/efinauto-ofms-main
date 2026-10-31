@@ -15,7 +15,7 @@ import InvoiceDialog from "./InvoiceDialog";
 import InvoicePreview from "./InvoicePreview";
 import DocumentViewer from "../shared/DocumentViewer";
 import { persistInvoiceRecord } from "@/lib/invoiceRecord";
-import { createPaymentLink, onlinePaidAmount } from "@/lib/paymentLinks";
+import { createPaymentLink, onlinePaidAmount, completePendingRevenue } from "@/lib/paymentLinks";
 import PaymentLinkActions, { useInvalidatePaymentLinks } from "@/components/payments/PaymentLinkActions";
 
 const formatCurrency = (amount) => {
@@ -203,6 +203,11 @@ export default function InvoicesTab({ invoices, selectedCompanyId, company }) {
           }
         } catch (error) {
           console.warn("Invoice updated but payment ledger entry was skipped.", error);
+        }
+        try {
+          await completePendingRevenue('SalesInvoice', id, 'service_revenue');
+        } catch (error) {
+          console.warn("Invoice updated but its revenue entry is still pending.", error);
         }
       }
 
