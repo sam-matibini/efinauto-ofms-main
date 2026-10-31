@@ -57,8 +57,9 @@ import { sendBOSCreatedNotification, sendBOSFinalizedNotification } from "../com
 import CreateExportOrderDialog from "../components/export/CreateExportOrderDialog";
 import { errorText } from "@/lib/persistErrors";
 import { hydrateSaleRecord, persistSaleRecord } from "@/lib/saleRecord";
-import { createPaymentLink, onlinePaidAmount } from "@/lib/paymentLinks";
-import PaymentLinkActions, { useInvalidatePaymentLinks } from "@/components/payments/PaymentLinkActions";
+import { createPaymentLink, onlinePaidAmount, saleBalanceDue, canTakeSalePayment, documentPaymentLink } from "@/lib/paymentLinks";
+import PaymentLinkActions, { useActivePaymentLink, useInvalidatePaymentLinks } from "@/components/payments/PaymentLinkActions";
+import PaymentLinkField from "@/components/payments/PaymentLinkField";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Sales() {
@@ -69,6 +70,12 @@ export default function Sales() {
   const [expandedSaleId, setExpandedSaleId] = useState(null);
   const [billOfSaleOpen, setBillOfSaleOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
+  const selectedSaleLink = useActivePaymentLink("sale", selectedSale?.id);
+  const selectedSaleDocLink = documentPaymentLink(
+    selectedSaleLink,
+    saleBalanceDue(selectedSale),
+    canTakeSalePayment(selectedSale),
+  );
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [editingSale, setEditingSale] = useState(null);
   const [deletingSale, setDeletingSale] = useState(null);
@@ -482,13 +489,6 @@ export default function Sales() {
   };
 
   // Mirrors create-payment-link: balance_due if set, else total minus paid.
-  const saleBalanceDue = (sale) => {
-    if (!sale) return 0;
-    if (Number(sale.balance_due || 0) > 0) return Number(sale.balance_due);
-    return (sale.grand_total || sale.sale_price || 0) - (sale.total_paid || 0);
-  };
-  const canTakeSalePayment = (sale) =>
-    !!sale && sale.payment_status !== 'paid' && sale.status !== 'cancelled' && saleBalanceDue(sale) > 0;
 
   if (!selectedCompanyId) {
     return (
@@ -1083,12 +1083,13 @@ export default function Sales() {
           </DialogHeader>
           {selectedSale && company ? (
             <>
+              <PaymentLinkField className="print:hidden" sourceType="sale" sourceId={selectedSale.id} amountDue={saleBalanceDue(selectedSale)} currency={selectedSale.currency || 'CAD'} canTakePayment={canTakeSalePayment(selectedSale)} />
               <AIDocumentSummary 
                 documentType="bill_of_sale"
                 documentData={selectedSale}
                 company={company}
               />
-              <BillOfSale sale={selectedSale} company={company} existingSignatures={selectedSale} onSignaturesUpdate={(sigs) => {
+              <BillOfSale sale={selectedSale} company={company} paymentLink={selectedSaleDocLink} existingSignatures={selectedSale} onSignaturesUpdate={(sigs) => {
                 queryClient.invalidateQueries({ queryKey: ['sales'] });
               }} />
             </>
@@ -1097,9 +1098,6 @@ export default function Sales() {
           )}
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button variant="outline" onClick={() => setBillOfSaleOpen(false)}>Close</Button>
-            {selectedSale && (
-              <PaymentLinkActions sourceType="sale" sourceId={selectedSale.id} amountDue={saleBalanceDue(selectedSale)} currency={selectedSale.currency || 'CAD'} canTakePayment={canTakeSalePayment(selectedSale)} />
-            )}
             <Button 
               variant="outline" 
               onClick={() => {

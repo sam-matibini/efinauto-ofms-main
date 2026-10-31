@@ -9,6 +9,7 @@ import SignaturePad from "@/components/shared/SignaturePad";
 import SignatureRequestDialog from "./SignatureRequestDialog";
 import EnhancedAuditTrail from "./EnhancedAuditTrail";
 import CompletionCertificate from "./CompletionCertificate";
+import { paymentLinkDocumentHtml } from "@/lib/paymentLinks";
 
 // Compliance-safe data normalizer
 const normalizeSaleData = (sale) => {
@@ -55,7 +56,8 @@ const normalizeSaleData = (sale) => {
   };
 };
 
-export default function BillOfSale({ sale, company, existingSignatures, onSignaturesUpdate }) {
+/** @param paymentLink open eFinMoney link to print on the document (see documentPaymentLink), or null */
+export default function BillOfSale({ sale, company, paymentLink = null, existingSignatures, onSignaturesUpdate }) {
   const [generatingSignature, setGeneratingSignature] = useState(false);
   const [sellerSignature, setSellerSignature] = useState(existingSignatures?.seller_signature_url || null);
   const [buyerSignature, setBuyerSignature] = useState(existingSignatures?.buyer_signature_url || null);
@@ -563,6 +565,10 @@ export default function BillOfSale({ sale, company, existingSignatures, onSignat
           <div className="p-3 border-l border-gray-800"></div>
         </div>
       </div>
+
+      {paymentLink && (
+        <div dangerouslySetInnerHTML={{ __html: paymentLinkDocumentHtml(paymentLink) }} />
+      )}
 
       <div className="text-xs mb-6 leading-relaxed">
         The purchaser understands and agrees that the provisions listed above are hereby incorporated and

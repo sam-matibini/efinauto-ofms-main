@@ -11,8 +11,9 @@ import { FileText, Mail, Download, Loader2, Sparkles, Eye } from "lucide-react";
 import DocumentViewer from "../shared/DocumentViewer";
 import { toast } from "sonner";
 import { useCompany } from "@/components/shared/CompanyContext";
-import { createPaymentLink, payButtonHtml } from "@/lib/paymentLinks";
-import PaymentLinkActions, { useActivePaymentLink, useInvalidatePaymentLinks } from "@/components/payments/PaymentLinkActions";
+import { createPaymentLink, payButtonHtml, documentPaymentLink, paymentLinkDocumentHtml } from "@/lib/paymentLinks";
+import { useActivePaymentLink, useInvalidatePaymentLinks } from "@/components/payments/PaymentLinkActions";
+import PaymentLinkField from "@/components/payments/PaymentLinkField";
 
 export default function InvoiceGenerator({ open, onClose, repairOrder }) {
   const { selectedCompanyId } = useCompany();
@@ -344,6 +345,14 @@ ${company?.phone || ''}
           </table>
         </div>
 
+        ${paymentLinkDocumentHtml(
+          documentPaymentLink(
+            activeLink,
+            Number(invoiceData.balance_due || 0),
+            invoiceData.payment_status !== "paid",
+          ),
+        )}
+
         ${invoiceData.notes ? `
           <div class="notes">
             <strong>Notes:</strong><br>
@@ -508,16 +517,14 @@ ${company?.phone || ''}
                     </>
                   )}
                 </Button>
-                <div className="col-span-2 flex flex-wrap gap-2">
-                  <PaymentLinkActions
-                    sourceType="repair_invoice"
-                    sourceId={invoiceData.id}
-                    amountDue={Number(invoiceData.balance_due || 0)}
-                    currency={invoiceData.currency || "CAD"}
-                    canTakePayment={Number(invoiceData.balance_due || 0) > 0 && invoiceData.payment_status !== "paid"}
-                    className="flex-1"
-                  />
-                </div>
+                <PaymentLinkField
+                  className="col-span-2"
+                  sourceType="repair_invoice"
+                  sourceId={invoiceData.id}
+                  amountDue={Number(invoiceData.balance_due || 0)}
+                  currency={invoiceData.currency || "CAD"}
+                  canTakePayment={Number(invoiceData.balance_due || 0) > 0 && invoiceData.payment_status !== "paid"}
+                />
               </div>
             </div>
           )}
