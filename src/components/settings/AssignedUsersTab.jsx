@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/api/supabaseClient";
 import { useAuth } from "@/lib/AuthContext";
+import { canManageUser, isAdminUser } from "@/lib/access";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,7 @@ import UserEditDialog from "@/components/users/UserEditDialog";
 
 const getRoleBadge = (role) => {
   const roleConfig = {
+    super_admin: { label: 'Super Admin', color: 'bg-red-100 text-red-700' },
     admin: { label: 'Admin', color: 'bg-purple-100 text-purple-700' },
     manager: { label: 'Manager', color: 'bg-blue-100 text-blue-700' },
     sales: { label: 'Sales', color: 'bg-green-100 text-green-700' },
@@ -80,7 +82,7 @@ export default function AssignedUsersTab({ companyId, isAdmin }) {
       setSelectedUser(null);
     },
     onError: (error) => {
-      toast.error("Failed to update user");
+      toast.error(error?.message || "Failed to update user");
       console.error(error);
     }
   });
@@ -94,7 +96,7 @@ export default function AssignedUsersTab({ companyId, isAdmin }) {
       setUserToRemove(null);
     },
     onError: (error) => {
-      toast.error("Failed to remove user from company");
+      toast.error(error?.message || "Failed to remove user from company");
       console.error(error);
     }
   });
@@ -190,7 +192,7 @@ export default function AssignedUsersTab({ companyId, isAdmin }) {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="font-semibold text-gray-900">{user.full_name || 'Unnamed User'}</h4>
                       <Badge className={getRoleBadge(user.role).color}>
-                        {user.role === 'admin' && <Shield className="w-3 h-3 mr-1" />}
+                        {isAdminUser(user) && <Shield className="w-3 h-3 mr-1" />}
                         {getRoleBadge(user.role).label}
                       </Badge>
                       {user.id === currentUser?.id && (
@@ -232,7 +234,7 @@ export default function AssignedUsersTab({ companyId, isAdmin }) {
                   </div>
                 </div>
 
-                {isAdmin && (
+                {isAdmin && canManageUser(currentUser, user) && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon">
@@ -247,7 +249,6 @@ export default function AssignedUsersTab({ companyId, isAdmin }) {
                       <DropdownMenuItem
                         onClick={() => { setUserToRemove(user); setRemoveDialogOpen(true); }}
                         className="text-red-600"
-                        disabled={user.id === currentUser?.id}
                       >
                         <UserX className="w-4 h-4 mr-2" />
                         Remove from Company

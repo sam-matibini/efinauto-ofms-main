@@ -11,6 +11,7 @@ import CustomerSelector from "../shared/CustomerSelector";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import DocumentAutoscan from "@/components/shared/DocumentAutoscan";
 import { mergeDocumentFields } from "@/lib/documentAutoscan";
 
@@ -161,6 +162,11 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
     }));
   };
 
+  const [createPaymentLink, setCreatePaymentLink] = useState(false);
+  useEffect(() => {
+    if (open) setCreatePaymentLink(false);
+  }, [open]);
+
   const handleSubmit = () => {
     if (!formData.customer_name) {
       toast.error("Please select or enter a customer");
@@ -170,7 +176,7 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
       toast.error("Please add at least one line item");
       return;
     }
-    onSave(formData);
+    onSave(formData, { createPaymentLink: !editingInvoice && createPaymentLink });
   };
 
   return (
@@ -497,7 +503,13 @@ export default function InvoiceDialog({ open, onClose, onSave, editingInvoice, c
           />
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t">
+            {!editingInvoice && (
+              <label className="mr-auto flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <Checkbox checked={createPaymentLink} onCheckedChange={(v) => setCreatePaymentLink(!!v)} disabled={saving} />
+                Create eFinMoney payment link
+              </label>
+            )}
             <Button type="button" variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
             <Button type="button" onClick={handleSubmit} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
               {saving ? "Saving..." : editingInvoice ? "Update Invoice" : "Create Invoice"}

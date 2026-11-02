@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Building2, Plus } from "lucide-react";
 import { useCompany } from "./CompanyContext";
+import { isSuperAdmin } from "@/lib/access";
 
 export default function CompanySelector({ onAddCompany }) {
   const { selectedCompanyId, setSelectedCompanyId } = useCompany();
@@ -24,7 +25,8 @@ export default function CompanySelector({ onAddCompany }) {
     initialData: [],
   });
 
-  const isAdmin = currentUser?.role === 'admin';
+  // Only eFin staff switch between companies; everyone else is pinned to theirs.
+  const isAdmin = isSuperAdmin(currentUser);
   const userCompanyId = currentUser?.company_id;
 
   // Filter companies based on user role
@@ -35,6 +37,11 @@ export default function CompanySelector({ onAddCompany }) {
   });
 
   React.useEffect(() => {
+    // A company remembered from an earlier session may no longer be allowed.
+    if (!isAdmin && userCompanyId && selectedCompanyId && selectedCompanyId !== userCompanyId) {
+      setSelectedCompanyId(userCompanyId);
+      return;
+    }
     // Auto-select user's assigned company for non-admin users
     if (!selectedCompanyId && activeCompanies.length > 0) {
       if (!isAdmin && userCompanyId) {

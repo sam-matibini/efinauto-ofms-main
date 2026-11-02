@@ -9,7 +9,7 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import { ADMIN_PAGE_IDS, isAdminUser } from '@/lib/access';
+import { canAccessPage } from '@/lib/access';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import LoginPage from '@/components/auth/LoginPage';
 import ForgotPasswordPage from '@/components/auth/ForgotPasswordPage';
@@ -36,7 +36,7 @@ const ProtectedRoute = ({ children }) => {
 
 const RoleGate = ({ pageName, children }) => {
   const { user } = useAuth();
-  if (!ADMIN_PAGE_IDS.has(pageName) || isAdminUser(user)) return children;
+  if (canAccessPage(pageName, user)) return children;
   return <Navigate to="/dashboard" replace />;
 };
 

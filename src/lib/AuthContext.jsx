@@ -22,9 +22,18 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(true);
       const currentUser = await supabase.auth.me();
       const { user_metadata, ...rest } = currentUser ?? {};
+      // user_metadata is writable by the user themselves (auth.updateUser), so it
+      // must never supply privileges; those come only from core.users below.
+      const {
+        role: _role,
+        company_id: _companyId,
+        accessible_modules: _modules,
+        employee_entity_id: _employeeEntityId,
+        ...safeMetadata
+      } = user_metadata ?? {};
       const formattedUser = {
         ...rest,
-        ...user_metadata,
+        ...safeMetadata,
       };
 
       // Merge profile data from core.users so company_id, role, etc. are available

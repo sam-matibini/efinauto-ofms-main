@@ -4,6 +4,7 @@
 import { supabase } from "@/api/supabaseClient";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { getSaleDocumentPaymentLink, paymentLinkDocumentHtml } from "@/lib/paymentLinks";
 
 export const validateDocumentForPDF = (document, type = "BOS") => {
   const errors = [];
@@ -48,7 +49,8 @@ export const generateDocumentPDF = async (documentId, documentType = "BOS") => {
     if (!company) throw new Error("Company not found");
     
     // Step 4: Generate PDF from clean HTML template (reliable, no DOM dependency)
-    const pdfBlob = await renderHTMLToPDF(generateCleanHTMLTemplate(document, company, documentType));
+    const paymentLink = documentType === "BOS" ? await getSaleDocumentPaymentLink(document) : null;
+    const pdfBlob = await renderHTMLToPDF(generateCleanHTMLTemplate(document, company, documentType, paymentLink));
     
     // Step 6: Return blob URL for download/print (no upload to save credits)
     const blobUrl = URL.createObjectURL(pdfBlob);
@@ -69,7 +71,7 @@ export const generateDocumentPDF = async (documentId, documentType = "BOS") => {
   }
 };
 
-const generateCleanHTMLTemplate = (document, company, type) => {
+const generateCleanHTMLTemplate = (document, company, type, paymentLink = null) => {
   const safe = (value, fallback = "") => value || fallback;
   const safeNum = (value, fallback = 0) => (typeof value === "number" ? value : fallback);
   const fmt = (num) => `$${safeNum(num).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -256,6 +258,8 @@ const generateCleanHTMLTemplate = (document, company, type) => {
       </table>
     </div>
   </div>
+
+  ${paymentLinkDocumentHtml(paymentLink)}
 
   <!-- DISCLAIMER -->
   <div class="disclaimer">ALL VEHICLES ARE SOLD WITHOUT ANY WARRANTIES OR GUARANTEES UNLESS STIPULATED IN WRITING</div>

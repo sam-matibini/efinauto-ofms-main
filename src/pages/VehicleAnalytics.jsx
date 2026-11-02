@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
+import { isSuperAdmin } from "@/lib/access";
 import { supabase } from "@/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,8 @@ export default function VehicleAnalytics() {
 
   const { user: currentUser } = useAuth();
 
-  const isAdmin = currentUser?.role === 'admin';
+  // Only super_admin can switch between companies.
+  const isAdmin = isSuperAdmin(currentUser);
 
   // Filter vehicles by date range
   const filteredVehicles = vehicles.filter(v => {

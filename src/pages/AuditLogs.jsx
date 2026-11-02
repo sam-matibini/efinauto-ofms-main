@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { supabase } from "@/api/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
+import { isCompanyManager } from "@/lib/access";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -76,7 +77,7 @@ export default function AuditLogs() {
   // Check if user is admin
   const { user: currentUser } = useAuth();
 
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = isCompanyManager(currentUser);
 
   // Fetch audit logs
   const { data: auditLogs = [], isLoading, refetch } = useQuery({

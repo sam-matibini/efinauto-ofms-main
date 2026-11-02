@@ -8,6 +8,8 @@ import { Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/api/supabaseClient";
+import { useAuth } from "@/lib/AuthContext";
+import { assignableRoles, isSuperAdmin } from "@/lib/access";
 
 const getInviteErrorMessage = async (error) => {
   const data = await error?.context?.json?.().catch(() => null);
@@ -17,6 +19,11 @@ const getInviteErrorMessage = async (error) => {
 
 export default function UserInviteDialog({ open, onClose, defaultCompanyId }) {
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
+  const roleOptions = assignableRoles(currentUser);
+  // Only eFin staff pick the company; everyone else invites into their own
+  // (invite-user enforces this server-side too).
+  const canPickCompany = isSuperAdmin(currentUser);
   const [inviteData, setInviteData] = useState({
     email: "",
     full_name: "",
@@ -112,17 +119,14 @@ export default function UserInviteDialog({ open, onClose, defaultCompanyId }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Administrator</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="sales">Sales Staff</SelectItem>
-                <SelectItem value="technician">Technician</SelectItem>
-                <SelectItem value="inventory_manager">Inventory Manager</SelectItem>
-                <SelectItem value="accountant">Accountant</SelectItem>
-                <SelectItem value="user">Regular User</SelectItem>
+                {roleOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-gray-500">
-              {inviteData.role === 'admin' && 'Full system access and user management'}
+              {inviteData.role === 'super_admin' && 'eFin staff: access to every company'}
+              {inviteData.role === 'admin' && 'Dealership owner: full access to their company and its users'}
               {inviteData.role === 'manager' && 'Manage company operations and staff'}
               {inviteData.role === 'sales' && 'Handle sales, customers, and vehicles'}
               {inviteData.role === 'technician' && 'Manage repairs and service orders'}
@@ -150,6 +154,7 @@ export default function UserInviteDialog({ open, onClose, defaultCompanyId }) {
             />
           </div>
 
+          {canPickCompany && (
           <div className="space-y-2">
             <Label>Assign to Company</Label>
             <Select value={inviteData.company_id} onValueChange={(value) => setInviteData({ ...inviteData, company_id: value })}>
@@ -169,6 +174,7 @@ export default function UserInviteDialog({ open, onClose, defaultCompanyId }) {
               Assign user to a specific company for data access. Regular users can only see data from their assigned company.
             </p>
           </div>
+          )}
 
         </div>
 

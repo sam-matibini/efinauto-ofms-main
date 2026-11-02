@@ -11,12 +11,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MessageSquare, Mail, Shield, Save, Info, CheckCircle, Image as ImageIcon, Building2, ExternalLink, Lock, Users } from "lucide-react";
+import { MessageSquare, Mail, Shield, Save, Info, CheckCircle, Image as ImageIcon, Building2, ExternalLink, Lock, Users, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import LogoUpload from "@/components/settings/LogoUpload";
 import AssignedUsersTab from "@/components/settings/AssignedUsersTab";
+import PaymentsTab from "@/components/settings/PaymentsTab";
 import AdminDenied from "@/components/admin/AdminDenied";
-import { isAdminUser } from "@/lib/access";
+import { isAdminUser, isCompanyManager } from "@/lib/access";
 
 export default function Settings({ embedded = false }) {
   const { selectedCompanyId } = useCompany();
@@ -24,7 +25,8 @@ export default function Settings({ embedded = false }) {
 
   const { user: currentUser } = useAuth();
 
-  const isAdmin = currentUser?.role === 'admin';
+  // Admins and managers edit their company's settings; RLS scopes the writes.
+  const isAdmin = isCompanyManager(currentUser);
 
   const { data: company, isLoading } = useQuery({
     queryKey: ['company', selectedCompanyId],
@@ -105,7 +107,7 @@ export default function Settings({ embedded = false }) {
     });
   };
 
-  if (!isAdminUser(currentUser)) return <AdminDenied />;
+  if (!isCompanyManager(currentUser)) return <AdminDenied />;
 
   if (!selectedCompanyId) {
     return (
@@ -141,7 +143,7 @@ export default function Settings({ embedded = false }) {
 
       <div className={embedded ? "max-w-5xl" : "p-6 md:p-8 max-w-5xl mx-auto"}>
         <Tabs defaultValue="company" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="company">
               <Building2 className="w-4 h-4 mr-2" />
               Company Info
@@ -157,6 +159,10 @@ export default function Settings({ embedded = false }) {
             <TabsTrigger value="email">
               <Mail className="w-4 h-4 mr-2" />
               Email Settings
+            </TabsTrigger>
+            <TabsTrigger value="payments">
+              <CreditCard className="w-4 h-4 mr-2" />
+              Payments
             </TabsTrigger>
             <TabsTrigger value="users">
               <Users className="w-4 h-4 mr-2" />
@@ -524,6 +530,10 @@ export default function Settings({ embedded = false }) {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="payments">
+            <PaymentsTab isAdmin={isAdminUser(currentUser)} />
           </TabsContent>
 
           <TabsContent value="users">

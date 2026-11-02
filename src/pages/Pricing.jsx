@@ -5,13 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Check, Loader2, CreditCard, Settings, Pencil, Save, XCircle, Zap, Key } from "lucide-react";
+import { Check, Loader2, CreditCard, Settings, Pencil, Save, XCircle, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { loadSavedPricing, savePricing as savePricingToStorage } from "@/components/shared/PricingConfig";
-import StripeSettingsDialog from "@/components/pricing/StripeSettingsDialog";
 import { useAuth } from "@/lib/AuthContext";
-import { isAdminUser } from "@/lib/access";
+import { isSuperAdmin } from "@/lib/access";
 import AdminDenied from "@/components/admin/AdminDenied";
 
 export default function Pricing({ embedded = false }) {
@@ -21,7 +20,6 @@ export default function Pricing({ embedded = false }) {
   const [editMode, setEditMode] = useState(false);
   const [subscriptionPlans, setSubscriptionPlans] = useState([]);
   const [moduleCategories, setModuleCategories] = useState([]);
-  const [stripeDialogOpen, setStripeDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   
   // Load pricing from shared config on mount
@@ -93,7 +91,7 @@ export default function Pricing({ embedded = false }) {
   };
 
   const currentPlan = user?.subscription_plan;
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = isSuperAdmin(user);
 
   const updatePlanPrice = (planId, newPrice) => {
     setSubscriptionPlans(prev => prev.map(plan => 
@@ -131,7 +129,7 @@ export default function Pricing({ embedded = false }) {
     return colors[color] || colors.blue;
   };
 
-  if (!isAdminUser(authUser)) return <AdminDenied />;
+  if (!isSuperAdmin(authUser)) return <AdminDenied />;
 
   if (subscriptionPlans.length === 0) {
     return (
@@ -174,10 +172,6 @@ export default function Pricing({ embedded = false }) {
                   <Button variant="outline" onClick={() => setEditMode(true)}>
                     <Pencil className="w-4 h-4 mr-2" />
                     Edit Prices
-                  </Button>
-                  <Button variant="outline" onClick={() => setStripeDialogOpen(true)}>
-                    <Key className="w-4 h-4 mr-2" />
-                    Stripe Settings
                   </Button>
                 </>
               )}
@@ -429,11 +423,7 @@ export default function Pricing({ embedded = false }) {
         </div>
       </div>
 
-      {/* Stripe Settings Dialog */}
-      <StripeSettingsDialog 
-        open={stripeDialogOpen} 
-        onClose={() => setStripeDialogOpen(false)} 
-      />
+      {/* Invoice payment links are managed in Settings → Payments (eFinMoney) */}
     </div>
   );
 }

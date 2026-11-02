@@ -7,9 +7,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCompany } from "@/components/shared/CompanyContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/api/supabaseClient";
+import { useAuth } from "@/lib/AuthContext";
+import { assignableRoles, isSuperAdmin, ROLE_OPTIONS } from "@/lib/access";
 
 export default function UserEditDialog({ open, onClose, user, onSave, isLoading }) {
   const { selectedCompanyId } = useCompany();
+  const { user: currentUser } = useAuth();
+  const isSelf = user?.id === currentUser?.id;
+  const canPickCompany = isSuperAdmin(currentUser);
+  // Keep the user's current role listed even when the editor can't assign it.
+  const allowedRoles = assignableRoles(currentUser);
+  const roleOptions = allowedRoles.some((option) => option.value === user?.role)
+    ? allowedRoles
+    : [...ROLE_OPTIONS.filter((option) => option.value === user?.role), ...allowedRoles];
   const [userData, setUserData] = useState({
     full_name: "",
     role: "user",
@@ -46,11 +56,13 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
     
     const updateData = {
       full_name: userData.full_name,
-      role: userData.role,
       department: userData.department,
       employee_id: userData.employee_id,
-      company_id: userData.company_id || null,
-      accessible_modules: userData.accessible_modules || []
+      ...(isSelf ? {} : {
+        role: userData.role,
+        accessible_modules: userData.accessible_modules || [],
+      }),
+      ...(canPickCompany && !isSelf ? { company_id: userData.company_id || null } : {}),
     };
     
     onSave(updateData);
@@ -87,26 +99,33 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
 
           <div className="space-y-2">
             <Label>Role</Label>
-            <Select value={userData.role} onValueChange={(value) => setUserData({ ...userData, role: value })}>
+            <Select
+              value={userData.role}
+              onValueChange={(value) => setUserData({ ...userData, role: value })}
+              disabled={isSelf}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Administrator</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="sales">Sales Staff</SelectItem>
-                <SelectItem value="technician">Technician</SelectItem>
-                <SelectItem value="inventory_manager">Inventory Manager</SelectItem>
-                <SelectItem value="accountant">Accountant</SelectItem>
-                <SelectItem value="user">Regular User</SelectItem>
+                {roleOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <div className="text-xs text-gray-500 space-y-1 mt-2">
+              {userData.role === 'super_admin' && (
+                <>
+                  <p className="font-medium">Permissions:</p>
+                  <p>✓ eFin staff • Every company • Pricing and platform settings</p>
+                  <p>✓ Create and delete companies, assign any role</p>
+                </>
+              )}
               {userData.role === 'admin' && (
                 <>
                   <p className="font-medium">Permissions:</p>
-                  <p>✓ Full system access • User management • All data access</p>
-                  <p>✓ Create, view, update, delete across all modules</p>
+                  <p>✓ Dealership owner • Full access within their company</p>
+                  <p>✓ Company settings, payments, users up to Administrator</p>
                 </>
               )}
               {userData.role === 'manager' && (
@@ -154,6 +173,7 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
             </div>
           </div>
 
+          {canPickCompany && (
           <div className="space-y-2">
             <Label>Assigned Company</Label>
             <Select value={userData.company_id} onValueChange={(value) => setUserData({ ...userData, company_id: value })}>
@@ -173,6 +193,7 @@ export default function UserEditDialog({ open, onClose, user, onSave, isLoading 
               Assign user to a specific company for data access
             </p>
           </div>
+          )}
 
           <div className="space-y-2">
             <Label>Department</Label>

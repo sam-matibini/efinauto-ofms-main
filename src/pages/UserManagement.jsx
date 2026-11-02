@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
+import { canManageUser, isAdminUser, isCompanyManager } from "@/lib/access";
 import { supabase } from "@/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -81,7 +82,7 @@ export default function UserManagement() {
       setSelectedUser(null);
     },
     onError: (error) => {
-      toast.error("Failed to update user");
+      toast.error(error?.message || "Failed to update user");
       console.error(error);
     }
   });
@@ -95,13 +96,14 @@ export default function UserManagement() {
       setUserToDelete(null);
     },
     onError: (error) => {
-      toast.error("Failed to delete user");
+      toast.error(error?.message || "Failed to delete user");
       console.error(error);
     }
   });
 
   const getRoleBadge = (role) => {
     const roleConfig = {
+      super_admin: { label: 'Super Admin', color: 'bg-red-100 text-red-700' },
       admin: { label: 'Admin', color: 'bg-purple-100 text-purple-700' },
       manager: { label: 'Manager', color: 'bg-blue-100 text-blue-700' },
       sales: { label: 'Sales', color: 'bg-green-100 text-green-700' },
@@ -125,9 +127,9 @@ export default function UserManagement() {
 
   // Apply role filter
   if (roleFilter === 'admin') {
-    filteredUsers = filteredUsers.filter(u => u.role === 'admin');
+    filteredUsers = filteredUsers.filter(u => isAdminUser(u));
   } else if (roleFilter === 'regular') {
-    filteredUsers = filteredUsers.filter(u => u.role !== 'admin');
+    filteredUsers = filteredUsers.filter(u => !isAdminUser(u));
   }
 
   // Apply active filter
@@ -150,8 +152,8 @@ export default function UserManagement() {
     }
   });
 
-  const adminUsers = users.filter(u => u.role === 'admin');
-  const regularUsers = users.filter(u => u.role !== 'admin');
+  const adminUsers = users.filter(u => isAdminUser(u));
+  const regularUsers = users.filter(u => !isAdminUser(u));
 
   const handleEdit = (user) => {
     setSelectedUser(user);
@@ -169,9 +171,7 @@ export default function UserManagement() {
     }
   };
 
-  const isAdmin = currentUser?.role === 'admin';
-
-  if (!isAdmin) {
+  if (!isCompanyManager(currentUser)) {
     return (
       <div className="p-6">
         <Card className="bg-red-50 border-red-200">
@@ -374,7 +374,7 @@ export default function UserManagement() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <h4 className="font-semibold text-gray-900">{user.full_name || 'Unnamed User'}</h4>
                         <Badge className={getRoleBadge(user.role).color}>
-                          {user.role === 'admin' && <Shield className="w-3 h-3 mr-1" />}
+                          {isAdminUser(user) && <Shield className="w-3 h-3 mr-1" />}
                           {getRoleBadge(user.role).label}
                         </Badge>
                         {user.id === currentUser?.id && (
@@ -417,14 +417,17 @@ export default function UserManagement() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEdit(user)}>
+                      <DropdownMenuItem
+                        onClick={() => handleEdit(user)}
+                        disabled={!canManageUser(currentUser, user)}
+                      >
                         <Edit className="w-4 h-4 mr-2" />
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         onClick={() => handleDeleteClick(user)}
                         className="text-red-600"
-                        disabled={user.id === currentUser?.id}
+                        disabled={!canManageUser(currentUser, user)}
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
                         Delete

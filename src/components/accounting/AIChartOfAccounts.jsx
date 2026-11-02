@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
+import { isAdminUser } from "@/lib/access";
 import { supabase } from "@/api/supabaseClient";
 import { useCompany } from "@/components/shared/CompanyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,7 +44,7 @@ export default function AIChartOfAccounts() {
     initialData: [],
   });
 
-  const hasAccountPermission = currentUser?.role === 'admin' || currentUser?.role === 'user';
+  const hasAccountPermission = isAdminUser(currentUser) || currentUser?.role === 'user';
 
   const deleteAccountMutation = useMutation({
     mutationFn: (accountId) => supabase.entities.Account.delete(accountId),

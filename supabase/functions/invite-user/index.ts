@@ -1,4 +1,11 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  isSuperAdmin,
+  loadCallerProfile,
+  maxAssignableRank,
+  roleRank,
+  VALID_ROLES,
+} from "../_shared/authz.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -12,16 +19,6 @@ function json(body: unknown, status = 200) {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
-
-const VALID_ROLES = new Set([
-  "admin",
-  "manager",
-  "sales",
-  "technician",
-  "inventory_manager",
-  "accountant",
-  "user",
-]);
 
 interface InvitePayload {
   email?: string;
@@ -62,27 +59,13 @@ Deno.serve(async (req: Request) => {
     }
     const caller = callerData.user;
 
-    // --- 2. Verify caller is an admin ---------------------------------------
-    const { data: callerProfile } = await service
-      .schema("core")
-      .from("users")
-      .select("id, role")
-      .eq("id", caller.id)
-      .maybeSingle();
-
-    const adminRole =
-      callerProfile?.role ??
-      (
-        await service
-          .schema("core")
-          .from("users")
-          .select("id, role")
-          .ilike("email", caller.email ?? "")
-          .maybeSingle()
-      ).data?.role;
-
-    if (adminRole !== "admin") {
-      return json({ error: "Only administrators can invite users." }, 403);
+    // --- 2. Verify caller may manage users ----------------------------------
+    // super_admin: any company; admin: up to admin in their company;
+    // manager: staff roles in their company.
+    const callerProfile = await loadCallerProfile(service, caller);
+    const maxRank = maxAssignableRank(callerProfile);
+    if (maxRank === 0) {
+      return json({ error: "You are not allowed to invite users." }, 403);
     }
 
     // --- 3. Validate payload -------------------------------------------------
@@ -99,6 +82,17 @@ Deno.serve(async (req: Request) => {
     }
     if (!VALID_ROLES.has(role)) {
       return json({ error: "Invalid role" }, 400);
+    }
+    if (roleRank(role) > maxRank) {
+      return json({ error: "You cannot invite a user with a role above your own." }, 403);
+    }
+
+    // Only super_admin chooses the company; everyone else invites into theirs.
+    const companyId = isSuperAdmin(callerProfile)
+      ? body.company_id || null
+      : callerProfile?.company_id || null;
+    if (!isSuperAdmin(callerProfile) && !companyId) {
+      return json({ error: "Your profile is not linked to a company." }, 403);
     }
 
     // --- 4. Duplicate guard --------------------------------------------------
@@ -149,7 +143,7 @@ Deno.serve(async (req: Request) => {
       role,
       department: body.department?.trim() || null,
       employee_id: body.employee_id?.trim() || null,
-      company_id: body.company_id || null,
+      company_id: companyId,
       accessible_modules: [],
     };
 

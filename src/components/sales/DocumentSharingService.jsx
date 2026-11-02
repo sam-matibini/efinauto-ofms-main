@@ -3,6 +3,39 @@
 
 import { supabase } from "@/api/supabaseClient";
 import { generateDocumentPDF } from "./DocumentPDFService";
+import { getSaleDocumentPaymentLink, paymentLinkDocumentHtml } from "@/lib/paymentLinks";
+
+/**
+ * Upload a generated BOS PDF to Supabase Storage (default bucket) and return
+ * a URL the recipient can open: a signed URL valid for `expiresInSec`, or
+ * the public URL if signing isn't permitted. Each share gets its own file so
+ * it reflects the current balance / payment link.
+ */
+const uploadSharedPDF = async (pdfBlob, document, expiresInSec) => {
+  const safeName = String(document.bos_number || document.sale_number || document.id).replace(/[^\w.-]+/g, "_");
+  const path = `bills-of-sale/${document.company_id}/${document.id}/BOS_${safeName}_${Date.now()}.pdf`;
+  const { url: publicUrl } = await supabase.storage.uploadFile({
+    path,
+    file: pdfBlob,
+    contentType: "application/pdf",
+  });
+  try {
+    return await supabase.storage.createSignedUrl(path, expiresInSec);
+  } catch (error) {
+    console.warn("Could not sign BOS PDF URL; using its public URL:", error);
+    if (!publicUrl) throw error;
+    return publicUrl;
+  }
+};
+
+/** Open `url` in a tab pre-opened by the caller (avoids popup blockers after async work), or a new one. */
+const openInTab = (url, targetWindow) => {
+  if (targetWindow && !targetWindow.closed) {
+    targetWindow.location.href = url;
+  } else {
+    window.open(url, "_blank");
+  }
+};
 
 export const generateSecureDownloadLink = async (documentId, documentType = "BOS", expiresInHours = 72) => {
   try {
@@ -11,10 +44,13 @@ export const generateSecureDownloadLink = async (documentId, documentType = "BOS
     const document = sales[0];
     if (!document) throw new Error("Sale not found");
     
-    // Generate PDF from DOM
+    // Generate the PDF, then upload it so the link works on the recipient's
+    // device (the blob: URL from generateDocumentPDF only exists in this tab).
     const result = await generateDocumentPDF(documentId, documentType);
-    const pdfUrl = result.pdf_url; // blob URL
-    
+    URL.revokeObjectURL(result.pdf_url);
+    const expiresInSec = Math.round(expiresInHours * 60 * 60);
+    const pdfUrl = await uploadSharedPDF(result.pdf_blob, document, expiresInSec);
+
     // Log link generation
     const user = await supabase.auth.me().catch(() => null);
     if (user) {
@@ -35,7 +71,6 @@ export const generateSecureDownloadLink = async (documentId, documentType = "BOS
     
     const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
     
-    // Return blob URL as secure link
     return {
       secure_link: pdfUrl,
       direct_pdf_url: pdfUrl,
@@ -57,13 +92,12 @@ export const shareViaEmail = async (documentId, recipientEmail, recipientName, m
     const company = companies[0];
     if (!company) throw new Error("Company not found");
     
-    // Ensure PDF exists
-    let pdfUrl = document.pdf_file_url;
-    if (!pdfUrl) {
-      const result = await generateDocumentPDF(documentId, "BOS");
-      pdfUrl = result.pdf_url;
-    }
-    
+    // Always build a fresh, uploaded PDF so the email carries the current
+    // balance and payment link, and the download link works for the recipient.
+    const { secure_link: pdfUrl } = await generateSecureDownloadLink(documentId);
+
+    const payLink = await getSaleDocumentPaymentLink(document);
+
     // Send email with PDF link (avoid attachment issues)
     const emailBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -90,6 +124,7 @@ export const shareViaEmail = async (documentId, recipientEmail, recipientName, m
             📄 Download Bill of Sale PDF
           </a>
         </div>
+        ${paymentLinkDocumentHtml(payLink)}
         
         <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
         
@@ -119,7 +154,11 @@ export const shareViaEmail = async (documentId, recipientEmail, recipientName, m
   }
 };
 
-export const shareViaWhatsApp = async (documentId, recipientPhone) => {
+/**
+ * @param {Window} [targetWindow] a tab opened synchronously in the click
+ *   handler; the wa.me URL is loaded into it once the PDF is uploaded.
+ */
+export const shareViaWhatsApp = async (documentId, recipientPhone, targetWindow = null) => {
   try {
     const sales = await supabase.entities.Sale.filter({ id: documentId });
     const document = sales[0];
@@ -129,7 +168,8 @@ export const shareViaWhatsApp = async (documentId, recipientPhone) => {
     const company = companies[0];
     if (!company) throw new Error("Company not found");
     
-    const { secure_link, direct_pdf_url } = await generateSecureDownloadLink(documentId);
+    const { secure_link } = await generateSecureDownloadLink(documentId);
+    const payLink = await getSaleDocumentPaymentLink(document);
     
     const message = encodeURIComponent(
       `*📄 BILL OF SALE*\n` +
@@ -140,6 +180,7 @@ export const shareViaWhatsApp = async (documentId, recipientPhone) => {
       `*Customer:* ${document.customer_name || 'N/A'}\n` +
       `*Sale Date:* ${document.sale_date || 'N/A'}\n` +
       `*Total:* $${(document.grand_total || 0).toLocaleString()}\n\n` +
+      (payLink ? `💳 *Pay online (${Number(payLink.amount).toFixed(2)} ${payLink.currency}):*\n${payLink.url}\n\n` : '') +
       `🔒 *Download PDF:*\n${secure_link}\n\n` +
       `_Link expires in 72 hours_\n\n` +
       `${company.phone || ''} | ${company.email || ''}`
@@ -149,15 +190,16 @@ export const shareViaWhatsApp = async (documentId, recipientPhone) => {
     await logSharingAction(document, "WHATSAPP", recipientPhone);
     
     // Open WhatsApp
-    const cleanPhone = recipientPhone.replace(/[^0-9]/g, '');
-    const whatsappUrl = cleanPhone 
+    const cleanPhone = (recipientPhone || '').replace(/[^0-9]/g, '');
+    const whatsappUrl = cleanPhone
       ? `https://wa.me/${cleanPhone}?text=${message}`
       : `https://wa.me/?text=${message}`;
-    
-    window.open(whatsappUrl, "_blank");
-    
+
+    openInTab(whatsappUrl, targetWindow);
+
     return { success: true, link: secure_link };
   } catch (error) {
+    if (targetWindow && !targetWindow.closed) targetWindow.close();
     console.error("WhatsApp sharing error:", error);
     throw error;
   }
@@ -174,12 +216,14 @@ export const shareViaSMS = async (documentId, recipientPhone) => {
     if (!company) throw new Error("Company not found");
     
     const { secure_link } = await generateSecureDownloadLink(documentId);
+    const payLink = await getSaleDocumentPaymentLink(document);
     
     const message = 
       `${company.name}\n` +
       `Bill of Sale: ${document.bos_number || document.sale_number}\n` +
       `Vehicle: ${document.vehicle_details}\n` +
       `Total: $${(document.grand_total || 0).toLocaleString()}\n\n` +
+      (payLink ? `Pay online: ${payLink.url}\n` : '') +
       `Download PDF: ${secure_link}\n` +
       `Expires in 72 hours`;
     
@@ -187,9 +231,11 @@ export const shareViaSMS = async (documentId, recipientPhone) => {
     await logSharingAction(document, "SMS", recipientPhone);
     
     // Open SMS app (works on mobile devices)
-    const cleanPhone = recipientPhone.replace(/[^0-9]/g, '');
+    const cleanPhone = (recipientPhone || '').replace(/[^0-9]/g, '');
     const smsUrl = `sms:${cleanPhone}${/iPhone|iPad|iPod/.test(navigator.userAgent) ? '&' : '?'}body=${encodeURIComponent(message)}`;
-    window.open(smsUrl, "_blank");
+    // sms: hands off to the messaging app without leaving the page, and
+    // (unlike window.open after an await) isn't caught by popup blockers.
+    window.location.href = smsUrl;
     
     return { success: true, link: secure_link };
   } catch (error) {
